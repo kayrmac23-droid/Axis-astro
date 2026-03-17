@@ -1,0 +1,217 @@
+/* [project]/src/components/ReadingPanel.module.css [app-client] (css) */
+.ReadingPanel-module__fAyOaq__panel {
+  padding: 3rem 0;
+}
+
+.ReadingPanel-module__fAyOaq__readingHeader {
+  border-bottom: 1px solid var(--border);
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding-bottom: 2.5rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__readingMeta {
+  flex-direction: column;
+  gap: .4rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__readingTitle {
+  font-family: var(--font-serif);
+  letter-spacing: .04em;
+  color: var(--text);
+  font-size: 1.6rem;
+  font-weight: 300;
+}
+
+.ReadingPanel-module__fAyOaq__readingSubtitle {
+  font-family: var(--font-mono);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-size: .65rem;
+}
+
+.ReadingPanel-module__fAyOaq__chartSummary {
+  text-align: right;
+  flex-direction: column;
+  gap: .5rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__summaryGroup {
+  flex-direction: column;
+  gap: .2rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__summarySystem {
+  font-family: var(--font-mono);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-size: .6rem;
+}
+
+.ReadingPanel-module__fAyOaq__summaryPlacements {
+  font-family: var(--font-serif);
+  color: var(--gold);
+  opacity: .7;
+  letter-spacing: .03em;
+  font-size: .9rem;
+}
+
+.ReadingPanel-module__fAyOaq__generating {
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 4rem 0;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__generatingDots {
+  gap: .5rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__generatingDots span {
+  background: var(--gold-dim);
+  border-radius: 50%;
+  width: 4px;
+  height: 4px;
+  animation: 1.4s ease-in-out infinite ReadingPanel-module__fAyOaq__pulse;
+}
+
+.ReadingPanel-module__fAyOaq__generatingDots span:nth-child(2) {
+  animation-delay: .2s;
+}
+
+.ReadingPanel-module__fAyOaq__generatingDots span:nth-child(3) {
+  animation-delay: .4s;
+}
+
+@keyframes ReadingPanel-module__fAyOaq__pulse {
+  0%, 100% {
+    opacity: .2;
+    transform: scale(.8);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.ReadingPanel-module__fAyOaq__generatingText {
+  font-family: var(--font-mono);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-size: .65rem;
+}
+
+.ReadingPanel-module__fAyOaq__errorState {
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 4rem 0;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__errorText {
+  font-family: var(--font-mono);
+  color: #c07070;
+  letter-spacing: .05em;
+  font-size: .75rem;
+}
+
+.ReadingPanel-module__fAyOaq__retryBtn {
+  font-family: var(--font-mono);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+  cursor: pointer;
+  background: none;
+  padding: .6rem 1.5rem;
+  font-size: .65rem;
+  transition: all .2s;
+}
+
+.ReadingPanel-module__fAyOaq__retryBtn:hover {
+  color: var(--text);
+  border-color: var(--text-3);
+}
+
+.ReadingPanel-module__fAyOaq__readingBody {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.ReadingPanel-module__fAyOaq__readingText {
+  flex-direction: column;
+  gap: 1.6rem;
+  display: flex;
+}
+
+.ReadingPanel-module__fAyOaq__paragraph {
+  font-family: var(--font-serif);
+  color: var(--text);
+  letter-spacing: .01em;
+  font-size: 1.1rem;
+  font-weight: 300;
+  line-height: 1.9;
+  animation: .5s both ReadingPanel-module__fAyOaq__fadeIn;
+}
+
+@keyframes ReadingPanel-module__fAyOaq__fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ReadingPanel-module__fAyOaq__cursor {
+  background: var(--gold);
+  opacity: .7;
+  vertical-align: text-bottom;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  animation: 1s step-end infinite ReadingPanel-module__fAyOaq__blink;
+  display: inline-block;
+}
+
+@keyframes ReadingPanel-module__fAyOaq__blink {
+  0%, 100% {
+    opacity: .7;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .ReadingPanel-module__fAyOaq__readingHeader {
+    flex-direction: column;
+  }
+
+  .ReadingPanel-module__fAyOaq__chartSummary {
+    text-align: left;
+  }
+
+  .ReadingPanel-module__fAyOaq__paragraph {
+    font-size: 1rem;
+  }
+}
+
+/*# sourceMappingURL=src_components_ReadingPanel_module_css_bad6b30c._.single.css.map*/

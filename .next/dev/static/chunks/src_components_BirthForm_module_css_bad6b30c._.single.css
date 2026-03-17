@@ -1,0 +1,199 @@
+/* [project]/src/components/BirthForm.module.css [app-client] (css) */
+.BirthForm-module__uPDQVW__form {
+  flex-direction: column;
+  gap: 2rem;
+  display: flex;
+}
+
+.BirthForm-module__uPDQVW__formLabel {
+  font-family: var(--font-mono);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: .5rem;
+  font-size: .7rem;
+}
+
+.BirthForm-module__uPDQVW__fieldGroup {
+  flex-direction: column;
+  gap: .6rem;
+  display: flex;
+}
+
+.BirthForm-module__uPDQVW__label {
+  font-family: var(--font-mono);
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  align-items: center;
+  gap: .8rem;
+  font-size: .65rem;
+  display: flex;
+}
+
+.BirthForm-module__uPDQVW__labelNote {
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-3);
+  opacity: .6;
+  font-style: italic;
+  font-family: var(--font-serif);
+  font-size: .75rem;
+}
+
+.BirthForm-module__uPDQVW__dateRow {
+  align-items: center;
+  gap: .5rem;
+  display: flex;
+}
+
+.BirthForm-module__uPDQVW__fieldWrap {
+  flex: 1;
+}
+
+.BirthForm-module__uPDQVW__timeSep {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 1rem;
+}
+
+.BirthForm-module__uPDQVW__input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  width: 100%;
+  color: var(--text);
+  font-family: var(--font-mono);
+  -webkit-appearance: none;
+  border-radius: 0;
+  outline: none;
+  padding: .85rem 1rem;
+  font-size: .9rem;
+  transition: border-color .2s;
+}
+
+.BirthForm-module__uPDQVW__input::placeholder {
+  color: var(--text-3);
+  opacity: .5;
+}
+
+.BirthForm-module__uPDQVW__input:focus {
+  border-color: var(--gold-dim);
+}
+
+.BirthForm-module__uPDQVW__inputConfirmed {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+}
+
+.BirthForm-module__uPDQVW__input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.BirthForm-module__uPDQVW__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.BirthForm-module__uPDQVW__locationWrap {
+  position: relative;
+}
+
+.BirthForm-module__uPDQVW__locationLoader {
+  border: 1px solid var(--gold-dim);
+  border-top-color: #0000;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  animation: .8s linear infinite BirthForm-module__uPDQVW__spin;
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+}
+
+.BirthForm-module__uPDQVW__suggestions {
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  z-index: 100;
+  border-top: none;
+  max-height: 200px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+}
+
+.BirthForm-module__uPDQVW__suggestion {
+  text-align: left;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  color: var(--text-2);
+  font-family: var(--font-serif);
+  cursor: pointer;
+  background: none;
+  padding: .75rem 1rem;
+  font-size: .85rem;
+  line-height: 1.4;
+  transition: all .15s;
+  display: block;
+}
+
+.BirthForm-module__uPDQVW__suggestion:hover {
+  background: var(--bg-3);
+  color: var(--text);
+}
+
+.BirthForm-module__uPDQVW__suggestion:last-child {
+  border-bottom: none;
+}
+
+.BirthForm-module__uPDQVW__submitBtn {
+  background: var(--surface);
+  border: 1px solid var(--gold-dim);
+  width: 100%;
+  color: var(--gold);
+  font-family: var(--font-mono);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: .5rem;
+  padding: 1.1rem;
+  font-size: .75rem;
+  transition: all .2s;
+}
+
+.BirthForm-module__uPDQVW__submitBtn:hover:not(:disabled) {
+  background: var(--gold-dim);
+  color: var(--bg);
+  border-color: var(--gold-dim);
+}
+
+.BirthForm-module__uPDQVW__submitBtn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.BirthForm-module__uPDQVW__btnLoading {
+  justify-content: center;
+  align-items: center;
+  gap: .75rem;
+  display: flex;
+}
+
+.BirthForm-module__uPDQVW__btnSpinner {
+  border: 1px solid var(--gold-dim);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  animation: .8s linear infinite BirthForm-module__uPDQVW__spin;
+}
+
+@keyframes BirthForm-module__uPDQVW__spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/*# sourceMappingURL=src_components_BirthForm_module_css_bad6b30c._.single.css.map*/
