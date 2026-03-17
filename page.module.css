@@ -1,0 +1,252 @@
+.main {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Header */
+.header {
+  width: 100%;
+  padding: 2.5rem 2rem 2rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.logoMark {
+  opacity: 0.9;
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+}
+
+.tagline {
+  font-family: var(--font-serif);
+  font-size: 0.85rem;
+  font-weight: 300;
+  color: var(--text-3);
+  letter-spacing: 0.08em;
+  font-style: italic;
+  padding-left: 1.2rem;
+  border-left: 1px solid var(--border-2);
+}
+
+/* Hero */
+.hero {
+  width: 100%;
+  max-width: 680px;
+  padding: 6rem 2rem 3rem;
+  text-align: center;
+  animation: fadeUp 1s ease both;
+}
+
+.heroContent {
+  position: relative;
+}
+
+.heroText {
+  font-size: 1.25rem;
+  line-height: 2;
+  font-weight: 300;
+  color: var(--text-2);
+  letter-spacing: 0.01em;
+}
+
+.heroEmphasis {
+  color: var(--text);
+  font-style: italic;
+}
+
+/* Form */
+.formSection {
+  width: 100%;
+  max-width: 560px;
+  padding: 3rem 2rem 5rem;
+  animation: fadeUp 1s ease 0.2s both;
+}
+
+.error {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #c07070;
+  text-align: center;
+  margin-top: 1rem;
+  letter-spacing: 0.04em;
+}
+
+/* Loading */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 6rem 2rem;
+  animation: fadeIn 0.4s ease;
+}
+
+.loadingOrb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-dim);
+  border-top-color: var(--gold);
+  animation: spin 1.4s linear infinite;
+}
+
+.loadingText {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: var(--text-3);
+  text-transform: uppercase;
+}
+
+/* Reading Layout */
+.readingLayout {
+  width: 100%;
+  max-width: 900px;
+  padding: 0 2rem 6rem;
+  animation: fadeIn 0.6s ease;
+}
+
+/* Wheel Section */
+.wheelSection {
+  padding: 4rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.wheelPair {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+
+.wheelItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.wheelLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.wheelDivider {
+  opacity: 0.5;
+}
+
+/* Tab Bar */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  margin-top: 0;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1.5rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-3);
+}
+
+.tab:hover {
+  color: var(--text-2);
+  background: var(--bg-2);
+}
+
+.tabActive {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+.tabLabel {
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+}
+
+.tabSub {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+/* Reset */
+.resetRow {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 0 0;
+}
+
+.resetBtn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: none;
+  border: 1px solid var(--border-2);
+  padding: 0.7rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.resetBtn:hover {
+  color: var(--text-2);
+  border-color: var(--text-3);
+}
+
+/* Footer */
+.footer {
+  width: 100%;
+  padding: 2rem;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  margin-top: auto;
+}
+
+.footer p {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+@media (max-width: 640px) {
+  .wheelPair {
+    flex-direction: column;
+    gap: 2rem;
+  }
+  .wheelDivider { display: none; }
+  .tabLabel { font-size: 0.95rem; }
+}

@@ -1,0 +1,220 @@
+'use client'
+import { useState } from 'react'
+import styles from './BirthForm.module.css'
+
+interface BirthFormProps {
+  onSubmit: (data: Record<string, string>) => void
+  loading: boolean
+}
+
+interface GeoResult {
+  display_name: string
+  lat: string
+  lon: string
+}
+
+export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
+  const [formData, setFormData] = useState({
+    year: '',
+    month: '',
+    day: '',
+    hour: '',
+    minute: '',
+    location: '',
+    latitude: '',
+    longitude: '',
+    timezone: '',
+  })
+  const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationConfirmed, setLocationConfirmed] = useState(false)
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === 'location') {
+      setLocationConfirmed(false)
+      if (value.length > 2) searchLocation(value)
+      else setLocationSuggestions([])
+    }
+  }
+
+  const searchLocation = async (query: string) => {
+    setLocationLoading(true)
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=4`,
+        { headers: { 'Accept-Language': 'en' } }
+      )
+      const data = await res.json()
+      setLocationSuggestions(data)
+    } catch {
+      setLocationSuggestions([])
+    } finally {
+      setLocationLoading(false)
+    }
+  }
+
+  const selectLocation = async (result: GeoResult) => {
+    // Get timezone offset from coordinates
+    let tz = '0'
+    try {
+      const tzRes = await fetch(
+        `https://timezonefinder.michelfe.it/api/0?lat=${result.lat}&lng=${result.lon}`
+      )
+      // fallback: estimate from longitude
+    } catch {}
+    // Rough timezone estimate from longitude
+    tz = String(Math.round(parseFloat(result.lon) / 15))
+
+    setFormData(prev => ({
+      ...prev,
+      location: result.display_name.split(',').slice(0, 2).join(','),
+      latitude: result.lat,
+      longitude: result.lon,
+      timezone: tz
+    }))
+    setLocationSuggestions([])
+    setLocationConfirmed(true)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.latitude || !formData.longitude) {
+      alert('Please select a location from the suggestions.')
+      return
+    }
+    onSubmit(formData)
+  }
+
+  const isValid = formData.year && formData.month && formData.day && locationConfirmed
+
+  return (
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <p className={styles.formLabel}>Enter birth data</p>
+
+      {/* Date */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>Date of birth</label>
+        <div className={styles.dateRow}>
+          <div className={styles.fieldWrap}>
+            <input
+              className={styles.input}
+              name="day"
+              type="number"
+              placeholder="DD"
+              min="1" max="31"
+              value={formData.day}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className={styles.fieldWrap}>
+            <input
+              className={styles.input}
+              name="month"
+              type="number"
+              placeholder="MM"
+              min="1" max="12"
+              value={formData.month}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div className={styles.fieldWrap} style={{ flex: 2 }}>
+            <input
+              className={styles.input}
+              name="year"
+              type="number"
+              placeholder="YYYY"
+              min="1900" max="2099"
+              value={formData.year}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Time */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>
+          Time of birth
+          <span className={styles.labelNote}>use 12:00 if unknown</span>
+        </label>
+        <div className={styles.dateRow}>
+          <div className={styles.fieldWrap}>
+            <input
+              className={styles.input}
+              name="hour"
+              type="number"
+              placeholder="HH"
+              min="0" max="23"
+              value={formData.hour}
+              onChange={handleChange}
+            />
+          </div>
+          <span className={styles.timeSep}>:</span>
+          <div className={styles.fieldWrap}>
+            <input
+              className={styles.input}
+              name="minute"
+              type="number"
+              placeholder="MM"
+              min="0" max="59"
+              value={formData.minute}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Location */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>Place of birth</label>
+        <div className={styles.locationWrap}>
+          <input
+            className={`${styles.input} ${locationConfirmed ? styles.inputConfirmed : ''}`}
+            name="location"
+            type="text"
+            placeholder="City, country"
+            value={formData.location}
+            onChange={handleChange}
+            autoComplete="off"
+            required
+          />
+          {locationLoading && <span className={styles.locationLoader} />}
+          {locationSuggestions.length > 0 && (
+            <div className={styles.suggestions}>
+              {locationSuggestions.map((s, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={styles.suggestion}
+                  onClick={() => selectLocation(s)}
+                >
+                  {s.display_name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        className={styles.submitBtn}
+        disabled={loading || !isValid}
+      >
+        {loading ? (
+          <span className={styles.btnLoading}>
+            <span className={styles.btnSpinner} />
+            Calculating
+          </span>
+        ) : (
+          'Generate chart'
+        )}
+      </button>
+    </form>
+  )
+}

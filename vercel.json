@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "src/app/api/calculate/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 30
+    },
+    "src/app/api/reading/route.ts": {
+      "runtime": "nodejs20.x",
+      "maxDuration": 60
+    }
+  }
+}
