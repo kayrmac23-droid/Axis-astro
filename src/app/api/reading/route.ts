@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     // Stream the response
     const stream = await anthropic.messages.stream({
-      model: 'claude-opus-4-5',
+      model: 'claude-3-5-sonnet-latest',
       max_tokens: 1500,
       temperature: 0.7,
       system: systemPrompt,

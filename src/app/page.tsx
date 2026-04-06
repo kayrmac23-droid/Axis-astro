@@ -66,10 +66,10 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroContent}>
             <p className={styles.heroText}>
-              Western astrology maps the self you constructed.<br />
-              Vedic astrology maps the self you started with.<br />
-              <span className={styles.heroEmphasis}>Where they agree — that is your bedrock.<br />
-              Where they diverge — that is where you live.</span>
+              Tropical maps the I — how you experience yourself from inside.<br />
+              Sidereal maps the pattern — what larger structure your life is embedded in.<br />
+              <span className={styles.heroEmphasis}>The axis is the question they form together:<br />
+              How does this particular I move through this particular pattern?</span>
             </p>
           </div>
         </section>
@@ -121,21 +121,21 @@ export default function Home() {
               onClick={() => setActiveSection('synthesis')}
             >
               <span className={styles.tabLabel}>Synthesis</span>
-              <span className={styles.tabSub}>convergence & divergence</span>
+              <span className={styles.tabSub}>concordance · dissonance · integration</span>
             </button>
             <button
               className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
               onClick={() => setActiveSection('tropical')}
             >
               <span className={styles.tabLabel}>Tropical</span>
-              <span className={styles.tabSub}>western reading</span>
+              <span className={styles.tabSub}>the I — inner architecture</span>
             </button>
             <button
               className={`${styles.tab} ${activeSection === 'sidereal' ? styles.tabActive : ''}`}
               onClick={() => setActiveSection('sidereal')}
             >
               <span className={styles.tabLabel}>Sidereal</span>
-              <span className={styles.tabSub}>vedic reading</span>
+              <span className={styles.tabSub}>the pattern — karmic structure</span>
             </button>
           </div>
 

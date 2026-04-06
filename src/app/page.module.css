@@ -123,15 +123,18 @@
 
 /* Wheel Section */
 .wheelSection {
-  padding: 4rem 0 3rem;
+  padding: 4rem 0 3.5rem;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .wheelPair {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3rem;
+  gap: 4rem;
 }
 
 .wheelItem {

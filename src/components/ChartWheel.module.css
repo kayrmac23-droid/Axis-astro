@@ -2,10 +2,23 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.9;
+  position: relative;
   transition: opacity 0.3s ease;
+}
+
+.wheelWrap::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201,169,110,0.04) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .wheelWrap:hover {
   opacity: 1;
+}
+
+.wheelWrap svg {
+  overflow: visible;
 }

@@ -56,16 +56,45 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   }
 
   const selectLocation = async (result: GeoResult) => {
-    // Get timezone offset from coordinates
-    let tz = '0'
+    // Fallback: rough estimate from longitude
+    let tz = String(Math.round(parseFloat(result.lon) / 15))
+
     try {
       const tzRes = await fetch(
         `https://timezonefinder.michelfe.it/api/0?lat=${result.lat}&lng=${result.lon}`
       )
-      // fallback: estimate from longitude
+      const tzData = await tzRes.json()
+      const tzName: string = tzData.tz_name || tzData.timezone_id || ''
+
+      if (tzName) {
+        // Use the birth date for DST-aware offset (fall back to current date)
+        const year = parseInt(formData.year) || new Date().getFullYear()
+        const month = (parseInt(formData.month) || 1) - 1
+        const day = parseInt(formData.day) || 1
+        const hour = parseInt(formData.hour) || 12
+        const minute = parseInt(formData.minute) || 0
+        const birthDate = new Date(year, month, day, hour, minute)
+
+        // Get offset string like "GMT+05:30" via Intl
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: tzName,
+          timeZoneName: 'longOffset'
+        }).formatToParts(birthDate)
+
+        const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
+        if (offsetStr === 'GMT') {
+          tz = '0'
+        } else {
+          const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+          if (m) {
+            const sign = m[1] === '+' ? 1 : -1
+            const hours = parseInt(m[2])
+            const minutes = parseInt(m[3] ?? '0')
+            tz = String(sign * (hours + minutes / 60))
+          }
+        }
+      }
     } catch {}
-    // Rough timezone estimate from longitude
-    tz = String(Math.round(parseFloat(result.lon) / 15))
 
     setFormData(prev => ({
       ...prev,

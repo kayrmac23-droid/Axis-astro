@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'AXIS — Dual-System Astrology',
-  description: 'Two systems. One self.',
+  title: 'AXIS — Precision Dual-System Astrology',
+  description: 'Tropical maps your psychological architecture. Sidereal maps the life you keep being handed. Where they diverge — that gap is the work.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
