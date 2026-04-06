@@ -15,11 +15,11 @@ const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
   },
   tropical: {
     title: 'Tropical Reading',
-    subtitle: 'Western — The I'
+    subtitle: 'Western — Inner Architecture'
   },
   sidereal: {
     title: 'Sidereal Reading',
-    subtitle: 'Vedic — The Pattern'
+    subtitle: 'Vedic — Outer Circumstances'
   }
 }
 
