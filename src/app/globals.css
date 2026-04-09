@@ -5,20 +5,20 @@
 }
 
 :root {
-  --bg: #080808;
-  --bg-2: #0e0e0e;
-  --bg-3: #141414;
-  --surface: #111111;
-  --surface-2: #1a1a1a;
-  --border: #1e1e1e;
-  --border-2: #2a2a2a;
-  --text: #e8e4dc;
-  --text-2: #9a9488;
-  --text-3: #5a5650;
-  --gold: #c9a96e;
-  --gold-dim: #7a6540;
-  --gold-bright: #e0c08a;
-  --accent: #8b6f47;
+  --bg: #080e1c;
+  --bg-2: #0d1526;
+  --bg-3: #111c30;
+  --surface: #0f1828;
+  --surface-2: #162035;
+  --border: #1a2540;
+  --border-2: #243050;
+  --text: #dce4f0;
+  --text-2: #8496b8;
+  --text-3: #4a5878;
+  --gold: #c9962e;
+  --gold-dim: #6a4e18;
+  --gold-bright: #e0b84a;
+  --accent: #9a7030;
   --font-serif: 'Cormorant Garamond', Georgia, serif;
   --font-mono: 'Space Mono', monospace;
 }
