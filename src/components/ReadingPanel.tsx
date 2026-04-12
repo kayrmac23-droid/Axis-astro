@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
+import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
 
 interface ReadingPanelProps {
@@ -9,18 +10,68 @@ interface ReadingPanelProps {
 }
 
 const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
-  synthesis: {
-    title: 'AXIS Synthesis',
-    subtitle: 'Concordance · Dissonance · Integration'
-  },
-  tropical: {
-    title: 'Tropical Reading',
-    subtitle: 'Western — Inner Architecture'
-  },
-  sidereal: {
-    title: 'Sidereal Reading',
-    subtitle: 'Vedic — Outer Circumstances'
+  tropical: { title: 'Tropical Reading', subtitle: 'Western — The Constructed Self' },
+  sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic — The Essential Self' },
+  synthesis: { title: 'AXIS Synthesis', subtitle: 'Convergence & Divergence' }
+}
+
+function getDescriptorKey(heading: string, section: string): string | null {
+  const h = heading.toLowerCase()
+  if (h.includes('sun')) return 'Sun'
+  if (h.includes('moon')) return 'Moon'
+  if (h.includes('mercury')) return 'Mercury'
+  if (h.includes('venus')) return 'Venus'
+  if (h.includes('mars')) return 'Mars'
+  if (h.includes('jupiter')) return 'Jupiter'
+  if (h.includes('saturn')) return 'Saturn'
+  if (h.includes('ascendant') || h.includes('lagna')) return section === 'sidereal' ? 'Lagna' : 'Ascendant'
+  if (h.includes('uranus')) return 'Uranus'
+  if (h.includes('neptune')) return 'Neptune'
+  if (h.includes('pluto')) return 'Pluto'
+  return null
+}
+
+function getSynthesisKey(heading: string): string | null {
+  const h = heading.toLowerCase()
+  if (h.includes('agree')) return 'agree'
+  if (h.includes('diverge')) return 'diverge'
+  if (h.includes('central')) return 'tension'
+  if (h.includes('closing')) return 'closing'
+  return null
+}
+
+type Block =
+  | { type: 'heading'; content: string; descriptorKey: string | null }
+  | { type: 'paragraph'; content: string }
+
+function parseReading(text: string, section: string): Block[] {
+  const lines = text.split('\n')
+  const blocks: Block[] = []
+  let buf = ''
+
+  const flush = () => {
+    if (buf.trim()) {
+      blocks.push({ type: 'paragraph', content: buf.trim() })
+      buf = ''
+    }
   }
+
+  for (const line of lines) {
+    if (line.startsWith('## ')) {
+      flush()
+      const content = line.replace('## ', '').trim()
+      const descriptorKey = section === 'synthesis'
+        ? getSynthesisKey(content)
+        : getDescriptorKey(content, section)
+      blocks.push({ type: 'heading', content, descriptorKey })
+      continue
+    }
+    if (line.match(/^\*[^*]+\*$/) || line.match(/^_[^_]+_$/)) continue
+    if (!line.trim()) { flush(); continue }
+    buf = buf ? buf + ' ' + line.trim() : line.trim()
+  }
+  flush()
+  return blocks
 }
 
 export default function ReadingPanel({ chartData, section }: ReadingPanelProps) {
@@ -30,15 +81,12 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (!readings[section]) {
-      generateReading(section)
-    }
+    if (!readings[section]) generateReading(section)
   }, [section, chartData])
 
   const generateReading = async (sec: string) => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
-
     setLoading(true)
     setError(null)
 
@@ -49,9 +97,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         body: JSON.stringify({ chartData, section: sec }),
         signal: abortRef.current.signal
       })
-
-      if (!res.ok) throw new Error('Reading failed')
-      if (!res.body) throw new Error('No response body')
+      if (!res.ok || !res.body) throw new Error('Reading failed')
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
@@ -60,8 +106,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        accumulated += chunk
+        accumulated += decoder.decode(value, { stream: true })
         setReadings(prev => ({ ...prev, [sec]: accumulated }))
       }
     } catch (err: unknown) {
@@ -75,50 +120,45 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
   const currentText = readings[section] || ''
   const label = SECTION_LABELS[section]
+  const blocks = currentText ? parseReading(currentText, section) : []
+  const descriptors = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
 
-  // Chart data summary for display
-  const sunTropical = chartData.tropical.planets.find(p => p.name === 'Sun')
-  const moonTropical = chartData.tropical.planets.find(p => p.name === 'Moon')
-  const sunSidereal = chartData.sidereal.planets.find(p => p.name === 'Sun')
-  const moonSidereal = chartData.sidereal.planets.find(p => p.name === 'Moon')
+  const sunT = chartData.tropical.planets.find(p => p.name === 'Sun')
+  const moonT = chartData.tropical.planets.find(p => p.name === 'Moon')
+  const sunS = chartData.sidereal.planets.find(p => p.name === 'Sun')
+  const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
   return (
     <div className={styles.panel}>
-      {/* Reading header */}
       <div className={styles.readingHeader}>
         <div className={styles.readingMeta}>
           <h2 className={styles.readingTitle}>{label.title}</h2>
           <p className={styles.readingSubtitle}>{label.subtitle}</p>
         </div>
-
-        {/* Quick chart summary */}
         <div className={styles.chartSummary}>
-          {section !== 'sidereal' ? (
+          {section !== 'sidereal' && (
             <div className={styles.summaryGroup}>
               <span className={styles.summarySystem}>Tropical</span>
               <span className={styles.summaryPlacements}>
-                ☉ {sunTropical?.sign} · ☽ {moonTropical?.sign} · ↑ {chartData.tropical.ascendantSign}
+                ☉ {sunT?.sign} · ☽ {moonT?.sign} · ↑ {chartData.tropical.ascendantSign}
               </span>
             </div>
-          ) : null}
-          {section !== 'tropical' ? (
+          )}
+          {section !== 'tropical' && (
             <div className={styles.summaryGroup}>
               <span className={styles.summarySystem}>Sidereal</span>
               <span className={styles.summaryPlacements}>
-                ☉ {sunSidereal?.sign} · ☽ {moonSidereal?.sign} · ↑ {chartData.sidereal.ascendantSign}
+                ☉ {sunS?.sign} · ☽ {moonS?.sign} · ↑ {chartData.sidereal.ascendantSign}
               </span>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
-      {/* Reading body */}
       <div className={styles.readingBody}>
         {loading && !currentText && (
           <div className={styles.generating}>
-            <div className={styles.generatingDots}>
-              <span /><span /><span />
-            </div>
+            <div className={styles.generatingDots}><span /><span /><span /></div>
             <p className={styles.generatingText}>Generating reading</p>
           </div>
         )}
@@ -126,23 +166,48 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         {error && (
           <div className={styles.errorState}>
             <p className={styles.errorText}>{error}</p>
-            <button
-              className={styles.retryBtn}
-              onClick={() => generateReading(section)}
-            >
+            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
               Retry
             </button>
           </div>
         )}
 
-        {currentText && (
+        {blocks.length > 0 && (
           <div className={styles.readingText}>
-            {currentText.split('\n\n').filter(Boolean).map((para, i) => (
-              <p key={i} className={styles.paragraph}
-                style={{ animationDelay: `${i * 0.05}s` }}>
-                {para}
-              </p>
-            ))}
+            {blocks.map((block, i) => {
+              if (block.type === 'heading') {
+                const descriptor = block.descriptorKey
+                  ? section === 'synthesis'
+                    ? SYNTHESIS_DESCRIPTORS[block.descriptorKey as keyof typeof SYNTHESIS_DESCRIPTORS]
+                    : (descriptors as Record<string, { name: string; keywords: string; description: string }>)[block.descriptorKey]
+                  : null
+
+                return (
+                  <div key={i} className={styles.sectionBlock}>
+                    <h3 className={styles.planetHeading}>{block.content}</h3>
+                    {descriptor && (
+                      <div className={styles.infoBox}>
+                        <p className={styles.infoKeywords}>
+                          {'keywords' in descriptor ? descriptor.keywords : ''}
+                        </p>
+                        {'description' in descriptor && (
+                          <p className={styles.infoText}>{descriptor.description}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+              return (
+                <p
+                  key={i}
+                  className={styles.paragraph}
+                  style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}
+                >
+                  {block.content}
+                </p>
+              )
+            })}
             {loading && <span className={styles.cursor} />}
           </div>
         )}

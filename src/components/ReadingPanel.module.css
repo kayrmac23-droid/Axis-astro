@@ -1,6 +1,4 @@
-.panel {
-  padding: 3rem 0;
-}
+.panel { padding: 3rem 0; }
 
 .readingHeader {
   display: flex;
@@ -12,11 +10,7 @@
   gap: 2rem;
 }
 
-.readingMeta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
+.readingMeta { display: flex; flex-direction: column; gap: 0.4rem; }
 
 .readingTitle {
   font-family: var(--font-serif);
@@ -34,18 +28,8 @@
   color: var(--text-3);
 }
 
-.chartSummary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  text-align: right;
-}
-
-.summaryGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
+.chartSummary { display: flex; flex-direction: column; gap: 0.5rem; text-align: right; }
+.summaryGroup { display: flex; flex-direction: column; gap: 0.2rem; }
 
 .summarySystem {
   font-family: var(--font-mono);
@@ -63,7 +47,6 @@
   letter-spacing: 0.03em;
 }
 
-/* Generating state */
 .generating {
   display: flex;
   flex-direction: column;
@@ -72,10 +55,7 @@
   padding: 4rem 0;
 }
 
-.generatingDots {
-  display: flex;
-  gap: 0.5rem;
-}
+.generatingDots { display: flex; gap: 0.5rem; }
 
 .generatingDots span {
   width: 4px;
@@ -101,14 +81,7 @@
   color: var(--text-3);
 }
 
-/* Error */
-.errorState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 4rem 0;
-}
+.errorState { display: flex; flex-direction: column; align-items: center; gap: 1.5rem; padding: 4rem 0; }
 
 .errorText {
   font-family: var(--font-mono);
@@ -130,39 +103,70 @@
   transition: all 0.2s ease;
 }
 
-.retryBtn:hover {
-  color: var(--text);
-  border-color: var(--text-3);
+.retryBtn:hover { color: var(--text); border-color: var(--text-3); }
+
+.readingBody { max-width: 680px; margin: 0 auto; }
+
+.readingText { display: flex; flex-direction: column; gap: 0; }
+
+.sectionBlock { margin-top: 3.5rem; }
+.sectionBlock:first-child { margin-top: 0; }
+
+.planetHeading {
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: var(--gold);
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+  animation: fadeIn 0.5s ease both;
 }
 
-/* Reading text */
-.readingBody {
-  max-width: 680px;
-  margin: 0 auto;
+.infoBox {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--gold-dim);
+  padding: 1.1rem 1.3rem;
+  margin-bottom: 1.6rem;
+  animation: fadeIn 0.5s ease 0.1s both;
 }
 
-.readingText {
-  display: flex;
-  flex-direction: column;
-  gap: 1.6rem;
+.infoKeywords {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.6rem;
+}
+
+.infoText {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  font-weight: 300;
+  color: var(--text-2);
+  font-style: italic;
 }
 
 .paragraph {
   font-family: var(--font-serif);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.9;
   font-weight: 300;
   color: var(--text);
   letter-spacing: 0.01em;
+  margin-bottom: 1.1rem;
   animation: fadeIn 0.5s ease both;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Streaming cursor */
 .cursor {
   display: inline-block;
   width: 2px;
@@ -180,13 +184,9 @@
 }
 
 @media (max-width: 640px) {
-  .readingHeader {
-    flex-direction: column;
-  }
-  .chartSummary {
-    text-align: left;
-  }
-  .paragraph {
-    font-size: 1rem;
-  }
+  .readingHeader { flex-direction: column; }
+  .chartSummary { text-align: left; }
+  .paragraph { font-size: 0.98rem; }
+  .planetHeading { font-size: 1.15rem; }
+  .infoText { font-size: 0.9rem; }
 }
