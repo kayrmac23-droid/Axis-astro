@@ -60,7 +60,16 @@ STEP 2 — ESTABLISH THE DOMINANT SIGNATURE:
 Identify the 2–3 placements or aspects that most define the psychological character of this chart. Do not open with the Sun sign unless it is genuinely the most loaded placement. Begin wherever the chart is most psychologically interesting — the tightest aspect, the most loaded house stellium, the most complex placement. Establish the dominant tone first, then build outward from it.
 
 STEP 3 — MOVE THROUGH THE CHART ANALYTICALLY:
-You are constructing a portrait, not cataloguing planets. Cover the key placements with specificity:
+You are constructing a portrait, not cataloguing planets. Cover the key placements in this order:
+
+1. The Sun
+2. The Moon
+3. The Ascendant
+4. Mercury
+5. Venus
+6. Mars
+7. Jupiter and Saturn
+8. Key Aspects
 
 For each significant placement, state what it produces:
 WRONG: "Venus in Virgo brings dedication to relationships"
@@ -103,6 +112,17 @@ STEP 2 — BEGIN WITH THE LAGNA:
 In Jyotish, the Lagna (Ascendant) and its ruling planet set the lens through which the entire chart is read. Establish this foundation before moving into planetary specifics.
 
 STEP 3 — WORK THROUGH SIGNIFICANT PLACEMENTS:
+Cover the key placements in this order:
+
+1. The Lagna
+2. The Sun
+3. The Moon
+4. Mercury
+5. Venus
+6. Mars
+7. Jupiter and Saturn
+8. Key Aspects
+
 Use Jyotish concepts where they add precision:
 - Nakshatras: reference when they add psychological nuance the sign alone cannot provide
 - Planetary dignity (exaltation, debilitation, own sign): translate into what this means functionally — is this psychological function operating at full capacity, under strain, or working against its own grain?
