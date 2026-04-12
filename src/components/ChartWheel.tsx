@@ -80,12 +80,12 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <defs>
           <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#c9a96e" stopOpacity="0.04" />
-            <stop offset="100%" stopColor="#c9a96e" stopOpacity="0" />
+            <stop offset="0%" stopColor="#c9962e" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#c9962e" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#c9a96e" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#c9a96e" stopOpacity="0" />
+            <stop offset="0%" stopColor="#c9962e" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#c9962e" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -191,7 +191,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               textAnchor="middle"
               dominantBaseline="central"
               fontSize="7"
-              fill="#c9a96e"
+              fill="#c9962e"
               opacity="0.9"
               fontFamily="Space Mono, monospace"
               letterSpacing="0.05em"
@@ -221,7 +221,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
                 textAnchor="middle"
                 dominantBaseline="central"
                 fontSize="11"
-                fill={isRetro ? '#9a7a4a' : '#c9a96e'}
+                fill={isRetro ? '#8a6518' : '#c9962e'}
                 opacity={isRetro ? 0.6 : 0.95}
                 fontFamily="serif"
               >
@@ -232,7 +232,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
                   x={pos.x + 8}
                   y={pos.y - 6}
                   fontSize="5"
-                  fill="#9a7a4a"
+                  fill="#8a6518"
                   opacity="0.65"
                   fontFamily="Space Mono, monospace"
                 >
@@ -246,7 +246,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGlow)" />
         <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#2a2a2a" strokeWidth="0.5" />
-        <circle cx={cx} cy={cy} r="1.5" fill="#c9a96e" opacity="0.5" />
+        <circle cx={cx} cy={cy} r="1.5" fill="#c9962e" opacity="0.5" />
       </svg>
     </div>
   )

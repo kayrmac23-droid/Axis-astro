@@ -49,11 +49,11 @@ export default function Home() {
         <div className={styles.headerInner}>
           <div className={styles.logoMark}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <circle cx="14" cy="14" r="13" stroke="#c9a96e" strokeWidth="0.5" />
-              <circle cx="14" cy="14" r="7" stroke="#c9a96e" strokeWidth="0.5" opacity="0.5" />
-              <line x1="14" y1="1" x2="14" y2="27" stroke="#c9a96e" strokeWidth="0.5" opacity="0.4" />
-              <line x1="1" y1="14" x2="27" y2="14" stroke="#c9a96e" strokeWidth="0.5" opacity="0.4" />
-              <circle cx="14" cy="14" r="1.5" fill="#c9a96e" />
+              <circle cx="14" cy="14" r="13" stroke="#c9962e" strokeWidth="0.5" />
+              <circle cx="14" cy="14" r="7" stroke="#c9962e" strokeWidth="0.5" opacity="0.5" />
+              <line x1="14" y1="1" x2="14" y2="27" stroke="#c9962e" strokeWidth="0.5" opacity="0.4" />
+              <line x1="1" y1="14" x2="27" y2="14" stroke="#c9962e" strokeWidth="0.5" opacity="0.4" />
+              <circle cx="14" cy="14" r="1.5" fill="#c9962e" />
             </svg>
           </div>
           <h1 className={styles.logo}>AXIS</h1>

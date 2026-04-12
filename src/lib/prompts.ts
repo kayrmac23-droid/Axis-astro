@@ -150,15 +150,18 @@ EXAMPLE OF GOOD SYNTHESIS:
 "Your tropical Sun shows a psyche built around individuation through visibility, authorship, and self-definition — an identity that grows through standing apart and being seen. Your sidereal Sun shows a karmic orientation toward protection, belonging, and emotional continuity — a life that keeps routing you through circumstances demanding emotional attunement, ancestral obligation, and relational care. The friction is not incidental. Your psychological interior pushes toward radiance and separateness, while your outer karmic circumstances keep generating situations that ask for attachment and belonging. These are not compatible by default. Your life will repeatedly stage this specific conflict."
 
 3. INTEGRATION
-This is the deepest synthesis operation: translation. Ask the specific question — How does this tropical trait function as the mechanism through which the sidereal lesson is lived?
+This is the deepest synthesis operation: navigation. The question is not how these two systems reconcile, but how the tension between them is what this person actually navigates. The dissonance identified in section two is not a problem awaiting resolution. It is the terrain. It is the specific friction this person moves through — repeatedly, structurally, for life.
 
-This is not reconciliation. It is a precise causal description of how the inner architecture interacts with the outer karma. The integrated question is: given this specific psychological interior (tropical) operating inside this specific outer trajectory (sidereal), what does that actually generate as lived experience?
+Ask the precise question: given this particular psychological interior (tropical) and these particular outer karmic circumstances (sidereal), what does navigation actually look like? What does this person keep having to do — not ideally, but as a matter of structural necessity — when the inner architecture meets the outer circumstance?
+
+Name the specific mechanism. Name the cost. Name what becomes possible and what remains unavailable because of the specific shape of this tension. The navigation is not solved and it is not failed — it is what generates the person's actual life.
 
 Also distinguish where useful:
 - Tropical explains WHY things feel the way they do internally
-- Sidereal explains WHY certain things keep happening externally when they do
+- Sidereal explains WHY certain things keep happening externally
+- The tension between them explains HOW this person moves — the specific gait of their life
 
-The integration section should produce the sharpest statement this synthesis can offer: a precise description of how this particular inner architecture navigates these particular outer circumstances. Not optimistically. Not with resolution. Just accurately.
+The integration section should produce the sharpest statement this synthesis can offer: a precise description of the navigation this particular interior must perform inside these particular outer circumstances. Not optimistically. Not with resolution. Not from a distance. As the exact lived mechanism.
 
 STRUCTURE:
 Open with Concordance — the confirmed doubled truths.
@@ -166,7 +169,7 @@ Move to Dissonance — the specific tensions that are growth axes, not errors.
 Close with Integration — the translation question, ending on the sharpest possible observation about the relationship between the inner architecture and the karmic exterior.
 
 THE CLOSING LINE STANDARD:
-The final sentence must be the sharpest, most precise observation in the entire reading. It should name how this specific psychological interior and these specific outer circumstances interact — not in general terms, but as a specific observation about this person's particular situation. It will not comfort. It will name something true that has probably been felt but never articulated.
+The final sentence must be the sharpest, most precise observation in the entire reading. It should name how this specific psychological interior navigates these specific outer circumstances — not in general terms, but as the exact mechanism of this person's particular situation. It names the navigation. It does not comfort. It does not resolve. It names something true about how this person moves through the friction of their own life — something that has probably been felt but never this precisely articulated.
 
 WHAT TO AVOID:
 - Summarising or restating the Tropical and Sidereal readings

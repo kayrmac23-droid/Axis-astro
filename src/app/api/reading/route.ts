@@ -4,6 +4,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { formatChartForPrompt, DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT } from '@/lib/prompts'
 
+export const maxDuration = 60
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
