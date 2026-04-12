@@ -64,7 +64,7 @@ export const TROPICAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
 
 export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
   Lagna: {
-    name: 'The Lagna (Ascendant)',
+    name: 'The Lagna — Ascendant in Jyotish',
     keywords: 'foundational lens · essential orientation · the self before conditioning',
     description: `In Jyotish, the Lagna is the most important point in the chart. Unlike the Tropical Ascendant, which describes the outward manner, the Sidereal Lagna describes the essential orientation of the entire life — the lens through which all other planetary energies are filtered. The ruling planet of the Lagna and its placement show the overall direction of a person's vitality, motivation, and experience. The Lagna is the self before the world has shaped it into a persona.`
   },
