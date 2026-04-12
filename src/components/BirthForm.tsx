@@ -49,10 +49,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const searchLocation = async (query: string) => {
     setLocationLoading(true)
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=4`,
-        { headers: { 'Accept-Language': 'en' } }
-      )
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`)
       const data = await res.json()
       setLocationSuggestions(data)
     } catch {
