@@ -6,11 +6,11 @@ import ReadingPanel from '@/components/ReadingPanel'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 
-type ActiveSection = 'synthesis' | 'tropical' | 'sidereal'
+type ActiveSection = 'tropical' | 'sidereal' | 'synthesis'
 
 export default function Home() {
   const [chartData, setChartData] = useState<DualChartData | null>(null)
-  const [activeSection, setActiveSection] = useState<ActiveSection>('synthesis')
+  const [activeSection, setActiveSection] = useState<ActiveSection>('tropical')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
@@ -30,7 +30,7 @@ export default function Home() {
       if (!res.ok) throw new Error('Calculation failed')
       const data: DualChartData = await res.json()
       setChartData(data)
-      setActiveSection('synthesis')
+      setActiveSection('tropical')
 
       setTimeout(() => {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -117,13 +117,6 @@ export default function Home() {
           {/* Section Tabs */}
           <div className={styles.tabBar}>
             <button
-              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('synthesis')}
-            >
-              <span className={styles.tabLabel}>Synthesis</span>
-              <span className={styles.tabSub}>concordance · dissonance · integration</span>
-            </button>
-            <button
               className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
               onClick={() => setActiveSection('tropical')}
             >
@@ -136,6 +129,13 @@ export default function Home() {
             >
               <span className={styles.tabLabel}>Sidereal</span>
               <span className={styles.tabSub}>outer circumstances</span>
+            </button>
+            <button
+              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
+              onClick={() => setActiveSection('synthesis')}
+            >
+              <span className={styles.tabLabel}>Synthesis</span>
+              <span className={styles.tabSub}>concordance · dissonance · integration</span>
             </button>
           </div>
 
