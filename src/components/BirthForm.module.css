@@ -56,6 +56,36 @@
   font-size: 1rem;
 }
 
+.ampmToggle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ampmBtn {
+  padding: 0.3rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.ampmBtn:hover {
+  border-color: var(--gold-dim);
+  color: var(--text);
+}
+
+.ampmActive {
+  border-color: var(--gold-dim);
+  color: var(--gold);
+  background: var(--surface);
+}
+
 .input {
   width: 100%;
   background: var(--surface);

@@ -20,6 +20,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     day: '',
     hour: '',
     minute: '',
+    ampm: 'AM',
     location: '',
     latitude: '',
     longitude: '',
@@ -28,6 +29,12 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
+
+  const to24Hour = (hour: string, ampm: string): number => {
+    const h = parseInt(hour) || 12
+    if (ampm === 'AM') return h === 12 ? 0 : h
+    return h === 12 ? 12 : h + 12
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -71,7 +78,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
         const year = parseInt(formData.year) || new Date().getFullYear()
         const month = (parseInt(formData.month) || 1) - 1
         const day = parseInt(formData.day) || 1
-        const hour = parseInt(formData.hour) || 12
+        const hour = formData.hour ? to24Hour(formData.hour, formData.ampm) : 12
         const minute = parseInt(formData.minute) || 0
         const birthDate = new Date(year, month, day, hour, minute)
 
@@ -113,7 +120,8 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       alert('Please select a location from the suggestions.')
       return
     }
-    onSubmit(formData)
+    const { ampm, ...rest } = formData
+    onSubmit({ ...rest, hour: String(to24Hour(formData.hour, ampm)) })
   }
 
   const isValid = formData.year && formData.month && formData.day && locationConfirmed
@@ -169,7 +177,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       <div className={styles.fieldGroup}>
         <label className={styles.label}>
           Time of birth
-          <span className={styles.labelNote}>use 12:00 if unknown</span>
+          <span className={styles.labelNote}>use noon if unknown</span>
         </label>
         <div className={styles.dateRow}>
           <div className={styles.fieldWrap}>
@@ -178,7 +186,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               name="hour"
               type="number"
               placeholder="HH"
-              min="0" max="23"
+              min="1" max="12"
               value={formData.hour}
               onChange={handleChange}
             />
@@ -194,6 +202,18 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               value={formData.minute}
               onChange={handleChange}
             />
+          </div>
+          <div className={styles.ampmToggle}>
+            <button
+              type="button"
+              className={`${styles.ampmBtn} ${formData.ampm === 'AM' ? styles.ampmActive : ''}`}
+              onClick={() => setFormData(prev => ({ ...prev, ampm: 'AM' }))}
+            >AM</button>
+            <button
+              type="button"
+              className={`${styles.ampmBtn} ${formData.ampm === 'PM' ? styles.ampmActive : ''}`}
+              onClick={() => setFormData(prev => ({ ...prev, ampm: 'PM' }))}
+            >PM</button>
           </div>
         </div>
       </div>
