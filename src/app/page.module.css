@@ -203,10 +203,11 @@
   opacity: 0.6;
 }
 
-/* Reset */
+/* Reset / Actions */
 .resetRow {
   display: flex;
   justify-content: center;
+  gap: 1rem;
   padding: 3rem 0 0;
 }
 
@@ -226,6 +227,38 @@
 .resetBtn:hover {
   color: var(--text-2);
   border-color: var(--text-3);
+}
+
+.pdfBtn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: none;
+  border: 1px solid var(--border-2);
+  padding: 0.7rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pdfBtn:hover {
+  color: var(--gold);
+  border-color: var(--gold-dim);
+}
+
+@media print {
+  .header,
+  .wheelSection,
+  .tabBar,
+  .resetRow,
+  .footer {
+    display: none !important;
+  }
+  .readingLayout {
+    padding: 0;
+    max-width: 100%;
+  }
 }
 
 /* Footer */

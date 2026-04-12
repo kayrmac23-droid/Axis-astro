@@ -145,8 +145,14 @@ export default function Home() {
             section={activeSection}
           />
 
-          {/* Reset */}
+          {/* Actions */}
           <div className={styles.resetRow}>
+            <button
+              className={styles.pdfBtn}
+              onClick={() => window.print()}
+            >
+              Download PDF
+            </button>
             <button
               className={styles.resetBtn}
               onClick={() => { setChartData(null); setError(null) }}
