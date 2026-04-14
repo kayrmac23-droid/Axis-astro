@@ -118,7 +118,10 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
           signal: abortRef.current.signal
         })
 
-        if (!res.ok) throw new Error(`Reading failed for ${planetSec}`)
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.detail || body.error || `Reading failed for ${planetSec}`)
+        }
         if (!res.body) throw new Error('No response body')
 
         const reader = res.body.getReader()
@@ -138,7 +141,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
-        setError('Reading generation failed. Please try again.')
+        setError(err.message || 'Reading generation failed. Please try again.')
       }
     } finally {
       if (!abortRef.current?.signal.aborted) {

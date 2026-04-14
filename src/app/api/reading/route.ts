@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Stream the response
     const stream = await anthropic.messages.stream({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-opus-4-5',
       max_tokens: 6000,
       temperature: 0.7,
       system: systemPrompt,
@@ -103,9 +103,9 @@ export async function POST(req: NextRequest) {
         'Transfer-Encoding': 'chunked',
       }
     })
-  } catch (error: any) {
-    console.error('Reading generation error:', JSON.stringify(error, null, 2))
-    console.error('Error message:', error?.message)
-    return NextResponse.json({ error: 'Reading generation failed' }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('Reading generation error:', message)
+    return NextResponse.json({ error: 'Reading generation failed', detail: message }, { status: 500 })
   }
 }
