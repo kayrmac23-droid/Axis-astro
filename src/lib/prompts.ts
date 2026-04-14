@@ -54,6 +54,8 @@ For each major planet, cover ALL of the following:
 
 Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn) should be 300-400 words each, covering sign, house, and key aspects.
 
+Always interpret a planet's sign expression through its house placement first. The house modifies and directs the sign's energy more than the sign description alone suggests. A Leo Sun in the 4th house is not a theatrical public Leo — the 4th house privatises the Leo drive entirely, redirecting the need for recognition away from public stages and into intimate relationships and private emotional life. Never apply a sign's most visible or archetypal expression if the house placement contradicts it. The house tells you where the energy goes. Let that constrain what the sign description emphasises.
+
 FORMATTING:
 Start immediately with the first ## heading. No introductory text before the first section.
 Major sections use ## headings. Within Sun, Moon, and Ascendant sections, use ### sub-headers to structure layers (sign, house, aspects, synthesis). No other markdown. No italic lines.
