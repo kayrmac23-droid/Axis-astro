@@ -73,7 +73,7 @@ WHAT THIS SECTION IS:
 The Tropical chart maps the constructed self — the identity built in response to the world. Ego structure, relational patterns, the face presented outward, the drives operating closest to conscious awareness.
 `
 
-export const TROPICAL_SUN_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_SUN_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the SUN placement.
 MINIMUM 600 WORDS TOTAL across all sub-sections.
 
@@ -94,9 +94,9 @@ If multiple planets share an aspect to the Sun, they can share a sub-section if 
 
 ### Putting It Together
 Final sub-section. 1-2 paragraphs synthesising all the above layers into a unified portrait of this Sun placement. What does it actually mean to be this person, with this sign, this house, these aspects, all running at once? End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves.
-\`
+`
 
-export const TROPICAL_MOON_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_MOON_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MOON placement.
 MINIMUM 600 WORDS TOTAL across all sub-sections.
 
@@ -114,9 +114,9 @@ One sub-section per major Moon aspect. Name the aspect clearly in the header. In
 
 ### Putting It Together
 1-2 paragraphs synthesising all the above. What does it actually mean to have this emotional life — this sign, this house, these aspects, all running at once? End with the most honest observation about this Moon — what this person believes about their own emotional nature that may not be fully accurate.
-\`
+`
 
-export const TROPICAL_ASCENDANT_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_ASCENDANT_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the ASCENDANT / RISING sign and any planets in the 1st house.
 MINIMUM 500 WORDS TOTAL across all sub-sections.
 
@@ -132,93 +132,93 @@ If any planets occupy the 1st house, interpret each one here and describe how it
 
 ### Putting It Together
 1-2 paragraphs. What people assume about this person on first impression that may not be accurate. The gap between how this person is perceived and how they actually experience themselves.
-\`
+`
 
-export const TROPICAL_MERCURY_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_MERCURY_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MERCURY placement.
 300-400 words. Sign, house, key aspects. Cognitive style — how this mind receives, processes, communicates. What it produces in conversation, in conflict, in creative thinking.
-\`
+`
 
-export const TROPICAL_VENUS_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_VENUS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the VENUS placement.
 300-400 words. Sign, house, key aspects. Relational style — how affection is expressed and received, what this person actually needs from intimacy versus what they think they need, where the relational pattern creates problems.
-\`
+`
 
-export const TROPICAL_MARS_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_MARS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MARS placement.
 300-400 words. Sign, house, key aspects. Drive and anger — how this person moves when something is at stake, what happens in their body and behaviour when frustrated, how they pursue what they want.
-\`
+`
 
-export const TROPICAL_JUPITER_SATURN_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_JUPITER_SATURN_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on JUPITER and SATURN placements.
 300-400 words total. Where this person overextends and where they meet genuine resistance. If they share a house, the tension between them is its own dynamic — address it.
-\`
+`
 
-export const TROPICAL_KEY_ASPECTS_PROMPT = \`\${TROPICAL_SYSTEM_PREFIX}
+export const TROPICAL_KEY_ASPECTS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on KEY ASPECTS.
 200-300 words. Any significant aspects not already covered — especially tight squares or oppositions between planets not yet discussed. Name the planets, the aspect, the psychological dynamic it creates.
-\`
+`
 
 
-const SIDEREAL_SYSTEM_PREFIX = \`
+const SIDEREAL_SYSTEM_PREFIX = `
 You are generating a specific section of the Sidereal (Vedic/Jyotish) natal chart reading for AXIS — a precision psychological astrology platform.
 
-\${GLOBAL_VOICE}
+${GLOBAL_VOICE}
 
 WHAT THIS SECTION IS:
 The Sidereal chart maps the essential self — what was there before the world began shaping responses. Deep-running patterns, instinctive orientations, the self beneath the constructed identity.
 
 SIGN SHIFTS — MOST IMPORTANT:
 Before writing each section, check if this planet shifted signs from Tropical. If it did, open that section by naming the shift in the first sentence. Then interpret what the essential layer looks like — not as a correction of the Tropical reading, but as a deeper stratum of the same person.
-\`
+`
 
-export const SIDEREAL_LAGNA_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_LAGNA_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the LAGNA (Ascendant) and its ruling planet.
 400+ words. Name the Lagna sign and note the shift from Tropical Ascendant if present — this shift is one of the most important facts in the dual chart. Interpret the ruling planet and its placement. This is the foundational lens of the entire Sidereal reading.
-\`
+`
 
-export const SIDEREAL_SUN_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_SUN_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the SUN placement.
 400+ words. If shifted, open with the shift. Interpret what the essential identity looks like beneath the Tropical identity. Name the Nakshatra and what psychological precision it adds beyond the sign. Go into depth on what the sign produces at the soul level.
-\`
+`
 
-export const SIDEREAL_MOON_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_MOON_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MOON placement.
 400+ words. Name sign, house, Nakshatra. Note shift if present. The Nakshatra interpretation must be specific — name the Nakshatra, its ruling deity or planet, and what psychological quality it produces that the sign alone doesn't show.
 
 The Moon governs emotional instinct — what the gut extends to others before the mind has consciously assessed them. Based on this person's specific Moon sign, house, and aspects, interpret how they instinctively read other people. Some Moon placements produce an instinct to see the best in people — their potential, their intentions, what they're struggling with underneath the surface. Others produce suspicion, protectiveness, or emotional realism. Identify which pattern this Moon produces and describe it honestly, including the shadow side. Where the Moon produces a tendency to see the good in people, also name what that costs: staying in situations past their expiry date, minimising red flags that have already been noticed, extending loyalty to people who haven't earned it. Where the Moon produces guardedness or suspicion, name what that costs too. Frame whichever pattern is present as a quality that cuts both ways — neither purely a strength nor purely a weakness.
-\`
+`
 
-export const SIDEREAL_MERCURY_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_MERCURY_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MERCURY placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Instinctive cognitive style.
-\`
+`
 
-export const SIDEREAL_VENUS_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_VENUS_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the VENUS placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Essential relational nature.
-\`
+`
 
-export const SIDEREAL_MARS_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_MARS_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MARS placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Note dignity — if in own sign or exalted or debilitated, state it and interpret what that means functionally for how this drive operates.
-\`
+`
 
-export const SIDEREAL_JUPITER_SATURN_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_JUPITER_SATURN_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on JUPITER and SATURN placements.
 250-300 words. Signs, houses. Dignity. Essential expansion and contraction.
-\`
+`
 
-export const SIDEREAL_RAHU_KETU_PROMPT = \`\${SIDEREAL_SYSTEM_PREFIX}
+export const SIDEREAL_RAHU_KETU_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on RAHU and KETU (The Lunar Nodes).
 250-300 words. The nodal axis — what this person is pulled toward (Rahu) and what they are releasing (Ketu). Signs, houses, Nakshatras. Concrete interpretation of the life direction implied by this axis.
-\`
+`
 
 
-const SYNTHESIS_SYSTEM_PREFIX = \`
+const SYNTHESIS_SYSTEM_PREFIX = `
 You are generating a specific section of the AXIS Synthesis reading.
 
-\${GLOBAL_VOICE}
+${GLOBAL_VOICE}
 
 SYNTHESIS VOICE:
 Third person only — "this person", "they", "their". Precise and analytical. Like a case study written by someone who has read both charts completely and is now naming what the relationship between them reveals. The warmth of the previous sections gives way to precision.
@@ -227,25 +227,25 @@ THE CONCEPTUAL FOUNDATION:
 Tropical maps the Internal Architecture: the psychological interior.
 Sidereal maps the Outer Circumstances: the karmic exterior.
 Synthesis asks: How does this particular psychological interior (Tropical) navigate these particular outer karmic circumstances (Sidereal)?
-\`
+`
 
-export const SYNTHESIS_AGREE_PROMPT = \`\${SYNTHESIS_SYSTEM_PREFIX}
+export const SYNTHESIS_AGREE_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on CONCORDANCE:
 Where do both systems point at the same theme? Name 2-3 placements or patterns appearing in both charts that point to the same psychological truth. These are load-bearing bedrock facts. Write with certainty and weight.
-\`
+`
 
-export const SYNTHESIS_DIVERGE_PROMPT = \`\${SYNTHESIS_SYSTEM_PREFIX}
+export const SYNTHESIS_DIVERGE_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on DISSONANCE / Where the Systems Diverge:
 Work through the significant sign shifts planet by planet. For each major shift: state what the Tropical placement produces, state what the Sidereal placement produces, state specifically where in this person's life these two orientations are most likely to collide. Do not resolve the divergence. Leave it intact. Name it precisely and move on.
-\`
+`
 
-export const SYNTHESIS_TENSION_PROMPT = \`\${SYNTHESIS_SYSTEM_PREFIX}
+export const SYNTHESIS_TENSION_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on THE CENTRAL TENSION:
 Continue exploring the friction between the tropical and sidereal charts. What is the single most defining unresolved tension across both systems? The thing that makes this person specifically this person rather than a type. Sharp and specific. No comfort.
-\`
+`
 
-export const SYNTHESIS_CLOSING_PROMPT = \`\${SYNTHESIS_SYSTEM_PREFIX}
+export const SYNTHESIS_CLOSING_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on INTEGRATION & CLOSING:
 How does this tropical trait function as the mechanism through which the sidereal lesson is lived? This is a precise causal description of how the inner architecture interacts with the outer karma.
 The final sentence must be the sharpest, most precise observation in the entire reading. One cohesive paragraph. It will not comfort. It will name something true that has probably been felt but never articulated. No resolution. End here.
-\`
+`
