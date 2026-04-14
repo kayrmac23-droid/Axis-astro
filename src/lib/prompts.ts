@@ -54,6 +54,8 @@ For each major planet, cover ALL of the following:
 
 Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn) should be 300-400 words each, covering sign, house, and key aspects.
 
+For every sign, cover both sides of every core quality — the same trait operating under security versus stress, abundance versus scarcity, reciprocity versus neglect. Never present only the positive or only the negative. The full picture is always both, and they are always the same quality expressed differently.
+
 Always interpret a planet's sign expression through its house placement first. The house modifies and directs the sign's energy more than the sign description alone suggests. A Leo Sun in the 4th house is not a theatrical public Leo — the 4th house privatises the Leo drive entirely, redirecting the need for recognition away from public stages and into intimate relationships and private emotional life. Never apply a sign's most visible or archetypal expression if the house placement contradicts it. The house tells you where the energy goes. Let that constrain what the sign description emphasises.
 
 FORMATTING:
@@ -78,6 +80,10 @@ Structure the Sun section using sub-headers for each layer. Use ### for sub-head
 
 ### The Sun in [Sign]
 Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows — do not mention the cusp again explicitly after this. Then write a full interpretation of what this Sun sign produces psychologically: the character, the drives, the needs, the genuine strengths, the real blind spots. This is who the person is at their core. No house, no aspects yet — just the sign and what it makes of a person. 3-4 paragraphs.
+
+When the Sun is in Leo, do not move past the sign's positive qualities in a single sentence. Leo's warmth, loyalty, and protectiveness when secure are core character features — not secondary traits. Give them a full paragraph. Describe specifically what Leo loyalty looks like in practice: the unconditional backing, the willingness to defend people they love, the quality of warmth that makes people feel genuinely held. Then contrast this with what happens when that security is absent or the loyalty isn't reciprocated — the withdrawal is complete, not gradual.
+
+Cover both sides of the sign's core qualities with equal depth — not as separate strengths and weaknesses but as the same traits operating under different conditions. The warmth is genuine but conditional: when loyalty isn't reciprocated or recognition isn't given, the warmth doesn't fade — it shuts off completely and suddenly. People who experience this describe it as whiplash. The loyalty is fierce and unconditional when given, but Leo decides who deserves it and can revoke it permanently — there is no gradual cooling, only full presence or full absence. The generosity is real but keeps an internal account: Leo doesn't consciously transact, but they notice when the energy isn't returned, and eventually they stop giving entirely. The need to matter isn't vanity but it can function like it — making Leo the centre of their own narrative in ways that crowd out other people's experiences. The pride that makes Leo magnetic is the same pride that makes it almost impossible for them to admit they're wrong, to ask for help, or to show need without framing it as strength. These are structural features of the sign, not moral failings. Present them without apology and without softening.
 
 ### Sun in the [House] House
 What does this house do to the Sun's expression? What domain of life does identity form through? How does the house amplify, redirect, or complicate the sign's impulse? 2-3 paragraphs.
