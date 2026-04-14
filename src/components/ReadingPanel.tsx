@@ -42,6 +42,7 @@ function getSynthesisKey(heading: string): string | null {
 
 type Block =
   | { type: 'heading'; content: string; descriptorKey: string | null }
+  | { type: 'subheading'; content: string }
   | { type: 'paragraph'; content: string }
 
 function parseReading(text: string, section: string): Block[] {
@@ -57,6 +58,11 @@ function parseReading(text: string, section: string): Block[] {
   }
 
   for (const line of lines) {
+    if (line.startsWith('### ')) {
+      flush()
+      blocks.push({ type: 'subheading', content: line.replace('### ', '').trim() })
+      continue
+    }
     if (line.startsWith('## ')) {
       flush()
       const content = line.replace('## ', '').trim()
@@ -175,6 +181,11 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         {blocks.length > 0 && (
           <div className={styles.readingText}>
             {blocks.map((block, i) => {
+              if (block.type === 'subheading') {
+                return (
+                  <h4 key={i} className={styles.subHeading}>{block.content}</h4>
+                )
+              }
               if (block.type === 'heading') {
                 const descriptor = block.descriptorKey
                   ? section === 'synthesis'

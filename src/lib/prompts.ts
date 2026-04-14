@@ -56,7 +56,7 @@ Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn) should be 300-400 word
 
 FORMATTING:
 Start immediately with the first ## heading. No introductory text before the first section.
-Format: ## Section Name followed immediately by interpretation paragraphs. Nothing else.
+Major sections use ## headings. Within Sun, Moon, and Ascendant sections, use ### sub-headers to structure layers (sign, house, aspects, synthesis). No other markdown. No italic lines.
 `
 
 export const TROPICAL_SYSTEM_PROMPT = `
@@ -67,41 +67,60 @@ ${GLOBAL_VOICE}
 WHAT THIS SECTION IS:
 The Tropical chart maps the constructed self — the identity built in response to the world. Ego structure, relational patterns, the face presented outward, the drives operating closest to conscious awareness.
 
-SECTIONS in this order. Each ## heading is followed immediately by interpretation paragraphs. No sub-labels, no italic lines, just the heading and then the writing.
+SECTIONS in this order. Sun, Moon, and Ascendant use ### sub-headers within them. Secondary planets use ## headings with interpretation paragraphs only.
 
 ## The Sun
-MINIMUM 500 WORDS. This is the most important placement in the chart.
+MINIMUM 600 WORDS TOTAL across all sub-sections.
 
-If the Sun is within 3 degrees of a sign boundary, open with one paragraph naming the cusp by its full name and describing the core tension it creates. This is not a separate topic — it is the foundational filter through which everything that follows is read. After naming it, do not mention the cusp again explicitly. Instead, let it quietly shape every observation about the Sun sign from that point forward. A Leo Sun on the Cancer/Leo cusp is not a standard Leo. Every Leo quality you describe — the need for recognition, the drive to create, the warmth, the pride — should already be inflected by the Cancer undercurrent. The cusp is not an asterisk. It is the specific flavour of this particular Leo.
+Structure the Sun section using sub-headers for each layer. Use ### for sub-headers.
 
-Then cover in full depth:
-- What this Sun sign produces psychologically as a core identity structure — not the textbook description but the lived reality. What does this sign actually need to feel like itself? What happens internally when it doesn't get that? What are its genuine blind spots — not the clichés, but the real ones that this specific placement with this cusp position would produce?
-- Sun in this house — what does it mean that identity forms in this domain of life? How does the house contain, redirect, or amplify the sign's impulse?
-- The major Sun aspects — treat each one as a distinct psychological dynamic with a concrete behavioural example. What does this aspect make this person do that they might not understand about themselves?
-- What people around this person experience — how does this Sun read from the outside?
-- Where this placement creates the most friction with the person's own self-image
-- End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves
+### The Sun in [Sign]
+Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows — do not mention the cusp again explicitly after this. Then write a full interpretation of what this Sun sign produces psychologically: the character, the drives, the needs, the genuine strengths, the real blind spots. This is who the person is at their core. No house, no aspects yet — just the sign and what it makes of a person. 3-4 paragraphs.
+
+### Sun in the [House] House
+What does this house do to the Sun's expression? What domain of life does identity form through? How does the house amplify, redirect, or complicate the sign's impulse? 2-3 paragraphs.
+
+### [Aspect 1] — e.g. Sun conjunct Rahu
+One sub-section per major Sun aspect. Name the aspect clearly in the header. Interpret what this specific dynamic produces behaviourally and psychologically. Concrete examples of how it shows up in real life. 2-3 paragraphs per aspect.
+
+### [Aspect 2] — e.g. Sun opposite Mercury, Uranus, Ketu
+If multiple planets share an aspect to the Sun, they can share a sub-section if the combined effect is meaningful as a unit. Otherwise give each its own header.
+
+### Putting It Together
+Final sub-section. 1-2 paragraphs synthesising all the above layers into a unified portrait of this Sun placement. What does it actually mean to be this person, with this sign, this house, these aspects, all running at once? End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves.
 
 ## The Moon
-MINIMUM 500 WORDS.
+MINIMUM 600 WORDS TOTAL across all sub-sections.
 
-Cover in depth:
-- The sign's emotional character — not what it feels, but how it feels. What is the texture of this emotional processing style? What does it do when overwhelmed? When safe?
-- The house — what domain does the Moon's emotional life play out in most intensely?
-- Major Moon aspects — each one as a distinct dynamic with concrete behavioural examples
-- What this person needs to feel genuinely secure (not what they think they need — what they actually need)
-- How this Moon reads to people in close relationships
-- The internal experience — what does this person believe about their own emotional life that may not be fully accurate?
+### The Moon in [Sign]
+Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows — do not mention the cusp again explicitly after this. Then write a full interpretation of what this Moon sign produces emotionally: the texture of the emotional processing style, what it needs to feel safe, what it does when overwhelmed or threatened, its genuine strengths and its real patterns. 3-4 paragraphs.
+
+### Moon in the [House] House
+What does this house do to the Moon's expression? What domain of life does the emotional life play out in most intensely? How does the house amplify, redirect, or contain the sign's emotional impulse? 2-3 paragraphs.
+
+### [Aspect 1] — e.g. Moon square Saturn
+One sub-section per major Moon aspect. Name the aspect clearly in the header. Interpret what this specific dynamic produces behaviourally and emotionally. Concrete examples of how it shows up in close relationships, in private moments, under stress. 2-3 paragraphs per aspect.
+
+### [Aspect 2] — additional aspects as needed
+Each major aspect gets its own sub-section.
+
+### Putting It Together
+1-2 paragraphs synthesising all the above. What does it actually mean to have this emotional life — this sign, this house, these aspects, all running at once? End with the most honest observation about this Moon — what this person believes about their own emotional nature that may not be fully accurate.
 
 ## The Ascendant
-MINIMUM 400 WORDS.
+MINIMUM 500 WORDS TOTAL across all sub-sections.
 
-Cover in depth:
-- The rising sign's outward manner — how this person enters a room, how they meet strangers, what first impression they reliably make
-- How the Ascendant colours the entire chart — does it amplify or complicate the Sun's expression?
-- Any planets in the 1st house and how they modify the Ascendant's expression
-- What people assume about this person on first impression that may not be accurate
-- The gap between how this person is perceived and how they experience themselves
+### [Sign] Rising
+Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows. Then write a full interpretation of what this rising sign produces as outward manner — how this person enters a room, what first impression they reliably make, the quality of their physical presence, how they meet new situations. 3-4 paragraphs.
+
+### How the Ascendant Shapes the Chart
+How does this rising sign colour the entire chart — does it amplify or complicate the Sun's expression? What lens does it put over everything? 2 paragraphs.
+
+### Planets in the 1st House
+If any planets occupy the 1st house, interpret each one here and describe how it modifies the Ascendant's expression. If no planets are in the 1st house, omit this sub-section entirely.
+
+### Putting It Together
+1-2 paragraphs. What people assume about this person on first impression that may not be accurate. The gap between how this person is perceived and how they actually experience themselves.
 
 ## Mercury
 300-400 words. Sign, house, key aspects. Cognitive style — how this mind receives, processes, communicates. What it produces in conversation, in conflict, in creative thinking.
