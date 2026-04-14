@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { formatChartForPrompt, DualChartData } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT } from '@/lib/prompts'
+import * as Prompts from '@/lib/prompts'
 
 export const maxDuration = 60
 
@@ -10,35 +10,64 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
+const PROMPT_MAP: Record<string, Record<string, string>> = {
+  tropical: {
+    sun: Prompts.TROPICAL_SUN_PROMPT,
+    moon: Prompts.TROPICAL_MOON_PROMPT,
+    ascendant: Prompts.TROPICAL_ASCENDANT_PROMPT,
+    mercury: Prompts.TROPICAL_MERCURY_PROMPT,
+    venus: Prompts.TROPICAL_VENUS_PROMPT,
+    mars: Prompts.TROPICAL_MARS_PROMPT,
+    jupiter_saturn: Prompts.TROPICAL_JUPITER_SATURN_PROMPT,
+    key_aspects: Prompts.TROPICAL_KEY_ASPECTS_PROMPT
+  },
+  sidereal: {
+    lagna: Prompts.SIDEREAL_LAGNA_PROMPT,
+    sun: Prompts.SIDEREAL_SUN_PROMPT,
+    moon: Prompts.SIDEREAL_MOON_PROMPT,
+    mercury: Prompts.SIDEREAL_MERCURY_PROMPT,
+    venus: Prompts.SIDEREAL_VENUS_PROMPT,
+    mars: Prompts.SIDEREAL_MARS_PROMPT,
+    jupiter_saturn: Prompts.SIDEREAL_JUPITER_SATURN_PROMPT,
+    rahu_ketu: Prompts.SIDEREAL_RAHU_KETU_PROMPT
+  },
+  synthesis: {
+    agree: Prompts.SYNTHESIS_AGREE_PROMPT,
+    diverge: Prompts.SYNTHESIS_DIVERGE_PROMPT,
+    tension: Prompts.SYNTHESIS_TENSION_PROMPT,
+    closing: Prompts.SYNTHESIS_CLOSING_PROMPT
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { chartData, section }: { chartData: DualChartData; section: 'tropical' | 'sidereal' | 'synthesis' } = await req.json()
+    const { chartData, section, planetSection }: { chartData: DualChartData; section: 'tropical' | 'sidereal' | 'synthesis', planetSection: string } = await req.json()
 
-    if (!chartData || !section) {
-      return NextResponse.json({ error: 'Missing chart data or section' }, { status: 400 })
+    if (!chartData || !section || !planetSection) {
+      return NextResponse.json({ error: 'Missing chart data, section, or planetSection' }, { status: 400 })
     }
 
-    let systemPrompt = ''
-    let userContent = ''
+    const systemPrompt = PROMPT_MAP[section]?.[planetSection]
+    if (!systemPrompt) {
+      return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
+    }
 
+    let userContent = ''
     const tropicalFormatted = formatChartForPrompt(chartData.tropical, 'tropical')
     const siderealFormatted = formatChartForPrompt(chartData.sidereal, 'sidereal')
 
     if (section === 'tropical') {
-      systemPrompt = TROPICAL_SYSTEM_PROMPT
-      userContent = `Generate the Tropical reading for this chart:\n\n${tropicalFormatted}`
+      userContent = `Generate the ${planetSection} section for the Tropical reading. Here is the full chart data for cross-chart accuracy context:\n\n${tropicalFormatted}`
     } else if (section === 'sidereal') {
-      systemPrompt = SIDEREAL_SYSTEM_PROMPT
-      userContent = `Generate the Sidereal reading for this chart:\n\n${siderealFormatted}`
+      userContent = `Generate the ${planetSection} section for the Sidereal reading. Here is the full chart data for cross-chart accuracy context:\n\n${siderealFormatted}`
     } else if (section === 'synthesis') {
-      systemPrompt = SYNTHESIS_SYSTEM_PROMPT
-      userContent = `Generate the AXIS Synthesis reading.\n\nTROPICAL CHART:\n${tropicalFormatted}\n\nSIDEREAL CHART:\n${siderealFormatted}`
+      userContent = `Generate the ${planetSection} section for the AXIS Synthesis reading. Here is the full chart data:\n\nTROPICAL CHART:\n${tropicalFormatted}\n\nSIDEREAL CHART:\n${siderealFormatted}`
     }
 
     // Stream the response
     const stream = await anthropic.messages.stream({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 8000,
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 6000,
       temperature: 0.7,
       system: systemPrompt,
       messages: [{ role: 'user', content: userContent }]
@@ -74,8 +103,9 @@ export async function POST(req: NextRequest) {
         'Transfer-Encoding': 'chunked',
       }
     })
-  } catch (error) {
-    console.error('Reading generation error:', error)
+  } catch (error: any) {
+    console.error('Reading generation error:', JSON.stringify(error, null, 2))
+    console.error('Error message:', error?.message)
     return NextResponse.json({ error: 'Reading generation failed' }, { status: 500 })
   }
 }

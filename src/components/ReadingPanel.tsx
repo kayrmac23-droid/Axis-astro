@@ -80,6 +80,12 @@ function parseReading(text: string, section: string): Block[] {
   return blocks
 }
 
+const PLANET_SECTIONS = {
+  tropical: ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects'],
+  sidereal: ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
+  synthesis: ['agree', 'diverge', 'tension', 'closing']
+}
+
 export default function ReadingPanel({ chartData, section }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
@@ -87,40 +93,57 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
-    if (!readings[section]) generateReading(section)
+    if (!readings[section] && !loading) {
+      generateReading(section)
+    }
   }, [section, chartData])
 
-  const generateReading = async (sec: string) => {
+  const generateReading = async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
     setLoading(true)
     setError(null)
+    setReadings(prev => ({ ...prev, [sec]: '' }))
+
+    const sectionsToFetch = PLANET_SECTIONS[sec]
 
     try {
-      const res = await fetch('/api/reading', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chartData, section: sec }),
-        signal: abortRef.current.signal
-      })
-      if (!res.ok || !res.body) throw new Error('Reading failed')
+      let accumulatedText = ''
+      
+      for (const planetSec of sectionsToFetch) {
+        const res = await fetch('/api/reading', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
+          signal: abortRef.current.signal
+        })
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let accumulated = ''
+        if (!res.ok) throw new Error(`Reading failed for ${planetSec}`)
+        if (!res.body) throw new Error('No response body')
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        accumulated += decoder.decode(value, { stream: true })
-        setReadings(prev => ({ ...prev, [sec]: accumulated }))
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        
+        let chunkText = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          const chunk = decoder.decode(value, { stream: true })
+          chunkText += chunk
+          setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
+        }
+        
+        accumulatedText += chunkText + '\n\n'
+        setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError('Reading generation failed. Please try again.')
       }
     } finally {
-      setLoading(false)
+      if (!abortRef.current?.signal.aborted) {
+        setLoading(false)
+      }
     }
   }
 
