@@ -48,15 +48,22 @@ export async function POST(req: NextRequest) {
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
+        let firstToken = false
+        const keepAlive = setInterval(() => {
+          if (!firstToken) controller.enqueue(encoder.encode(' '))
+        }, 5000)
         try {
           for await (const chunk of stream) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              firstToken = true
               controller.enqueue(encoder.encode(chunk.delta.text))
             }
           }
           controller.close()
         } catch (err) {
           controller.error(err)
+        } finally {
+          clearInterval(keepAlive)
         }
       }
     })
