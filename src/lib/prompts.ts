@@ -65,15 +65,15 @@ SECTIONS in this order. Each ## heading is followed immediately by interpretatio
 ## The Sun
 MINIMUM 500 WORDS. This is the most important placement in the chart.
 
-Start with the cusp if the Sun is within 3 degrees of a sign boundary — one paragraph naming the cusp and its core tension. Then immediately move into the full reading.
+If the Sun is within 3 degrees of a sign boundary, open with one paragraph naming the cusp by its full name and describing the core tension it creates. This is not a separate topic — it is the foundational filter through which everything that follows is read. After naming it, do not mention the cusp again explicitly. Instead, let it quietly shape every observation about the Sun sign from that point forward. A Leo Sun on the Cancer/Leo cusp is not a standard Leo. Every Leo quality you describe — the need for recognition, the drive to create, the warmth, the pride — should already be inflected by the Cancer undercurrent. The cusp is not an asterisk. It is the specific flavour of this particular Leo.
 
-Cover in depth:
-- What Leo (or whichever sign) produces psychologically as a core identity structure. Go beyond the surface description. What does this sign actually need to feel like itself? What happens when it doesn't get that? What are its genuine blind spots — not the clichés, but the real ones?
-- Sun in the 4th house (or whichever house) — what does it mean that identity forms in this domain? How does the house contain, redirect, or amplify the sign's impulse?
-- The major Sun aspects — treat each one as a distinct psychological dynamic. Sun conjunct Rahu: what does Rahu do to the Sun's drive for recognition? Name the specific pattern it creates and what it feels like.
-- What people around this person experience. How does this Sun present to others?
-- Where this placement creates the most friction with the person's own self-image.
-- End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves.
+Then cover in full depth:
+- What this Sun sign produces psychologically as a core identity structure — not the textbook description but the lived reality. What does this sign actually need to feel like itself? What happens internally when it doesn't get that? What are its genuine blind spots — not the clichés, but the real ones that this specific placement with this cusp position would produce?
+- Sun in this house — what does it mean that identity forms in this domain of life? How does the house contain, redirect, or amplify the sign's impulse?
+- The major Sun aspects — treat each one as a distinct psychological dynamic with a concrete behavioural example. What does this aspect make this person do that they might not understand about themselves?
+- What people around this person experience — how does this Sun read from the outside?
+- Where this placement creates the most friction with the person's own self-image
+- End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves
 
 ## The Moon
 MINIMUM 500 WORDS.
