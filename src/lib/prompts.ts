@@ -86,6 +86,10 @@ Cover both sides of the sign's core qualities with equal depth — not as separa
 ### Sun in the [House] House
 What does this house do to the Sun's expression? What domain of life does identity form through? How does the house amplify, redirect, or complicate the sign's impulse? 2-3 paragraphs.
 
+When the Sun is in the 4th house, the need for significance described by the Sun sign must be interpreted entirely through intimate relationships and close bonds — not through rooms, groups, social situations, or general presence. This person does not track whether strangers register them. They track whether the specific people they have chosen matter to them enough. The hunger is directed inward toward a small circle, not outward toward the world.
+
+When writing the Sun section, check the Moon sign and house and incorporate how the Moon's emotional pattern shapes where and how the Sun's need for recognition actually plays out. If the Moon is in the 8th house, the need for significance operates through deep psychological bonds, shared vulnerability, and intense intimate connection — not through social visibility. Name specifically how these two placements interact rather than describing the Sun placement in isolation.
+
 ### [Aspect 1]
 One sub-section per major Sun aspect. Name the aspect clearly in the header. Interpret what this specific dynamic produces behaviourally and psychologically. Concrete examples of how it shows up in real life. 2-3 paragraphs per aspect.
 
