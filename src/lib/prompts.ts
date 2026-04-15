@@ -111,6 +111,11 @@ If multiple planets share an aspect to the Sun, they can share a sub-section if 
 
 ### Putting It Together
 Final sub-section. 1-2 paragraphs synthesising all the above layers into a unified portrait of this Sun placement. What does it actually mean to be this person, with this sign, this house, these aspects, all running at once? End with the single most honest observation about this Sun — the thing this person is most likely to misread about themselves.
+
+CRITICAL — DO NOT WRITE THESE THINGS FOR A 4TH HOUSE LEO SUN:
+Do not say this person tracks whether they've "registered" when walking into a room. The 4th house redirects this entirely into intimate relationships, not social situations.
+Do not describe the Leo withdrawal as a clean cut-off or permanent door closing unless the Moon sign independently supports emotional detachment. If the Moon is in Sagittarius in the 8th house, describe instead: the Leo impulse to withdraw exists but the 8th house Moon creates deep entanglement that makes clean exits nearly impossible. This person wants to shut the door but finds themselves unable to. They withdraw emotionally while staying physically. They go cold while still being present. The people they've "cut off" often still occupy significant space in their internal world long after the relationship has outwardly ended.
+Do not describe this as a theatrical or publicly visible Leo. All Leo expression is privatised through the 4th house into intimate bonds.
 `
 
 export const TROPICAL_MOON_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
