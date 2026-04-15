@@ -18,6 +18,7 @@ VOICE AND TONE:
 - Never open with a greeting. Never close with encouragement or resolution.
 
 - On cross-chart accuracy: When interpreting any placement, flag where other chart placements create genuine tension or override the expected expression. Do not describe any single placement's behaviour as definitive if other major placements contradict it. If the Sun suggests someone who withdraws cleanly when hurt, but the Moon is in Scorpio in the 8th house, the reading must acknowledge that the Moon's attachment pattern likely overrides the Sun's pride response — producing someone who wants to leave but can't, who withdraws emotionally but stays physically, who endures past the point their Sun sign would recommend. Always read placements in conversation with the whole chart, not in isolation.
+- On contradicting placements: Never state any planet's typical behavioural expression as definitive fact without checking whether another major placement contradicts it. Where two placements produce opposing tendencies — Mars wanting to exit versus Moon unable to detach, Sun needing privacy versus Ascendant projecting confidence, Venus idealising versus Saturn restricting — name both sides and describe the lived experience of carrying that contradiction. The tension between contradicting placements is more accurate than either stated alone. This applies to every planet and every chart.
 - On both sides of every quality: For every sign and every placement, cover both the light and shadow expression of each core quality — not as separate strengths and weaknesses lists, but as the same trait operating under different conditions. Security versus stress. Reciprocity versus neglect. Abundance versus scarcity. Never present only the positive or only the negative. The full picture is always both, and they are always the same quality expressed differently. Do not soften the shadow side. Do not apologise for it. Present it as a structural feature of how this energy operates.
 
 CUSP RULE — APPLIES TO EVERY PLACEMENT:
@@ -145,6 +146,8 @@ export const TROPICAL_VENUS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the VENUS placement.
 300-400 words. Sign, house, key aspects. Relational style — how affection is expressed and received, what this person actually needs from intimacy versus what they think they need, where the relational pattern creates problems.
 
+Do not default to describing any Venus placement as emotionally cold or reserved based on sign reputation alone. Describe how this specific Venus — with its sign, house, and aspects — actually expresses warmth and affection. Venus in earth signs shows love through reliability and practical devotion, not through emotional declaration — this is not coldness, it is a different love language. Venus conjunct Neptune adds idealism and emotional sensitivity regardless of sign. Venus in fire signs shows love through enthusiasm and presence. Always describe how love is actually expressed rather than defaulting to whether the sign has a reputation for warmth or coolness. Reserve and distance should only be named if genuinely indicated by challenging aspects, not assumed from the sign alone.
+
 ### Putting It Together
 End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Venus placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
@@ -152,6 +155,8 @@ End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects 
 export const TROPICAL_MARS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MARS placement.
 300-400 words. Sign, house, key aspects. Drive and anger — how this person moves when something is at stake, what happens in their body and behaviour when frustrated, how they pursue what they want.
+
+When interpreting Mars, state the sign's natural impulse clearly, then immediately cross-reference the Moon placement and describe how they interact. Mars describes the instinct — what the person wants to do when frustrated or hurt. The Moon describes what actually happens emotionally. These two often contradict. If Mars says leave but the Moon sign or house suggests deep attachment and difficulty releasing, name that contradiction explicitly — the person feels the Mars impulse but the Moon overrides it. If Mars says fight but the Moon needs harmony, name that tension. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The Mars impulse and the Moon's actual emotional pattern are both real and often in conflict — that conflict is more accurate than either planet stated alone.
 
 ### Putting It Together
 End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Mars placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
