@@ -209,7 +209,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             {blocks.map((block, i) => {
               if (block.type === 'subheading') {
                 return (
-                  <h4 key={i} className={styles.subHeading}>{block.content}</h4>
+                  <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
                 )
               }
               if (block.type === 'heading') {

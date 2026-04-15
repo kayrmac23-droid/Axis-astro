@@ -136,21 +136,33 @@ If any planets occupy the 1st house, interpret each one here and describe how it
 export const TROPICAL_MERCURY_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MERCURY placement.
 300-400 words. Sign, house, key aspects. Cognitive style — how this mind receives, processes, communicates. What it produces in conversation, in conflict, in creative thinking.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Mercury placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const TROPICAL_VENUS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the VENUS placement.
 300-400 words. Sign, house, key aspects. Relational style — how affection is expressed and received, what this person actually needs from intimacy versus what they think they need, where the relational pattern creates problems.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Venus placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const TROPICAL_MARS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the MARS placement.
 300-400 words. Sign, house, key aspects. Drive and anger — how this person moves when something is at stake, what happens in their body and behaviour when frustrated, how they pursue what they want.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Mars placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const TROPICAL_JUPITER_SATURN_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on JUPITER and SATURN placements.
 300-400 words total. Where this person overextends and where they meet genuine resistance. If they share a house, the tension between them is its own dynamic — address it.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising both placements into a unified portrait of what Jupiter and Saturn together actually produce in this person's life. The closing observation should be the most honest, specific thing that can be said about this axis. Do not repeat what was already said. Distil it.
 `
 
 export const TROPICAL_KEY_ASPECTS_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
@@ -191,21 +203,33 @@ The Moon governs emotional instinct — what the gut extends to others before th
 export const SIDEREAL_MERCURY_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MERCURY placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Instinctive cognitive style.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and Nakshatra into a unified portrait of what this Mercury placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const SIDEREAL_VENUS_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the VENUS placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Essential relational nature.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and Nakshatra into a unified portrait of what this Venus placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const SIDEREAL_MARS_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MARS placement.
 250-300 words. Sign, house, Nakshatra. Note shift. Note dignity — if in own sign or exalted or debilitated, state it and interpret what that means functionally for how this drive operates.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising sign, house, and Nakshatra into a unified portrait of what this Mars placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
 
 export const SIDEREAL_JUPITER_SATURN_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on JUPITER and SATURN placements.
 250-300 words. Signs, houses. Dignity. Essential expansion and contraction.
+
+### Putting It Together
+End with this sub-section. 1-2 paragraphs synthesising both placements into a unified portrait of what Jupiter and Saturn together actually produce in this person's life. The closing observation should be the most honest, specific thing that can be said about this axis. Do not repeat what was already said. Distil it.
 `
 
 export const SIDEREAL_RAHU_KETU_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}

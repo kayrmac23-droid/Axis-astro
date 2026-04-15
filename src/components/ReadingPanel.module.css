@@ -124,6 +124,19 @@
   animation: fadeIn 0.5s ease both;
 }
 
+.planetSubheading {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-top: 2rem;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.5s ease both;
+}
+
 .planetHeading {
   font-family: var(--font-serif);
   font-size: 1.35rem;
