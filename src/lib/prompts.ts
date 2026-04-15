@@ -88,7 +88,8 @@ export const TROPICAL_SUN_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the SUN placement.
 MINIMUM 600 WORDS TOTAL across all sub-sections.
 
-Structure the Sun section using sub-headers for each layer. Use ### for sub-headers:
+Structure the Sun section using sub-headers for each layer. Start your response with the ## heading, then use ### for sub-headers:
+## The Sun
 ### The Sun in [Sign]
 Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows — do not mention the cusp again explicitly after this. Then write a full interpretation of what this Sun sign produces psychologically: the character, the drives, the needs, the genuine strengths, the real blind spots. This is who the person is at their core. No house, no aspects yet — just the sign and what it makes of a person. 3-4 paragraphs.
 When the Sun is in Leo, do not move past the sign's positive qualities in a single sentence. Leo's warmth, loyalty, and protectiveness when secure are core character features — not secondary traits. Give them a full paragraph. Describe specifically what Leo loyalty looks like in practice: the unconditional backing, the willingness to defend people they love, the quality of warmth that makes people feel genuinely held. Then contrast this with what happens when that security is absent or the loyalty isn't reciprocated — the withdrawal is complete, not gradual.
@@ -117,7 +118,8 @@ MINIMUM 600 WORDS TOTAL across all sub-sections.
 
 The Moon governs emotional instinct — what the gut extends to others before the mind has consciously assessed them. Based on this person's specific Moon sign, house, and aspects, interpret how they instinctively read other people. Some Moon placements produce an instinct to see the best in people — their potential, their intentions, what they're struggling with underneath the surface. Others produce suspicion, protectiveness, or emotional realism. Identify which pattern this Moon produces and describe it honestly, including the shadow side. Where the Moon produces a tendency to see the good in people, also name what that costs: staying in situations past their expiry date, minimising red flags that have already been noticed, extending loyalty to people who haven't earned it. Where the Moon produces guardedness or suspicion, name what that costs too. Frame whichever pattern is present as a quality that cuts both ways — neither purely a strength nor purely a weakness.
 
-Structure the Moon section using sub-headers:
+Structure the Moon section starting with the ## heading, then ### sub-headers:
+## The Moon
 ### The Moon in [Sign]
 Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows — do not mention the cusp again explicitly after this. Then write a full interpretation of what this Moon sign produces emotionally: the texture of the emotional processing style, what it needs to feel safe, what it does when overwhelmed or threatened, its genuine strengths and its real patterns. 3-4 paragraphs.
 
@@ -135,7 +137,8 @@ export const TROPICAL_ASCENDANT_PROMPT = `${TROPICAL_SYSTEM_PREFIX}
 Focus completely on the ASCENDANT / RISING sign and any planets in the 1st house.
 MINIMUM 500 WORDS TOTAL across all sub-sections.
 
-Structure the Ascendant section using sub-headers:
+Structure the Ascendant section starting with the ## heading, then ### sub-headers:
+## The Ascendant
 ### [Sign] Rising
 Open here. If on a cusp, name it in the first paragraph and let it filter everything that follows. Then write a full interpretation of what this rising sign produces as outward manner — how this person enters a room, what first impression they reliably make, the quality of their physical presence, how they meet new situations. 3-4 paragraphs.
 
@@ -205,17 +208,20 @@ Before writing each section, check if this planet shifted signs from Tropical. I
 
 export const SIDEREAL_LAGNA_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the LAGNA (Ascendant) and its ruling planet.
-400+ words. Name the Lagna sign and note the shift from Tropical Ascendant if present — this shift is one of the most important facts in the dual chart. Interpret the ruling planet and its placement. This is the foundational lens of the entire Sidereal reading.
+400+ words. Start your response with this exact heading: ## The Lagna — Ascendant in Jyotish
+Name the Lagna sign and note the shift from Tropical Ascendant if present — this shift is one of the most important facts in the dual chart. Interpret the ruling planet and its placement. This is the foundational lens of the entire Sidereal reading.
 `
 
 export const SIDEREAL_SUN_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the SUN placement.
-400+ words. If shifted, open with the shift. Interpret what the essential identity looks like beneath the Tropical identity. Name the Nakshatra and what psychological precision it adds beyond the sign. Go into depth on what the sign produces at the soul level.
+400+ words. Start your response with: ## The Sun
+If shifted, open the first paragraph with the shift. Interpret what the essential identity looks like beneath the Tropical identity. Name the Nakshatra and what psychological precision it adds beyond the sign. Go into depth on what the sign produces at the soul level.
 `
 
 export const SIDEREAL_MOON_PROMPT = `${SIDEREAL_SYSTEM_PREFIX}
 Focus completely on the MOON placement.
-400+ words. Name sign, house, Nakshatra. Note shift if present. The Nakshatra interpretation must be specific — name the Nakshatra, its ruling deity or planet, and what psychological quality it produces that the sign alone doesn't show.
+400+ words. Start your response with: ## The Moon
+Name sign, house, Nakshatra. Note shift if present. The Nakshatra interpretation must be specific — name the Nakshatra, its ruling deity or planet, and what psychological quality it produces that the sign alone doesn't show.
 
 The Moon governs emotional instinct — what the gut extends to others before the mind has consciously assessed them. Based on this person's specific Moon sign, house, and aspects, interpret how they instinctively read other people. Some Moon placements produce an instinct to see the best in people — their potential, their intentions, what they're struggling with underneath the surface. Others produce suspicion, protectiveness, or emotional realism. Identify which pattern this Moon produces and describe it honestly, including the shadow side. Where the Moon produces a tendency to see the good in people, also name what that costs: staying in situations past their expiry date, minimising red flags that have already been noticed, extending loyalty to people who haven't earned it. Where the Moon produces guardedness or suspicion, name what that costs too. Frame whichever pattern is present as a quality that cuts both ways — neither purely a strength nor purely a weakness.
 `
