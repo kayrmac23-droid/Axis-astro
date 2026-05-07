@@ -113,7 +113,7 @@
 }
 
 .input:focus {
-  border-color: var(--gold-dim);
+  border-color: rgba(201, 150, 46, 0.5);
 }
 
 .inputConfirmed {

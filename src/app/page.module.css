@@ -9,7 +9,7 @@
 .header {
   width: 100%;
   padding: 1.8rem 2rem 1.6rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(201, 150, 46, 0.22);
   display: flex;
   justify-content: center;
 }
@@ -40,7 +40,7 @@
   letter-spacing: 0.08em;
   font-style: italic;
   padding-left: 1.2rem;
-  border-left: 1px solid var(--border-2);
+  border-left: 1px solid rgba(201, 150, 46, 0.2);
 }
 
 /* Hero */
