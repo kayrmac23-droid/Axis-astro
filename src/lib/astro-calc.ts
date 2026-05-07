@@ -233,6 +233,13 @@ function getHouseForPlanet(planetLon: number, houses: number[]): number {
   return 1
 }
 
+// Whole Sign house number — standard for Jyotish/Vedic
+function getHouseWholeSign(planetLon: number, ascendant: number): number {
+  const ascSignIndex = Math.floor(ascendant / 30)
+  const planetSignIndex = Math.floor(planetLon / 30)
+  return ((planetSignIndex - ascSignIndex + 12) % 12) + 1
+}
+
 function isRetrograde(planet: string, jd: number): boolean {
   // Simplified retrograde detection via position comparison
   const delta = 1
@@ -304,9 +311,14 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   })
 
   // Sidereal — shift all longitudes by ayanamsa
-  const siderealHouses = houses.map(h => normalize(h - ayanamsa))
-  const ascendantSidereal = siderealHouses[0]
+  const ascendantSidereal = normalize(ascendantTropical - ayanamsa)
   const ascSignSidereal = getSign(ascendantSidereal)
+
+  // Whole Sign Houses: each cusp is at 0° of successive signs from the ASC sign
+  const ascSiderealSignIndex = Math.floor(ascendantSidereal / 30)
+  const siderealHouses = Array.from({ length: 12 }, (_, i) =>
+    normalize(ascSiderealSignIndex * 30 + i * 30)
+  )
 
   const siderealPlanets: PlanetPosition[] = rawPlanets.map(p => {
     const siderealLon = normalize(p.longitude - ayanamsa)
@@ -318,7 +330,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       sign,
       signIndex,
       degree,
-      house: getHouseForPlanet(siderealLon, siderealHouses),
+      house: getHouseWholeSign(siderealLon, ascendantSidereal),
       retrograde: retrogradeMap[p.name],
       nakshatra,
       nakshatraPada: pada
