@@ -8,8 +8,8 @@
 /* Header */
 .header {
   width: 100%;
-  padding: 2.5rem 2rem 2rem;
-  border-bottom: 1px solid var(--border);
+  padding: 1.8rem 2rem 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   display: flex;
   justify-content: center;
 }
@@ -36,7 +36,7 @@
   font-family: var(--font-serif);
   font-size: 0.85rem;
   font-weight: 300;
-  color: var(--text-3);
+  color: var(--text-2);
   letter-spacing: 0.08em;
   font-style: italic;
   padding-left: 1.2rem;
@@ -46,8 +46,8 @@
 /* Hero */
 .hero {
   width: 100%;
-  max-width: 680px;
-  padding: 6rem 2rem 3rem;
+  max-width: 640px;
+  padding: 2.5rem 2rem 1.5rem;
   text-align: center;
   animation: fadeUp 1s ease both;
 }
@@ -58,10 +58,11 @@
 
 .heroText {
   font-size: 1.25rem;
-  line-height: 2;
+  line-height: 1.85;
   font-weight: 300;
-  color: var(--text-2);
+  color: var(--text);
   letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 .heroEmphasis {
@@ -73,7 +74,7 @@
 .formSection {
   width: 100%;
   max-width: 560px;
-  padding: 3rem 2rem 5rem;
+  padding: 1.5rem 2rem 3rem;
   animation: fadeUp 1s ease 0.2s both;
 }
 

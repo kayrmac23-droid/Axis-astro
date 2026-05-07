@@ -58,38 +58,45 @@
 
 .ampmToggle {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--surface-2);
+  overflow: hidden;
 }
 
 .ampmBtn {
-  padding: 0.3rem 0.6rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  padding: 0.85rem 0.8rem;
+  background: none;
+  border: none;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
   line-height: 1;
 }
 
+.ampmBtn:last-child {
+  border-right: none;
+}
+
 .ampmBtn:hover {
-  border-color: var(--gold-dim);
-  color: var(--text);
+  color: var(--text-2);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .ampmActive {
-  border-color: var(--gold-dim);
+  background: rgba(201, 150, 46, 0.1);
   color: var(--gold);
-  background: var(--surface);
 }
 
 .input {
   width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.9rem;
@@ -101,8 +108,8 @@
 }
 
 .input::placeholder {
-  color: var(--text-3);
-  opacity: 0.5;
+  color: var(--text-2);
+  opacity: 0.4;
 }
 
 .input:focus {
