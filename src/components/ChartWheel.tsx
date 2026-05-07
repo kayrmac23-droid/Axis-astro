@@ -74,6 +74,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
   }
 
   const planetsWithOffset = spreadPlanets(chart.planets.slice(0, 10))
+  const ascLabelPos = polarToCartesian(cx, cy, outerR + 9, 180)
 
   return (
     <div className={styles.wheelWrap}>
@@ -183,23 +184,19 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         })}
 
         {/* ASC label */}
-        {(() => {
-          const ascPos = polarToCartesian(cx, cy, outerR + 9, 180)
-          return (
-            <text
-              x={ascPos.x} y={ascPos.y}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize="7"
-              fill="#c9962e"
-              opacity="0.9"
-              fontFamily="Space Mono, monospace"
-              letterSpacing="0.05em"
-            >
-              AC
-            </text>
-          )
-        })()}
+        <text
+          x={ascLabelPos.x}
+          y={ascLabelPos.y}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize="7"
+          fill="#c9962e"
+          opacity="0.9"
+          fontFamily="Space Mono, monospace"
+          letterSpacing="0.05em"
+        >
+          AC
+        </text>
 
         {/* Planets */}
         {planetsWithOffset.map((planet) => {

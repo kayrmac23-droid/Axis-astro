@@ -52,17 +52,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
     }
 
-    let userContent = ''
-    const tropicalFormatted = formatChartForPrompt(chartData.tropical, 'tropical')
-    const siderealFormatted = formatChartForPrompt(chartData.sidereal, 'sidereal')
+    const tropicalFormatted = () => formatChartForPrompt(chartData.tropical, 'tropical')
+    const siderealFormatted = () => formatChartForPrompt(chartData.sidereal, 'sidereal')
 
-    if (section === 'tropical') {
-      userContent = `Generate the ${planetSection} section for the Tropical reading. Here is the full chart data for cross-chart accuracy context:\n\n${tropicalFormatted}`
-    } else if (section === 'sidereal') {
-      userContent = `Generate the ${planetSection} section for the Sidereal reading. Here is the full chart data for cross-chart accuracy context:\n\n${siderealFormatted}`
-    } else if (section === 'synthesis') {
-      userContent = `Generate the ${planetSection} section for the AXIS Synthesis reading. Here is the full chart data:\n\nTROPICAL CHART:\n${tropicalFormatted}\n\nSIDEREAL CHART:\n${siderealFormatted}`
-    }
+    const userContent =
+      section === 'tropical'
+        ? `Generate the ${planetSection} section for the Tropical reading. Here is the full chart data for cross-chart accuracy context:\n\n${tropicalFormatted()}`
+        : section === 'sidereal'
+          ? `Generate the ${planetSection} section for the Sidereal reading. Here is the full chart data for cross-chart accuracy context:\n\n${siderealFormatted()}`
+          : `Generate the ${planetSection} section for the AXIS Synthesis reading. Here is the full chart data:\n\nTROPICAL CHART:\n${tropicalFormatted()}\n\nSIDEREAL CHART:\n${siderealFormatted()}`
 
     // Stream the response
     const stream = await anthropic.messages.stream({
@@ -77,14 +75,14 @@ export async function POST(req: NextRequest) {
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
-        let firstToken = false
+        let hasFirstToken = false
         const keepAlive = setInterval(() => {
-          if (!firstToken) controller.enqueue(encoder.encode(' '))
+          if (!hasFirstToken) controller.enqueue(encoder.encode(' '))
         }, 5000)
         try {
           for await (const chunk of stream) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              firstToken = true
+              hasFirstToken = true
               controller.enqueue(encoder.encode(chunk.delta.text))
             }
           }

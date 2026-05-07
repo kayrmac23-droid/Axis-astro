@@ -35,7 +35,7 @@ export default function Home() {
       setTimeout(() => {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 300)
-    } catch (err) {
+    } catch {
       setError('Chart calculation failed. Please check your birth data.')
     } finally {
       setLoading(false)

@@ -91,16 +91,19 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const loadingRef = useRef(false)
 
   useEffect(() => {
-    if (!readings[section] && !loading) {
+    if (!readings[section] && !loadingRef.current) {
       generateReading(section)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [section, chartData])
 
   const generateReading = async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
+    loadingRef.current = true
     setLoading(true)
     setError(null)
     setReadings(prev => ({ ...prev, [sec]: '' }))
@@ -145,6 +148,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       }
     } finally {
       if (!abortRef.current?.signal.aborted) {
+        loadingRef.current = false
         setLoading(false)
       }
     }
