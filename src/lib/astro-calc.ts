@@ -54,9 +54,10 @@ const NAKSHATRAS = [
 ]
 
 // Lahiri ayanamsa (standard for Jyotish)
+// Base constant 23.85° is calibrated to J2000 (jd=2451545.0), so precession must use the same epoch.
 function getLahiriAyanamsa(jd: number): number {
   const T = (jd - 2451545.0) / 36525.0
-  return 23.85 + 0.0137 * T + (jd - 2415020.0) / 365.25 * (50.2564 / 3600)
+  return 23.85 + 0.0137 * T + (jd - 2451545.0) / 365.25 * (50.2564 / 3600)
 }
 
 // Julian Day Number from calendar date
@@ -279,6 +280,12 @@ export function calculateDualChart(birth: BirthData): DualChartData {
     { name: 'Ketu', longitude: normalize(getRahuLongitude(jd) + 180) },
   ]
 
+  // Retrograde depends only on jd+planet, not on tropical/sidereal — compute once
+  const retrogradeMap: Record<string, boolean> = {}
+  for (const p of rawPlanets) {
+    retrogradeMap[p.name] = isRetrograde(p.name, jd)
+  }
+
   const ascendantTropical = houses[0]
   const ascSignTropical = getSign(ascendantTropical)
 
@@ -292,7 +299,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       signIndex,
       degree,
       house: getHouseForPlanet(p.longitude, houses),
-      retrograde: isRetrograde(p.name, jd)
+      retrograde: retrogradeMap[p.name]
     }
   })
 
@@ -312,7 +319,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       signIndex,
       degree,
       house: getHouseForPlanet(siderealLon, siderealHouses),
-      retrograde: isRetrograde(p.name, jd),
+      retrograde: retrogradeMap[p.name],
       nakshatra,
       nakshatraPada: pada
     }

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import styles from './BirthForm.module.css'
 
 interface BirthFormProps {
@@ -29,6 +29,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const to24Hour = (hour: string, ampm: string): number => {
     const h = parseInt(hour) || 12
@@ -41,8 +42,12 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     setFormData(prev => ({ ...prev, [name]: value }))
     if (name === 'location') {
       setLocationConfirmed(false)
-      if (value.length > 2) searchLocation(value)
-      else setLocationSuggestions([])
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+      if (value.length > 2) {
+        searchTimerRef.current = setTimeout(() => searchLocation(value), 300)
+      } else {
+        setLocationSuggestions([])
+      }
     }
   }
 
