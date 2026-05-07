@@ -6,11 +6,13 @@ interface ChartWheelProps {
   chart: ChartData
 }
 
-const SIGN_SYMBOLS = ['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓']
+// ︎ = Variation Selector-15: forces text presentation instead of emoji on Windows/Chrome
+const VS = '︎'
+const SIGN_SYMBOLS = [`♈${VS}`,`♉${VS}`,`♊${VS}`,`♋${VS}`,`♌${VS}`,`♍${VS}`,`♎${VS}`,`♏${VS}`,`♐${VS}`,`♑${VS}`,`♒${VS}`,`♓${VS}`]
 const PLANET_SYMBOLS: Record<string, string> = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
-  Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆',
-  Rahu: '☊', Ketu: '☋'
+  Sun: `☉${VS}`, Moon: `☽${VS}`, Mercury: `☿${VS}`, Venus: `♀${VS}`, Mars: `♂${VS}`,
+  Jupiter: `♃${VS}`, Saturn: `♄${VS}`, Uranus: `♅${VS}`, Neptune: `♆${VS}`,
+  Rahu: `☊${VS}`, Ketu: `☋${VS}`
 }
 
 // Element colours for signs (fire/earth/air/water × 3)
