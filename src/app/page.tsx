@@ -66,10 +66,9 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroContent}>
             <p className={styles.heroText}>
-              Tropical describes the structure of your subjective experience — your inner architecture.<br />
-              Sidereal describes the conditions of your incarnation — the karma of your outer circumstances.<br />
-              <span className={styles.heroEmphasis}>The axis is their synthesis:<br />
-              How does your psychological interior navigate your karmic exterior?</span>
+              Tropical describes the structure of your subjective experience — your inner architecture.
+              Sidereal describes the conditions of your incarnation — the karma of your outer circumstances.
+              <span className={styles.heroEmphasis}>The axis is their synthesis: how does your psychological interior navigate your karmic exterior?</span>
             </p>
           </div>
         </section>

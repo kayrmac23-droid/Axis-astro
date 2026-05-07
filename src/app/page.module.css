@@ -46,8 +46,8 @@
 /* Hero */
 .hero {
   width: 100%;
-  max-width: 640px;
-  padding: 2.5rem 2rem 1.5rem;
+  max-width: 680px;
+  padding: 3rem 2rem 4rem;
   text-align: center;
   animation: fadeUp 1s ease both;
 }
@@ -57,24 +57,29 @@
 }
 
 .heroText {
-  font-size: 1.25rem;
-  line-height: 1.85;
+  font-size: 1.5rem;
+  line-height: 1.8;
   font-weight: 300;
-  color: var(--text);
+  color: rgba(220, 228, 240, 0.95);
   letter-spacing: 0.01em;
   text-wrap: balance;
 }
 
 .heroEmphasis {
-  color: var(--text);
+  display: block;
+  margin-top: 1.2rem;
+  color: var(--gold);
   font-style: italic;
+  font-size: 1.25rem;
 }
 
 /* Form */
 .formSection {
   width: 100%;
   max-width: 560px;
-  padding: 1.5rem 2rem 3rem;
+  padding: 2rem 2rem 3rem;
+  border-top: 1px solid rgba(201, 150, 46, 0.18);
+  background: rgba(255, 255, 255, 0.02);
   animation: fadeUp 1s ease 0.2s both;
 }
 

@@ -7,9 +7,9 @@
 .formLabel {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--gold);
   margin-bottom: 0.5rem;
 }
 
@@ -183,24 +183,24 @@
 }
 
 .submitBtn {
-  margin-top: 0.5rem;
+  margin-top: 1rem;
   width: 100%;
-  padding: 1.1rem;
-  background: var(--surface);
-  border: 1px solid var(--gold-dim);
-  color: var(--gold);
+  padding: 1.25rem 1rem;
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: var(--bg);
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: var(--gold-dim);
+  background: var(--gold-bright);
+  border-color: var(--gold-bright);
   color: var(--bg);
-  border-color: var(--gold-dim);
 }
 
 .submitBtn:disabled {
