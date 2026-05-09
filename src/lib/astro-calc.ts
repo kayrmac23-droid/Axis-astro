@@ -189,7 +189,7 @@ function getNakshatra(longitude: number): { nakshatra: string; pada: number } {
 }
 
 // Placidus-simplified house calculation
-function calculateHouses(jd: number, lat: number, lon: number, ramc: number): number[] {
+function calculateHouses(jd: number, lat: number, ramc: number): number[] {
   const obliquity = 23.4397 - 0.0130 * (jd - 2451545.0) / 36525.0
   const oblRad = obliquity * Math.PI / 180
   const latRad = lat * Math.PI / 180
@@ -270,7 +270,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   const jd = toJulianDay(birth.year, birth.month, birth.day, birth.hour, birth.minute, birth.timezone)
   const ayanamsa = getLahiriAyanamsa(jd)
   const ramc = getRAMC(jd, birth.longitude)
-  const houses = calculateHouses(jd, birth.latitude, birth.longitude, ramc)
+  const houses = calculateHouses(jd, birth.latitude, ramc)
 
   // Get all tropical longitudes
   const rawPlanets: Array<{ name: string; longitude: number }> = [
