@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
@@ -92,15 +92,10 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
   const loadingRef = useRef(false)
+  const readingsRef = useRef<Record<string, string>>({})
+  readingsRef.current = readings
 
-  useEffect(() => {
-    if (!readings[section] && !loadingRef.current) {
-      generateReading(section)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [section, chartData])
-
-  const generateReading = async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
+  const generateReading = useCallback(async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
     if (abortRef.current) abortRef.current.abort()
     abortRef.current = new AbortController()
     loadingRef.current = true
@@ -152,7 +147,13 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         setLoading(false)
       }
     }
-  }
+  }, [chartData])
+
+  useEffect(() => {
+    if (!readingsRef.current[section] && !loadingRef.current) {
+      generateReading(section)
+    }
+  }, [section, generateReading])
 
   const currentText = readings[section] || ''
   const label = SECTION_LABELS[section]

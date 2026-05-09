@@ -103,7 +103,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
           }
         }
       }
-    } catch {}
+    } catch { /* timezone API unreachable — keep longitude-based estimate from above */ }
 
     setFormData(prev => ({
       ...prev,

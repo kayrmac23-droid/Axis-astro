@@ -62,7 +62,6 @@ export async function POST(req: NextRequest) {
           ? `Generate the ${planetSection} section for the Sidereal reading. Here is the full chart data for cross-chart accuracy context:\n\n${siderealFormatted()}`
           : `Generate the ${planetSection} section for the AXIS Synthesis reading. Here is the full chart data:\n\nTROPICAL CHART:\n${tropicalFormatted()}\n\nSIDEREAL CHART:\n${siderealFormatted()}`
 
-    // Stream the response
     const stream = await anthropic.messages.stream({
       model: 'claude-opus-4-5',
       max_tokens: 6000,
@@ -71,7 +70,6 @@ export async function POST(req: NextRequest) {
       messages: [{ role: 'user', content: userContent }]
     })
 
-    // Return as a readable stream
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
