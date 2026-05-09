@@ -66,9 +66,9 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroContent}>
             <p className={styles.heroText}>
-              Tropical describes the structure of your subjective experience — your inner architecture.
-              Sidereal describes the conditions of your incarnation — the karma of your outer circumstances.
-              <span className={styles.heroEmphasis}>The axis is their synthesis: how does your psychological interior navigate your karmic exterior?</span>
+              Tropical astrology reveals the self you know.
+              Sidereal astrology reveals the self beneath conditioning, karma, and time.
+              <span className={styles.heroEmphasis}>AXIS exists where both truths meet.</span>
             </p>
           </div>
         </section>
@@ -120,14 +120,14 @@ export default function Home() {
               onClick={() => setActiveSection('tropical')}
             >
               <span className={styles.tabLabel}>Tropical</span>
-              <span className={styles.tabSub}>inner architecture</span>
+              <span className={styles.tabSub}>the self you know</span>
             </button>
             <button
               className={`${styles.tab} ${activeSection === 'sidereal' ? styles.tabActive : ''}`}
               onClick={() => setActiveSection('sidereal')}
             >
               <span className={styles.tabLabel}>Sidereal</span>
-              <span className={styles.tabSub}>outer circumstances</span>
+              <span className={styles.tabSub}>the self beneath</span>
             </button>
             <button
               className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
