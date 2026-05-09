@@ -4,7 +4,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'AXIS — Precision Dual-System Astrology',
-  description: 'Tropical maps your psychological architecture. Sidereal maps the life you keep being handed. Where they diverge — that gap is the work.',
+  description: 'Tropical astrology reveals the self you know. Sidereal astrology reveals the self beneath conditioning, karma, and time. AXIS exists where both truths meet.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

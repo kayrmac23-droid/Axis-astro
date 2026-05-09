@@ -10,8 +10,8 @@ interface ReadingPanelProps {
 }
 
 const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
-  tropical: { title: 'Tropical Reading', subtitle: 'Western — The Constructed Self' },
-  sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic — The Essential Self' },
+  tropical: { title: 'Tropical Reading', subtitle: 'Western · the self you know' },
+  sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic · the self beneath' },
   synthesis: { title: 'AXIS Synthesis', subtitle: 'Convergence & Divergence' }
 }
 
