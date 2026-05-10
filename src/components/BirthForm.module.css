@@ -183,6 +183,8 @@
 }
 
 .submitBtn {
+  position: relative;
+  overflow: hidden;
   margin-top: 1rem;
   width: 100%;
   padding: 1.25rem 1rem;
@@ -195,6 +197,26 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
+}
+
+.submitBtn::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  transform: skewX(-15deg);
+}
+
+.submitBtn:hover:not(:disabled)::after {
+  animation: shimmerSlide 0.55s ease forwards;
+}
+
+@keyframes shimmerSlide {
+  from { left: -60%; }
+  to { left: 130%; }
 }
 
 .submitBtn:hover:not(:disabled) {

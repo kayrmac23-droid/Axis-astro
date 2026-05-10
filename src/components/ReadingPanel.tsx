@@ -195,8 +195,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       <div className={styles.readingBody}>
         {loading && !currentText && (
           <div className={styles.generating}>
-            <div className={styles.generatingDots}><span /><span /><span /></div>
-            <p className={styles.generatingText}>Generating reading</p>
+            <div className={styles.generatingOrbit} />
+            <p className={styles.generatingText}>Interpreting chart</p>
           </div>
         )}
 

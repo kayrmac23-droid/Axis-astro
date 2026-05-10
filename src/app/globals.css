@@ -30,6 +30,9 @@ html {
 
 body {
   background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 140% 55% at 50% 0%, #0b1630 0%, transparent 55%),
+    radial-gradient(ellipse 70% 35% at 100% 100%, #040814 0%, transparent 55%);
   color: var(--text);
   font-family: var(--font-serif);
   min-height: 100vh;

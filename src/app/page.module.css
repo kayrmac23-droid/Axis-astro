@@ -24,6 +24,11 @@
   opacity: 0.9;
 }
 
+.logoMark svg {
+  animation: rotateSlow 45s linear infinite;
+  display: block;
+}
+
 .logo {
   font-family: var(--font-mono);
   font-size: 1.1rem;
@@ -45,6 +50,8 @@
 
 /* Hero */
 .hero {
+  position: relative;
+  overflow: hidden;
   width: 100%;
   max-width: 680px;
   padding: 3rem 2rem 4rem;
@@ -52,8 +59,23 @@
   animation: fadeUp 1s ease both;
 }
 
+.heroDecorWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.heroDecor {
+  animation: rotateSlow 120s linear infinite;
+}
+
 .heroContent {
   position: relative;
+  z-index: 1;
 }
 
 .heroText {
@@ -103,12 +125,23 @@
 }
 
 .loadingOrb {
-  width: 48px;
-  height: 48px;
+  position: relative;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   border: 1px solid var(--gold-dim);
   border-top-color: var(--gold);
-  animation: spin 1.4s linear infinite;
+  animation: spin 2.2s linear infinite;
+}
+
+.loadingOrb::after {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 150, 46, 0.15);
+  border-bottom-color: rgba(201, 150, 46, 0.5);
+  animation: spin 1.3s linear infinite reverse;
 }
 
 .loadingText {
