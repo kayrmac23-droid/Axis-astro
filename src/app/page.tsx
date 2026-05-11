@@ -65,25 +65,41 @@ export default function Home() {
       {!chartData && (
         <section className={styles.hero}>
           <div className={styles.heroDecorWrap} aria-hidden="true">
-            <svg className={styles.heroDecor} width="500" height="500" viewBox="0 0 500 500" fill="none">
-              <circle cx="250" cy="250" r="230" stroke="rgba(201,150,46,0.045)" strokeWidth="0.5" strokeDasharray="2 10"/>
-              <circle cx="250" cy="250" r="178" stroke="rgba(201,150,46,0.035)" strokeWidth="0.5"/>
-              <circle cx="250" cy="250" r="114" stroke="rgba(201,150,46,0.03)" strokeWidth="0.5" strokeDasharray="1.5 7"/>
-              <line x1="250" y1="20" x2="250" y2="480" stroke="rgba(201,150,46,0.04)" strokeWidth="0.5"/>
-              <line x1="20" y1="250" x2="480" y2="250" stroke="rgba(201,150,46,0.04)" strokeWidth="0.5"/>
+            <svg className={styles.heroDecor} width="520" height="520" viewBox="0 0 520 520" fill="none">
+              {/* Outer ring with dashes */}
+              <circle cx="260" cy="260" r="240" stroke="rgba(201,150,46,0.12)" strokeWidth="0.8" strokeDasharray="3 12"/>
+              {/* Mid ring */}
+              <circle cx="260" cy="260" r="186" stroke="rgba(201,150,46,0.09)" strokeWidth="0.6"/>
+              {/* Inner ring */}
+              <circle cx="260" cy="260" r="120" stroke="rgba(201,150,46,0.08)" strokeWidth="0.6" strokeDasharray="2 8"/>
+              {/* Cross hairs */}
+              <line x1="260" y1="20" x2="260" y2="500" stroke="rgba(201,150,46,0.07)" strokeWidth="0.5"/>
+              <line x1="20" y1="260" x2="500" y2="260" stroke="rgba(201,150,46,0.07)" strokeWidth="0.5"/>
+              {/* 12 tick marks on outer ring */}
               {[...Array(12)].map((_, i) => {
                 const rad = (i * 30 - 90) * Math.PI / 180
                 const cos = Math.cos(rad)
                 const sin = Math.sin(rad)
+                const isMajor = i % 3 === 0
                 return (
                   <g key={i}>
-                    <line x1={250 + 230 * cos} y1={250 + 230 * sin} x2={250 + 214 * cos} y2={250 + 214 * sin} stroke="rgba(201,150,46,0.09)" strokeWidth="0.5"/>
-                    <line x1={250 + 178 * cos} y1={250 + 178 * sin} x2={250 + 166 * cos} y2={250 + 166 * sin} stroke="rgba(201,150,46,0.055)" strokeWidth="0.5"/>
+                    <line
+                      x1={260 + 240 * cos} y1={260 + 240 * sin}
+                      x2={260 + (isMajor ? 218 : 226) * cos} y2={260 + (isMajor ? 218 : 226) * sin}
+                      stroke={isMajor ? 'rgba(201,150,46,0.22)' : 'rgba(201,150,46,0.12)'}
+                      strokeWidth={isMajor ? '1' : '0.6'}
+                    />
+                    <line
+                      x1={260 + 186 * cos} y1={260 + 186 * sin}
+                      x2={260 + 174 * cos} y2={260 + 174 * sin}
+                      stroke="rgba(201,150,46,0.1)" strokeWidth="0.5"
+                    />
                   </g>
                 )
               })}
-              <circle cx="250" cy="250" r="5" stroke="rgba(201,150,46,0.14)" strokeWidth="0.5" fill="none"/>
-              <circle cx="250" cy="250" r="1.5" fill="rgba(201,150,46,0.2)"/>
+              {/* Centre */}
+              <circle cx="260" cy="260" r="6" stroke="rgba(201,150,46,0.25)" strokeWidth="0.8" fill="none"/>
+              <circle cx="260" cy="260" r="2" fill="rgba(201,150,46,0.35)"/>
             </svg>
           </div>
           <div className={styles.heroContent}>
