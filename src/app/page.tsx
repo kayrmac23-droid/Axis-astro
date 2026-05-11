@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ReadingPanel from '@/components/ReadingPanel'

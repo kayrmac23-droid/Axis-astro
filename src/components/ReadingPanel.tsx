@@ -93,7 +93,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const abortRef = useRef<AbortController | null>(null)
   const loadingRef = useRef(false)
   const readingsRef = useRef<Record<string, string>>({})
-  readingsRef.current = readings
+  useEffect(() => { readingsRef.current = readings }, [readings])
 
   const generateReading = useCallback(async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
     if (abortRef.current) abortRef.current.abort()
