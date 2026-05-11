@@ -46,8 +46,8 @@ function spreadPlanets(planets: { name: string; longitude: number; retrograde: b
   
   for (let i = 0; i < sorted.length; i++) {
     const prev = result[i - 1]
-    let lon = sorted[i].longitude
-    let angleDiff = prev ? ((lon - prev.longitude + 360) % 360) : threshold + 1
+    const lon = sorted[i].longitude
+    const angleDiff = prev ? ((lon - prev.longitude + 360) % 360) : threshold + 1
     
     result.push({
       ...sorted[i],
