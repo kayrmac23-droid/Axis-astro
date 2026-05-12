@@ -64,6 +64,16 @@ export default function Home() {
       {/* Hero */}
       {!chartData && (
         <section className={styles.hero}>
+          {/* Crescent moon — static, behind text */}
+          <svg className={styles.heroMoon} width="380" height="380" viewBox="0 0 380 380" fill="none" aria-hidden="true">
+            <path
+              fillRule="evenodd"
+              d="M 190 50 A 140 140 0 1 0 190 330 A 161 161 0 1 1 190 50 Z"
+              fill="rgba(201,150,46,0.07)"
+              stroke="rgba(201,150,46,0.13)"
+              strokeWidth="0.6"
+            />
+          </svg>
           <div className={styles.heroDecorWrap} aria-hidden="true">
             <svg className={styles.heroDecor} width="520" height="520" viewBox="0 0 520 520" fill="none">
               {/* Outer ring with dashes */}
