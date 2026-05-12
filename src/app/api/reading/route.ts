@@ -42,6 +42,10 @@ const PROMPT_MAP: Record<string, Record<string, string>> = {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return NextResponse.json({ error: 'API key not configured', detail: 'ANTHROPIC_API_KEY is not set — add it to .env.local or Vercel environment variables' }, { status: 500 })
+    }
+
     const { chartData, section, planetSection }: { chartData: DualChartData; section: 'tropical' | 'sidereal' | 'synthesis', planetSection: string } = await req.json()
 
     if (!chartData || !section || !planetSection) {
@@ -92,7 +96,10 @@ export async function POST(req: NextRequest) {
           }
           controller.close()
         } catch (err) {
-          controller.error(err)
+          // Encode the error as a readable marker in the stream so the client can display it
+          const msg = err instanceof Error ? err.message : String(err)
+          controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
+          controller.close()
         } finally {
           clearInterval(keepAlive)
         }
