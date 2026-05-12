@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { formatChartForPrompt, DualChartData } from '@/lib/astro-calc'
 import * as Prompts from '@/lib/prompts'
+import { buildInterpretationContext } from '@/lib/interpretation-engine'
 
 export const maxDuration = 60
 
@@ -55,12 +56,17 @@ export async function POST(req: NextRequest) {
     const tropicalFormatted = () => formatChartForPrompt(chartData.tropical, 'tropical')
     const siderealFormatted = () => formatChartForPrompt(chartData.sidereal, 'sidereal')
 
+    // Structured interpretation context: first-principles facts (dignity, sign modification,
+    // house environment, dispositor chain, aspects, contradictions) derived before Claude writes.
+    // This gives Claude a reasoning scaffold rather than letting it reconstruct facts from scratch.
+    const interpretationContext = buildInterpretationContext(chartData, section, planetSection)
+
     const userContent =
       section === 'tropical'
-        ? `Generate the ${planetSection} section for the Tropical reading. Here is the full chart data for cross-chart accuracy context:\n\n${tropicalFormatted()}`
+        ? `Generate the ${planetSection} section for the Tropical reading.\n\nFULL CHART DATA:\n${tropicalFormatted()}\n${interpretationContext}`
         : section === 'sidereal'
-          ? `Generate the ${planetSection} section for the Sidereal reading. Here is the full chart data for cross-chart accuracy context:\n\n${siderealFormatted()}`
-          : `Generate the ${planetSection} section for the AXIS Synthesis reading. Here is the full chart data:\n\nTROPICAL CHART:\n${tropicalFormatted()}\n\nSIDEREAL CHART:\n${siderealFormatted()}`
+          ? `Generate the ${planetSection} section for the Sidereal reading.\n\nFULL CHART DATA:\n${siderealFormatted()}\n${interpretationContext}`
+          : `Generate the ${planetSection} section for the AXIS Synthesis reading.\n\nTROPICAL CHART:\n${tropicalFormatted()}\n\nSIDEREAL CHART:\n${siderealFormatted()}\n${interpretationContext}`
 
     const stream = await anthropic.messages.stream({
       model: 'claude-opus-4-5',
