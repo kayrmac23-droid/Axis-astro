@@ -97,6 +97,22 @@ export default function Home() {
                   </g>
                 )
               })}
+              {/* Zodiac glyphs between inner and outer rings */}
+              {['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'].map((glyph, i) => {
+                const rad = (i * 30 - 90) * Math.PI / 180
+                return (
+                  <text
+                    key={`zodiac-${i}`}
+                    x={260 + 213 * Math.cos(rad)}
+                    y={260 + 213 * Math.sin(rad)}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize="17"
+                    fill="rgba(201,150,46,0.22)"
+                    fontFamily="serif"
+                  >{glyph}</text>
+                )
+              })}
               {/* Centre */}
               <circle cx="260" cy="260" r="6" stroke="rgba(201,150,46,0.25)" strokeWidth="0.8" fill="none"/>
               <circle cx="260" cy="260" r="2" fill="rgba(201,150,46,0.35)"/>
