@@ -107,7 +107,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
     try {
       let accumulatedText = ''
-      
+
       for (const planetSec of sectionsToFetch) {
         const res = await fetch('/api/reading', {
           method: 'POST',
@@ -124,7 +124,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
         const reader = res.body.getReader()
         const decoder = new TextDecoder()
-        
+
         let chunkText = ''
         while (true) {
           const { done, value } = await reader.read()
@@ -133,7 +133,13 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
           chunkText += chunk
           setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
         }
-        
+
+        // Check for server-side stream error marker
+        if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
+          const match = chunkText.match(/\[AXIS_STREAM_ERROR: ([^\]]+)\]/)
+          throw new Error(match ? match[1] : 'Stream error — check server logs')
+        }
+
         accumulatedText += chunkText + '\n\n'
         setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
@@ -203,6 +209,15 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         {error && (
           <div className={styles.errorState}>
             <p className={styles.errorText}>{error}</p>
+            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && !currentText.trim() && (
+          <div className={styles.errorState}>
+            <p className={styles.errorText}>No reading generated. The API may be unavailable or the key may not be configured.</p>
             <button className={styles.retryBtn} onClick={() => generateReading(section)}>
               Retry
             </button>

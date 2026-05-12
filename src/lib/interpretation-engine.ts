@@ -631,7 +631,7 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
     venus:          ['Venus'],
     mars:           ['Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
-    rahu_ketu:      ['Rahu', 'Ketu']
+    rahu_ketu:      ['Rahu']          // Ketu handled separately below (simpler block)
   }
 }
 
@@ -691,7 +691,7 @@ export function buildInterpretationContext(
     lines.push('')
   })
 
-  // Special handling: Ketu appears in rahu_ketu but isn't in targetPlanets loop (Ketu block is simpler)
+  // Ketu gets a simplified block (no aspects computed — all aspects are via Rahu's axis)
   if (planetSection === 'rahu_ketu') {
     const ketu = chart.planets.find(p => p.name === 'Ketu')
     if (ketu) {
