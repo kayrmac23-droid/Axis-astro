@@ -19,7 +19,7 @@ ANTHROPIC_API_KEY=your_key_here
 
 ## Architecture
 
-Next.js 14 App Router, TypeScript. Three API routes + three React components + two core libs.
+Next.js 14 App Router, TypeScript. Three API routes + three React components + five core libs.
 
 ### Data flow
 
@@ -29,7 +29,13 @@ Next.js 14 App Router, TypeScript. Three API routes + three React components + t
 
 ### `/api/reading` — Claude streaming
 
-Each request is a single planet section within one of three reading types (`tropical` | `sidereal` | `synthesis`). The route maps `{ section, planetSection }` to a system prompt from `lib/prompts.ts`, then streams back raw text via `ReadableStream`. The model is `claude-opus-4-5` at `max_tokens: 6000`, `temperature: 0.7`.
+Each request is a single planet section within one of three reading types (`tropical` | `sidereal` | `synthesis`). The route:
+1. Maps `{ section, planetSection }` to a system prompt from `lib/prompts.ts`
+2. Calls `buildInterpretationContext()` from `lib/interpretation-engine.ts` to derive a structured facts block (dignity, sign modification, house environment, dispositor chain, aspects, contradictions)
+3. Injects that context block into the user message so Claude interprets from a first-principles scaffold rather than reconstructing facts from scratch
+4. Streams back raw text via `ReadableStream`
+
+The model is `claude-opus-4-5` at `max_tokens: 6000`, `temperature: 0.7`.
 
 Planet sections per reading type:
 - **tropical**: sun, moon, ascendant, mercury, venus, mars, jupiter_saturn, key_aspects
@@ -41,6 +47,24 @@ Vercel function timeout is 60s (set in `vercel.json` and via `export const maxDu
 ### `lib/astro-calc.ts` — Pure TS astronomical engine
 
 No external ephemeris. Uses VSOP87-derived algorithms for planet longitudes. Sidereal positions are derived from Tropical via Lahiri ayanamsa (~23.85° calibrated to J2000). House system is Whole Sign. Exports `calculateDualChart(BirthData)` → `DualChartData`.
+
+### `lib/interpretation-engine.ts` — Structured reasoning layer
+
+Sits between `astro-calc.ts` (raw positions) and the Claude prompt. Derives first-principles astrological facts and formats them as a structured context block injected into every `/api/reading` request. Contains knowledge constants for planets, signs, houses, essential dignities, traditional rulerships, nakshatras, and aspect definitions. Key exports:
+
+- `buildInterpretationContext(chartData, section, planetSection)` — main entry point; returns the context block as a formatted string
+
+Internal helpers: `computeDignity`, `computeAspects`, `getDispositor`, `buildConflicts`, `formatPlanetBlock`, `formatAscendantBlock`, `formatSynthesisBlock`.
+
+To extend: add entries to the knowledge constants (`PLANET_CORE`, `SIGN_DATA`, `HOUSE_DATA`, `DIGNITIES`, `NAKSHATRA_DATA`) — the engine functions are data-driven so additions propagate automatically.
+
+### `lib/cusps.ts` — Astrological cusp data
+
+Exports `CUSPS` (array of 12 named cusp periods with psychological descriptions) and `getCuspForPlanet(sign, degree)` which returns the relevant `CuspData` when a planet is within 3° of a sign boundary, or `null` otherwise.
+
+### `lib/planet-descriptors.ts` — Planet descriptor text
+
+Exports `TROPICAL_DESCRIPTORS`, `SIDEREAL_DESCRIPTORS`, and `SYNTHESIS_DESCRIPTORS` — structured name/keywords/description objects for each planet and synthesis section, used by prompts to provide consistent framing language.
 
 ### `lib/prompts.ts` — System prompts
 
