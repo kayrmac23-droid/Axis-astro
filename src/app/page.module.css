@@ -96,6 +96,11 @@
   font-size: 1.25rem;
 }
 
+.emphasisRule {
+  display: block;
+  margin: 0.8rem auto 0;
+}
+
 /* Form */
 .formSection {
   width: 100%;

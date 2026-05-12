@@ -66,21 +66,19 @@ export default function Home() {
         <section className={styles.hero}>
           <div className={styles.heroDecorWrap} aria-hidden="true">
             <svg className={styles.heroDecor} width="520" height="520" viewBox="0 0 520 520" fill="none">
-              {/* Single outer ring */}
-              <circle cx="260" cy="260" r="240" stroke="rgba(201,150,46,0.13)" strokeWidth="0.8"/>
-              {/* Inner boundary ring for glyphs */}
-              <circle cx="260" cy="260" r="190" stroke="rgba(201,150,46,0.07)" strokeWidth="0.5"/>
-              {/* 12 radial spokes — full length, all same weight */}
+              {/* Outer ring */}
+              <circle cx="260" cy="260" r="240" stroke="rgba(201,150,46,0.1)" strokeWidth="0.7"/>
+              {/* 12 spokes radiating from centre */}
               {[...Array(12)].map((_, i) => {
                 const rad = (i * 30 - 90) * Math.PI / 180
                 const isMajor = i % 3 === 0
                 return (
                   <line
                     key={`spoke-${i}`}
-                    x1={260 + 190 * Math.cos(rad)} y1={260 + 190 * Math.sin(rad)}
+                    x1={260} y1={260}
                     x2={260 + 240 * Math.cos(rad)} y2={260 + 240 * Math.sin(rad)}
-                    stroke={isMajor ? 'rgba(201,150,46,0.18)' : 'rgba(201,150,46,0.09)'}
-                    strokeWidth={isMajor ? '0.8' : '0.5'}
+                    stroke={isMajor ? 'rgba(201,150,46,0.13)' : 'rgba(201,150,46,0.06)'}
+                    strokeWidth={isMajor ? '0.7' : '0.4'}
                   />
                 )
               })}
@@ -90,22 +88,18 @@ export default function Home() {
                 return (
                   <text
                     key={`zodiac-${i}`}
-                    x={260 + 215 * Math.cos(rad)}
-                    y={260 + 215 * Math.sin(rad)}
+                    x={260 + 210 * Math.cos(rad)}
+                    y={260 + 210 * Math.sin(rad)}
                     textAnchor="middle"
                     dominantBaseline="central"
-                    fontSize="16"
-                    fill="rgba(201,150,46,0.2)"
+                    fontSize="15"
+                    fill="rgba(201,150,46,0.18)"
                     fontFamily="serif"
                   >{glyph}</text>
                 )
               })}
-              {/* Axis cross */}
-              <line x1="260" y1="20" x2="260" y2="500" stroke="rgba(201,150,46,0.06)" strokeWidth="0.5"/>
-              <line x1="20" y1="260" x2="500" y2="260" stroke="rgba(201,150,46,0.06)" strokeWidth="0.5"/>
               {/* Centre point */}
-              <circle cx="260" cy="260" r="3" stroke="rgba(201,150,46,0.2)" strokeWidth="0.7" fill="none"/>
-              <circle cx="260" cy="260" r="1" fill="rgba(201,150,46,0.3)"/>
+              <circle cx="260" cy="260" r="2.5" fill="rgba(201,150,46,0.3)"/>
             </svg>
           </div>
           <div className={styles.heroContent}>
@@ -114,6 +108,11 @@ export default function Home() {
               Sidereal astrology reveals the self beneath conditioning, karma, and time.
               <span className={styles.heroEmphasis}>AXIS exists where both truths meet.</span>
             </p>
+            <svg className={styles.emphasisRule} width="220" height="14" viewBox="0 0 220 14" fill="none" aria-hidden="true">
+              <line x1="0" y1="7" x2="96" y2="7" stroke="rgba(201,150,46,0.35)" strokeWidth="0.6"/>
+              <circle cx="110" cy="7" r="2" fill="rgba(201,150,46,0.45)"/>
+              <line x1="124" y1="7" x2="220" y2="7" stroke="rgba(201,150,46,0.35)" strokeWidth="0.6"/>
+            </svg>
           </div>
         </section>
       )}
