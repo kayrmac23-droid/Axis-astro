@@ -31,9 +31,12 @@ Never state any behavioural pattern as definitive fact based on a single placeme
 Before writing any behavioural statement, ask: does the rest of this chart support this behaviour, contradict it, or complicate it? If it contradicts it, name the contradiction and describe what actually happens when these two forces meet. If it complicates it, describe the complication.
 
 Specific examples of how this must work:
-Leo Sun's tendency to cut people off completely: only state this if the Moon sign and house support emotional detachment. If the Moon is in a water sign or in the 8th house, this behaviour is overridden — state instead that the Leo impulse is to withdraw but the Moon makes clean exits nearly impossible.
+Leo Sun's tendency to cut people off completely: only state this if the Moon sign and house support emotional detachment. If the Moon is in a water sign (Cancer, Scorpio, Pisces) or in the 8th house, this behaviour is OVERRIDDEN — this person cannot execute clean exits. State instead that the Leo impulse is to withdraw, but the Moon makes clean exits nearly impossible. The warmth shuts off on the surface while the attachment continues underneath. They go cold while still being present. People they have "cut off" still occupy significant internal space long after the outward relationship has ended. This is not a weakness — it is the Moon overriding the Leo pride response. If the chart shows this pattern, do NOT describe the person as someone who cuts people off. Describe instead someone who wants to but cannot.
 Mars in Sagittarius wanting to leave: only state this as behaviour if the Moon supports it. If the Moon is in a fixed or water sign, name the conflict between the Mars impulse and the Moon's inability to follow through.
 Any sign's default emotional response: always check whether the Moon sign, house, and aspects either amplify, redirect, or contradict that response before writing it as fact.
+
+UNIVERSAL CUT-OFF RULE — APPLIES TO EVERY SECTION INCLUDING SYNTHESIS:
+The claim that a person "cuts people off", "closes doors permanently", "ends relationships cleanly", or "detaches completely" must NEVER appear in any section — Sun, Moon, Mars, Synthesis, or anywhere else — unless the Moon sign independently supports emotional detachment (air or fire Moon NOT in the 8th house, with no major water planet aspects). If the Moon is in a water sign, in the 8th house, or both, the person does not cut people off cleanly. Ever. Under any interpretation. This applies to the Synthesis sections as much as to the Tropical sections. Do not let a pattern stated in the Synthesis contradict the Moon's established emotional architecture.
 
 This applies to every planet, every sign, every house. The chart is a system. Interpret it as one.
 
@@ -187,6 +190,8 @@ Focus completely on the MARS placement.
 
 When interpreting Mars, state the sign's natural impulse clearly, then immediately cross-reference the Moon placement and describe how they interact. Mars describes the instinct — what the person wants to do when frustrated or hurt. The Moon describes what actually happens emotionally. These two often contradict. If Mars says leave but the Moon sign or house suggests deep attachment and difficulty releasing, name that contradiction explicitly — the person feels the Mars impulse but the Moon overrides it. If Mars says fight but the Moon needs harmony, name that tension. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The Mars impulse and the Moon's actual emotional pattern are both real and often in conflict — that conflict is more accurate than either planet stated alone.
 
+CRITICAL: If the Moon is in a water sign or in the 8th house, do not describe this person as someone who acts on the Mars impulse to exit or cut off. Describe the impulse as real and present, then name that the Moon prevents the follow-through. The frustration of feeling the Mars drive without being able to complete it is part of this person's experience — name that specifically, not as a weakness, but as a structural feature of how these two planets interact in this chart.
+
 ### Putting It Together
 End with this sub-section. 1-2 paragraphs synthesising sign, house, and aspects into a unified portrait of what this Mars placement actually produces in this person's life. The closing observation should be the most honest, specific thing that can be said about this placement. Do not repeat what was already said. Distil it.
 `
@@ -297,15 +302,21 @@ Where do both systems point at the same theme? Name 2-3 placements or patterns a
 export const SYNTHESIS_DIVERGE_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on DISSONANCE / Where the Systems Diverge:
 Work through the significant sign shifts planet by planet. For each major shift: state what the Tropical placement produces, state what the Sidereal placement produces, state specifically where in this person's life these two orientations are most likely to collide. Do not resolve the divergence. Leave it intact. Name it precisely and move on.
+
+CRITICAL: Do not introduce any behavioural claim in the Synthesis that contradicts what the Moon's established architecture makes possible. Specifically — if the Moon is in a water sign or 8th house, do not describe this person as capable of clean emotional exits, cutting people off, or closing doors permanently anywhere in this section or in any synthesis section. The Moon's constraint is absolute and applies here.
 `
 
 export const SYNTHESIS_TENSION_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on THE CENTRAL TENSION:
 Continue exploring the friction between the tropical and sidereal charts. What is the single most defining unresolved tension across both systems? The thing that makes this person specifically this person rather than a type. Sharp and specific. No comfort.
+
+CRITICAL: Do not describe this person as someone who cuts people off, detaches cleanly, or closes doors permanently if the Moon sign or house contradicts it. If anything, the tension may be precisely that they cannot do what their pride demands — they feel the Leo impulse to withdraw but the Moon prevents the clean exit. That unresolvable gap is itself the central tension. Name that if it is accurate, rather than describing a behaviour the chart does not support.
 `
 
 export const SYNTHESIS_CLOSING_PROMPT = `${SYNTHESIS_SYSTEM_PREFIX}
 Focus on INTEGRATION & CLOSING:
 How does this tropical trait function as the mechanism through which the sidereal lesson is lived? This is a precise causal description of how the inner architecture interacts with the outer karma.
 The final sentence must be the sharpest, most precise observation in the entire reading. One cohesive paragraph. It will not comfort. It will name something true that has probably been felt but never articulated. No resolution. End here.
+
+CRITICAL: The closing observation must be consistent with the Moon's established emotional reality. Do not end by characterising this person as emotionally detached or as someone who exits cleanly if the Moon contradicts it. The sharp truth may be the opposite: that the exits never fully happen, that the door stays cracked, that the people who have "left" their life haven't fully left their interior world. If that is what the chart shows, say that.
 `
