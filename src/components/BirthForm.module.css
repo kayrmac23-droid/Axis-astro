@@ -24,7 +24,7 @@
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--text-2);
+  color: rgba(201, 150, 46, 0.7);
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -51,7 +51,7 @@
 }
 
 .timeSep {
-  color: var(--text-2);
+  color: rgba(201, 150, 46, 0.5);
   font-family: var(--font-mono);
   font-size: 1rem;
 }
@@ -60,7 +60,7 @@
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(201, 150, 46, 0.2);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -69,8 +69,8 @@
   padding: 0.85rem 0.8rem;
   background: none;
   border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--text-2);
+  border-right: 1px solid rgba(201, 150, 46, 0.12);
+  color: rgba(201, 150, 46, 0.55);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
