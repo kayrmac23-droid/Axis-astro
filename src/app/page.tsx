@@ -52,7 +52,7 @@ export default function Home() {
           <p className={styles.logoSub}>Dual-system astrology</p>
         </div>
         <div className={styles.headerMid}>
-          <p className={styles.tagline}>Where two truths become one reading.</p>
+          <p className={styles.tagline}>Tropical · Sidereal · Synthesis</p>
         </div>
         <div className={styles.headerRight}>
           <span className={styles.headerStat}>Tropical</span>

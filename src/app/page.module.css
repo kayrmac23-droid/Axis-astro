@@ -57,10 +57,10 @@
 
 .tagline {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 300;
   font-style: italic;
-  color: var(--text-2);
+  color: var(--text);
   letter-spacing: 0.02em;
 }
 
@@ -84,7 +84,7 @@
 .hero {
   width: 100%;
   max-width: 960px;
-  padding: 5.5rem 2.5rem 5rem;
+  padding: 3.5rem 2.5rem 4rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
@@ -140,15 +140,15 @@
 
 .heroBody {
   font-family: var(--font-serif);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   line-height: 1.9;
   font-weight: 300;
-  color: var(--text-2);
+  color: var(--text);
 }
 
 .heroDetail {
   font-family: var(--font-display);
-  font-size: 0.55rem;
+  font-size: 0.63rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -161,7 +161,7 @@
 .formSection {
   width: 100%;
   max-width: 960px;
-  padding: 5rem 2.5rem 6rem;
+  padding: 3.5rem 2.5rem 5rem;
   display: grid;
   grid-template-columns: 1fr 1.6fr;
   gap: 5rem;
@@ -197,10 +197,10 @@
 
 .formIntroDesc {
   font-family: var(--font-serif);
-  font-size: 0.92rem;
+  font-size: 1.05rem;
   line-height: 1.85;
   font-weight: 300;
-  color: var(--text-3);
+  color: var(--text-2);
   margin-top: 0.5rem;
 }
 
