@@ -5,22 +5,45 @@
 }
 
 :root {
-  --bg: #080e1c;
-  --bg-2: #0d1526;
-  --bg-3: #111c30;
-  --surface: #0f1828;
-  --surface-2: #162035;
-  --border: #1a2540;
-  --border-2: #243050;
-  --text: #dce4f0;
-  --text-2: #8496b8;
-  --text-3: #4a5878;
-  --gold: #c9962e;
-  --gold-dim: #6a4e18;
-  --gold-bright: #e0b84a;
-  --accent: #9a7030;
+  /* True void — cooler and darker than before */
+  --void: #010108;
+  --bg: #030212;
+  --deep: #05041A;
+  --surface: #090820;
+  --surface-2: #0F0E2C;
+  --surface-3: #16153A;
+
+  /* Borders */
+  --border: #1A1940;
+  --border-2: #282660;
+  --border-bright: #3E3C80;
+
+  /* Star-white text — cooler, bluer than warm cream */
+  --text: #EAE8F8;
+  --text-2: #A8A4C8;
+  --text-3: #6864A0;
+  --text-4: #3E3860;
+
+  /* Gold — brighter, more star-like */
+  --gold: #FFC030;
+  --gold-light: #FFD060;
+  --gold-dim: #704818;
+
+  /* Teal/cyan — primary interactive accent, never used before */
+  --cyan: #2CC8C0;
+  --cyan-dim: #0A4845;
+  --cyan-glow: rgba(44, 200, 192, 0.15);
+
+  /* Violet — for retrograde + accent */
+  --violet: #7844FF;
+  --violet-light: #C8B3FF;
+  --violet-dim: #2A1460;
+
+  --font-wordmark: 'Cinzel', Georgia, serif;
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-editorial: 'Cormorant Garamond', Georgia, serif;
   --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-mono: 'Space Mono', monospace;
+  --font-mono: 'Courier Prime', 'Courier New', monospace;
 }
 
 html {
@@ -29,11 +52,11 @@ html {
 }
 
 body {
-  background-color: var(--bg);
+  background-color: var(--void);
   background-image:
-    radial-gradient(ellipse 120% 50% at 50% 0%, #0e1a40 0%, #080e1c 55%),
-    radial-gradient(ellipse 80% 40% at 100% 100%, #020610 0%, transparent 60%),
-    radial-gradient(ellipse 60% 30% at 0% 80%, #06091a 0%, transparent 50%);
+    radial-gradient(ellipse 120% 60% at 50% -10%, #12083A 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, #080430 0%, transparent 50%),
+    radial-gradient(ellipse 50% 35% at 95% 85%, #060220 0%, transparent 50%);
   color: var(--text);
   font-family: var(--font-serif);
   min-height: 100vh;
@@ -42,7 +65,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Grain overlay */
+/* Paper grain stays but subtle */
 body::before {
   content: '';
   position: fixed;
@@ -53,40 +76,36 @@ body::before {
   opacity: 0.4;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--void); }
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
-/* Selection */
 ::selection {
-  background: var(--gold-dim);
+  background: var(--violet-dim);
   color: var(--text);
 }
 
-/* Typography */
 h1, h2, h3 {
-  font-family: var(--font-serif);
-  font-weight: 300;
+  font-family: var(--font-display);
+  font-weight: 400;
   letter-spacing: 0.02em;
 }
 
 p {
   font-family: var(--font-serif);
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   line-height: 1.85;
   font-weight: 300;
   color: var(--text);
 }
 
-/* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -97,7 +116,7 @@ p {
 
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+  50% { opacity: 0.9; }
 }
 
 @keyframes rotateSlow {
@@ -110,10 +129,19 @@ p {
   to { transform: rotate(360deg); }
 }
 
+@keyframes twinkle {
+  0%, 100% { opacity: 0.08; }
+  40% { opacity: 0.55; }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 .animate-fadeIn { animation: fadeIn 0.6s ease forwards; }
 .animate-fadeUp { animation: fadeUp 0.8s ease forwards; }
 
-/* Utility */
 .visually-hidden {
   position: absolute;
   width: 1px;

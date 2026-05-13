@@ -44,69 +44,44 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
-      {/* Header */}
+
+      {/* Masthead */}
       <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <div className={styles.logoMark}>
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <circle cx="14" cy="14" r="13" stroke="#c9962e" strokeWidth="0.5" />
-              <circle cx="14" cy="14" r="7" stroke="#c9962e" strokeWidth="0.5" opacity="0.5" />
-              <line x1="14" y1="1" x2="14" y2="27" stroke="#c9962e" strokeWidth="0.5" opacity="0.4" />
-              <line x1="1" y1="14" x2="27" y2="14" stroke="#c9962e" strokeWidth="0.5" opacity="0.4" />
-              <circle cx="14" cy="14" r="1.5" fill="#c9962e" />
-            </svg>
-          </div>
+        <div className={styles.logoBlock}>
           <h1 className={styles.logo}>AXIS</h1>
-          <p className={styles.tagline}>Two systems. One self.</p>
+          <p className={styles.logoSub}>Dual-system astrology</p>
         </div>
+        <div className={styles.headerMid}>
+          <p className={styles.tagline}>Where two truths become one reading.</p>
+        </div>
+        <div className={styles.headerRight}>
+          <span className={styles.headerStat}>Tropical</span>
+          <span className={styles.headerStat}>Sidereal</span>
+        </div>
+        <hr className={styles.headerRule} />
       </header>
 
       {/* Hero */}
       {!chartData && (
         <section className={styles.hero}>
-          <div className={styles.heroDecorWrap} aria-hidden="true">
-            <svg className={styles.heroDecor} width="520" height="520" viewBox="0 0 520 520" fill="none">
-              {/* Outer ring with dashes */}
-              <circle cx="260" cy="260" r="240" stroke="rgba(201,150,46,0.12)" strokeWidth="0.8" strokeDasharray="3 12"/>
-              {/* Mid ring */}
-              <circle cx="260" cy="260" r="186" stroke="rgba(201,150,46,0.09)" strokeWidth="0.6"/>
-              {/* Inner ring */}
-              <circle cx="260" cy="260" r="120" stroke="rgba(201,150,46,0.08)" strokeWidth="0.6" strokeDasharray="2 8"/>
-              {/* Cross hairs */}
-              <line x1="260" y1="20" x2="260" y2="500" stroke="rgba(201,150,46,0.07)" strokeWidth="0.5"/>
-              <line x1="20" y1="260" x2="500" y2="260" stroke="rgba(201,150,46,0.07)" strokeWidth="0.5"/>
-              {/* 12 tick marks on outer ring */}
-              {[...Array(12)].map((_, i) => {
-                const rad = (i * 30 - 90) * Math.PI / 180
-                const cos = Math.cos(rad)
-                const sin = Math.sin(rad)
-                const isMajor = i % 3 === 0
-                return (
-                  <g key={i}>
-                    <line
-                      x1={260 + 240 * cos} y1={260 + 240 * sin}
-                      x2={260 + (isMajor ? 218 : 226) * cos} y2={260 + (isMajor ? 218 : 226) * sin}
-                      stroke={isMajor ? 'rgba(201,150,46,0.22)' : 'rgba(201,150,46,0.12)'}
-                      strokeWidth={isMajor ? '1' : '0.6'}
-                    />
-                    <line
-                      x1={260 + 186 * cos} y1={260 + 186 * sin}
-                      x2={260 + 174 * cos} y2={260 + 174 * sin}
-                      stroke="rgba(201,150,46,0.1)" strokeWidth="0.5"
-                    />
-                  </g>
-                )
-              })}
-              {/* Centre */}
-              <circle cx="260" cy="260" r="6" stroke="rgba(201,150,46,0.25)" strokeWidth="0.8" fill="none"/>
-              <circle cx="260" cy="260" r="2" fill="rgba(201,150,46,0.35)"/>
-            </svg>
+          <div className={styles.heroLeft}>
+            <p className={styles.heroEyebrow}>Natal chart reading</p>
+            <h2 className={styles.heroHeadline}>
+              Two systems.<br />
+              <span className={styles.heroAccent}>One self.</span>
+            </h2>
           </div>
-          <div className={styles.heroContent}>
-            <p className={styles.heroText}>
-              Tropical astrology reveals the self you know.
-              Sidereal astrology reveals the self beneath conditioning, karma, and time.
-              <span className={styles.heroEmphasis}>AXIS exists where both truths meet.</span>
+          <div className={styles.heroRight}>
+            <p className={styles.heroBody}>
+              Tropical astrology reveals the self you know. Sidereal
+              astrology reveals the self beneath conditioning, karma,
+              and time.
+            </p>
+            <p className={styles.heroBody}>
+              AXIS exists where both truths meet.
+            </p>
+            <p className={styles.heroDetail}>
+              Western Tropical · Vedic Sidereal · Synthesis Reading
             </p>
           </div>
         </section>
@@ -115,8 +90,21 @@ export default function Home() {
       {/* Birth Form */}
       {!chartData && (
         <section className={styles.formSection}>
-          <BirthForm onSubmit={handleSubmit} loading={loading} />
-          {error && <p className={styles.error}>{error}</p>}
+          <div className={styles.formIntro}>
+            <p className={styles.formIntroLabel}>Your birth data</p>
+            <h3 className={styles.formIntroTitle}>
+              Enter your details to cast the chart.
+            </h3>
+            <p className={styles.formIntroDesc}>
+              Date, time, and place of birth determine the positions
+              of every planet at the moment you arrived on Earth.
+              Precision matters — especially for the Ascendant.
+            </p>
+          </div>
+          <div className={styles.formRight}>
+            <BirthForm onSubmit={handleSubmit} loading={loading} />
+            {error && <p className={styles.error}>{error}</p>}
+          </div>
         </section>
       )}
 
@@ -124,7 +112,7 @@ export default function Home() {
       {loading && (
         <div className={styles.loadingState}>
           <div className={styles.loadingOrb} />
-          <p className={styles.loadingText}>Calculating positions...</p>
+          <p className={styles.loadingText}>Calculating positions</p>
         </div>
       )}
 
@@ -134,14 +122,16 @@ export default function Home() {
 
           {/* Chart Wheels */}
           <section className={styles.wheelSection}>
+            <p className={styles.wheelSectionLabel}>Natal chart</p>
             <div className={styles.wheelPair}>
               <div className={styles.wheelItem}>
                 <p className={styles.wheelLabel}>Tropical</p>
                 <ChartWheel chart={chartData.tropical} />
               </div>
               <div className={styles.wheelDivider}>
-                <svg width="1" height="200" viewBox="0 0 1 200">
-                  <line x1="0.5" y1="0" x2="0.5" y2="200" stroke="#2a2a2a" strokeWidth="1" />
+                <svg width="1" height="240" viewBox="0 0 1 240">
+                  <line x1="0.5" y1="0" x2="0.5" y2="240"
+                    stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
                 </svg>
               </div>
               <div className={styles.wheelItem}>
@@ -184,10 +174,7 @@ export default function Home() {
 
           {/* Actions */}
           <div className={styles.resetRow}>
-            <button
-              className={styles.pdfBtn}
-              onClick={() => window.print()}
-            >
+            <button className={styles.pdfBtn} onClick={() => window.print()}>
               Download PDF
             </button>
             <button
@@ -200,9 +187,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer */}
       <footer className={styles.footer}>
-        <p>AXIS — Precision dual-system astrology</p>
+        <p>Axis — Precision dual-system astrology</p>
       </footer>
     </main>
   )
