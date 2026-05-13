@@ -54,9 +54,9 @@ html {
 body {
   background-color: var(--void);
   background-image:
-    radial-gradient(ellipse 120% 60% at 50% -10%, #12083A 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 5% 95%, #080430 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 95% 85%, #060220 0%, transparent 50%);
+    radial-gradient(ellipse 120% 60% at 50% -10%, #06040F 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, #040210 0%, transparent 50%),
+    radial-gradient(ellipse 50% 35% at 95% 85%, #03010C 0%, transparent 50%);
   color: var(--text);
   font-family: var(--font-serif);
   min-height: 100vh;
