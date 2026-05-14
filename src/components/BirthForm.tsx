@@ -30,6 +30,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const geocodeAbortRef = useRef<AbortController | null>(null)
 
   const to24Hour = (hour: string, ampm: string): number => {
     const h = parseInt(hour) || 12
@@ -52,13 +53,15 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   }
 
   const searchLocation = async (query: string) => {
+    if (geocodeAbortRef.current) geocodeAbortRef.current.abort()
+    geocodeAbortRef.current = new AbortController()
     setLocationLoading(true)
     try {
-      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`)
+      const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { signal: geocodeAbortRef.current.signal })
       const data = await res.json()
       setLocationSuggestions(data)
-    } catch {
-      setLocationSuggestions([])
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') setLocationSuggestions([])
     } finally {
       setLocationLoading(false)
     }
@@ -69,9 +72,12 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     let tz = String(Math.round(parseFloat(result.lon) / 15))
 
     try {
+      const tzAbort = new AbortController()
+      const tzTimeout = setTimeout(() => tzAbort.abort(), 5000)
       const tzRes = await fetch(
-        `https://timezonefinder.michelfe.it/api/0?lat=${result.lat}&lng=${result.lon}`
-      )
+        `https://timezonefinder.michelfe.it/api/0?lat=${result.lat}&lng=${result.lon}`,
+        { signal: tzAbort.signal }
+      ).finally(() => clearTimeout(tzTimeout))
       const tzData = await tzRes.json()
       const tzName: string = tzData.tz_name || tzData.timezone_id || ''
 

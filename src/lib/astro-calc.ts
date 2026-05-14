@@ -59,8 +59,7 @@ const NAKSHATRAS = [
 // Lahiri ayanamsa (standard for Jyotish)
 // Base constant 23.85° is calibrated to J2000 (jd=2451545.0), so precession must use the same epoch.
 function getLahiriAyanamsa(jd: number): number {
-  const T = (jd - 2451545.0) / 36525.0
-  return 23.85 + 0.0137 * T + (jd - 2451545.0) / 365.25 * (50.2564 / 3600)
+  return 23.85 + (jd - 2451545.0) / 365.25 * (50.2564 / 3600)
 }
 
 // Julian Day Number from calendar date
@@ -319,7 +318,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       sign,
       signIndex,
       degree,
-      house: getHouseForPlanet(p.longitude, houses),
+      house: getHouseWholeSign(p.longitude, ascendantTropical),
       retrograde: retrogradeMap[p.name]
     }
   })

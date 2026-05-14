@@ -134,9 +134,10 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
           setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
         }
 
-        // Check for server-side stream error marker
+        // Check for server-side stream error marker — clear partial text before throwing
         if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
           const match = chunkText.match(/\[AXIS_STREAM_ERROR: ([^\]]+)\]/)
+          setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
           throw new Error(match ? match[1] : 'Stream error — check server logs')
         }
 
