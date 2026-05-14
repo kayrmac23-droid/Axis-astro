@@ -429,6 +429,34 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   lines.push(`── ${planet.name.toUpperCase()} ──────────────────────────────`)
   lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde)' : ''}`)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
+
+  // For Sun and Mars: include Moon data as a cross-reference note.
+  // The Sun's need-expression and Mars's action-impulse both require checking
+  // whether the Moon sign/house supports or contradicts their default behaviours.
+  if (planet.name === 'Sun' || planet.name === 'Mars') {
+    const moon = chart.planets.find(p => p.name === 'Moon')
+    if (moon) {
+      const mSData = SIGN_DATA[moon.sign]
+      const mHData = HOUSE_DATA[moon.house]
+      lines.push('')
+      lines.push('MOON CROSS-REFERENCE (required for accurate behavioural statements):')
+      lines.push(`Moon: ${moon.sign} ${moon.degree.toFixed(1)}° | House ${moon.house}${moon.retrograde ? ' (R)' : ''}`)
+      if (mSData) lines.push(`Moon sign character: ${mSData.element} ${mSData.modality} — ${mSData.coreNeed}`)
+      if (mHData) lines.push(`Moon house domain: ${mHData.domain}`)
+      if (mSData) {
+        const isDetached = ['Air'].includes(mSData.element)
+        const isDeepAttachment = ['Water'].includes(mSData.element) || moon.house === 8 || moon.house === 4
+        if (planet.name === 'Sun') {
+          if (isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} indicates deep emotional attachment — any ${planet.sign} withdrawal impulse is unlikely to complete as a clean exit. Name the impulse and the Moon's override, not one or the other alone.`)
+          if (isDetached && !isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} supports some emotional detachment — withdrawal impulses from ${planet.sign} Sun may have more room to complete.`)
+        }
+        if (planet.name === 'Mars') {
+          if (isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} creates attachment that may override Mars's exit or assertion impulse. Name the tension between the Mars drive and the Moon's inability to follow through.`)
+          if (isDetached && !isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} may reinforce Mars's independence or capacity to detach.`)
+        }
+      }
+    }
+  }
   lines.push('')
 
   lines.push(`CORE FUNCTION OF ${planet.name.toUpperCase()}:`)
