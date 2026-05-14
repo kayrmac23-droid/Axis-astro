@@ -67,8 +67,8 @@ export default function Home() {
           <div className={styles.heroLeft}>
             <p className={styles.heroEyebrow}>Natal chart reading</p>
             <h2 className={styles.heroHeadline}>
-              Two maps.<br />
-              <span className={styles.heroAccent}>Neither wrong.</span>
+              Two systems.<br />
+              <span className={styles.heroAccent}>One self.</span>
             </h2>
           </div>
           <div className={styles.heroRight}>
