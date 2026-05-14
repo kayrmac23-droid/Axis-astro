@@ -123,22 +123,39 @@ export default function Home() {
           {/* Chart Wheels */}
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal chart</p>
-            <div className={styles.wheelPair}>
-              <div className={styles.wheelItem}>
+
+            {activeSection === 'tropical' && (
+              <div className={styles.wheelSingle}>
                 <p className={styles.wheelLabel}>Tropical</p>
                 <ChartWheel chart={chartData.tropical} />
               </div>
-              <div className={styles.wheelDivider}>
-                <svg width="1" height="240" viewBox="0 0 1 240">
-                  <line x1="0.5" y1="0" x2="0.5" y2="240"
-                    stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                </svg>
-              </div>
-              <div className={styles.wheelItem}>
+            )}
+
+            {activeSection === 'sidereal' && (
+              <div className={styles.wheelSingle}>
                 <p className={styles.wheelLabel}>Sidereal</p>
                 <ChartWheel chart={chartData.sidereal} />
               </div>
-            </div>
+            )}
+
+            {activeSection === 'synthesis' && (
+              <div className={styles.wheelPair}>
+                <div className={styles.wheelItem}>
+                  <p className={styles.wheelLabel}>Tropical</p>
+                  <ChartWheel chart={chartData.tropical} />
+                </div>
+                <div className={styles.wheelDivider}>
+                  <svg width="1" height="240" viewBox="0 0 1 240">
+                    <line x1="0.5" y1="0" x2="0.5" y2="240"
+                      stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
+                  </svg>
+                </div>
+                <div className={styles.wheelItem}>
+                  <p className={styles.wheelLabel}>Sidereal</p>
+                  <ChartWheel chart={chartData.sidereal} />
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Section Tabs */}
