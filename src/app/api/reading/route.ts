@@ -52,10 +52,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing chart data, section, or planetSection' }, { status: 400 })
     }
 
-    const systemPrompt = PROMPT_MAP[section]?.[planetSection]
-    if (!systemPrompt) {
+    const basePrompt = PROMPT_MAP[section]?.[planetSection]
+    if (!basePrompt) {
       return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
     }
+
+    const systemPrompt = basePrompt + `\n\nDo not reach for textbook sun-sign archetypes or clichéd sign behaviors. Read the specific combination of sign, house position, and aspects for each planet. A Leo Sun in the 4th house is not the same as a Leo Sun on the Midheaven — treat them differently. Avoid the following overused patterns entirely: Leo "needing the spotlight" or "withdrawing when not validated", Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors (e.g., Saturn conjunct Sun, 12th house stellium), you may name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this sun sign.`
 
     const tropicalFormatted = () => formatChartForPrompt(chartData.tropical, 'tropical')
     const siderealFormatted = () => formatChartForPrompt(chartData.sidereal, 'sidereal')

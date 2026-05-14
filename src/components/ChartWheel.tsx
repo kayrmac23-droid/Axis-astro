@@ -83,7 +83,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <defs>
           <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#c9962e" stopOpacity="0.04" />
+            <stop offset="0%" stopColor="#c9962e" stopOpacity="0.20" />
             <stop offset="100%" stopColor="#c9962e" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
@@ -116,20 +116,21 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
             <path
               key={i}
               d={d}
-              fill={i % 2 === 0 ? 'rgba(255,255,255,0.012)' : 'rgba(0,0,0,0.06)'}
+              fill={SIGN_COLORS[i]}
+              fillOpacity={0.26}
               stroke="none"
             />
           )
         })}
 
         {/* Outer ring */}
-        <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="#2a2a2a" strokeWidth="0.5" />
+        <circle cx={cx} cy={cy} r={outerR} fill="none" stroke="rgba(212,168,69,0.55)" strokeWidth="0.5" />
         {/* Sign band inner border */}
-        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="#222222" strokeWidth="0.5" />
+        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="rgba(212,168,69,0.45)" strokeWidth="0.5" />
         {/* Planet ring */}
-        <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#1e1e1e" strokeWidth="0.5" />
+        <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="rgba(212,168,69,0.40)" strokeWidth="0.5" />
         {/* Dashed planet orbit guide */}
-        <circle cx={cx} cy={cy} r={planetR} fill="none" stroke="#181818" strokeWidth="0.5" strokeDasharray="1.5 4" />
+        <circle cx={cx} cy={cy} r={planetR} fill="none" stroke="rgba(212,168,69,0.28)" strokeWidth="0.5" strokeDasharray="1.5 4" />
 
         {/* Sign division lines */}
         {Array.from({ length: 12 }).map((_, i) => {
@@ -141,7 +142,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               key={i}
               x1={p1.x} y1={p1.y}
               x2={p2.x} y2={p2.y}
-              stroke="#1e1e1e"
+              stroke="rgba(212,168,69,0.55)"
               strokeWidth="0.5"
             />
           )
@@ -178,9 +179,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               key={i}
               x1={p1.x} y1={p1.y}
               x2={p2.x} y2={p2.y}
-              stroke={isAngle ? '#3a3028' : '#1c1c1c'}
+              stroke={isAngle ? 'rgba(212,168,69,0.85)' : 'rgba(212,168,69,0.35)'}
               strokeWidth={isAngle ? 1 : 0.5}
-              opacity={isAngle ? 0.9 : 0.6}
             />
           )
         })}
@@ -212,7 +212,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               {/* Subtle glow behind planet */}
               <circle
                 cx={pos.x} cy={pos.y} r="7"
-                fill={isRetro ? 'rgba(154,122,74,0.06)' : 'rgba(201,169,110,0.06)'}
+                fill={isRetro ? 'rgba(160,138,224,0.12)' : 'rgba(201,169,110,0.06)'}
               />
               <text
                 x={pos.x}
@@ -220,8 +220,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
                 textAnchor="middle"
                 dominantBaseline="central"
                 fontSize="11"
-                fill={isRetro ? '#8a6518' : '#c9962e'}
-                opacity={isRetro ? 0.6 : 0.95}
+                fill={isRetro ? '#A08AE0' : '#c9962e'}
+                opacity={isRetro ? 1.0 : 0.95}
                 fontFamily="serif"
               >
                 {symbol}
@@ -231,8 +231,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
                   x={pos.x + 8}
                   y={pos.y - 6}
                   fontSize="5"
-                  fill="#8a6518"
-                  opacity="0.65"
+                  fill="#A08AE0"
+                  opacity="1.0"
                   fontFamily="Space Mono, monospace"
                 >
                   R
@@ -244,8 +244,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
 
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGlow)" />
-        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#2a2a2a" strokeWidth="0.5" />
-        <circle cx={cx} cy={cy} r="1.5" fill="#c9962e" opacity="0.5" />
+        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="rgba(212,168,69,0.65)" strokeWidth="0.5" />
+        <circle cx={cx} cy={cy} r="1.5" fill="#c9962e" opacity="1.0" />
       </svg>
     </div>
   )
