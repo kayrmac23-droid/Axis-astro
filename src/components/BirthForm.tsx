@@ -25,6 +25,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     latitude: '',
     longitude: '',
     timezone: '',
+    tzName: '',
   })
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
@@ -67,56 +68,66 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     }
   }
 
+  const getUtcOffsetFromTzName = (tzName: string, year: number, month: number, day: number, hour: number, minute: number): string | null => {
+    try {
+      // Create a UTC-based Date that represents the wall-clock time in the target timezone.
+      // We use a UTC timestamp matching the calendar values; Intl then maps it to the
+      // correct UTC offset for that timezone at that calendar date (DST-aware).
+      const isoStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
+      const date = new Date(isoStr)
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tzName,
+        timeZoneName: 'longOffset'
+      }).formatToParts(date)
+      const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
+      if (offsetStr === 'GMT') return '0'
+      const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
+      if (m) {
+        const sign = m[1] === '+' ? 1 : -1
+        const hours = parseInt(m[2])
+        const minutes = parseInt(m[3] ?? '0')
+        return String(sign * (hours + minutes / 60))
+      }
+    } catch { /* Intl not available for this timezone */ }
+    return null
+  }
+
   const selectLocation = async (result: GeoResult) => {
-    // Fallback: rough estimate from longitude
+    // Fallback: rough estimate from longitude (±15°/hour)
     let tz = String(Math.round(parseFloat(result.lon) / 15))
+    let tzName = ''
 
     try {
       const tzAbort = new AbortController()
-      const tzTimeout = setTimeout(() => tzAbort.abort(), 5000)
+      const tzTimeout = setTimeout(() => tzAbort.abort(), 8000)
       const tzRes = await fetch(
-        `https://timezonefinder.michelfe.it/api/0?lat=${result.lat}&lng=${result.lon}`,
+        `/api/timezone?lat=${result.lat}&lon=${result.lon}`,
         { signal: tzAbort.signal }
       ).finally(() => clearTimeout(tzTimeout))
-      const tzData = await tzRes.json()
-      const tzName: string = tzData.tz_name || tzData.timezone_id || ''
 
-      if (tzName) {
-        // Use the birth date for DST-aware offset (fall back to current date)
-        const year = parseInt(formData.year) || new Date().getFullYear()
-        const month = (parseInt(formData.month) || 1) - 1
-        const day = parseInt(formData.day) || 1
-        const hour = formData.hour ? to24Hour(formData.hour, formData.ampm) : 12
-        const minute = parseInt(formData.minute) || 0
-        const birthDate = new Date(year, month, day, hour, minute)
-
-        // Get offset string like "GMT+05:30" via Intl
-        const parts = new Intl.DateTimeFormat('en-US', {
-          timeZone: tzName,
-          timeZoneName: 'longOffset'
-        }).formatToParts(birthDate)
-
-        const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
-        if (offsetStr === 'GMT') {
-          tz = '0'
-        } else {
-          const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
-          if (m) {
-            const sign = m[1] === '+' ? 1 : -1
-            const hours = parseInt(m[2])
-            const minutes = parseInt(m[3] ?? '0')
-            tz = String(sign * (hours + minutes / 60))
-          }
-        }
+      if (tzRes.ok) {
+        const tzData = await tzRes.json()
+        tzName = tzData.tzName || ''
       }
-    } catch { /* timezone API unreachable — keep longitude-based estimate from above */ }
+    } catch { /* offline or server error — use longitude fallback */ }
+
+    if (tzName) {
+      const year  = parseInt(formData.year)  || new Date().getFullYear()
+      const month = parseInt(formData.month) || 1
+      const day   = parseInt(formData.day)   || 1
+      const hour  = formData.hour ? to24Hour(formData.hour, formData.ampm) : 12
+      const minute = parseInt(formData.minute) || 0
+      const offset = getUtcOffsetFromTzName(tzName, year, month, day, hour, minute)
+      if (offset !== null) tz = offset
+    }
 
     setFormData(prev => ({
       ...prev,
       location: result.display_name.split(',').slice(0, 2).join(','),
       latitude: result.lat,
       longitude: result.lon,
-      timezone: tz
+      timezone: tz,
+      tzName,
     }))
     setLocationSuggestions([])
     setLocationConfirmed(true)
