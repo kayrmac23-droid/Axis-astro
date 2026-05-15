@@ -1,9 +1,9 @@
 // app/api/reading/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { formatChartForPrompt, DualChartData } from '@/lib/astro-calc'
-import * as Prompts from '@/lib/prompts'
-import { buildInterpretationContext } from '@/lib/interpretation-engine'
+import { DualChartData } from '@/lib/astro-calc'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS } from '@/lib/prompts'
+import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 
 export const maxDuration = 60
 
@@ -11,33 +11,10 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
-const PROMPT_MAP: Record<string, Record<string, string>> = {
-  tropical: {
-    sun: Prompts.TROPICAL_SUN_PROMPT,
-    moon: Prompts.TROPICAL_MOON_PROMPT,
-    ascendant: Prompts.TROPICAL_ASCENDANT_PROMPT,
-    mercury: Prompts.TROPICAL_MERCURY_PROMPT,
-    venus: Prompts.TROPICAL_VENUS_PROMPT,
-    mars: Prompts.TROPICAL_MARS_PROMPT,
-    jupiter_saturn: Prompts.TROPICAL_JUPITER_SATURN_PROMPT,
-    key_aspects: Prompts.TROPICAL_KEY_ASPECTS_PROMPT
-  },
-  sidereal: {
-    lagna: Prompts.SIDEREAL_LAGNA_PROMPT,
-    sun: Prompts.SIDEREAL_SUN_PROMPT,
-    moon: Prompts.SIDEREAL_MOON_PROMPT,
-    mercury: Prompts.SIDEREAL_MERCURY_PROMPT,
-    venus: Prompts.SIDEREAL_VENUS_PROMPT,
-    mars: Prompts.SIDEREAL_MARS_PROMPT,
-    jupiter_saturn: Prompts.SIDEREAL_JUPITER_SATURN_PROMPT,
-    rahu_ketu: Prompts.SIDEREAL_RAHU_KETU_PROMPT
-  },
-  synthesis: {
-    agree: Prompts.SYNTHESIS_AGREE_PROMPT,
-    diverge: Prompts.SYNTHESIS_DIVERGE_PROMPT,
-    tension: Prompts.SYNTHESIS_TENSION_PROMPT,
-    closing: Prompts.SYNTHESIS_CLOSING_PROMPT
-  }
+const SYSTEM_PROMPT_MAP: Record<string, string> = {
+  tropical:  TROPICAL_SYSTEM_PROMPT,
+  sidereal:  SIDEREAL_SYSTEM_PROMPT,
+  synthesis: SYNTHESIS_SYSTEM_PROMPT,
 }
 
 export async function POST(req: NextRequest) {
@@ -52,27 +29,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing chart data, section, or planetSection' }, { status: 400 })
     }
 
-    const basePrompt = PROMPT_MAP[section]?.[planetSection]
-    if (!basePrompt) {
+    const systemPrompt = SYSTEM_PROMPT_MAP[section]
+    if (!systemPrompt) {
+      return NextResponse.json({ error: 'Invalid section' }, { status: 400 })
+    }
+
+    const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
+    if (!sectionInstruction) {
       return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
     }
 
-    const systemPrompt = basePrompt + `\n\nDo not reach for textbook sun-sign archetypes or clichéd sign behaviors. Read the specific combination of sign, house position, and aspects for each planet — the same sign in different houses produces completely different expressions. Avoid the following overused patterns entirely: any sign "needing the spotlight" based on sign alone, Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold", Gemini "being flaky". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors (e.g., Saturn conjunct Sun, 12th house stellium), you may name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this sun sign.`
-
-    const tropicalFormatted = () => formatChartForPrompt(chartData.tropical, 'tropical')
-    const siderealFormatted = () => formatChartForPrompt(chartData.sidereal, 'sidereal')
-
     // Structured interpretation context: first-principles facts (dignity, sign modification,
-    // house environment, dispositor chain, aspects, contradictions) derived before Claude writes.
-    // This gives Claude a reasoning scaffold rather than letting it reconstruct facts from scratch.
+    // house environment, dispositor chain, aspects with applying/separating, contradictions,
+    // dasha, yogas) derived before Claude writes. This scaffold prevents hallucinated
+    // dignity/aspect data and anchors interpretation in actual chart positions.
     const interpretationContext = buildInterpretationContext(chartData, section, planetSection)
 
-    const userContent =
-      section === 'tropical'
-        ? `Generate the ${planetSection} section for the Tropical reading.\n\nFULL CHART DATA:\n${tropicalFormatted()}\n${interpretationContext}`
-        : section === 'sidereal'
-          ? `Generate the ${planetSection} section for the Sidereal reading.\n\nFULL CHART DATA:\n${siderealFormatted()}\n${interpretationContext}`
-          : `Generate the ${planetSection} section for the AXIS Synthesis reading.\n\nTROPICAL CHART:\n${tropicalFormatted()}\n\nSIDEREAL CHART:\n${siderealFormatted()}\n${interpretationContext}`
+    // Elite chart block: compact human-readable summary injected at the top of the user message.
+    // Gives the model a bird's-eye view of the whole chart before the section-specific instruction.
+    let userContent: string
+
+    if (section === 'tropical') {
+      const chartBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
+      userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+    } else if (section === 'sidereal') {
+      const chartBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
+      userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+    } else {
+      // Synthesis: show both charts in full
+      const tropicalBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
+      const siderealBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
+      userContent = `${tropicalBlock}\n\n${siderealBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+    }
 
     const stream = await anthropic.messages.stream({
       model: 'claude-opus-4-5',
@@ -98,7 +86,6 @@ export async function POST(req: NextRequest) {
           }
           controller.close()
         } catch (err) {
-          // Encode the error as a readable marker in the stream so the client can display it
           const msg = err instanceof Error ? err.message : String(err)
           controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
           controller.close()

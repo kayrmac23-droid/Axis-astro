@@ -1,16 +1,13 @@
 // lib/interpretation-engine.ts
 // Structured astrological reasoning layer for AXIS
 //
-// Architecture: this module sits between astro-calc.ts (raw positions) and the
-// Claude prompt. It derives first-principles facts — dignity, sign modification,
-// house environment, dispositor chain, aspects, contradictions — and formats them
-// as a structured context block injected into the AI prompt.
+// Architecture: sits between astro-calc.ts (raw positions) and the Claude prompt.
+// Derives first-principles facts (dignity, house environment, dispositor chain,
+// aspects with applying/separating, contradictions, dasha, yogas) and formats them
+// as a structured context block injected into every /api/reading request.
 //
-// Claude then interprets from this scaffold rather than reconstructing facts from
-// scratch, reducing generic astrology clichés and hallucinated dignities/aspects.
-//
-// To extend: add planets/signs/houses/nakshatras to the knowledge constants below.
-// The engine functions are data-driven — adding knowledge propagates automatically.
+// To extend: add entries to the knowledge constants below.
+// The engine functions are data-driven — additions propagate automatically.
 
 import { ChartData, DualChartData, PlanetPosition } from './astro-calc'
 
@@ -294,12 +291,200 @@ const NAKSHATRA_DATA: Record<string, {
 // ── ASPECT DEFINITIONS ───────────────────────────────────────────────────────
 
 const ASPECT_DEFS = [
-  { name: 'Conjunction', angle: 0,   orb: 8, nature: 'merger — the two planets operate as a single intensified unit; their energies amplify each other, for better or worse; the combined effect is harder to modulate than either alone', quality: 'intensifying' },
-  { name: 'Sextile',     angle: 60,  orb: 6, nature: 'latent cooperation — the planets can work in concert when intentional, but the ease requires activation and tends to go unnoticed because it creates no friction', quality: 'cooperative' },
-  { name: 'Square',      angle: 90,  orb: 8, nature: 'productive friction — the planets pull in incompatible directions; this conflict returns again and again without clean resolution; the most generative difficult aspect', quality: 'tense' },
-  { name: 'Trine',       angle: 120, orb: 8, nature: 'natural flow — the planets work together easily and automatically; the gift may be so effortless it goes unexamined and underdeveloped', quality: 'flowing' },
-  { name: 'Opposition',  angle: 180, orb: 8, nature: 'polarization — the person tends to identify with one pole and project the other onto partners or adversaries; what feels external is often an unintegrated internal tension', quality: 'polarizing' }
+  { name: 'Conjunction', angle: 0,   orb: 8, glyph: '☌', nature: 'merger — the two planets operate as a single intensified unit; their energies amplify each other, for better or worse; the combined effect is harder to modulate than either alone', quality: 'intensifying' },
+  { name: 'Sextile',     angle: 60,  orb: 6, glyph: '⚹', nature: 'latent cooperation — the planets can work in concert when intentional, but the ease requires activation and tends to go unnoticed because it creates no friction', quality: 'cooperative' },
+  { name: 'Square',      angle: 90,  orb: 8, glyph: '□', nature: 'productive friction — the planets pull in incompatible directions; this conflict returns again and again without clean resolution; the most generative difficult aspect', quality: 'tense' },
+  { name: 'Trine',       angle: 120, orb: 8, glyph: '△', nature: 'natural flow — the planets work together easily and automatically; the gift may be so effortless it goes unexamined and underdeveloped', quality: 'flowing' },
+  { name: 'Opposition',  angle: 180, orb: 8, glyph: '☍', nature: 'polarization — the person tends to identify with one pole and project the other onto partners or adversaries; what feels external is often an unintegrated internal tension', quality: 'polarizing' }
 ]
+
+// ── VIMSHOTTARI DASHA ────────────────────────────────────────────────────────
+
+const DASHA_LORDS_ORDER = ['Ketu', 'Venus', 'Sun', 'Moon', 'Mars', 'Rahu', 'Jupiter', 'Saturn', 'Mercury']
+const DASHA_YEARS_MAP: Record<string, number> = {
+  Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7,
+  Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17
+}
+// Nakshatra index (0–26) → index into DASHA_LORDS_ORDER; repeats in groups of 9
+const NAKSHATRA_TO_DASHA_IDX: number[] = [
+  0, 1, 2, 3, 4, 5, 6, 7, 8,  // Ashwini–Ashlesha
+  0, 1, 2, 3, 4, 5, 6, 7, 8,  // Magha–Jyeshtha
+  0, 1, 2, 3, 4, 5, 6, 7, 8   // Mula–Revati
+]
+const NAKSHATRAS_ORDERED = [
+  'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra',
+  'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni',
+  'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
+  'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha',
+  'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
+]
+
+export interface DashaInfo {
+  mahadasha: string
+  mahaDashaEndDate: string  // YYYY-MM
+  antardasha: string
+  antarDashaEndDate: string // YYYY-MM
+}
+
+export function computeVimshottariDasha(chartData: DualChartData): DashaInfo | null {
+  const moon = chartData.sidereal.planets.find(p => p.name === 'Moon')
+  if (!moon || !moon.nakshatra) return null
+
+  const nakshatraIdx = NAKSHATRAS_ORDERED.indexOf(moon.nakshatra)
+  if (nakshatraIdx < 0) return null
+
+  const dashaLordIdx  = NAKSHATRA_TO_DASHA_IDX[nakshatraIdx]
+  const nakshatraSize = 360 / 27
+  const posInNakshatra = moon.longitude % nakshatraSize
+  const fractionElapsed = posInNakshatra / nakshatraSize
+
+  const startDashaYears = DASHA_YEARS_MAP[DASHA_LORDS_ORDER[dashaLordIdx]]
+  const elapsedYears    = fractionElapsed * startDashaYears
+
+  const MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
+  const bd = chartData.birthData
+
+  // Birth time in UTC milliseconds
+  const totalLocalMinutes = bd.hour * 60 + bd.minute - Math.round(bd.timezone * 60)
+  const birthMS = Date.UTC(
+    bd.year, bd.month - 1, bd.day,
+    Math.floor(totalLocalMinutes / 60),
+    ((totalLocalMinutes % 60) + 60) % 60
+  )
+
+  // When the starting dasha actually began (before birth by elapsedYears)
+  const firstDashaStartMS = birthMS - elapsedYears * MS_PER_YEAR
+  const now = Date.now()
+
+  let t      = firstDashaStartMS
+  let lordI  = dashaLordIdx
+  let mahadasha      = ''
+  let mahaDashaEndMS = 0
+
+  for (let i = 0; i < 20; i++) {
+    const lord  = DASHA_LORDS_ORDER[lordI % 9]
+    const years = DASHA_YEARS_MAP[lord]
+    const endMS = t + years * MS_PER_YEAR
+    if (now <= endMS) {
+      mahadasha      = lord
+      mahaDashaEndMS = endMS
+      break
+    }
+    t = endMS
+    lordI++
+  }
+
+  if (!mahadasha) return null
+
+  const mahaDashaStartMS = t
+  const mahaDashaYears   = DASHA_YEARS_MAP[mahadasha]
+  const startAntarI      = DASHA_LORDS_ORDER.indexOf(mahadasha)
+
+  let at          = mahaDashaStartMS
+  let antardasha  = ''
+  let antarEndMS  = 0
+
+  for (let i = 0; i < 9; i++) {
+    const antarLord  = DASHA_LORDS_ORDER[(startAntarI + i) % 9]
+    const antarYears = (DASHA_YEARS_MAP[antarLord] / 120) * mahaDashaYears
+    const antarEnd   = at + antarYears * MS_PER_YEAR
+    if (now <= antarEnd) {
+      antardasha = antarLord
+      antarEndMS = antarEnd
+      break
+    }
+    at = antarEnd
+  }
+
+  if (!antardasha) return null
+
+  const fmtDate = (ms: number) => {
+    const d = new Date(ms)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+
+  return {
+    mahadasha,
+    mahaDashaEndDate:  fmtDate(mahaDashaEndMS),
+    antardasha,
+    antarDashaEndDate: fmtDate(antarEndMS),
+  }
+}
+
+// ── YOGA DETECTION ────────────────────────────────────────────────────────────
+
+const SIGNS_ORDERED = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+]
+
+export function detectMajorYogas(chart: ChartData): string[] {
+  const yogas: string[] = []
+  const lagnaIdx = SIGNS_ORDERED.indexOf(chart.ascendantSign)
+  if (lagnaIdx < 0) return yogas
+
+  const houseSign = (h: number): string => SIGNS_ORDERED[(lagnaIdx + h - 1) % 12]
+  const signLord  = (sign: string): string => SIGN_RULERS_VEDIC[sign] || ''
+  const KENDRAS   = [1, 4, 7, 10]
+
+  // Pancha Mahapurusha Yogas — angular + dignified planets
+  const MAHAPURUSHA = [
+    { planet: 'Mars',    ownSigns: ['Aries', 'Scorpio'],          exaltSign: 'Capricorn', yoga: 'Ruchaka' },
+    { planet: 'Mercury', ownSigns: ['Gemini', 'Virgo'],           exaltSign: 'Virgo',     yoga: 'Bhadra'  },
+    { planet: 'Jupiter', ownSigns: ['Sagittarius', 'Pisces'],     exaltSign: 'Cancer',    yoga: 'Hamsa'   },
+    { planet: 'Venus',   ownSigns: ['Taurus', 'Libra'],           exaltSign: 'Pisces',    yoga: 'Malavya' },
+    { planet: 'Saturn',  ownSigns: ['Capricorn', 'Aquarius'],     exaltSign: 'Libra',     yoga: 'Shasha'  },
+  ]
+
+  for (const { planet, ownSigns, exaltSign, yoga } of MAHAPURUSHA) {
+    const p = chart.planets.find(pl => pl.name === planet)
+    if (!p) continue
+    const inStrength = ownSigns.includes(p.sign) || p.sign === exaltSign
+    if (inStrength && KENDRAS.includes(p.house)) {
+      const digType = ownSigns.includes(p.sign) ? 'own sign' : 'exaltation'
+      yogas.push(`${yoga} Yoga: ${planet} in ${p.sign} (${digType}) in House ${p.house} — strong angular dignity amplifies this planet's significations across the chart`)
+    }
+  }
+
+  // Raja Yoga — conjunction of a kendra lord and a trikona lord
+  // Use filter-based dedup instead of Set spread to stay compatible with ES5 target
+  const TRIKONAS     = [1, 5, 9]
+  const kendraLordsRaw  = KENDRAS.map(h => signLord(houseSign(h))).filter(Boolean) as string[]
+  const trikonaLordsRaw = TRIKONAS.map(h => signLord(houseSign(h))).filter(Boolean) as string[]
+  const kendraLords  = kendraLordsRaw.filter((v, i, a) => a.indexOf(v) === i)
+  const trikonaLords = trikonaLordsRaw.filter((v, i, a) => a.indexOf(v) === i)
+
+  for (const kl of kendraLords) {
+    for (const tl of trikonaLords) {
+      if (kl === tl) continue  // 1st-house lord is already in both lists; skip self-conjunction
+      const klP = chart.planets.find(p => p.name === kl)
+      const tlP = chart.planets.find(p => p.name === tl)
+      if (!klP || !tlP) continue
+      if (klP.house === tlP.house) {
+        const klH = KENDRAS.find(h => signLord(houseSign(h)) === kl)
+        const tlH = TRIKONAS.find(h => signLord(houseSign(h)) === tl)
+        yogas.push(`Raja Yoga: ${kl} (lord of House ${klH}) and ${tl} (lord of House ${tlH}) conjunct in House ${klP.house} — kendra and trikona rulers aligned`)
+      }
+    }
+  }
+
+  // Viparita Raja Yoga — 6th/8th/12th lords placed in dusthana houses
+  const DUSTHANAS = [6, 8, 12]
+  const dusthanaLords = DUSTHANAS.map(h => signLord(houseSign(h))).filter(Boolean)
+  const placed: string[] = []
+
+  for (const dl of dusthanaLords) {
+    const p = chart.planets.find(pl => pl.name === dl)
+    if (p && DUSTHANAS.includes(p.house)) {
+      placed.push(`${dl} in House ${p.house}`)
+    }
+  }
+  if (placed.length >= 2) {
+    yogas.push(`Viparita Raja Yoga: ${placed.join(', ')} — difficulty-house lords confined in difficulty houses; potential for unexpected advancement through adversity`)
+  }
+
+  return yogas
+}
 
 // ── ENGINE FUNCTIONS ──────────────────────────────────────────────────────────
 
@@ -314,10 +499,17 @@ function computeDignity(planetName: string, signName: string): { status: string;
   if (!d) return { status: 'peregrine', description: 'no special dignity or debility — neutral; operates according to sign and house character without exceptional ease or difficulty' }
 
   if (d.domicile.includes(signName)) {
-    return { status: 'DOMICILE', description: `${planetName} in its own sign — full access to its natural function; no foreign interference; maximum self-expression` }
+    // Check for simultaneous exaltation (e.g. Mercury in Virgo)
+    const alsoExalted = d.exaltation === signName
+    return {
+      status: alsoExalted ? 'DOMICILE + EXALTATION' : 'DOMICILE',
+      description: alsoExalted
+        ? `${planetName} in both domicile and exaltation — maximum self-expression at its most elevated; can tip into over-expression`
+        : `${planetName} in its own sign — full access to its natural function; no foreign interference; maximum self-expression`
+    }
   }
   if (d.exaltation === signName) {
-    return { status: 'EXALTATION', description: `${planetName} in exaltation — honored and elevated; expresses at its highest potential; can tip into over-expression or idealization of the function` }
+    return { status: 'EXALTATION', description: `${planetName} in exaltation — honoured and elevated; expresses at its highest potential; can tip into over-expression or idealisation of the function` }
   }
   if (d.detriment.includes(signName)) {
     return { status: 'DETRIMENT', description: `${planetName} in detriment — in the sign opposite its domicile; the natural function is frustrated, redirected, or expressed in complicated ways; must work against the grain of the sign to assert itself` }
@@ -328,39 +520,72 @@ function computeDignity(planetName: string, signName: string): { status: string;
   return { status: 'peregrine', description: 'no special dignity or debility — neutral placement' }
 }
 
+// Returns a compact dignity label for the elite chart block
+function dignityLabel(planetName: string, signName: string): string {
+  const d = DIGNITIES[planetName]
+  if (!d) return 'Peregrine'
+  const isDomicile   = d.domicile.includes(signName)
+  const isExaltation = d.exaltation === signName
+  const isDetriment  = d.detriment.includes(signName)
+  const isFall       = d.fall === signName
+  if (isDomicile && isExaltation) return 'Domicile + Exaltation ✓'
+  if (isDomicile)   return 'Domicile ✓'
+  if (isExaltation) return 'Exaltation ✓'
+  if (isDetriment)  return 'Detriment'
+  if (isFall)       return 'Fall'
+  return 'Peregrine'
+}
+
 interface Aspect {
   planet1: string
   planet2: string
   aspectName: string
+  glyph: string
   orb: number
+  applying: boolean  // true = orb decreasing (planets converging on exact aspect)
   nature: string
   quality: string
 }
 
 function computeAspects(planets: PlanetPosition[], filter?: string[]): Aspect[] {
   const aspects: Aspect[] = []
-  const candidates = planets.filter(p => p.name !== 'Ketu') // Ketu is tracked via Rahu axis
+  const candidates = planets.filter(p => p.name !== 'Ketu') // Ketu tracked via Rahu axis
 
   for (let i = 0; i < candidates.length; i++) {
     for (let j = i + 1; j < candidates.length; j++) {
       const p1 = candidates[i]
       const p2 = candidates[j]
 
-      // If filter provided, at least one planet must be in the filter
       if (filter && filter.length > 0 && !filter.includes(p1.name) && !filter.includes(p2.name)) continue
 
       const diff = angleDiff(p1.longitude, p2.longitude)
       for (const def of ASPECT_DEFS) {
         const orb = Math.abs(diff - def.angle)
         if (orb <= def.orb) {
-          aspects.push({ planet1: p1.name, planet2: p2.name, aspectName: def.name, orb: Math.round(orb * 10) / 10, nature: def.nature, quality: def.quality })
+          // Applying/separating: compare orb tomorrow using each planet's daily motion
+          const p1LonTom = p1.longitude + (p1.dailyMotion ?? 0)
+          const p2LonTom = p2.longitude + (p2.dailyMotion ?? 0)
+          const diffTom  = angleDiff(p1LonTom, p2LonTom)
+          const orbTom   = Math.abs(diffTom - def.angle)
+          const applying = orbTom < orb
+
+          aspects.push({
+            planet1: p1.name,
+            planet2: p2.name,
+            aspectName: def.name,
+            glyph: def.glyph,
+            orb: Math.round(orb * 10) / 10,
+            applying,
+            nature: def.nature,
+            quality: def.quality,
+          })
           break
         }
       }
     }
   }
 
-  return aspects.sort((a, b) => a.orb - b.orb) // tightest aspects first
+  return aspects.sort((a, b) => a.orb - b.orb) // tightest first
 }
 
 function getDispositor(planet: PlanetPosition, allPlanets: PlanetPosition[], vedic = false): string {
@@ -387,29 +612,103 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], allPlanets: P
     conflicts.push(`${planet.name} is in FALL in ${planet.sign}: the deepest dignity challenge — both the planet's function and the sign's character resist easy alignment; this placement requires significant effort and often produces either chronic difficulty or, through that struggle, unusual psychological depth`)
   }
 
-  // Square aspects — the most conflicted
   aspects
     .filter(a => (a.planet1 === planet.name || a.planet2 === planet.name) && a.aspectName === 'Square')
     .forEach(sq => {
       const other = sq.planet1 === planet.name ? sq.planet2 : sq.planet1
       const otherData = PLANET_CORE[other]
       if (otherData) {
-        conflicts.push(`${planet.name} square ${other} (orb ${sq.orb}°): ${planet.name}'s drive (${pData.drives}) in ongoing incompatible tension with ${other}'s function (${otherData.coreFunction}). This conflict recurs without clean resolution — it is generative but perpetually unresolved`)
+        conflicts.push(`${planet.name} square ${other} (orb ${sq.orb}°, ${sq.applying ? 'applying' : 'separating'}): ${planet.name}'s drive (${pData.drives}) in ongoing incompatible tension with ${other}'s function (${otherData.coreFunction}). This conflict recurs without clean resolution — generative but perpetually unresolved`)
       }
     })
 
-  // Opposition — projection dynamic
   aspects
     .filter(a => (a.planet1 === planet.name || a.planet2 === planet.name) && a.aspectName === 'Opposition')
     .forEach(opp => {
       const other = opp.planet1 === planet.name ? opp.planet2 : opp.planet1
       const otherData = PLANET_CORE[other]
       if (otherData) {
-        conflicts.push(`${planet.name} opposite ${other} (orb ${opp.orb}°): polarization dynamic — person tends to over-identify with ${planet.name}'s function and project ${other}'s (${otherData.coreFunction}) onto partners or external situations; what is experienced as "coming from outside" may be unintegrated inner tension`)
+        conflicts.push(`${planet.name} opposite ${other} (orb ${opp.orb}°, ${opp.applying ? 'applying' : 'separating'}): polarisation dynamic — person tends to over-identify with ${planet.name}'s function and project ${other}'s (${otherData.coreFunction}) onto partners or external situations`)
       }
     })
 
   return conflicts
+}
+
+// ── FORMATTERS ────────────────────────────────────────────────────────────────
+
+// Formats degree as D°MM' (e.g. 14°22')
+function fmtDeg(deg: number): string {
+  const d = Math.floor(deg)
+  const m = Math.round((deg - d) * 60)
+  return `${d}°${String(m).padStart(2, '0')}'`
+}
+
+// Formats orb as D°MM' or MM' if D=0
+function fmtOrb(orb: number): string {
+  const d = Math.floor(orb)
+  const m = Math.round((orb - d) * 60)
+  if (d === 0) return `${m}'`
+  return `${d}°${String(m).padStart(2, '0')}'`
+}
+
+/**
+ * Produces the compact, human-readable elite chart block injected at the top of
+ * every user message.  Format matches the task specification:
+ *
+ *   TROPICAL CHART
+ *   Sun: Leo 14°22' · House 4 · Domicile ✓ · direct
+ *   ...
+ *   ASPECTS (tightest first)
+ *   Sun □ Saturn (orb 2°14' · applying) — Saturn in House 1
+ *   ...
+ *   CHART RULER
+ *   Ascendant: Aries · Ruler: Mars · Mars in House 8, Scorpio, Peregrine
+ */
+export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'sidereal'): string {
+  const vedic = system === 'sidereal'
+  const lines: string[] = []
+
+  lines.push(`${system.toUpperCase()} CHART`)
+  lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1`)
+  lines.push(`Midheaven: ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)} · House 10`)
+  lines.push('')
+
+  // All planetary positions
+  for (const p of chart.planets) {
+    const dig  = dignityLabel(p.name, p.sign)
+    const dir  = p.retrograde ? 'retrograde ℞' : 'direct'
+    let line   = `${p.name}: ${p.sign} ${fmtDeg(p.degree)} · House ${p.house} · ${dig} · ${dir}`
+    if (vedic && p.nakshatra) {
+      line += ` · ${p.nakshatra} Pada ${p.nakshatraPada}`
+    }
+    lines.push(line)
+  }
+  lines.push('')
+
+  // Full aspect table
+  const allAspects = computeAspects(chart.planets)
+  if (allAspects.length > 0) {
+    lines.push('ASPECTS (tightest first):')
+    for (const a of allAspects) {
+      const appSep = a.applying ? 'applying' : 'separating'
+      const p2     = chart.planets.find(p => p.name === a.planet2)
+      const hInfo  = p2 ? ` — ${a.planet2} in House ${p2.house}` : ''
+      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${fmtOrb(a.orb)} · ${appSep})${hInfo}`)
+    }
+    lines.push('')
+  }
+
+  // Chart ruler / Lagna lord
+  const rulers    = vedic ? SIGN_RULERS_VEDIC : SIGN_RULERS_TRADITIONAL
+  const rulerName = rulers[chart.ascendantSign]
+  const rulerP    = chart.planets.find(p => p.name === rulerName)
+  if (rulerP) {
+    const rulerDig = dignityLabel(rulerName, rulerP.sign)
+    lines.push(`${vedic ? 'LAGNA LORD' : 'CHART RULER'}: Ascendant ${chart.ascendantSign} · Ruler: ${rulerName} · ${rulerName} in House ${rulerP.house}, ${rulerP.sign}, ${rulerDig}`)
+  }
+
+  return lines.join('\n')
 }
 
 // ── CONTEXT FORMATTERS ────────────────────────────────────────────────────────
@@ -420,19 +719,17 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   const hData = HOUSE_DATA[planet.house]
   const vedic = system === 'sidereal'
 
-  const dignity = computeDignity(planet.name, planet.sign)
-  const aspects = computeAspects(chart.planets, [planet.name])
+  const dignity  = computeDignity(planet.name, planet.sign)
+  const aspects  = computeAspects(chart.planets, [planet.name])
   const dispositorChain = getDispositor(planet, chart.planets, vedic)
   const conflicts = buildConflicts(planet, aspects, chart.planets)
 
   const lines: string[] = []
   lines.push(`── ${planet.name.toUpperCase()} ──────────────────────────────`)
-  lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde)' : ''}`)
+  lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde ℞)' : ' (Direct)'}`)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
 
-  // For Sun and Mars: include Moon data as a cross-reference note.
-  // The Sun's need-expression and Mars's action-impulse both require checking
-  // whether the Moon sign/house supports or contradicts their default behaviours.
+  // Moon cross-reference for Sun and Mars
   if (planet.name === 'Sun' || planet.name === 'Mars') {
     const moon = chart.planets.find(p => p.name === 'Moon')
     if (moon) {
@@ -444,8 +741,8 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
       if (mSData) lines.push(`Moon sign character: ${mSData.element} ${mSData.modality} — ${mSData.coreNeed}`)
       if (mHData) lines.push(`Moon house domain: ${mHData.domain}`)
       if (mSData) {
-        const isDetached = ['Air'].includes(mSData.element)
         const isDeepAttachment = ['Water'].includes(mSData.element) || moon.house === 8 || moon.house === 4
+        const isDetached       = ['Air'].includes(mSData.element)
         if (planet.name === 'Sun') {
           if (isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} indicates deep emotional attachment — any ${planet.sign} withdrawal impulse is unlikely to complete as a clean exit. Name the impulse and the Moon's override, not one or the other alone.`)
           if (isDetached && !isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} supports some emotional detachment — withdrawal impulses from ${planet.sign} Sun may have more room to complete.`)
@@ -493,9 +790,12 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   if (aspects.length > 0) {
     lines.push('ASPECTS (tightest first):')
     aspects.forEach(a => {
-      const other = a.planet1 === planet.name ? a.planet2 : a.planet1
+      const other     = a.planet1 === planet.name ? a.planet2 : a.planet1
       const otherData = PLANET_CORE[other]
-      lines.push(`• ${a.aspectName} ${other} (orb ${a.orb}°, ${a.quality})`)
+      const appSep    = a.applying ? 'applying' : 'separating'
+      const otherP    = chart.planets.find(p => p.name === other)
+      const hInfo     = otherP ? ` | ${other} in House ${otherP.house}` : ''
+      lines.push(`• ${a.aspectName} ${other} (orb ${a.orb}°, ${appSep}, ${a.quality})${hInfo}`)
       lines.push(`  ${other}: ${otherData?.coreFunction || 'unknown function'}`)
       lines.push(`  Dynamic: ${a.nature}`)
     })
@@ -523,10 +823,18 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   // First-principles synthesis note
   if (pData && sData && hData) {
     lines.push('FIRST-PRINCIPLES SYNTHESIS NOTE:')
+    const digStatus = dignity.status
+    const digNote =
+      digStatus === 'DOMICILE' || digStatus === 'EXALTATION' || digStatus === 'DOMICILE + EXALTATION'
+        ? 'amplified and well-expressed'
+        : digStatus === 'DETRIMENT'
+          ? 'frustrated — must find indirect or redirected expression'
+          : digStatus === 'FALL'
+            ? 'deeply challenged — operates against significant internal resistance'
+            : 'unmodified by dignity, operating according to sign and house character alone'
     lines.push(
-      `${planet.name} (${pData.coreFunction}) filtered through ${planet.sign} (${sData.coreNeed}, ${dignity.status}) ` +
-      `in H${planet.house} (${hData.domain}): ` +
-      `the planet's drive is ${dignity.status === 'DOMICILE' || dignity.status === 'EXALTATION' ? 'amplified and well-expressed' : dignity.status === 'DETRIMENT' ? 'frustrated — must find indirect or redirected expression' : dignity.status === 'FALL' ? 'deeply challenged — operates against significant internal resistance' : 'unmodified by dignity, operating according to sign and house character alone'}. ` +
+      `${planet.name} (${pData.coreFunction}) filtered through ${planet.sign} (${sData.coreNeed}, ${digStatus}) ` +
+      `in H${planet.house} (${hData.domain}): the planet's drive is ${digNote}. ` +
       `The house places this energy in the domain of ${hData.domain}.`
     )
   }
@@ -535,10 +843,10 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
 }
 
 function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'): string {
-  const vedic = section === 'sidereal'
-  const rulers = vedic ? SIGN_RULERS_VEDIC : SIGN_RULERS_TRADITIONAL
-  const signName = chart.ascendantSign
-  const sData = SIGN_DATA[signName]
+  const vedic     = section === 'sidereal'
+  const rulers    = vedic ? SIGN_RULERS_VEDIC : SIGN_RULERS_TRADITIONAL
+  const signName  = chart.ascendantSign
+  const sData     = SIGN_DATA[signName]
   const rulerName = rulers[signName]
   const rulerPlanet = chart.planets.find(p => p.name === rulerName)
   const firstHousePlanets = chart.planets.filter(p => p.house === 1)
@@ -554,9 +862,9 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   }
   lines.push('')
 
-  lines.push(`CHART RULER: ${rulerName}`)
+  lines.push(`${vedic ? 'LAGNA LORD' : 'CHART RULER'}: ${rulerName}`)
   if (rulerPlanet) {
-    const rulerDig = computeDignity(rulerName, rulerPlanet.sign)
+    const rulerDig   = computeDignity(rulerName, rulerPlanet.sign)
     const rulerHData = HOUSE_DATA[rulerPlanet.house]
     lines.push(`${rulerName} is placed in ${rulerPlanet.sign} H${rulerPlanet.house}${rulerPlanet.retrograde ? ' (R)' : ''} [${rulerDig.status}]`)
     lines.push(`Ruler dignity: ${rulerDig.description}`)
@@ -567,7 +875,7 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   if (firstHousePlanets.length > 0) {
     lines.push('PLANETS IN THE 1ST HOUSE:')
     firstHousePlanets.forEach(p => {
-      const dig = computeDignity(p.name, p.sign)
+      const dig   = computeDignity(p.name, p.sign)
       const pData = PLANET_CORE[p.name]
       lines.push(`• ${p.name} in ${p.sign} [${dig.status}]: ${pData?.coreFunction || ''}`)
     })
@@ -585,24 +893,24 @@ function formatSynthesisBlock(chartData: DualChartData): string {
   const majorPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
   majorPlanets.forEach(pName => {
     const trop = chartData.tropical.planets.find(p => p.name === pName)
-    const sid = chartData.sidereal.planets.find(p => p.name === pName)
+    const sid  = chartData.sidereal.planets.find(p => p.name === pName)
     if (!trop || !sid) return
 
-    const tropDig = computeDignity(pName, trop.sign)
-    const sidDig = computeDignity(pName, sid.sign)
-    const signShift = trop.sign !== sid.sign
+    const tropDig  = computeDignity(pName, trop.sign)
+    const sidDig   = computeDignity(pName, sid.sign)
+    const signShift  = trop.sign  !== sid.sign
     const houseShift = trop.house !== sid.house
 
     lines.push(`${pName}:`)
-    lines.push(`  Tropical: ${trop.sign} H${trop.house} [${tropDig.status}]`)
-    lines.push(`  Sidereal: ${sid.sign} H${sid.house} [${sidDig.status}]`)
+    lines.push(`  Tropical: ${trop.sign} H${trop.house} [${tropDig.status}]${trop.retrograde ? ' ℞' : ''}`)
+    lines.push(`  Sidereal: ${sid.sign} H${sid.house} [${sidDig.status}]${sid.retrograde ? ' ℞' : ''}`)
 
     if (!signShift && !houseShift) {
       lines.push(`  ✓ CONCORDANCE: same sign and house in both systems — this theme is load-bearing and certain`)
     } else {
       if (signShift) {
         const tropSData = SIGN_DATA[trop.sign]
-        const sidSData = SIGN_DATA[sid.sign]
+        const sidSData  = SIGN_DATA[sid.sign]
         lines.push(`  ⚑ SIGN SHIFT: ${trop.sign} (${tropSData?.element} ${tropSData?.modality}) → ${sid.sign} (${sidSData?.element} ${sidSData?.modality})`)
         lines.push(`    Tropical layer: ${trop.sign} energy — ${tropSData?.coreNeed}`)
         lines.push(`    Sidereal layer: ${sid.sign} energy — ${sidSData?.coreNeed}`)
@@ -612,7 +920,7 @@ function formatSynthesisBlock(chartData: DualChartData): string {
       }
       if (houseShift) {
         const tropHData = HOUSE_DATA[trop.house]
-        const sidHData = HOUSE_DATA[sid.house]
+        const sidHData  = HOUSE_DATA[sid.house]
         lines.push(`  ⚑ HOUSE SHIFT: H${trop.house} (${tropHData?.domain}) → H${sid.house} (${sidHData?.domain})`)
       }
     }
@@ -621,17 +929,34 @@ function formatSynthesisBlock(chartData: DualChartData): string {
 
   // Ascendant comparison
   const tropAsc = chartData.tropical.ascendantSign
-  const sidAsc = chartData.sidereal.ascendantSign
-  lines.push(`ASCENDANT / LAGNA:`)
+  const sidAsc  = chartData.sidereal.ascendantSign
+  lines.push('ASCENDANT / LAGNA:')
   lines.push(`  Tropical ASC: ${tropAsc}`)
   lines.push(`  Sidereal Lagna: ${sidAsc}`)
   if (tropAsc !== sidAsc) {
     const tropS = SIGN_DATA[tropAsc]
-    const sidS = SIGN_DATA[sidAsc]
+    const sidS  = SIGN_DATA[sidAsc]
     lines.push(`  ⚑ SHIFT: ${tropAsc} (${tropS?.coreNeed}) → ${sidAsc} (${sidS?.coreNeed})`)
     lines.push(`  The constructed persona differs from the essential soul-body orientation`)
   } else {
-    lines.push(`  ✓ CONCORDANCE: same sign in both systems — the persona and soul orientation align fully`)
+    lines.push(`  ✓ CONCORDANCE: same sign in both systems — persona and soul orientation align fully`)
+  }
+  lines.push('')
+
+  // Dasha and yogas in synthesis context
+  const dasha = computeVimshottariDasha(chartData)
+  if (dasha) {
+    lines.push('ACTIVE VIMSHOTTARI DASHA:')
+    lines.push(`  Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
+    lines.push(`  Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
+    lines.push('')
+  }
+
+  const yogas = detectMajorYogas(chartData.sidereal)
+  if (yogas.length > 0) {
+    lines.push('MAJOR YOGAS (Sidereal chart):')
+    yogas.forEach(y => lines.push(`  • ${y}`))
+    lines.push('')
   }
 
   return lines.join('\n')
@@ -639,27 +964,26 @@ function formatSynthesisBlock(chartData: DualChartData): string {
 
 // ── PUBLIC API ────────────────────────────────────────────────────────────────
 
-// Planets relevant for each section
 const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
   tropical: {
     sun:            ['Sun'],
     moon:           ['Moon'],
-    ascendant:      [],           // handled separately via formatAscendantBlock
+    ascendant:      [],
     mercury:        ['Mercury'],
     venus:          ['Venus'],
     mars:           ['Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
-    key_aspects:    []            // handled separately
+    key_aspects:    []
   },
   sidereal: {
-    lagna:          [],           // handled via formatAscendantBlock
+    lagna:          [],
     sun:            ['Sun'],
     moon:           ['Moon'],
     mercury:        ['Mercury'],
     venus:          ['Venus'],
     mars:           ['Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
-    rahu_ketu:      ['Rahu']          // Ketu handled separately below (simpler block)
+    rahu_ketu:      ['Rahu']
   }
 }
 
@@ -669,25 +993,42 @@ export function buildInterpretationContext(
   planetSection: string
 ): string {
   const divider = '═'.repeat(60)
-  const header = `\n${divider}\nSTRUCTURED INTERPRETATION CONTEXT\n(First-principles reasoning layer — use these facts as the foundation for interpretation)\n${divider}\n`
+  const header  = `\n${divider}\nSTRUCTURED INTERPRETATION CONTEXT\n(First-principles reasoning scaffold — use these facts as the foundation for every interpretive claim)\n${divider}\n`
 
   if (section === 'synthesis') {
     return header + formatSynthesisBlock(chartData)
   }
 
-  const chart = section === 'sidereal' ? chartData.sidereal : chartData.tropical
+  const chart  = section === 'sidereal' ? chartData.sidereal : chartData.tropical
   const system = section === 'sidereal' ? 'sidereal' : 'tropical'
   const lines: string[] = [header]
 
   if (planetSection === 'ascendant' || planetSection === 'lagna') {
     lines.push(formatAscendantBlock(chart, system))
 
-    // Cross-chart note for ascendant
     const tropAsc = chartData.tropical.ascendantSign
-    const sidAsc = chartData.sidereal.ascendantSign
+    const sidAsc  = chartData.sidereal.ascendantSign
     if (tropAsc !== sidAsc) {
       lines.push('CROSS-CHART NOTE:')
       lines.push(`Tropical ASC: ${tropAsc} | Sidereal Lagna: ${sidAsc} — sign differs between systems`)
+    }
+
+    // Dasha and yogas for lagna section (most relevant)
+    if (section === 'sidereal') {
+      const dasha = computeVimshottariDasha(chartData)
+      if (dasha) {
+        lines.push('')
+        lines.push('ACTIVE VIMSHOTTARI DASHA:')
+        lines.push(`Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
+        lines.push(`Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
+        lines.push('Note: reference this dasha period where it genuinely illuminates the current life chapter; do not force it into the interpretation.')
+      }
+      const yogas = detectMajorYogas(chart)
+      if (yogas.length > 0) {
+        lines.push('')
+        lines.push('MAJOR YOGAS DETECTED:')
+        yogas.forEach(y => lines.push(`• ${y}`))
+      }
     }
     return lines.join('\n')
   }
@@ -699,7 +1040,8 @@ export function buildInterpretationContext(
     allAspects.forEach(a => {
       const p1Data = PLANET_CORE[a.planet1]
       const p2Data = PLANET_CORE[a.planet2]
-      lines.push(`${a.planet1} ${a.aspectName} ${a.planet2} (orb ${a.orb}°, ${a.quality})`)
+      const appSep = a.applying ? 'applying' : 'separating'
+      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${a.orb}°, ${appSep}, ${a.quality})`)
       if (p1Data && p2Data) {
         lines.push(`  ${a.planet1}: ${p1Data.coreFunction}`)
         lines.push(`  ${a.planet2}: ${p2Data.coreFunction}`)
@@ -719,12 +1061,12 @@ export function buildInterpretationContext(
     lines.push('')
   })
 
-  // Ketu gets a simplified block (no aspects computed — all aspects are via Rahu's axis)
+  // Ketu simplified block
   if (planetSection === 'rahu_ketu') {
     const ketu = chart.planets.find(p => p.name === 'Ketu')
     if (ketu) {
       const ketuSData = SIGN_DATA[ketu.sign]
-      lines.push(`── KETU (SOUTH NODE) ─────────────────────────────`)
+      lines.push('── KETU (SOUTH NODE) ─────────────────────────────')
       lines.push(`Placement: ${ketu.sign} ${ketu.degree.toFixed(1)}° | House ${ketu.house}`)
       if (ketu.nakshatra) {
         lines.push(`Nakshatra: ${ketu.nakshatra} Pada ${ketu.nakshatraPada}`)
@@ -737,13 +1079,13 @@ export function buildInterpretationContext(
       }
       if (ketuSData) {
         lines.push('')
-        lines.push(`KETU IN ${ketu.sign.toUpperCase()}: the qualities of ${ketu.sign} (${ketuSData.keywords.join(', ')}) represent what the soul has mastered and now needs to release attachment to; the soul is moving away from over-dependence on these qualities toward Rahu's sign/house`)
+        lines.push(`KETU IN ${ketu.sign.toUpperCase()}: the qualities of ${ketu.sign} (${ketuSData.keywords.join(', ')}) represent what the soul has mastered and now needs to release attachment to; the soul is moving toward Rahu's sign/house`)
       }
       lines.push('')
     }
   }
 
-  // For Jupiter/Saturn: note if they aspect each other
+  // Jupiter/Saturn direct relationship note
   if (planetSection === 'jupiter_saturn') {
     const jup = chart.planets.find(p => p.name === 'Jupiter')
     const sat = chart.planets.find(p => p.name === 'Saturn')
@@ -752,26 +1094,46 @@ export function buildInterpretationContext(
       if (jupSatAspects.length > 0) {
         lines.push('JUPITER–SATURN DIRECT RELATIONSHIP:')
         jupSatAspects.forEach(a => {
-          lines.push(`${a.aspectName} (orb ${a.orb}°): ${a.nature}`)
-          lines.push(`Jupiter = expansion, faith, abundance | Saturn = contraction, discipline, limitation — these two forces operate in direct ${a.aspectName.toLowerCase()} with each other in this chart`)
+          const appSep = a.applying ? 'applying' : 'separating'
+          lines.push(`${a.aspectName} (orb ${a.orb}°, ${appSep}): ${a.nature}`)
+          lines.push(`Jupiter = expansion, faith, abundance | Saturn = contraction, discipline, limitation — these two forces are in direct ${a.aspectName.toLowerCase()} in this chart`)
         })
         lines.push('')
       }
     }
   }
 
-  // Cross-chart accuracy note for tropical sections
+  // Sidereal sections: include dasha and yoga data
+  if (section === 'sidereal' && targetPlanets.length > 0) {
+    const dasha = computeVimshottariDasha(chartData)
+    if (dasha) {
+      lines.push('─'.repeat(40))
+      lines.push('ACTIVE VIMSHOTTARI DASHA:')
+      lines.push(`Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
+      lines.push(`Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
+      lines.push('Note: reference this dasha where it genuinely illuminates the current chapter; do not force it.')
+      lines.push('')
+    }
+    const yogas = detectMajorYogas(chart)
+    if (yogas.length > 0) {
+      lines.push('MAJOR YOGAS DETECTED:')
+      yogas.forEach(y => lines.push(`• ${y}`))
+      lines.push('')
+    }
+  }
+
+  // Cross-chart accuracy note for tropical
   if (section === 'tropical' && targetPlanets.length > 0) {
     lines.push('─'.repeat(40))
     lines.push('CROSS-CHART ACCURACY NOTE:')
     targetPlanets.forEach(pName => {
       const tropP = chartData.tropical.planets.find(p => p.name === pName)
-      const sidP = chartData.sidereal.planets.find(p => p.name === pName)
+      const sidP  = chartData.sidereal.planets.find(p => p.name === pName)
       if (tropP && sidP) {
-        const signShift = tropP.sign !== sidP.sign
+        const signShift  = tropP.sign  !== sidP.sign
         const houseShift = tropP.house !== sidP.house
         if (signShift || houseShift) {
-          lines.push(`${pName}: Tropical ${tropP.sign} H${tropP.house} vs. Sidereal ${sidP.sign} H${sidP.house}${signShift ? ` — sign shifts between systems (${tropP.sign} → ${sidP.sign})` : ''}`)
+          lines.push(`${pName}: Tropical ${tropP.sign} H${tropP.house} vs. Sidereal ${sidP.sign} H${sidP.house}${signShift ? ` — sign shifts (${tropP.sign} → ${sidP.sign})` : ''}`)
         } else {
           lines.push(`${pName}: same sign and house in both systems (${tropP.sign} H${tropP.house}) — this placement is certain across both frameworks`)
         }

@@ -26,6 +26,7 @@ export interface PlanetPosition {
   degree: number     // degree within sign
   house: number
   retrograde: boolean
+  dailyMotion: number  // degrees per day (positive = direct, negative = retrograde)
   nakshatra?: string
   nakshatraPada?: number
 }
@@ -344,17 +345,22 @@ export function calculateDualChart(birth: BirthData): DualChartData {
     { name: 'Rahu',    getLon: getRahuLongitude     },
   ]
 
-  // Compute tropical longitudes and retrograde status
-  const rawPlanets: Array<{ name: string; longitude: number; retrograde: boolean }> = []
+  // Compute tropical longitudes, retrograde status, and daily motion (centered difference)
+  const rawPlanets: Array<{ name: string; longitude: number; retrograde: boolean; dailyMotion: number }> = []
   for (const { name, getLon } of PLANET_FUNS) {
     const longitude = getLon(jd)
-    const retrograde = isRetrograde(getLon, jd)
-    rawPlanets.push({ name, longitude, retrograde })
+    const lonBefore = getLon(jd - 1)
+    const lonAfter  = getLon(jd + 1)
+    let dm = lonAfter - lonBefore
+    if (dm > 180) dm -= 360
+    if (dm < -180) dm += 360
+    dm /= 2  // centred difference → degrees per day
+    rawPlanets.push({ name, longitude, retrograde: dm < 0, dailyMotion: dm })
   }
 
-  // Ketu is always exactly opposite Rahu
+  // Ketu is always exactly opposite Rahu; its motion mirrors Rahu's in reverse
   const rahu = rawPlanets.find(p => p.name === 'Rahu')!
-  rawPlanets.push({ name: 'Ketu', longitude: normalize(rahu.longitude + 180), retrograde: false })
+  rawPlanets.push({ name: 'Ketu', longitude: normalize(rahu.longitude + 180), retrograde: false, dailyMotion: -rahu.dailyMotion })
 
   const ascendantTropical = houses[0]
   const ascSignTropical   = getSign(ascendantTropical)
@@ -364,13 +370,14 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   const tropicalPlanets: PlanetPosition[] = rawPlanets.map(p => {
     const { sign, signIndex, degree } = getSign(p.longitude)
     return {
-      name:      p.name,
-      longitude: p.longitude,
+      name:        p.name,
+      longitude:   p.longitude,
       sign,
       signIndex,
       degree,
-      house:     getHouseWholeSign(p.longitude, ascendantTropical),
-      retrograde: p.retrograde,
+      house:       getHouseWholeSign(p.longitude, ascendantTropical),
+      retrograde:  p.retrograde,
+      dailyMotion: p.dailyMotion,
     }
   })
 
@@ -398,6 +405,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       degree,
       house:          getHouseWholeSign(siderealLon, ascendantSidereal),
       retrograde:     p.retrograde,
+      dailyMotion:    p.dailyMotion,  // ayanamsa shift is constant, so Δlon/Δt is identical in both systems
       nakshatra,
       nakshatraPada:  pada,
     }
