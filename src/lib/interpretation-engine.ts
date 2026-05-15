@@ -447,9 +447,12 @@ export function detectMajorYogas(chart: ChartData): string[] {
   }
 
   // Raja Yoga — conjunction of a kendra lord and a trikona lord
+  // Use filter-based dedup instead of Set spread to stay compatible with ES5 target
   const TRIKONAS     = [1, 5, 9]
-  const kendraLords  = [...new Set(KENDRAS.map(h => signLord(houseSign(h))).filter(Boolean))]
-  const trikonaLords = [...new Set(TRIKONAS.map(h => signLord(houseSign(h))).filter(Boolean))]
+  const kendraLordsRaw  = KENDRAS.map(h => signLord(houseSign(h))).filter(Boolean) as string[]
+  const trikonaLordsRaw = TRIKONAS.map(h => signLord(houseSign(h))).filter(Boolean) as string[]
+  const kendraLords  = kendraLordsRaw.filter((v, i, a) => a.indexOf(v) === i)
+  const trikonaLords = trikonaLordsRaw.filter((v, i, a) => a.indexOf(v) === i)
 
   for (const kl of kendraLords) {
     for (const tl of trikonaLords) {
