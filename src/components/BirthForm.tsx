@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import styles from './BirthForm.module.css'
 
 interface BirthFormProps {
@@ -32,6 +32,13 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const [locationConfirmed, setLocationConfirmed] = useState(false)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const geocodeAbortRef = useRef<AbortController | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+      geocodeAbortRef.current?.abort()
+    }
+  }, [])
 
   const to24Hour = (hour: string, ampm: string): number => {
     const h = parseInt(hour) || 12

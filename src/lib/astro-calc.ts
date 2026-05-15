@@ -264,18 +264,6 @@ function getRahuLongitude(jde: number): number {
   return normalize(125.04452 - 1934.136261 * T + 0.0020708 * T * T + T * T * T / 450000)
 }
 
-// ── RETROGRADE DETECTION ──────────────────────────────────────────────────────
-
-// Detects retrograde by comparing positions one day before and after.
-// Using the same high-accuracy functions ensures consistency.
-function isRetrograde(getLon: (jde: number) => number, jd: number): boolean {
-  const delta = 1
-  let diff = getLon(jd + delta) - getLon(jd - delta)
-  if (diff > 180) diff -= 360
-  if (diff < -180) diff += 360
-  return diff < 0
-}
-
 // ── HOUSES + ASC + MC ─────────────────────────────────────────────────────────
 
 // RAMC from GMST + birth longitude.
@@ -438,19 +426,3 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   }
 }
 
-export function formatChartForPrompt(chart: ChartData, system: 'tropical' | 'sidereal'): string {
-  const lines: string[] = []
-  lines.push(`${system.toUpperCase()} CHART`)
-  lines.push(`Ascendant (ASC): ${chart.ascendantSign} ${chart.ascendantDegree.toFixed(1)}°`)
-  lines.push(`Midheaven (MC):  ${chart.midheavenSign} ${chart.midheavenDegree.toFixed(1)}°`)
-  lines.push('')
-  lines.push('PLANETARY POSITIONS:')
-  chart.planets.forEach(p => {
-    let line = `${p.name}: ${p.sign} ${p.degree.toFixed(1)}° | House ${p.house}${p.retrograde ? ' (R)' : ''}`
-    if (system === 'sidereal' && p.nakshatra) {
-      line += ` | ${p.nakshatra} pada ${p.nakshatraPada}`
-    }
-    lines.push(line)
-  })
-  return lines.join('\n')
-}

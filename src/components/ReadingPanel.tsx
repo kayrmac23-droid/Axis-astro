@@ -162,6 +162,10 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
     }
   }, [section, generateReading])
 
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
+
   const currentText = readings[section] || ''
   const label = SECTION_LABELS[section]
   const blocks = currentText ? parseReading(currentText, section) : []

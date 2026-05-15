@@ -61,11 +61,18 @@ export async function POST(req: NextRequest) {
     if (isNaN(lat) || lat < -90  || lat > 90)  return NextResponse.json({ error: 'Invalid latitude' }, { status: 400 })
     if (isNaN(lon) || lon < -180 || lon > 180) return NextResponse.json({ error: 'Invalid longitude'}, { status: 400 })
 
+    // Reject impossible calendar dates (e.g. Feb 31, Apr 31)
+    const testDate = new Date(y, mo - 1, d)
+    if (testDate.getFullYear() !== y || testDate.getMonth() !== mo - 1 || testDate.getDate() !== d) {
+      return NextResponse.json({ error: 'Invalid date: day out of range for given month/year' }, { status: 400 })
+    }
+
     // Timezone resolution priority:
     // 1. Server-side DST lookup from IANA name (most accurate)
     // 2. Numeric UTC offset supplied by client (already DST-aware if from /api/timezone)
     // 3. Fallback: 0 (UTC)
     let tzOffset: number = parseFloat(timezone) || 0
+    if (isNaN(tzOffset) || tzOffset < -14 || tzOffset > 14) tzOffset = 0
     if (tzName && typeof tzName === 'string' && tzName.length > 0) {
       const computed = tzNameToOffset(tzName, y, mo, d, h, mi)
       if (computed !== null) tzOffset = computed

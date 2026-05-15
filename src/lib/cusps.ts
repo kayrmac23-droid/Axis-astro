@@ -97,34 +97,3 @@ export const CUSPS: CuspData[] = [
   }
 ]
 
-export function getCuspForPlanet(sign: string, degree: number): CuspData | null {
-  // Check if within 3 degrees of beginning of sign (cusp with previous sign)
-  // or within 3 degrees of end of sign (cusp with next sign)
-  const SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-  ]
-
-  const signIndex = SIGNS.indexOf(sign)
-  if (signIndex === -1) return null
-
-  // Within 3 degrees of start = cusp with previous sign
-  if (degree <= 3) {
-    const prevSign = SIGNS[(signIndex - 1 + 12) % 12]
-    return CUSPS.find(c =>
-      (c.signs[0] === prevSign && c.signs[1] === sign) ||
-      (c.signs[0] === sign && c.signs[1] === prevSign)
-    ) || null
-  }
-
-  // Within 3 degrees of end = cusp with next sign
-  if (degree >= 27) {
-    const nextSign = SIGNS[(signIndex + 1) % 12]
-    return CUSPS.find(c =>
-      (c.signs[0] === sign && c.signs[1] === nextSign) ||
-      (c.signs[0] === nextSign && c.signs[1] === sign)
-    ) || null
-  }
-
-  return null
-}
