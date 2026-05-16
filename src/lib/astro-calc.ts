@@ -233,7 +233,7 @@ function getPlutoLongitude(jde: number): number {
   const PaR = Pa * DEG2RAD
 
   // Heliocentric terms from Meeus Table 37.a (longitude)
-  let Σl = 238.958116
+  const Σl = 238.958116
     + 144.960455 * T
     + 3.4 * Math.sin(PaR)
     - 5.3 * Math.sin(2 * PaR)
