@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
+import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
@@ -181,6 +182,9 @@ export default function Home() {
               </div>
             )}
           </section>
+
+          {/* Chart Facts */}
+          <ChartFactsPanel data={chartData} />
 
           {/* Section Tabs */}
           <div className={styles.tabBar}>

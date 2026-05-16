@@ -15,6 +15,16 @@ const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
   synthesis: { title: 'AXIS Synthesis', subtitle: 'Convergence & Divergence' }
 }
 
+const SECTION_DISPLAY: Record<string, string> = {
+  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', mercury: 'Mercury',
+  venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
+  lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
+  agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Integration',
+}
+
+// Per-section timeout in ms. 35s gives the 60s Vercel function limit plenty of margin.
+const SECTION_TIMEOUT_MS = 35_000
+
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
   if (h.includes('sun')) return 'Sun'
@@ -88,10 +98,15 @@ const PLANET_SECTIONS = {
   synthesis: ['agree', 'diverge', 'tension', 'closing']
 }
 
+type SectionState = 'pending' | 'loading' | 'done' | 'failed'
+
 export default function ReadingPanel({ chartData, section }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [activePlanetSection, setActivePlanetSection] = useState<string | null>(null)
+  const [sectionStates, setSectionStates] = useState<Record<string, SectionState>>({})
+  const [liveStatus, setLiveStatus] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const loadingRef = useRef(false)
   const readingsRef = useRef<Record<string, string>>({})
@@ -106,12 +121,21 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
     setReadings(prev => ({ ...prev, [sec]: '' }))
 
     const sectionsToFetch = PLANET_SECTIONS[sec]
+    const initialStates: Record<string, SectionState> = {}
+    for (const s of sectionsToFetch) initialStates[s] = 'pending'
+    setSectionStates(initialStates)
+    setLiveStatus('Starting reading generation')
 
     try {
       let accumulatedText = ''
 
       for (const planetSec of sectionsToFetch) {
-        // Per-section retry: attempt up to 2 times before failing the section
+        if (abortRef.current?.signal.aborted) break
+
+        setSectionStates(prev => ({ ...prev, [planetSec]: 'loading' }))
+        setActivePlanetSection(planetSec)
+        setLiveStatus(`Loading ${SECTION_DISPLAY[planetSec] ?? planetSec}`)
+
         let sectionText = ''
         let sectionSuccess = false
         let lastError = ''
@@ -119,17 +143,28 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         for (let attempt = 0; attempt < 2; attempt++) {
           if (abortRef.current?.signal.aborted) break
           try {
+            // Race each section fetch against a timeout
+            const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
+            const combinedSignal = AbortSignal.any
+              ? AbortSignal.any([abortRef.current!.signal, timeoutSignal])
+              : abortRef.current!.signal
+
             const res = await fetch('/api/reading', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
-              signal: abortRef.current.signal
+              signal: combinedSignal
             })
 
             if (!res.ok) {
               const body = await res.json().catch(() => ({}))
-              lastError = body.detail || body.error || `Section "${planetSec}" failed (${res.status})`
-              if (attempt === 0) continue  // retry
+              if (res.status === 429) {
+                const retryAfter = res.headers.get('Retry-After')
+                lastError = `Rate limit reached. ${retryAfter ? `Wait ${retryAfter}s and try again.` : 'Please wait before retrying.'}`
+              } else {
+                lastError = body.message || body.error || `Section failed (${res.status})`
+              }
+              if (attempt === 0) continue
               break
             }
             if (!res.body) { lastError = 'No response body'; break }
@@ -146,10 +181,9 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             }
 
             if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
-              const match = chunkText.match(/\[AXIS_STREAM_ERROR: ([^\]]+)\]/)
-              lastError = match ? match[1] : 'Stream error'
+              lastError = 'Generation failed. Please retry this reading.'
               sectionText = ''
-              if (attempt === 0) continue  // retry
+              if (attempt === 0) continue
               break
             }
 
@@ -158,30 +192,40 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             break
           } catch (fetchErr: unknown) {
             if (fetchErr instanceof Error && fetchErr.name === 'AbortError') throw fetchErr
-            lastError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
-            if (attempt === 0) await new Promise(r => setTimeout(r, 1500))  // brief pause before retry
+            if (fetchErr instanceof Error && fetchErr.name === 'TimeoutError') {
+              lastError = `${SECTION_DISPLAY[planetSec] ?? planetSec} timed out. Please retry.`
+            } else {
+              lastError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+            }
+            if (attempt === 0) await new Promise(r => setTimeout(r, 1500))
           }
         }
 
         if (!sectionSuccess) {
-          // Non-fatal: append a visible placeholder so the rest of the reading is still usable
-          const fallback = `\n\n[Section "${planetSec}" could not be generated — ${lastError}. Tap Retry to regenerate the full reading.]\n\n`
+          setSectionStates(prev => ({ ...prev, [planetSec]: 'failed' }))
+          setLiveStatus(`${SECTION_DISPLAY[planetSec] ?? planetSec} failed to load`)
+          const fallback = `\n\n[Section "${planetSec}" could not be generated — ${lastError}]\n\n`
           accumulatedText += fallback
           setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
           continue
         }
 
+        setSectionStates(prev => ({ ...prev, [planetSec]: 'done' }))
         accumulatedText += sectionText + '\n\n'
         setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
+
+      setLiveStatus('Reading complete')
     } catch (err: unknown) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err.message || 'Reading generation failed. Please try again.')
+        setLiveStatus('Reading generation failed')
       }
     } finally {
       if (!abortRef.current?.signal.aborted) {
         loadingRef.current = false
         setLoading(false)
+        setActivePlanetSection(null)
       }
     }
   }, [chartData])
@@ -207,8 +251,21 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const sunS = chartData.sidereal.planets.find(p => p.name === 'Sun')
   const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
+  const currentSections = PLANET_SECTIONS[section]
+  const hasAnyFailed = currentSections.some(s => sectionStates[s] === 'failed')
+
   return (
     <div className={styles.panel}>
+      {/* Screen-reader live region for generation status */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="false"
+        className={styles.srOnly}
+      >
+        {liveStatus}
+      </div>
+
       <div className={styles.readingHeader}>
         <div className={styles.readingMeta}>
           <h2 className={styles.readingTitle}>{label.title}</h2>
@@ -257,11 +314,35 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         </div>
       )}
 
+      {/* Section progress bar (visible while loading) */}
+      {loading && (
+        <div className={styles.sectionProgress} aria-label="Section loading progress">
+          {currentSections.map(s => {
+            const state = sectionStates[s] ?? 'pending'
+            return (
+              <span
+                key={s}
+                className={`${styles.sectionChip} ${styles[`chip_${state}`]}`}
+                aria-label={`${SECTION_DISPLAY[s] ?? s}: ${state}`}
+              >
+                {SECTION_DISPLAY[s] ?? s}
+                {state === 'done' && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
+                {state === 'failed' && <span className={styles.chipFail} aria-hidden="true"> ✕</span>}
+              </span>
+            )
+          })}
+        </div>
+      )}
+
       <div className={styles.readingBody}>
         {loading && !currentText && (
           <div className={styles.generating}>
             <div className={styles.generatingOrbit} />
-            <p className={styles.generatingText}>Interpreting chart</p>
+            <p className={styles.generatingText}>
+              {activePlanetSection
+                ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
+                : 'Interpreting chart'}
+            </p>
           </div>
         )}
 
@@ -269,7 +350,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
           <div className={styles.errorState}>
             <p className={styles.errorText}>{error}</p>
             <button className={styles.retryBtn} onClick={() => generateReading(section)}>
-              Retry
+              Retry reading
             </button>
           </div>
         )}
@@ -279,6 +360,18 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             <p className={styles.errorText}>No reading generated. The API may be unavailable or the key may not be configured.</p>
             <button className={styles.retryBtn} onClick={() => generateReading(section)}>
               Retry
+            </button>
+          </div>
+        )}
+
+        {/* Retry banner if any section failed after completion */}
+        {!loading && hasAnyFailed && (
+          <div className={styles.partialFailBanner}>
+            <p className={styles.partialFailText}>
+              One or more sections failed to generate. The rest of the reading is below.
+            </p>
+            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
+              Regenerate full reading
             </button>
           </div>
         )}

@@ -598,7 +598,7 @@ function getDispositor(planet: PlanetPosition, allPlanets: PlanetPosition[], ved
   return `${planet.name} in ${planet.sign} → ruled by ${rulerName} → ${rulerName} in ${rulerPlanet.sign} H${rulerPlanet.house}${rulerPlanet.retrograde ? ' (R)' : ''} [${rulerDignity.status}] — the sign of ${planet.name} is governed by a planet placed in ${rulerPlanet.sign} H${rulerPlanet.house}; whatever ${rulerName} does modifies what ${planet.name} can deliver`
 }
 
-function buildConflicts(planet: PlanetPosition, aspects: Aspect[], allPlanets: PlanetPosition[]): string[] {
+function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: PlanetPosition[]): string[] {
   const conflicts: string[] = []
   const pData = PLANET_CORE[planet.name]
   const sData = SIGN_DATA[planet.sign]

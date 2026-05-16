@@ -8,9 +8,65 @@ import { makeCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-
 
 export const maxDuration = 60
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
-})
+// ── Model config ───────────────────────────────────────────────────────────────
+// Centralised so a single-line change updates all reading requests.
+const MODEL        = 'claude-opus-4-5'
+const MAX_TOKENS   = 6000
+const TEMPERATURE  = 0.2
+
+// ── Payload limits ─────────────────────────────────────────────────────────────
+// A real chart payload (DualChartData + section strings) is ~12 KB at most.
+// 64 KB is generous headroom; anything larger is almost certainly an abuse attempt.
+const MAX_PAYLOAD_BYTES = 64_000
+
+// ── Allow-lists ────────────────────────────────────────────────────────────────
+// Explicit sets mirror SECTION_INSTRUCTIONS keys; validation runs before body parse.
+const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis'])
+const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
+  tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects']),
+  sidereal:  new Set(['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
+  synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
+}
+
+// ── In-memory rate limiter ─────────────────────────────────────────────────────
+// IMPORTANT: this is a per-process, non-distributed limiter. On multi-instance
+// deployments (Vercel serverless functions scale horizontally) each instance
+// maintains its own window, so the effective limit is N × window per client
+// across N warm instances. For true rate limiting at scale, replace this with a
+// Redis/KV-backed solution (e.g. Upstash, Vercel KV). For single-instance or
+// low-traffic deployments this provides meaningful abuse protection.
+//
+// Policy: 20 requests per IP per 60-second sliding window.
+const RATE_LIMIT_MAX    = 20
+const RATE_LIMIT_WINDOW = 60_000   // ms
+
+type RateRecord = { count: number; windowStart: number }
+const _rateMap = new Map<string, RateRecord>()
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
+  const now = Date.now()
+  const rec  = _rateMap.get(ip)
+  if (!rec || now - rec.windowStart >= RATE_LIMIT_WINDOW) {
+    _rateMap.set(ip, { count: 1, windowStart: now })
+    return { allowed: true, retryAfter: 0 }
+  }
+  if (rec.count >= RATE_LIMIT_MAX) {
+    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - (now - rec.windowStart)) / 1000)
+    return { allowed: false, retryAfter }
+  }
+  rec.count++
+  return { allowed: true, retryAfter: 0 }
+}
+
+// Periodically prune stale entries to prevent unbounded map growth.
+// This runs at most once per request; the cost is O(map size) but map is bounded
+// by the number of unique IPs active in the past window.
+function pruneRateMap(): void {
+  const cutoff = Date.now() - RATE_LIMIT_WINDOW
+  Array.from(_rateMap.entries()).forEach(([ip, rec]) => {
+    if (rec.windowStart < cutoff) _rateMap.delete(ip)
+  })
+}
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -18,30 +74,69 @@ const SYSTEM_PROMPT_MAP: Record<string, string> = {
   synthesis: SYNTHESIS_SYSTEM_PROMPT,
 }
 
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY
+})
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: 'API key not configured', detail: 'ANTHROPIC_API_KEY is not set — add it to .env.local or Vercel environment variables' }, { status: 500 })
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
-    const { chartData, section, planetSection }: { chartData: DualChartData; section: 'tropical' | 'sidereal' | 'synthesis', planetSection: string } = await req.json()
+    // ── Rate limiting ──────────────────────────────────────────────────────────
+    pruneRateMap()
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+              ?? req.headers.get('x-real-ip')
+              ?? 'unknown'
+    const { allowed, retryAfter } = checkRateLimit(ip)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before generating another reading.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
+
+    // ── Payload size guard ─────────────────────────────────────────────────────
+    const contentLength = parseInt(req.headers.get('content-length') ?? '0', 10)
+    if (contentLength > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
+    }
+
+    // ── Parse body ─────────────────────────────────────────────────────────────
+    let body: { chartData?: DualChartData; section?: string; planetSection?: string }
+    try {
+      body = await req.json()
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
+
+    const { chartData, section, planetSection } = body
 
     if (!chartData || !section || !planetSection) {
-      return NextResponse.json({ error: 'Missing chart data, section, or planetSection' }, { status: 400 })
+      return NextResponse.json({ error: 'Missing required fields: chartData, section, planetSection' }, { status: 400 })
     }
 
-    const systemPrompt = SYSTEM_PROMPT_MAP[section]
-    if (!systemPrompt) {
+    // ── Allow-list validation ──────────────────────────────────────────────────
+    if (!VALID_SECTIONS.has(section)) {
       return NextResponse.json({ error: 'Invalid section' }, { status: 400 })
     }
+    if (!VALID_PLANET_SECTIONS[section].has(planetSection)) {
+      return NextResponse.json({ error: 'Invalid planetSection for this section' }, { status: 400 })
+    }
 
-    const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
-    if (!sectionInstruction) {
-      return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
+    // Safe cast: validated against allow-list above
+    const validSection = section as 'tropical' | 'sidereal' | 'synthesis'
+
+    const systemPrompt = SYSTEM_PROMPT_MAP[validSection]
+    const sectionInstruction = SECTION_INSTRUCTIONS[validSection]?.[planetSection]
+    // These lookups cannot fail after the allow-list checks above, but guard anyway.
+    if (!systemPrompt || !sectionInstruction) {
+      return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
     }
 
     // ── Cache check ────────────────────────────────────────────────────────────
-    const cacheKey = makeCacheKey({ birth: chartData.birthData, section, planetSection })
+    const cacheKey = makeCacheKey({ birth: chartData.birthData, section: validSection, planetSection })
     const cached = getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
@@ -50,24 +145,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Build prompt ───────────────────────────────────────────────────────────
-    // Structured interpretation context: first-principles facts (dignity, sign modification,
-    // house environment, dispositor chain, aspects with applying/separating, contradictions,
-    // dasha, yogas) derived before Claude writes. This scaffold prevents hallucinated
-    // dignity/aspect data and anchors interpretation in actual chart positions.
-    const interpretationContext = buildInterpretationContext(chartData, section, planetSection)
+    const interpretationContext = buildInterpretationContext(chartData, validSection, planetSection)
 
-    // Elite chart block: compact human-readable summary injected at the top of the user message.
-    // Gives the model a bird's-eye view of the whole chart before the section-specific instruction.
     let userContent: string
-
-    if (section === 'tropical') {
+    if (validSection === 'tropical') {
       const chartBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
       userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
-    } else if (section === 'sidereal') {
+    } else if (validSection === 'sidereal') {
       const chartBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
       userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
     } else {
-      // Synthesis: show both charts in full
       const tropicalBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
       const siderealBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
       userContent = `${tropicalBlock}\n\n${siderealBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
@@ -75,15 +162,15 @@ export async function POST(req: NextRequest) {
 
     // ── Stream generation ──────────────────────────────────────────────────────
     const stream = await anthropic.messages.stream({
-      model:      'claude-opus-4-5',
-      max_tokens: 6000,
-      temperature: 0.2,   // low temperature for consistent, deterministic readings
-      system:     systemPrompt,
-      messages:   [{ role: 'user', content: userContent }]
+      model:       MODEL,
+      max_tokens:  MAX_TOKENS,
+      temperature: TEMPERATURE,
+      system:      systemPrompt,
+      messages:    [{ role: 'user', content: userContent }]
     })
 
     const encoder = new TextEncoder()
-    let accumulated = ''
+    let accumulated  = ''
     let streamErrored = false
 
     const readable = new ReadableStream({
@@ -103,14 +190,15 @@ export async function POST(req: NextRequest) {
           controller.close()
         } catch (err) {
           streamErrored = true
-          const msg = err instanceof Error ? err.message : String(err)
+          // Surface a sanitised sentinel to the client — never leak internal error text.
           try {
-            controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
+            controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()
-          } catch { /* stream already closed or aborted */ }
+          } catch { /* stream already closed or client disconnected */ }
+          // Log the real error server-side only.
+          console.error('Stream error in /api/reading:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
-          // Cache only on clean completion: no stream error and non-empty text
           if (!streamErrored && accumulated.trim()) {
             setCachedReading(cacheKey, accumulated)
           }
@@ -125,8 +213,11 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error('Reading generation error:', message)
-    return NextResponse.json({ error: 'Reading generation failed', detail: message }, { status: 500 })
+    // Do not expose internal error details to the client.
+    console.error('Reading generation error:', error instanceof Error ? error.message : error)
+    return NextResponse.json({
+      error: 'READING_FAILED',
+      message: "We couldn't generate this reading. Please try again.",
+    }, { status: 500 })
   }
 }

@@ -30,15 +30,6 @@ const GLYPH_COLORS = [
   '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
 ]
 
-const DIGNITY_LABELS: Record<string, string> = {
-  'DOMICILE + EXALTATION': 'Domicile + Exalt.',
-  'DOMICILE':   'Domicile',
-  'EXALTATION': 'Exaltation',
-  'DETRIMENT':  'Detriment',
-  'FALL':       'Fall',
-  'peregrine':  '',
-}
-
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
   const rad = (angleDeg - 90) * Math.PI / 180
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
@@ -129,9 +120,22 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
   const mcTickInner = polarToCartesian(cx, cy, signBandInner - 1, mcAngle)
   const mcTickOuter = polarToCartesian(cx, cy, signBandOuter,     mcAngle)
 
+  const systemLabel = chart.system === 'sidereal' ? 'Sidereal' : 'Tropical'
+  const svgTitle = `${systemLabel} natal chart wheel — ${chart.ascendantSign} rising`
+  const svgDesc  = `Circular chart wheel showing planet positions in the ${systemLabel.toLowerCase()} zodiac. ` +
+    chart.planets.map(p => `${p.name} in ${p.sign} H${p.house}${p.retrograde ? ' retrograde' : ''}`).join(', ')
+
   return (
     <div className={styles.wheelWrap} onClick={() => setSelectedPlanet(null)}>
-      <svg width="100%" viewBox={`0 0 ${size} ${size}`}>
+      <svg
+        width="100%"
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-labelledby={`wheel-title-${chart.system}`}
+        aria-describedby={`wheel-desc-${chart.system}`}
+      >
+        <title id={`wheel-title-${chart.system}`}>{svgTitle}</title>
+        <desc id={`wheel-desc-${chart.system}`}>{svgDesc}</desc>
         <defs>
           <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#c9962e" stopOpacity="0.20" />
@@ -229,9 +233,26 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
           const isRetro = planet.retrograde
           const isSelected = selectedPlanet?.name === planet.name
 
+          const planetLabel = `${planet.name} in ${planet.sign} ${fmtDeg(planet.degree)}, house ${planet.house}${planet.retrograde ? ', retrograde' : ''}`
+
           return (
-            <g key={planet.name} style={{ cursor: 'pointer' }}
-              onClick={(e) => { e.stopPropagation(); setSelectedPlanet(planet) }}>
+            <g
+              key={planet.name}
+              style={{ cursor: 'pointer' }}
+              role="button"
+              tabIndex={0}
+              aria-label={planetLabel}
+              aria-pressed={isSelected}
+              onClick={(e) => { e.stopPropagation(); setSelectedPlanet(planet) }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSelectedPlanet(isSelected ? null : planet)
+                }
+                if (e.key === 'Escape') { e.stopPropagation(); setSelectedPlanet(null) }
+              }}
+            >
               {/* Click target — invisible larger area */}
               <circle cx={pos.x} cy={pos.y} r="9" fill="transparent" />
               {/* Selection ring */}
@@ -290,8 +311,11 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               {selectedPlanet.nakshatra} Pada {selectedPlanet.nakshatraPada}
             </div>
           )}
-          <button className={styles.tooltipClose}
-            onClick={() => setSelectedPlanet(null)}>×</button>
+          <button
+            className={styles.tooltipClose}
+            aria-label="Close planet details"
+            onClick={() => setSelectedPlanet(null)}
+          >×</button>
         </div>
       )}
     </div>

@@ -1,0 +1,269 @@
+/* ─── Panel shell ────────────────────────────────────── */
+.panel {
+  width: 100%;
+  padding: 2.2rem 0 2.4rem;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.5s ease;
+}
+
+.panelLabel {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #C8A96B;
+  opacity: 0.85;
+  margin-bottom: 1.4rem;
+}
+
+/* ─── Column header row ──────────────────────────────── */
+.headerRow {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 1.4rem 1fr;
+  gap: 0;
+  padding: 0 0 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.3rem;
+}
+
+.hName { }
+
+.hSys {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+
+.hDiff { }
+
+/* ─── Groups ─────────────────────────────────────────── */
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.separator {
+  height: 1px;
+  background: var(--border);
+  margin: 0.2rem 0;
+}
+
+/* ─── Row ────────────────────────────────────────────── */
+.row {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr 1.4rem 1fr;
+  gap: 0;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(26, 25, 64, 0.5);
+  align-items: start;
+  transition: background 0.15s;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: rgba(255, 255, 255, 0.012);
+}
+
+.rowShifted {
+  background: rgba(44, 200, 192, 0.025);
+}
+
+.rowShifted:hover {
+  background: rgba(44, 200, 192, 0.04);
+}
+
+/* ─── Planet name column ─────────────────────────────── */
+.name {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  padding-top: 0.05rem;
+}
+
+.symbol {
+  font-size: 0.9rem;
+  color: var(--text-3);
+  line-height: 1;
+  font-family: serif;
+}
+
+.planetName {
+  font-family: var(--font-display);
+  font-size: 0.5rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* ─── Data cell ──────────────────────────────────────── */
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  padding-right: 0.5rem;
+}
+
+.cellShifted .sign {
+  color: var(--cyan);
+}
+
+/* First line: sign deg house retro */
+.main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.sign {
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text);
+  min-width: 2.2rem;
+}
+
+.deg {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.house {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-4);
+  letter-spacing: 0.04em;
+}
+
+.retro {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--violet-light);
+  letter-spacing: 0.02em;
+}
+
+/* ─── Dignity badge ──────────────────────────────────── */
+.dignity {
+  font-family: var(--font-display);
+  font-size: 0.42rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+
+.domicile  { color: var(--gold); }
+.exaltation { color: var(--gold-light); opacity: 0.75; }
+.detriment { color: var(--text-4); }
+.fall      { color: var(--text-4); opacity: 0.65; }
+
+/* ─── Nakshatra ──────────────────────────────────────── */
+.nakshatra {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.pada {
+  color: var(--text-4);
+}
+
+/* ─── Diff indicator column ──────────────────────────── */
+.diffCol {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--cyan);
+  text-align: center;
+  padding-top: 0.08rem;
+  opacity: 0.85;
+}
+
+/* ─── Absent placeholder ─────────────────────────────── */
+.absent {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-4);
+  opacity: 0.4;
+}
+
+/* ─── Footer: legend + Pluto source ─────────────────── */
+.footer {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.plutoSource {
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  color: var(--text-4);
+  letter-spacing: 0.04em;
+}
+
+.plutoFallback {
+  color: rgba(220, 160, 60, 0.6);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0;
+  align-items: center;
+}
+
+.legendItem {
+  font-family: var(--font-display);
+  font-size: 0.44rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dot {
+  font-size: 0.5rem;
+  color: var(--text-4);
+  margin: 0 0.5rem;
+  opacity: 0.5;
+}
+
+/* ─── Mobile ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .headerRow,
+  .row {
+    grid-template-columns: 5.5rem 1fr 1rem 1fr;
+  }
+
+  .planetName {
+    display: none;
+  }
+
+  .sign {
+    min-width: 1.8rem;
+    font-size: 0.58rem;
+  }
+
+  .deg {
+    font-size: 0.62rem;
+  }
+
+  .house {
+    font-size: 0.54rem;
+  }
+
+  .nakshatra {
+    font-size: 0.54rem;
+  }
+}

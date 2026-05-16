@@ -185,7 +185,7 @@ function getGeocentricLon(planetObj: any, jde: number): number {
 
   const earthPos = _earth.position(jde)
   const [L0, B0, R0] = [earthPos.lon, earthPos.lat, earthPos.range]
-  const [sB0, cB0] = [Math.sin(B0), Math.cos(B0)]
+  const cB0 = Math.cos(B0)
   const [sL0, cL0] = [Math.sin(L0), Math.cos(L0)]
 
   // First-pass planet position (no light-time correction yet)
@@ -196,7 +196,7 @@ function getGeocentricLon(planetObj: any, jde: number): number {
   pos = planetObj.position(jde - tau)
 
   const [L, B, R] = [pos.lon, pos.lat, pos.range]
-  const [sB, cB] = [Math.sin(B), Math.cos(B)]
+  const cB = Math.cos(B)
   const [sL, cL] = [Math.sin(L), Math.cos(L)]
 
   // Heliocentric rectangular → geocentric rectangular (ecliptic frame)
@@ -233,7 +233,7 @@ function getPlutoLongitude(jde: number): number {
   const PaR = Pa * DEG2RAD
 
   // Heliocentric terms from Meeus Table 37.a (longitude)
-  let Σl = 238.958116
+  const Σl = 238.958116
     + 144.960455 * T
     + 3.4 * Math.sin(PaR)
     - 5.3 * Math.sin(2 * PaR)

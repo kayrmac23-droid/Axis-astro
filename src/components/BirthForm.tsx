@@ -31,8 +31,10 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const geocodeAbortRef = useRef<AbortController | null>(null)
+  const listboxId = 'location-listbox'
 
   useEffect(() => {
     return () => {
@@ -52,12 +54,30 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     setFormData(prev => ({ ...prev, [name]: value }))
     if (name === 'location') {
       setLocationConfirmed(false)
+      setActiveSuggestion(-1)
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
       if (value.length > 2) {
         searchTimerRef.current = setTimeout(() => searchLocation(value), 300)
       } else {
         setLocationSuggestions([])
       }
+    }
+  }
+
+  const handleLocationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!locationSuggestions.length) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setActiveSuggestion(i => Math.min(i + 1, locationSuggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setActiveSuggestion(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter' && activeSuggestion >= 0) {
+      e.preventDefault()
+      selectLocation(locationSuggestions[activeSuggestion])
+    } else if (e.key === 'Escape') {
+      setLocationSuggestions([])
+      setActiveSuggestion(-1)
     }
   }
 
@@ -138,6 +158,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       tzName,
     }))
     setLocationSuggestions([])
+    setActiveSuggestion(-1)
     setLocationConfirmed(true)
   }
 
@@ -285,23 +306,40 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
             placeholder="City, country"
             value={formData.location}
             onChange={handleChange}
+            onKeyDown={handleLocationKeyDown}
             autoComplete="off"
             required
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-expanded={locationSuggestions.length > 0}
+            aria-autocomplete="list"
+            aria-controls={listboxId}
+            aria-activedescendant={
+              activeSuggestion >= 0 ? `location-option-${activeSuggestion}` : undefined
+            }
           />
-          {locationLoading && <span className={styles.locationLoader} />}
+          {locationLoading && <span className={styles.locationLoader} aria-hidden="true" />}
           {locationSuggestions.length > 0 && (
-            <div className={styles.suggestions}>
+            <ul
+              id={listboxId}
+              role="listbox"
+              aria-label="Location suggestions"
+              className={styles.suggestions}
+            >
               {locationSuggestions.map((s, i) => (
-                <button
+                <li
                   key={i}
-                  type="button"
-                  className={styles.suggestion}
+                  id={`location-option-${i}`}
+                  role="option"
+                  aria-selected={activeSuggestion === i}
+                  className={`${styles.suggestion} ${activeSuggestion === i ? styles.suggestionActive : ''}`}
                   onClick={() => selectLocation(s)}
+                  onMouseEnter={() => setActiveSuggestion(i)}
                 >
                   {s.display_name}
-                </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>
