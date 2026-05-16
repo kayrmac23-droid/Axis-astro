@@ -84,8 +84,8 @@
 
 .generatingOrbit {
   position: relative;
-  width: 46px;
-  height: 46px;
+  width: 64px;
+  height: 64px;
 }
 
 .generatingOrbit::before {
@@ -101,10 +101,10 @@
 .generatingOrbit::after {
   content: '';
   position: absolute;
-  inset: 12px;
+  inset: 16px;
   border-radius: 50%;
-  border: 1px solid rgba(138, 94, 20, 0.1);
-  border-top-color: rgba(138, 94, 20, 0.4);
+  border: 1px solid rgba(138, 94, 20, 0.12);
+  border-top-color: rgba(138, 94, 20, 0.45);
   animation: spin 1.2s linear infinite reverse;
 }
 
@@ -130,8 +130,9 @@
 .errorText {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: #8A2020;
+  color: rgba(210, 80, 80, 0.9);
   letter-spacing: 0.05em;
+  line-height: 1.6;
 }
 
 .retryBtn {
@@ -316,14 +317,14 @@
 
 .chip_loading {
   color: var(--gold);
-  border-color: rgba(200, 169, 107, 0.4);
+  border-color: rgba(255, 192, 48, 0.5);
   animation: chipPulse 1.4s ease-in-out infinite;
 }
 
 .chip_done {
   color: var(--text-3);
-  border-color: var(--border);
-  opacity: 0.7;
+  border-color: var(--border-2);
+  opacity: 0.8;
 }
 
 .chip_failed {

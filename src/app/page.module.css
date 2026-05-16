@@ -297,7 +297,7 @@
 
 /* ─── Wheel Section ───────────────────────────────── */
 .wheelSection {
-  padding: 1.5rem 0 5rem;
+  padding: 1.5rem 0 3.5rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -310,9 +310,9 @@
   font-size: 0.72rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: #C8A96B;
-  opacity: 0.85;
-  margin-bottom: 1.75rem;
+  color: var(--gold);
+  opacity: 0.7;
+  margin-bottom: 1.5rem;
 }
 
 .wheelSingle {
@@ -349,10 +349,37 @@
   flex-shrink: 0;
 }
 
+/* ─── Reading Gate — transition from data to reading ─ */
+.readingGate {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+  padding: 2.8rem 0 0;
+  margin-bottom: 0;
+}
+
+.readingGate::before,
+.readingGate::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 40%, var(--border) 60%, transparent);
+}
+
+.readingGateLabel {
+  font-family: var(--font-display);
+  font-size: 0.44rem;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--text-4);
+  white-space: nowrap;
+}
+
 /* ─── Tab Bar ─────────────────────────────────────── */
 .tabBar {
   display: flex;
   border-bottom: 1px solid var(--border);
+  margin-top: 0;
 }
 
 .tab {
@@ -360,25 +387,40 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 1.8rem 1rem;
+  gap: 0.35rem;
+  padding: 1.6rem 1rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
   color: var(--text-3);
   margin-bottom: -1px;
 }
 
 .tab:hover {
   color: var(--text-2);
-  background: rgba(138, 94, 20, 0.03);
+  background: rgba(255, 192, 48, 0.02);
+}
+
+.tab:focus-visible {
+  outline: 1px solid var(--border-bright);
+  outline-offset: -2px;
 }
 
 .tabActive {
   color: var(--gold);
   border-bottom-color: var(--gold);
+}
+
+/* Synthesis tab gets violet when active — marks it as the culminating view */
+.tabSynthesisActive {
+  color: var(--violet-light);
+  border-bottom-color: var(--violet);
+}
+
+.tabSynthesisActive .tabSub {
+  color: var(--violet-light);
 }
 
 .tabLabel {
@@ -390,7 +432,7 @@
 
 .tabSub {
   font-family: var(--font-display);
-  font-size: 0.46rem;
+  font-size: 0.44rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   opacity: 0.6;

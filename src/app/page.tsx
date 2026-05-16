@@ -186,6 +186,11 @@ export default function Home() {
           {/* Chart Facts */}
           <ChartFactsPanel data={chartData} />
 
+          {/* Reading Gate — visual bridge from data to interpretation */}
+          <div className={styles.readingGate}>
+            <span className={styles.readingGateLabel}>Interpretation</span>
+          </div>
+
           {/* Section Tabs */}
           <div className={styles.tabBar}>
             <button
@@ -203,7 +208,7 @@ export default function Home() {
               <span className={styles.tabSub}>the self beneath</span>
             </button>
             <button
-              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
+              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabSynthesisActive : ''}`}
               onClick={() => setActiveSection('synthesis')}
             >
               <span className={styles.tabLabel}>Synthesis</span>
