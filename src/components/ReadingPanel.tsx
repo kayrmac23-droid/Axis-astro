@@ -72,6 +72,8 @@ function parseReading(text: string, section: string): Block[] {
       blocks.push({ type: 'heading', content, descriptorKey })
       continue
     }
+    // Skip lines that are purely italic (e.g. `*Sun in Aries*`); Claude sometimes emits
+    // these as inline section dividers — they carry no prose value
     if (line.match(/^\*[^*]+\*$/) || line.match(/^_[^_]+_$/)) continue
     if (!line.trim()) { flush(); continue }
     buf = buf ? buf + ' ' + line.trim() : line.trim()

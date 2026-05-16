@@ -632,6 +632,18 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], allPlanets: P
       }
     })
 
+  // Conjunctions with natural malefics create a fusion that complicates the benefic planet's function
+  const MALEFICS = new Set(['Saturn', 'Mars', 'Rahu', 'Ketu'])
+  aspects
+    .filter(a => (a.planet1 === planet.name || a.planet2 === planet.name) && a.aspectName === 'Conjunction')
+    .forEach(conj => {
+      const other = conj.planet1 === planet.name ? conj.planet2 : conj.planet1
+      const otherData = PLANET_CORE[other]
+      if (otherData && MALEFICS.has(other) && !MALEFICS.has(planet.name)) {
+        conflicts.push(`${planet.name} conjunct ${other} (orb ${conj.orb}°, ${conj.applying ? 'applying' : 'separating'}): close fusion with a natural malefic — ${planet.name}'s function (${pData.coreFunction}) is intensified and complicated by ${other}'s character (${otherData.coreFunction}); the energies merge rather than simply conflict, making modulation harder`)
+      }
+    })
+
   return conflicts
 }
 

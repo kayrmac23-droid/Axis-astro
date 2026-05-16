@@ -55,17 +55,27 @@ export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams):
 // ── Storage ────────────────────────────────────────────────────────────────────
 
 const _cache = new Map<string, string>()
-const MAX_ENTRIES = 1000  // ~3.5 MB ceiling at avg 3.5 KB per section
+const MAX_BYTES = 25_000_000  // 25 MB ceiling (readings can reach ~24 KB at max_tokens:6000)
+
+let _totalBytes = 0
 
 export function getCachedReading(key: string): string | undefined {
   return _cache.get(key)
 }
 
 export function setCachedReading(key: string, text: string): void {
-  if (_cache.size >= MAX_ENTRIES) {
-    // Evict oldest entry — Map iterates in insertion order
+  const existing = _cache.get(key)
+  const existingBytes = existing ? Buffer.byteLength(existing, 'utf8') : 0
+  const newBytes = Buffer.byteLength(text, 'utf8')
+
+  // Evict oldest entries until the new entry fits — Map iterates in insertion order
+  while (_totalBytes - existingBytes + newBytes > MAX_BYTES && _cache.size > 0) {
     const oldest = _cache.keys().next().value
-    if (oldest !== undefined) _cache.delete(oldest)
+    if (oldest === undefined) break
+    _totalBytes -= Buffer.byteLength(_cache.get(oldest)!, 'utf8')
+    _cache.delete(oldest)
   }
+
+  _totalBytes = _totalBytes - existingBytes + newBytes
   _cache.set(key, text)
 }

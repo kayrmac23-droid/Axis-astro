@@ -104,8 +104,10 @@ export async function POST(req: NextRequest) {
         } catch (err) {
           streamErrored = true
           const msg = err instanceof Error ? err.message : String(err)
-          controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
-          controller.close()
+          try {
+            controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
+            controller.close()
+          } catch { /* stream already closed or aborted */ }
         } finally {
           clearInterval(keepAlive)
           // Cache only on clean completion: no stream error and non-empty text
