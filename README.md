@@ -73,7 +73,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
+| Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
 | AI backend | Anthropic Claude (`claude-opus-4-5`) via streaming API |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + JPL Horizons DE440 Pluto |
@@ -151,7 +151,10 @@ ANTHROPIC_API_KEY=your_key_here
 ```
 
 ```bash
-npm run dev
+npm run dev        # development server at http://localhost:5000
+npm test           # run test suite (vitest)
+npm run lint       # ESLint
+npm run build      # production build
 ```
 
 App runs at `http://localhost:5000`.
@@ -163,6 +166,30 @@ App runs at `http://localhost:5000`.
 Deployed via Vercel connected to this GitHub repo. Every push to `main` triggers an automatic production deployment.
 
 Do not add a `functions` block to `vercel.json` for Next.js App Router — it conflicts with the framework's native function handling. The existing config sets `maxDuration` for the reading route (60s) and the calculate route (30s, which covers the Horizons API call + computation).
+
+---
+
+## Production hardening notes
+
+This section describes what is hardened now and what requires distributed infrastructure for true production scale.
+
+**Hardened (current state):**
+- `/api/reading` validates section and planetSection against explicit allow-lists before processing
+- `/api/reading` enforces a 64 KB payload size limit
+- `/api/reading` applies an in-memory per-IP rate limiter (20 req / 60s sliding window)
+- `/api/geocode` enforces a 200-character query length limit
+- All internal error messages are scrubbed from client-facing responses (server-side logging only)
+- Per-section streaming retry (2 attempts) with visible failure fallback
+- Cache uses byte-size eviction with a 25 MB ceiling
+
+**Not yet distributed — limitations for multi-instance deployment:**
+- **Rate limiter:** In-memory, per-process. On Vercel, each serverless function instance maintains its own counter. A client hitting N warm instances can make N × 20 requests per window. For real rate limiting at scale, replace with a Redis or Vercel KV-backed counter.
+- **Reading cache:** In-memory, per-process. Cache hits only occur on the same warm instance. For cross-instance caching (reducing repeat Claude API calls), replace `lib/reading-cache.ts` with a KV store (the interface is already swappable).
+
+**External service dependencies:**
+- Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
+- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to local Meeus polynomial (~0.3° error) if unreachable.
+- OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s, no bulk use).
 
 ---
 

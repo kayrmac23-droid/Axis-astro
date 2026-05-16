@@ -55,7 +55,6 @@ function horizonsDate(y, m, d, h = 12) {
 
 async function fetchHorizonsPluto(year, month, day) {
   const start = horizonsDate(year, month, day, 12)
-  const stop  = horizonsDate(year, month, day, 12)  // same minute, add 1 min in stop
   const stopDate = new Date(Date.UTC(year, month - 1, day, 12, 1))
   const stopStr  = `${stopDate.getUTCFullYear()}-${MONTHS[stopDate.getUTCMonth()]}-${String(stopDate.getUTCDate()).padStart(2,'0')} ${String(stopDate.getUTCHours()).padStart(2,'0')}:${String(stopDate.getUTCMinutes()).padStart(2,'0')}`
 
