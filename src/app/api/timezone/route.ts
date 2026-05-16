@@ -27,9 +27,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const tzName: string = tzlookup(lat, lon)
-    if (!tzName) {
-      return NextResponse.json({ error: 'Timezone not found' }, { status: 404 })
-    }
     return NextResponse.json({ tzName })
   } catch {
     return NextResponse.json({ error: 'Timezone lookup failed' }, { status: 500 })
