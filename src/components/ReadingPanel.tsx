@@ -229,6 +229,20 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               </span>
             </div>
           )}
+          {chartData.plutoSource && (
+            <div className={styles.summaryGroup}>
+              <span className={styles.summarySystem}>Pluto ephemeris</span>
+              <span className={
+                chartData.plutoSource === 'local-meeus'
+                  ? styles.ephemerisFallback
+                  : styles.ephemerisSource
+              }>
+                {chartData.plutoSource === 'local-meeus'
+                  ? '⚠ local fallback (~0.3°)'
+                  : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

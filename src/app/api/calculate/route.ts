@@ -1,6 +1,11 @@
 // app/api/calculate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
+import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
+
+// Allow up to 30s for this route — needed for the Horizons API call (~300ms typical,
+// 5s timeout, plus chart computation time).
+export const maxDuration = 30
 
 // Derive UTC offset from an IANA timezone name and a calendar date/time.
 // The calendar values are treated as wall-clock time in the target timezone;
@@ -86,7 +91,18 @@ export async function POST(req: NextRequest) {
       birthTimeUnknown: birthTimeUnknown === true || birthTimeUnknown === 'true',
     }
 
-    const chartData = calculateDualChart(birthData)
+    // Attempt JPL Horizons DE440 lookup for Pluto. Falls back to local Meeus (~0.3°)
+    // silently if Horizons is unavailable. The chart is still valid in either case.
+    const utcMs   = Date.UTC(y, mo - 1, d, h, mi, 0) - tzOffset * 3_600_000
+    const utcDate = new Date(utcMs)
+    const horizonsPluto = await getHorizonsEclipticLon('Pluto', utcDate).catch(() => null)
+
+    const chartData = calculateDualChart(birthData, {
+      plutoLongitude: horizonsPluto?.longitude,
+      plutoSource:    horizonsPluto
+        ? `jpl-horizons-${horizonsPluto.ephemeris.toLowerCase()}`
+        : 'local-meeus',
+    })
     return NextResponse.json(chartData)
   } catch (error) {
     console.error('Chart calculation error:', error)

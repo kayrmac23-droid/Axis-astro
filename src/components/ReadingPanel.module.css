@@ -59,6 +59,20 @@
   letter-spacing: 0.03em;
 }
 
+.ephemerisSource {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(201,150,46,0.55);
+}
+
+.ephemerisFallback {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(138,96,32,0.7);
+}
+
 /* ─── Loading ─────────────────────────────────────── */
 .generating {
   display: flex;

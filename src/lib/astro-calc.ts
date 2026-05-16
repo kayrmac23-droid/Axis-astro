@@ -48,6 +48,12 @@ export interface DualChartData {
   tropical: ChartData
   sidereal: ChartData
   birthData: BirthData
+  plutoSource: string  // 'jpl-horizons-de440' | 'jpl-horizons-de441' | 'local-meeus'
+}
+
+export interface ChartOverrides {
+  plutoLongitude?: number  // if provided, replaces Meeus Pluto longitude
+  plutoSource: string
 }
 
 // ── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -309,7 +315,7 @@ function getHouseWholeSign(planetLon: number, ascendant: number): number {
 
 // ── MAIN EXPORT ───────────────────────────────────────────────────────────────
 
-export function calculateDualChart(birth: BirthData): DualChartData {
+export function calculateDualChart(birth: BirthData, overrides?: ChartOverrides): DualChartData {
   const jd = toJulianDay(birth.year, birth.month, birth.day, birth.hour, birth.minute, birth.timezone)
   const ayanamsa = getLahiriAyanamsa(jd)
   const ramc = getRAMC(jd, birth.longitude)
@@ -341,6 +347,13 @@ export function calculateDualChart(birth: BirthData): DualChartData {
     if (dm < -180) dm += 360
     dm /= 2  // centred difference → degrees per day
     rawPlanets.push({ name, longitude, retrograde: dm < 0, dailyMotion: dm })
+  }
+
+  // Apply Horizons Pluto override if provided by the caller (replaces Meeus longitude only;
+  // retrograde flag and dailyMotion remain from Meeus — the velocity error is negligible)
+  if (overrides?.plutoLongitude !== undefined) {
+    const pluto = rawPlanets.find(p => p.name === 'Pluto')
+    if (pluto) pluto.longitude = overrides.plutoLongitude
   }
 
   // Ketu is always exactly opposite Rahu; its motion mirrors Rahu's in reverse
@@ -426,7 +439,8 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       houses:         siderealHouses,
       system:         'sidereal',
     },
-    birthData: birth,  // includes birthTimeUnknown flag when set
+    birthData:   birth,  // includes birthTimeUnknown flag when set
+    plutoSource: overrides?.plutoSource ?? 'local-meeus',
   }
 }
 
