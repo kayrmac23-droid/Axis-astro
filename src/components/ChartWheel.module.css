@@ -4,6 +4,8 @@
   justify-content: center;
   position: relative;
   transition: opacity 0.3s ease;
+  width: clamp(320px, 82vw, 460px);
+  aspect-ratio: 1;
 }
 
 .wheelWrap::before {
@@ -20,6 +22,8 @@
 }
 
 .wheelWrap svg {
+  width: 100%;
+  height: auto;
   overflow: visible;
 }
 
