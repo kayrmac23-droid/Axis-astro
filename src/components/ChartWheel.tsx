@@ -16,10 +16,18 @@ const PLANET_SYMBOLS: Record<string, string> = {
   Pluto: `♇${VS}`, Rahu: `☊${VS}`, Ketu: `☋${VS}`
 }
 
+// Segment fill colors by element (Fire, Earth, Air, Water)
 const SIGN_COLORS = [
-  '#d4804a', '#8a7a5a', '#7aadba', '#6a90b0',
-  '#d4804a', '#8a7a5a', '#7aadba', '#6a90b0',
-  '#d4804a', '#8a7a5a', '#7aadba', '#6a90b0',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
+]
+
+// Glyph colors contrast-matched to each segment background
+const GLYPH_COLORS = [
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
 ]
 
 const DIGNITY_LABELS: Record<string, string> = {
@@ -123,7 +131,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
 
   return (
     <div className={styles.wheelWrap} onClick={() => setSelectedPlanet(null)}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <svg width="100%" viewBox={`0 0 ${size} ${size}`}>
         <defs>
           <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#c9962e" stopOpacity="0.20" />
@@ -153,21 +161,21 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
             `L ${p2inner.x} ${p2inner.y}`,
             `A ${signBandInner} ${signBandInner} 0 0 0 ${p1inner.x} ${p1inner.y}`,
           ].join(' ')
-          return <path key={i} d={d} fill={SIGN_COLORS[i]} fillOpacity={0.26} stroke="none" />
+          return <path key={i} d={d} fill={SIGN_COLORS[i]} fillOpacity={0.32} stroke="none" />
         })}
 
         {/* Rings */}
-        <circle cx={cx} cy={cy} r={outerR}       fill="none" stroke="rgba(212,168,69,0.55)" strokeWidth="0.5" />
-        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="rgba(212,168,69,0.45)" strokeWidth="0.5" />
-        <circle cx={cx} cy={cy} r={innerR}        fill="none" stroke="rgba(212,168,69,0.40)" strokeWidth="0.5" />
-        <circle cx={cx} cy={cy} r={planetR}       fill="none" stroke="rgba(212,168,69,0.28)" strokeWidth="0.5" strokeDasharray="1.5 4" />
+        <circle cx={cx} cy={cy} r={outerR}       fill="none" stroke="#D4AF37" strokeWidth="0.7" strokeOpacity="0.6" />
+        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="#B88A3B" strokeWidth="0.5" strokeOpacity="0.5" />
+        <circle cx={cx} cy={cy} r={innerR}        fill="none" stroke="#B88A3B" strokeWidth="0.5" strokeOpacity="0.45" />
+        <circle cx={cx} cy={cy} r={planetR}       fill="none" stroke="#B88A3B" strokeWidth="0.5" strokeOpacity="0.30" strokeDasharray="1.5 4" />
 
         {/* Sign division lines */}
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = zodiacAngle(i * 30)
           const p1 = polarToCartesian(cx, cy, signBandInner, angle)
           const p2 = polarToCartesian(cx, cy, signBandOuter, angle)
-          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="rgba(212,168,69,0.55)" strokeWidth="0.5" />
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#B88A3B" strokeWidth="0.5" strokeOpacity="0.55" />
         })}
 
         {/* Sign symbols */}
@@ -176,7 +184,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
           const pos = polarToCartesian(cx, cy, signLabelR, midAngle)
           return (
             <text key={i} x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-              fontSize="10" fill={SIGN_COLORS[i]} opacity="0.75" fontFamily="serif">
+              fontSize="10" fill={GLYPH_COLORS[i]} opacity="0.95" fontFamily="serif">
               {SIGN_SYMBOLS[i]}
             </text>
           )
@@ -190,14 +198,15 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
           const p2 = polarToCartesian(cx, cy, signBandInner - 1, angle)
           return (
             <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-              stroke={isAngle ? 'rgba(212,168,69,0.85)' : 'rgba(212,168,69,0.35)'}
-              strokeWidth={isAngle ? 1 : 0.5} />
+              stroke={isAngle ? '#D4AF37' : '#B88A3B'}
+              strokeWidth={isAngle ? 1 : 0.5}
+              strokeOpacity={isAngle ? 0.85 : 0.38} />
           )
         })}
 
         {/* MC tick — dashed, separate from house lines since MC ≠ 10th house cusp */}
         <line x1={mcTickInner.x} y1={mcTickInner.y} x2={mcTickOuter.x} y2={mcTickOuter.y}
-          stroke="rgba(212,168,69,0.55)" strokeWidth="0.7" strokeDasharray="2 2" />
+          stroke="#B88A3B" strokeWidth="0.7" strokeOpacity="0.55" strokeDasharray="2 2" />
 
         {/* ASC label */}
         <text x={ascLabelPos.x} y={ascLabelPos.y} textAnchor="middle" dominantBaseline="central"
@@ -251,7 +260,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
 
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGlow)" />
-        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="rgba(212,168,69,0.65)" strokeWidth="0.5" />
+        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#D4AF37" strokeWidth="0.5" strokeOpacity="0.65" />
         <circle cx={cx} cy={cy} r="1.5" fill="#c9962e" opacity="1.0" />
       </svg>
 
