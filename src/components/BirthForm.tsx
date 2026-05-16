@@ -27,6 +27,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     timezone: '',
     tzName: '',
   })
+  const [birthTimeUnknown, setBirthTimeUnknown] = useState(false)
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
@@ -140,6 +141,15 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     setLocationConfirmed(true)
   }
 
+  const handleToggleBirthTimeUnknown = () => {
+    const next = !birthTimeUnknown
+    setBirthTimeUnknown(next)
+    if (next) {
+      // Auto-set noon when birth time is flagged as unknown
+      setFormData(prev => ({ ...prev, hour: '12', minute: '0', ampm: 'PM' }))
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.latitude || !formData.longitude) {
@@ -147,7 +157,9 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       return
     }
     const { ampm, ...rest } = formData
-    onSubmit({ ...rest, hour: String(to24Hour(formData.hour, ampm)) })
+    const hour24 = birthTimeUnknown ? '12' : String(to24Hour(formData.hour, ampm))
+    const minute = birthTimeUnknown ? '0'  : rest.minute
+    onSubmit({ ...rest, hour: hour24, minute, birthTimeUnknown: String(birthTimeUnknown) })
   }
 
   const isValid = formData.year && formData.month && formData.day && locationConfirmed
@@ -203,7 +215,6 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       <div className={styles.fieldGroup}>
         <label className={styles.label}>
           Time of birth
-          <span className={styles.labelNote}>use noon if unknown</span>
         </label>
         <div className={styles.dateRow}>
           <div className={styles.fieldWrap}>
@@ -215,6 +226,8 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               min="1" max="12"
               value={formData.hour}
               onChange={handleChange}
+              disabled={birthTimeUnknown}
+              style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>
           <span className={styles.timeSep}>:</span>
@@ -227,21 +240,38 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               min="0" max="59"
               value={formData.minute}
               onChange={handleChange}
+              disabled={birthTimeUnknown}
+              style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>
-          <div className={styles.ampmToggle}>
+          <div className={styles.ampmToggle} style={birthTimeUnknown ? { opacity: 0.35 } : undefined}>
             <button
               type="button"
               className={`${styles.ampmBtn} ${formData.ampm === 'AM' ? styles.ampmActive : ''}`}
-              onClick={() => setFormData(prev => ({ ...prev, ampm: 'AM' }))}
+              onClick={() => !birthTimeUnknown && setFormData(prev => ({ ...prev, ampm: 'AM' }))}
+              disabled={birthTimeUnknown}
             >AM</button>
             <button
               type="button"
               className={`${styles.ampmBtn} ${formData.ampm === 'PM' ? styles.ampmActive : ''}`}
-              onClick={() => setFormData(prev => ({ ...prev, ampm: 'PM' }))}
+              onClick={() => !birthTimeUnknown && setFormData(prev => ({ ...prev, ampm: 'PM' }))}
+              disabled={birthTimeUnknown}
             >PM</button>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={handleToggleBirthTimeUnknown}
+          className={styles.unknownTimeBtn}
+        >
+          <span className={`${styles.unknownTimeCheck} ${birthTimeUnknown ? styles.unknownTimeCheckActive : ''}`} />
+          Birth time unknown — use noon approximation
+        </button>
+        {birthTimeUnknown && (
+          <p className={styles.unknownTimeNote}>
+            Ascendant, houses, and MC will be unreliable. Sign positions remain accurate.
+          </p>
+        )}
       </div>
 
       {/* Location */}

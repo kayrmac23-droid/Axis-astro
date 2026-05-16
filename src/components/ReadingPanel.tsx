@@ -109,39 +109,67 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       let accumulatedText = ''
 
       for (const planetSec of sectionsToFetch) {
-        const res = await fetch('/api/reading', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
-          signal: abortRef.current.signal
-        })
+        // Per-section retry: attempt up to 2 times before failing the section
+        let sectionText = ''
+        let sectionSuccess = false
+        let lastError = ''
 
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.detail || body.error || `Reading failed for ${planetSec}`)
+        for (let attempt = 0; attempt < 2; attempt++) {
+          if (abortRef.current?.signal.aborted) break
+          try {
+            const res = await fetch('/api/reading', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
+              signal: abortRef.current.signal
+            })
+
+            if (!res.ok) {
+              const body = await res.json().catch(() => ({}))
+              lastError = body.detail || body.error || `Section "${planetSec}" failed (${res.status})`
+              if (attempt === 0) continue  // retry
+              break
+            }
+            if (!res.body) { lastError = 'No response body'; break }
+
+            const reader  = res.body.getReader()
+            const decoder = new TextDecoder()
+            let chunkText = ''
+
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              chunkText += decoder.decode(value, { stream: true })
+              setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
+            }
+
+            if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
+              const match = chunkText.match(/\[AXIS_STREAM_ERROR: ([^\]]+)\]/)
+              lastError = match ? match[1] : 'Stream error'
+              sectionText = ''
+              if (attempt === 0) continue  // retry
+              break
+            }
+
+            sectionText    = chunkText
+            sectionSuccess = true
+            break
+          } catch (fetchErr: unknown) {
+            if (fetchErr instanceof Error && fetchErr.name === 'AbortError') throw fetchErr
+            lastError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+            if (attempt === 0) await new Promise(r => setTimeout(r, 1500))  // brief pause before retry
+          }
         }
-        if (!res.body) throw new Error('No response body')
 
-        const reader = res.body.getReader()
-        const decoder = new TextDecoder()
-
-        let chunkText = ''
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          const chunk = decoder.decode(value, { stream: true })
-          chunkText += chunk
-          setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
-        }
-
-        // Check for server-side stream error marker — clear partial text before throwing
-        if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
-          const match = chunkText.match(/\[AXIS_STREAM_ERROR: ([^\]]+)\]/)
+        if (!sectionSuccess) {
+          // Non-fatal: append a visible placeholder so the rest of the reading is still usable
+          const fallback = `\n\n[Section "${planetSec}" could not be generated — ${lastError}. Tap Retry to regenerate the full reading.]\n\n`
+          accumulatedText += fallback
           setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
-          throw new Error(match ? match[1] : 'Stream error — check server logs')
+          continue
         }
 
-        accumulatedText += chunkText + '\n\n'
+        accumulatedText += sectionText + '\n\n'
         setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
     } catch (err: unknown) {
@@ -170,6 +198,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const label = SECTION_LABELS[section]
   const blocks = currentText ? parseReading(currentText, section) : []
   const descriptors = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
+  const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
 
   const sunT = chartData.tropical.planets.find(p => p.name === 'Sun')
   const moonT = chartData.tropical.planets.find(p => p.name === 'Moon')
@@ -200,8 +229,31 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               </span>
             </div>
           )}
+          {chartData.plutoSource && (
+            <div className={styles.summaryGroup}>
+              <span className={styles.summarySystem}>Pluto ephemeris</span>
+              <span className={
+                chartData.plutoSource === 'local-meeus'
+                  ? styles.ephemerisFallback
+                  : styles.ephemerisSource
+              }>
+                {chartData.plutoSource === 'local-meeus'
+                  ? '⚠ local fallback (~0.3°)'
+                  : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
+
+      {birthTimeUnknown && (
+        <div className={styles.birthTimeWarning}>
+          <span className={styles.birthTimeWarningIcon}>⚠</span>
+          <p className={styles.birthTimeWarningText}>
+            Birth time unknown — noon approximation used. Ascendant, house placements, MC, and Moon degree may be inaccurate. Planetary sign positions are reliable.
+          </p>
+        </div>
+      )}
 
       <div className={styles.readingBody}>
         {loading && !currentText && (

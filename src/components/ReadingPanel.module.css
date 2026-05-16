@@ -59,6 +59,20 @@
   letter-spacing: 0.03em;
 }
 
+.ephemerisSource {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(201,150,46,0.55);
+}
+
+.ephemerisFallback {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: rgba(138,96,32,0.7);
+}
+
 /* ─── Loading ─────────────────────────────────────── */
 .generating {
   display: flex;
@@ -213,6 +227,35 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Birth time warning ──────────────────────────── */
+.birthTimeWarning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 1rem 1.4rem;
+  background: rgba(138, 96, 32, 0.08);
+  border: 1px solid rgba(138, 96, 32, 0.22);
+  border-left: 2px solid rgba(138, 96, 32, 0.5);
+  margin-bottom: 2.5rem;
+}
+
+.birthTimeWarningIcon {
+  font-size: 0.85rem;
+  color: #8A6020;
+  opacity: 0.8;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.birthTimeWarningText {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  color: #8A6020;
+  line-height: 1.7;
+  opacity: 0.85;
 }
 
 /* ─── Cursor ──────────────────────────────────────── */

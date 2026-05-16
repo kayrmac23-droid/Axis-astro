@@ -671,7 +671,7 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
 
   lines.push(`${system.toUpperCase()} CHART`)
   lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1`)
-  lines.push(`Midheaven: ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)} · House 10`)
+  lines.push(`MC (Midheaven): ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)} · career/public axis (not the Whole Sign 10th-house cusp)`)
   lines.push('')
 
   // All planetary positions
@@ -713,6 +713,132 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
 
 // ── CONTEXT FORMATTERS ────────────────────────────────────────────────────────
 
+// Evidence-weighted Moon cross-reference — replaces the old categorical boolean approach.
+// Returns a structured evidence block describing the Moon's attachment/detachment axis
+// based on multiple weighted indicators rather than a single sign-element verdict.
+interface MoonEvidenceResult {
+  attachmentIndicators: string[]
+  detachmentIndicators: string[]
+  complicatingFactors: string[]
+  netBalance: 'attachment-dominated' | 'detachment-dominated' | 'balanced'
+}
+
+function computeMoonEvidence(moon: PlanetPosition, allAspects: Aspect[]): MoonEvidenceResult {
+  const moonSignData  = SIGN_DATA[moon.sign]
+  const moonDig       = computeDignity('Moon', moon.sign)
+  const moonAspects   = allAspects.filter(a => a.planet1 === 'Moon' || a.planet2 === 'Moon')
+
+  const attachmentIndicators: string[] = []
+  const detachmentIndicators: string[] = []
+  const complicatingFactors:  string[] = []
+
+  // Sign-based evidence (moderate weight — weaker than house or aspect)
+  if (moonSignData) {
+    if (moonSignData.element === 'Water') {
+      attachmentIndicators.push(`Moon in ${moon.sign} (Water: deep bonding instinct, does not release emotional bonds easily)`)
+    } else if (moonSignData.element === 'Earth') {
+      attachmentIndicators.push(`Moon in ${moon.sign} (Earth: security through constancy, attaches slowly but deeply)`)
+    } else if (moonSignData.element === 'Air') {
+      detachmentIndicators.push(`Moon in ${moon.sign} (Air: emotional processing through distance and analysis; needs mental room)`)
+    } else if (moonSignData.element === 'Fire') {
+      complicatingFactors.push(`Moon in ${moon.sign} (Fire: emotionally responsive and warm but also needs freedom; attachment is present but may not be possessive)`)
+    }
+  }
+
+  // House-based evidence (strong weight — domain where emotional life plays out)
+  if (moon.house === 8) {
+    attachmentIndicators.push(`Moon in H8 (transformation/depth: emotional life runs at psychological depth; bonds here do not release cleanly, even after they appear to have ended outwardly)`)
+  } else if (moon.house === 4) {
+    attachmentIndicators.push(`Moon in H4 (private foundations: emotional life rooted in home and intimate bonds; fiercely protective of what it considers its own)`)
+  } else if (moon.house === 2) {
+    attachmentIndicators.push(`Moon in H2 (self-worth: emotional security tied to what it possesses or values; attachment carries a possessive quality)`)
+  } else if (moon.house === 12) {
+    complicatingFactors.push(`Moon in H12 (hidden self: emotional life operates largely below conscious awareness; attachment pattern may be opaque even to the person themselves)`)
+  } else if (moon.house === 11) {
+    detachmentIndicators.push(`Moon in H11 (collective: emotional needs met through groups and shared purpose rather than intimate possession; warm but non-possessive)`)
+  } else if (moon.house === 9) {
+    detachmentIndicators.push(`Moon in H9 (expansion: emotional needs include freedom and philosophical space; genuine attachment, but cannot survive prolonged confinement)`)
+  } else if (moon.house === 3) {
+    detachmentIndicators.push(`Moon in H3 (daily mind: emotional needs channelled through communication and variety; less intense fixity in personal bonds)`)
+  }
+
+  // Dignity-based evidence
+  if (moonDig.status === 'EXALTATION') {
+    attachmentIndicators.push(`Moon in exaltation (${moon.sign}): emotional nature at its most settled and receptive; stable, grounded attachment patterns`)
+  } else if (moonDig.status === 'FALL') {
+    complicatingFactors.push(`Moon in fall (${moon.sign}): emotional functioning under significant pressure; neither attachment nor detachment operates cleanly or predictably`)
+  } else if (moonDig.status === 'DETRIMENT') {
+    complicatingFactors.push(`Moon in detriment (${moon.sign}): emotional instinct works against the sign's character; instinctive responses are complicated and may not match the outward presentation`)
+  }
+
+  // Aspect-based evidence (specific, high weight)
+  for (const asp of moonAspects) {
+    const otherName = asp.planet1 === 'Moon' ? asp.planet2 : asp.planet1
+    const orbStr    = `orb ${asp.orb}°`
+    const isHard    = ['Conjunction', 'Square', 'Opposition'].includes(asp.aspectName)
+    if (otherName === 'Saturn') {
+      complicatingFactors.push(`Moon ${asp.glyph} Saturn (${orbStr}): emotional contraction and reserve — attachment may be deep but expressed obliquely, withheld, or blocked under pressure`)
+    }
+    if (otherName === 'Uranus' && isHard) {
+      detachmentIndicators.push(`Moon ${asp.glyph} Uranus (${orbStr}): sudden emotional detachment; unpredictable availability; freedom needs can override sustained attachment without warning`)
+    }
+    if (otherName === 'Neptune' && isHard) {
+      complicatingFactors.push(`Moon ${asp.glyph} Neptune (${orbStr}): emotional boundaries are porous; attachment and dissolution are both heightened; bonds may be idealised or confused`)
+    }
+    if (otherName === 'Pluto' && isHard) {
+      attachmentIndicators.push(`Moon ${asp.glyph} Pluto (${orbStr}): intense psychological bonding; does not release what it has merged with — the person may carry bonds internally long after they appear to have ended outwardly`)
+    }
+    if (otherName === 'Mars' && isHard) {
+      complicatingFactors.push(`Moon ${asp.glyph} Mars (${orbStr}): emotional life charged with reactive energy; intensity and impulsiveness complicate both attachment and detachment`)
+    }
+  }
+
+  // Compute net balance from evidence counts (complicating factors are neutral for this)
+  const attachScore = attachmentIndicators.length
+  const detachScore = detachmentIndicators.length
+  let netBalance: 'attachment-dominated' | 'detachment-dominated' | 'balanced'
+  if (attachScore > detachScore + 1)      netBalance = 'attachment-dominated'
+  else if (detachScore > attachScore + 1) netBalance = 'detachment-dominated'
+  else                                     netBalance = 'balanced'
+
+  return { attachmentIndicators, detachmentIndicators, complicatingFactors, netBalance }
+}
+
+function formatMoonEvidenceBlock(moon: PlanetPosition, chart: ChartData, focalPlanetName: string): string {
+  const allAspects  = computeAspects(chart.planets)
+  const evidence    = computeMoonEvidence(moon, allAspects)
+  const moonDig     = computeDignity('Moon', moon.sign)
+  const lines: string[] = []
+
+  lines.push(`MOON EMOTIONAL EVIDENCE (cross-reference before making behavioural claims about ${focalPlanetName}):`)
+  lines.push(`Moon: ${moon.sign} ${moon.degree.toFixed(1)}° | H${moon.house}${moon.retrograde ? ' (R)' : ''} [${moonDig.status}]`)
+  lines.push('')
+
+  if (evidence.attachmentIndicators.length > 0) {
+    lines.push('Attachment indicators:')
+    evidence.attachmentIndicators.forEach(e => lines.push(`  + ${e}`))
+  }
+  if (evidence.detachmentIndicators.length > 0) {
+    lines.push('Detachment / independence indicators:')
+    evidence.detachmentIndicators.forEach(e => lines.push(`  - ${e}`))
+  }
+  if (evidence.complicatingFactors.length > 0) {
+    lines.push('Complicating factors:')
+    evidence.complicatingFactors.forEach(e => lines.push(`  ~ ${e}`))
+  }
+
+  const netNote = evidence.netBalance === 'attachment-dominated'
+    ? `Attachment indicators dominate. Name ${focalPlanetName}'s impulse AND the Moon's capacity (or inability) to follow through — both, not one or the other alone.`
+    : evidence.netBalance === 'detachment-dominated'
+      ? `Detachment indicators dominate. The Moon may reinforce or enable ${focalPlanetName}'s independence or capacity to exit. Still name both sides.`
+      : `Mixed evidence. Do not declare attachment or detachment dominant — name the tension between ${focalPlanetName}'s drive and the Moon's contradictory pull.`
+
+  lines.push('')
+  lines.push(`Evidence balance: ${netNote}`)
+
+  return lines.join('\n')
+}
+
 function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tropical' | 'sidereal'): string {
   const pData = PLANET_CORE[planet.name]
   const sData = SIGN_DATA[planet.sign]
@@ -729,29 +855,12 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde ℞)' : ' (Direct)'}`)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
 
-  // Moon cross-reference for Sun and Mars
+  // Evidence-weighted Moon cross-reference for Sun and Mars
   if (planet.name === 'Sun' || planet.name === 'Mars') {
     const moon = chart.planets.find(p => p.name === 'Moon')
     if (moon) {
-      const mSData = SIGN_DATA[moon.sign]
-      const mHData = HOUSE_DATA[moon.house]
       lines.push('')
-      lines.push('MOON CROSS-REFERENCE (required for accurate behavioural statements):')
-      lines.push(`Moon: ${moon.sign} ${moon.degree.toFixed(1)}° | House ${moon.house}${moon.retrograde ? ' (R)' : ''}`)
-      if (mSData) lines.push(`Moon sign character: ${mSData.element} ${mSData.modality} — ${mSData.coreNeed}`)
-      if (mHData) lines.push(`Moon house domain: ${mHData.domain}`)
-      if (mSData) {
-        const isDeepAttachment = ['Water'].includes(mSData.element) || moon.house === 8 || moon.house === 4
-        const isDetached       = ['Air'].includes(mSData.element)
-        if (planet.name === 'Sun') {
-          if (isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} indicates deep emotional attachment — any ${planet.sign} withdrawal impulse is unlikely to complete as a clean exit. Name the impulse and the Moon's override, not one or the other alone.`)
-          if (isDetached && !isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} supports some emotional detachment — withdrawal impulses from ${planet.sign} Sun may have more room to complete.`)
-        }
-        if (planet.name === 'Mars') {
-          if (isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} creates attachment that may override Mars's exit or assertion impulse. Name the tension between the Mars drive and the Moon's inability to follow through.`)
-          if (isDetached && !isDeepAttachment) lines.push(`Cross-reference note: Moon in ${moon.sign} H${moon.house} may reinforce Mars's independence or capacity to detach.`)
-        }
-      }
+      lines.push(formatMoonEvidenceBlock(moon, chart, planet.name))
     }
   }
   lines.push('')
@@ -885,9 +994,44 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   return lines.join('\n')
 }
 
+// House domain groupings for thematic convergence detection
+function getHouseDomain(house: number): string {
+  const domains: Record<number, string> = {
+    1:  'self-identity-body',
+    2:  'resources-self-worth',
+    3:  'mind-communication',
+    4:  'private-foundations-roots',
+    5:  'creativity-expression-pleasure',
+    6:  'service-health-routine',
+    7:  'partnership-the-other',
+    8:  'depth-transformation-shared-power',
+    9:  'meaning-expansion-beliefs',
+    10: 'career-public-reputation',
+    11: 'community-collective-future',
+    12: 'hidden-self-transcendence'
+  }
+  return domains[house] || 'other'
+}
+
+// Returns true when two house domains are thematically related (same life arena, different house)
+function houseDomainsRelated(h1: number, h2: number): boolean {
+  if (h1 === h2) return false
+  const relatedGroups = [
+    [1, 5, 9],      // fire trine: self-expression axis
+    [2, 8],         // resources / shared resources axis
+    [3, 9],         // mind / belief axis
+    [4, 10],        // roots / public axis
+    [4, 12],        // private / hidden axis
+    [6, 12],        // service / hidden axis
+    [7, 1],         // self / other axis
+  ]
+  return relatedGroups.some(g => g.includes(h1) && g.includes(h2))
+}
+
 function formatSynthesisBlock(chartData: DualChartData): string {
   const lines: string[] = []
   lines.push('CROSS-SYSTEM CONCORDANCE / DIVERGENCE MAP:')
+  lines.push('(For each planet: note what each system produces, where they converge or diverge, and what that tension creates in lived experience.)')
   lines.push('')
 
   const majorPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
@@ -896,8 +1040,8 @@ function formatSynthesisBlock(chartData: DualChartData): string {
     const sid  = chartData.sidereal.planets.find(p => p.name === pName)
     if (!trop || !sid) return
 
-    const tropDig  = computeDignity(pName, trop.sign)
-    const sidDig   = computeDignity(pName, sid.sign)
+    const tropDig    = computeDignity(pName, trop.sign)
+    const sidDig     = computeDignity(pName, sid.sign)
     const signShift  = trop.sign  !== sid.sign
     const houseShift = trop.house !== sid.house
 
@@ -906,49 +1050,121 @@ function formatSynthesisBlock(chartData: DualChartData): string {
     lines.push(`  Sidereal: ${sid.sign} H${sid.house} [${sidDig.status}]${sid.retrograde ? ' ℞' : ''}`)
 
     if (!signShift && !houseShift) {
-      lines.push(`  ✓ CONCORDANCE: same sign and house in both systems — this theme is load-bearing and certain`)
+      lines.push(`  ✓ CONCORDANCE: same sign and house — this ${pName} theme is load-bearing and certain across both systems`)
+      if (tropDig.status !== 'peregrine') {
+        lines.push(`  Dignity consistent: [${tropDig.status}] in both — strengthens the certainty of this placement's character`)
+      }
     } else {
+      if (!signShift && houseShift) {
+        lines.push(`  ~ PARTIAL CONCORDANCE: same sign in both systems — the quality of ${pName} is consistent; only the life domain shifts`)
+      }
+
       if (signShift) {
         const tropSData = SIGN_DATA[trop.sign]
         const sidSData  = SIGN_DATA[sid.sign]
         lines.push(`  ⚑ SIGN SHIFT: ${trop.sign} (${tropSData?.element} ${tropSData?.modality}) → ${sid.sign} (${sidSData?.element} ${sidSData?.modality})`)
-        lines.push(`    Tropical layer: ${trop.sign} energy — ${tropSData?.coreNeed}`)
-        lines.push(`    Sidereal layer: ${sid.sign} energy — ${sidSData?.coreNeed}`)
-        if (tropDig.status !== sidDig.status) {
-          lines.push(`    Dignity shifts: ${tropDig.status} → ${sidDig.status}`)
+        lines.push(`    Tropical layer: "${tropSData?.coreNeed}" — ${trop.sign} quality produces this as conscious drive or constructed identity`)
+        lines.push(`    Sidereal layer: "${sidSData?.coreNeed}" — ${sid.sign} quality operates at the essential / instinctive level`)
+
+        // Element analysis
+        const tropElem = tropSData?.element || ''
+        const sidElem  = sidSData?.element  || ''
+        if (tropElem === sidElem) {
+          lines.push(`    Element continuity: both signs share the ${tropElem} element — the ${pName} operates in the same elemental register across both systems, through different sign expression`)
+        } else {
+          lines.push(`    Element shift: ${tropElem} → ${sidElem} — the fundamental quality of ${pName}'s expression changes: ${tropElem} (${trop.sign}) at the constructed level vs. ${sidElem} (${sid.sign}) at the essential level`)
+        }
+
+        // Dignity direction
+        const tropStrong = ['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(tropDig.status)
+        const tropWeak   = ['DETRIMENT', 'FALL'].includes(tropDig.status)
+        const sidStrong  = ['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(sidDig.status)
+        const sidWeak    = ['DETRIMENT', 'FALL'].includes(sidDig.status)
+
+        if (tropStrong && sidStrong) {
+          lines.push(`    Dignity concordance: ${pName} is dignified in both systems — strength of expression is a consistent cross-system fact`)
+        } else if (tropWeak && sidWeak) {
+          lines.push(`    Challenge concordance: ${pName} is challenged in both systems [${tropDig.status} / ${sidDig.status}] — difficulty with this function is load-bearing across both frameworks`)
+        } else if ((tropStrong && sidWeak) || (tropWeak && sidStrong)) {
+          const direction = tropStrong
+            ? `a strong constructed ${pName} (${tropDig.status}) masking a pressured essential ${pName} (${sidDig.status})`
+            : `a challenged constructed ${pName} (${tropDig.status}) beneath which the essential ${pName} is stronger (${sidDig.status})`
+          lines.push(`    Dignity reversal: ${direction} — this gap between the two layers is psychologically significant`)
+        } else if (tropDig.status !== sidDig.status) {
+          lines.push(`    Dignity shifts: [${tropDig.status}] → [${sidDig.status}]`)
+        }
+
+        // Dispositor convergence check
+        const tropRulerName = SIGN_RULERS_TRADITIONAL[trop.sign]
+        const sidRulerName  = SIGN_RULERS_VEDIC[sid.sign]
+        if (tropRulerName && sidRulerName && tropRulerName === sidRulerName) {
+          const tropRulerP = chartData.tropical.planets.find(p => p.name === tropRulerName)
+          if (tropRulerP) {
+            const rulerDig = dignityLabel(tropRulerName, tropRulerP.sign)
+            lines.push(`    Dispositor convergence: both systems' ${pName} are ultimately ruled by ${tropRulerName} (in ${tropRulerP.sign} H${tropRulerP.house} [${rulerDig}]) — the ruler chain converges on the same planet despite the sign shift`)
+          }
         }
       }
+
       if (houseShift) {
-        const tropHData = HOUSE_DATA[trop.house]
-        const sidHData  = HOUSE_DATA[sid.house]
+        const tropHData   = HOUSE_DATA[trop.house]
+        const sidHData    = HOUSE_DATA[sid.house]
+        const tropDomain  = getHouseDomain(trop.house)
+        const sidDomain   = getHouseDomain(sid.house)
+        const related     = houseDomainsRelated(trop.house, sid.house)
+
         lines.push(`  ⚑ HOUSE SHIFT: H${trop.house} (${tropHData?.domain}) → H${sid.house} (${sidHData?.domain})`)
+        if (related) {
+          lines.push(`    Domain relation: H${trop.house} and H${sid.house} are thematically related (${tropDomain} / ${sidDomain}) — ${pName} operates in a similar life arena in both systems through different mechanisms`)
+        } else {
+          lines.push(`    Domain shift: the life arena where ${pName} operates changes significantly: ${tropDomain} (Tropical) → ${sidDomain} (Sidereal)`)
+        }
       }
     }
     lines.push('')
   })
 
-  // Ascendant comparison
+  // Ascendant / Lagna comparison with sign character
   const tropAsc = chartData.tropical.ascendantSign
   const sidAsc  = chartData.sidereal.ascendantSign
+  const tropAscData = SIGN_DATA[tropAsc]
+  const sidAscData  = SIGN_DATA[sidAsc]
   lines.push('ASCENDANT / LAGNA:')
-  lines.push(`  Tropical ASC: ${tropAsc}`)
-  lines.push(`  Sidereal Lagna: ${sidAsc}`)
+  lines.push(`  Tropical ASC: ${tropAsc} ${fmtDeg(chartData.tropical.ascendantDegree)} — ${tropAscData?.element} ${tropAscData?.modality}, core need: ${tropAscData?.coreNeed}`)
+  lines.push(`  Sidereal Lagna: ${sidAsc} ${fmtDeg(chartData.sidereal.ascendantDegree)} — ${sidAscData?.element} ${sidAscData?.modality}, core need: ${sidAscData?.coreNeed}`)
   if (tropAsc !== sidAsc) {
-    const tropS = SIGN_DATA[tropAsc]
-    const sidS  = SIGN_DATA[sidAsc]
-    lines.push(`  ⚑ SHIFT: ${tropAsc} (${tropS?.coreNeed}) → ${sidAsc} (${sidS?.coreNeed})`)
-    lines.push(`  The constructed persona differs from the essential soul-body orientation`)
+    lines.push(`  ⚑ SHIFT: The constructed persona (${tropAsc}: ${tropAscData?.coreNeed}) differs from the essential soul-body orientation (${sidAsc}: ${sidAscData?.coreNeed})`)
+    const sameElem = tropAscData?.element === sidAscData?.element
+    if (sameElem) {
+      lines.push(`  Element continuity: both Ascendants share the ${tropAscData?.element} element — the orientation of self-presentation is consistent in quality despite different sign expression`)
+    } else {
+      lines.push(`  Element shift: ${tropAscData?.element} (${tropAsc}) → ${sidAscData?.element} (${sidAsc}) — the fundamental quality of self-presentation differs between the two systems`)
+    }
   } else {
-    lines.push(`  ✓ CONCORDANCE: same sign in both systems — persona and soul orientation align fully`)
+    lines.push(`  ✓ CONCORDANCE: same sign in both systems — persona and soul orientation are aligned; this ASC quality is especially load-bearing`)
+  }
+
+  // MC comparison
+  const tropMC = chartData.tropical.midheavenSign
+  const sidMC  = chartData.sidereal.midheavenSign
+  lines.push('')
+  lines.push(`MC (career/public axis):`)
+  lines.push(`  Tropical MC: ${tropMC} ${fmtDeg(chartData.tropical.midheavenDegree)}`)
+  lines.push(`  Sidereal MC: ${sidMC} ${fmtDeg(chartData.sidereal.midheavenDegree)}`)
+  if (tropMC !== sidMC) {
+    lines.push(`  ⚑ MC SHIFT: ${tropMC} → ${sidMC} — the constructed professional orientation differs from the essential karmic direction`)
+  } else {
+    lines.push(`  ✓ MC CONCORDANCE: same sign in both systems`)
   }
   lines.push('')
 
-  // Dasha and yogas in synthesis context
+  // Dasha and yogas
   const dasha = computeVimshottariDasha(chartData)
   if (dasha) {
     lines.push('ACTIVE VIMSHOTTARI DASHA:')
     lines.push(`  Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
     lines.push(`  Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
+    lines.push(`  Note: the dasha period sets the karmic timing context for the synthesis — use it to illuminate which planets and themes are currently active, not as a predictive verdict.`)
     lines.push('')
   }
 
@@ -993,7 +1209,25 @@ export function buildInterpretationContext(
   planetSection: string
 ): string {
   const divider = '═'.repeat(60)
-  const header  = `\n${divider}\nSTRUCTURED INTERPRETATION CONTEXT\n(First-principles reasoning scaffold — use these facts as the foundation for every interpretive claim)\n${divider}\n`
+  const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
+
+  // Prepend birth time caveat when applicable
+  const birthTimeCaveat = birthTimeUnknown
+    ? `⚠ BIRTH TIME UNKNOWN — NOON APPROXIMATION USED\n` +
+      `The birth time was not provided. 12:00 noon has been used as a fallback.\n` +
+      `The following data is UNRELIABLE and must NOT be stated with confidence:\n` +
+      `  • Ascendant / Lagna (could be any sign within ±6 hours of noon)\n` +
+      `  • All house placements (follow from an uncertain Ascendant)\n` +
+      `  • Midheaven / MC\n` +
+      `  • Moon position (Moon moves ~0.5°/hour; position may be off by several degrees)\n` +
+      `  • Vimshottari Dasha timing (depends on exact Moon nakshatra position)\n` +
+      `Where birth time is unknown, focus interpretation on the planetary sign positions, ` +
+      `dignities, and sign-based aspects — which are accurate — rather than house placements ` +
+      `or Ascendant-derived conclusions. Open any Ascendant or house section with an explicit ` +
+      `acknowledgment that birth time is unknown.\n`
+    : ''
+
+  const header  = `\n${divider}\nSTRUCTURED INTERPRETATION CONTEXT\n(First-principles reasoning scaffold — use these facts as the foundation for every interpretive claim)\n${divider}\n${birthTimeCaveat}`
 
   if (section === 'synthesis') {
     return header + formatSynthesisBlock(chartData)
