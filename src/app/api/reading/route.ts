@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
+import { makeCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 
 export const maxDuration = 60
 
@@ -39,6 +40,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid section or planetSection' }, { status: 400 })
     }
 
+    // ── Cache check ────────────────────────────────────────────────────────────
+    const cacheKey = makeCacheKey({ birth: chartData.birthData, section, planetSection })
+    const cached = getCachedReading(cacheKey)
+    if (cached) {
+      return new Response(cached, {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      })
+    }
+
+    // ── Build prompt ───────────────────────────────────────────────────────────
     // Structured interpretation context: first-principles facts (dignity, sign modification,
     // house environment, dispositor chain, aspects with applying/separating, contradictions,
     // dasha, yogas) derived before Claude writes. This scaffold prevents hallucinated
@@ -62,15 +73,19 @@ export async function POST(req: NextRequest) {
       userContent = `${tropicalBlock}\n\n${siderealBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
     }
 
+    // ── Stream generation ──────────────────────────────────────────────────────
     const stream = await anthropic.messages.stream({
-      model: 'claude-opus-4-5',
+      model:      'claude-opus-4-5',
       max_tokens: 6000,
-      temperature: 0.7,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }]
+      temperature: 0.2,   // low temperature for consistent, deterministic readings
+      system:     systemPrompt,
+      messages:   [{ role: 'user', content: userContent }]
     })
 
     const encoder = new TextEncoder()
+    let accumulated = ''
+    let streamErrored = false
+
     const readable = new ReadableStream({
       async start(controller) {
         let hasFirstToken = false
@@ -81,16 +96,22 @@ export async function POST(req: NextRequest) {
           for await (const chunk of stream) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
               hasFirstToken = true
+              accumulated += chunk.delta.text
               controller.enqueue(encoder.encode(chunk.delta.text))
             }
           }
           controller.close()
         } catch (err) {
+          streamErrored = true
           const msg = err instanceof Error ? err.message : String(err)
           controller.enqueue(encoder.encode(`\n\n[AXIS_STREAM_ERROR: ${msg}]`))
           controller.close()
         } finally {
           clearInterval(keepAlive)
+          // Cache only on clean completion: no stream error and non-empty text
+          if (!streamErrored && accumulated.trim()) {
+            setCachedReading(cacheKey, accumulated)
+          }
         }
       }
     })
