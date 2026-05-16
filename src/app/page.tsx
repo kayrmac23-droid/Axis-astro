@@ -90,12 +90,8 @@ export default function Home() {
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
-              Tropical astrology reveals the self you know. Sidereal
-              astrology reveals the self beneath conditioning, karma,
-              and time.
-            </p>
-            <p className={styles.heroBody}>
-              AXIS exists where both truths meet.
+              Tropical reveals the self you know. Sidereal reveals the
+              self underneath it. That gap is AXIS.
             </p>
             <p className={styles.heroDetail}>
               Western Tropical · Vedic Sidereal · Synthesis Reading
