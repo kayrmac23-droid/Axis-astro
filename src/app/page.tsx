@@ -68,7 +68,7 @@ export default function Home() {
             <p className={styles.heroEyebrow}>Natal chart reading</p>
             <h2 className={styles.heroHeadline}>
               Two systems.<br />
-              <span className={styles.heroAccent}>One self.</span>
+              <span className={styles.heroAccent}>One truth.</span>
             </h2>
           </div>
           <div className={styles.heroRight}>
