@@ -39,7 +39,7 @@ function tzNameToOffset(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { year, month, day, hour, minute, latitude, longitude, timezone, tzName } = body
+    const { year, month, day, hour, minute, latitude, longitude, timezone, tzName, birthTimeUnknown } = body
 
     if (!year || !month || !day || latitude === undefined || longitude === undefined) {
       return NextResponse.json({ error: 'Missing required birth data' }, { status: 400 })
@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
       latitude: lat, longitude: lon,
       timezone: tzOffset,
       tzName: tzName || undefined,
+      birthTimeUnknown: birthTimeUnknown === true || birthTimeUnknown === 'true',
     }
 
     const chartData = calculateDualChart(birthData)

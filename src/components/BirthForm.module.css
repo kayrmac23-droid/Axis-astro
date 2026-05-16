@@ -249,3 +249,51 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ─── Birth time unknown toggle ─────────────────────── */
+.unknownTimeBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  opacity: 0.7;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.unknownTimeBtn:hover {
+  opacity: 1;
+  color: var(--text-2);
+}
+
+.unknownTimeCheck {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.unknownTimeCheckActive {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+.unknownTimeNote {
+  font-family: var(--font-serif);
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #8A6020;
+  letter-spacing: 0.01em;
+  margin-top: 0.4rem;
+  opacity: 0.85;
+}

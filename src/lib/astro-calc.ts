@@ -14,8 +14,9 @@ export interface BirthData {
   minute: number
   latitude: number
   longitude: number
-  timezone: number   // UTC offset in hours (DST-aware, derived from tzName if possible)
-  tzName?: string    // IANA timezone identifier (optional; used for display/verification)
+  timezone: number          // UTC offset in hours (DST-aware, derived from tzName if possible)
+  tzName?: string           // IANA timezone identifier (optional; used for display/verification)
+  birthTimeUnknown?: boolean // true when user submitted without a known birth time (noon used as fallback)
 }
 
 export interface PlanetPosition {
@@ -275,9 +276,10 @@ function getRAMC(jd: number, geoLongitude: number): number {
 }
 
 // Ascendant and MC from RAMC + geographic latitude.
-// Returns Equal House cusps (with ASC as H1 cusp); MC is returned separately
-// because it is NOT the 10th house cusp in Equal Houses.
-function calculateHouses(jd: number, lat: number, ramc: number): { houses: number[]; mc: number } {
+// Returns exact ecliptic degrees for ASC and MC only — Whole Sign house cusps
+// are computed separately from the ASC sign boundary, not from the ASC degree.
+// MC is NOT the 10th-house cusp in Whole Sign astrology; it is shown separately.
+function calculateAngles(jd: number, lat: number, ramc: number): { asc: number; mc: number } {
   const T = (jd - 2451545.0) / 36525.0
   const obliquity = 23.4397 - 0.0130 * T  // mean obliquity of ecliptic
   const oblRad = obliquity * DEG2RAD
@@ -291,16 +293,11 @@ function calculateHouses(jd: number, lat: number, ramc: number): { houses: numbe
   )
   const asc = normalize(ascRad * RAD2DEG)
 
-  // Midheaven — ecliptic projection of the meridian
+  // Midheaven — ecliptic projection of the meridian (career/public axis)
   const mcRad = Math.atan2(Math.sin(ramcRad), Math.cos(ramcRad) * Math.cos(oblRad))
   const mc = normalize(mcRad * RAD2DEG)
 
-  // Equal House cusps (12 × 30° from ASC)
-  const houses: number[] = []
-  for (let i = 0; i < 12; i++) {
-    houses.push(normalize(asc + i * 30))
-  }
-  return { houses, mc }
+  return { asc, mc }
 }
 
 // Whole Sign house number (standard for Jyotish)
@@ -316,7 +313,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   const jd = toJulianDay(birth.year, birth.month, birth.day, birth.hour, birth.minute, birth.timezone)
   const ayanamsa = getLahiriAyanamsa(jd)
   const ramc = getRAMC(jd, birth.longitude)
-  const { houses, mc: mcTropical } = calculateHouses(jd, birth.latitude, ramc)
+  const { asc: ascendantTropical, mc: mcTropical } = calculateAngles(jd, birth.latitude, ramc)
 
   // Planet longitude functions paired with their names
   const PLANET_FUNS: Array<{ name: string; getLon: (jde: number) => number }> = [
@@ -350,9 +347,16 @@ export function calculateDualChart(birth: BirthData): DualChartData {
   const rahu = rawPlanets.find(p => p.name === 'Rahu')!
   rawPlanets.push({ name: 'Ketu', longitude: normalize(rahu.longitude + 180), retrograde: false, dailyMotion: -rahu.dailyMotion })
 
-  const ascendantTropical = houses[0]
   const ascSignTropical   = getSign(ascendantTropical)
   const mcSignTropical    = getSign(mcTropical)
+
+  // Whole Sign house cusps for tropical — 12 × 30° starting at 0° of the ascending sign.
+  // Consistent with Whole Sign planet assignments via getHouseWholeSign().
+  // The MC is NOT included as the 10th-house cusp — it is a separate angle shown independently.
+  const ascSignTropIdx    = Math.floor(ascendantTropical / 30)
+  const tropicalHouses    = Array.from({ length: 12 }, (_, i) =>
+    normalize(ascSignTropIdx * 30 + i * 30)
+  )
 
   // ── Tropical chart ────────────────────────────────────────────────────────
   const tropicalPlanets: PlanetPosition[] = rawPlanets.map(p => {
@@ -408,7 +412,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       midheavenSign:  mcSignTropical.sign,
       midheavenDegree: mcSignTropical.degree,
       planets:        tropicalPlanets,
-      houses,
+      houses:         tropicalHouses,
       system:         'tropical',
     },
     sidereal: {
@@ -422,7 +426,7 @@ export function calculateDualChart(birth: BirthData): DualChartData {
       houses:         siderealHouses,
       system:         'sidereal',
     },
-    birthData: birth,
+    birthData: birth,  // includes birthTimeUnknown flag when set
   }
 }
 
