@@ -214,13 +214,13 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
 
         {/* ASC label */}
         <text x={ascLabelPos.x} y={ascLabelPos.y} textAnchor="middle" dominantBaseline="central"
-          fontSize="7" fill="#c9962e" opacity="0.9" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
+          fontSize="8" fill="#c9962e" opacity="0.95" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
           AC
         </text>
 
         {/* MC label */}
         <text x={mcLabelPos.x} y={mcLabelPos.y} textAnchor="middle" dominantBaseline="central"
-          fontSize="6" fill="rgba(201,150,46,0.65)" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
+          fontSize="7" fill="rgba(201,150,46,0.82)" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
           MC
         </text>
 
@@ -258,14 +258,14 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               {/* Selection ring */}
               {isSelected && (
                 <circle cx={pos.x} cy={pos.y} r="9"
-                  fill="none" stroke="rgba(201,150,46,0.45)" strokeWidth="0.8" />
+                  fill="none" stroke="rgba(201,150,46,0.75)" strokeWidth="1.2" />
               )}
               {/* Glow */}
               <circle cx={pos.x} cy={pos.y} r="7"
                 fill={isRetro ? 'rgba(160,138,224,0.12)' : 'rgba(201,169,110,0.06)'} />
               {/* Symbol */}
               <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                fontSize="11" fill={isRetro ? '#A08AE0' : '#c9962e'}
+                fontSize="12" fill={isRetro ? '#A08AE0' : '#c9962e'}
                 opacity={isRetro ? 1.0 : 0.95} fontFamily="serif">
                 {symbol}
               </text>
