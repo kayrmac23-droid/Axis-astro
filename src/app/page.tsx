@@ -13,9 +13,11 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<ActiveSection>('tropical')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
 
   const handleSubmit = async (formData: Record<string, string>) => {
+    setLastFormData(formData)
     setLoading(true)
     setError(null)
     setChartData(null)
@@ -27,7 +29,14 @@ export default function Home() {
         body: JSON.stringify(formData)
       })
 
-      if (!res.ok) throw new Error('Calculation failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(
+          body.message ||
+          "We couldn't calculate your chart. This usually means the birth data, location lookup, or ephemeris service failed. Please check the details and try again."
+        )
+      }
+
       const data: DualChartData = await res.json()
       setChartData(data)
       setActiveSection('tropical')
@@ -35,11 +44,19 @@ export default function Home() {
       setTimeout(() => {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 300)
-    } catch {
-      setError('Chart calculation failed. Please check your birth data.')
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We couldn't calculate your chart. Please check the details and try again."
+      )
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRetry = () => {
+    if (lastFormData) handleSubmit(lastFormData)
   }
 
   return (
@@ -103,7 +120,18 @@ export default function Home() {
           </div>
           <div className={styles.formRight}>
             <BirthForm onSubmit={handleSubmit} loading={loading} />
-            {error && <p className={styles.error}>{error}</p>}
+            {error && (
+              <div className={styles.calcError}>
+                <p className={styles.calcErrorMsg}>{error}</p>
+                <button
+                  className={styles.calcRetryBtn}
+                  onClick={handleRetry}
+                  disabled={loading}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
           </div>
         </section>
       )}

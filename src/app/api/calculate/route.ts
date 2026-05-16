@@ -105,7 +105,10 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json(chartData)
   } catch (error) {
-    console.error('Chart calculation error:', error)
-    return NextResponse.json({ error: 'Calculation failed' }, { status: 500 })
+    console.error('Chart calculation error:', error instanceof Error ? error.message : error)
+    return NextResponse.json({
+      error: 'CALCULATION_FAILED',
+      message: "We couldn't calculate your chart. This usually means the birth data, location lookup, or ephemeris service failed. Please check the details and try again.",
+    }, { status: 500 })
   }
 }

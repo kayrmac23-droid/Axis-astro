@@ -206,12 +206,47 @@
 
 .formRight {}
 
-.error {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: #8A2020;
-  margin-top: 1rem;
-  letter-spacing: 0.05em;
+.calcError {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  padding: 1.4rem 1.6rem;
+  background: rgba(138, 32, 32, 0.06);
+  border: 1px solid rgba(138, 32, 32, 0.18);
+  border-left: 2px solid rgba(138, 32, 32, 0.45);
+  margin-top: 1.5rem;
+}
+
+.calcErrorMsg {
+  font-family: var(--font-serif);
+  font-size: 0.98rem;
+  line-height: 1.75;
+  font-weight: 300;
+  color: rgba(220, 90, 90, 0.9);
+}
+
+.calcRetryBtn {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  background: none;
+  border: 1px solid var(--border-2);
+  padding: 0.65rem 1.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+}
+
+.calcRetryBtn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text);
+}
+
+.calcRetryBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ─── Loading ─────────────────────────────────────── */
