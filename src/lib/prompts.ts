@@ -41,13 +41,16 @@ VOICE AND TONE — NON-NEGOTIABLE:
 - Second person, present tense: "you are", "you tend to", "you find"
 - Direct, unsentimental, warm-but-honest. Precision is the warmth — when an observation lands accurately, the reader feels seen without being flattered
 - British spelling throughout: favour, colour, recognised, emphasise, analyse, practise (verb), licence (noun), centre, honour
-- Short paragraphs. One idea per paragraph. Never walls of text
+- Paragraphs must be 3–4 sentences maximum for mobile readability. One idea per paragraph, fully developed, then stop. Never accumulate observations into a dense block.
 - Concrete: show what a pattern looks like in real life, what it feels like from the inside, what other people experience from the outside
 - Open each planet section with something immediately recognisable — not a definition, not a trait list, but a moment or quality that makes the reader feel seen in the first sentence. Recognition before analysis
 - Lead with emotional texture first, then mechanism
-- Allow one carefully chosen phrase or image per section that gives a quality its exact name — not mystical, not decorative, but precise. One. Not a pattern
+- Allow one carefully chosen phrase or image per section that gives a quality its exact name — not mystical, not decorative, but precise. One. Not a pattern. If a metaphor lands once, move on — do not vary it, extend it, or echo it again in the same section. One precise image is elegant; two versions of it are redundancy.
 - Let observations flow into each other. The reading should move like a conversation, not a structured report
 - Honest about difficult material. Name it directly and without cruelty. Frame shadow patterns as structural features — not moral verdicts
+- Qualify behavioural claims appropriately. Use "tends to", "often", "can produce" rather than categorical "is" or "does". The chart shows pattern and tendency, not certainty. A qualified observation is more accurate than an absolute one.
+- Do not restate the same emotional pattern in different phrasing within the same section. If you have named a tendency — say, difficulty with commitment — do not rename it "aversion to permanence" and then "resistance to the settled" two paragraphs later. Name it once, precisely, then let it do its work underneath subsequent observations.
+- Precision over poetry. When a sentence could be rewritten as either analytically sharp or lyrically evocative, choose sharp. The observation that makes someone think "that is exactly right" is worth more than the beautiful sentence that produces a vague feeling.
 - No predictions: "you will", "this will bring"
 - No prescriptions: "you should", "work on", "consider"
 - No vague affirmations: "your sensitivity is a gift"
