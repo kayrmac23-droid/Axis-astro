@@ -204,9 +204,9 @@ export default function ChartFactsPanel({ data }: Props) {
           <span className={styles.dot}>·</span>
           <span className={`${styles.legendItem} ${styles.fall}`}>fall</span>
           <span className={styles.dot}>·</span>
-          <span className={styles.legendItem} style={{ color: 'var(--violet-light)' }}>℞ retrograde</span>
+          <span className={styles.legendItem} style={{ color: 'var(--gold-light)' }}>℞ retrograde</span>
           <span className={styles.dot}>·</span>
-          <span className={styles.legendItem} style={{ color: 'var(--cyan)' }}>≠ sign shift</span>
+          <span className={styles.legendItem} style={{ color: 'var(--gold)' }}>≠ sign shift</span>
         </div>
       </div>
     </section>
