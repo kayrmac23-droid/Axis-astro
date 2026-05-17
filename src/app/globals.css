@@ -5,39 +5,40 @@
 }
 
 :root {
-  /* AXIS core palette — near-black, cream, antique metallic gold */
-  --void: #080706;
-  --bg: #0A0A0A;
-  --deep: #0D0C0A;
-  --surface: #11100D;
-  --surface-2: #15120E;
-  --surface-3: #1D1811;
+  /* True void — cooler and darker than before */
+  --void: #010108;
+  --bg: #030212;
+  --deep: #05041A;
+  --surface: #090820;
+  --surface-2: #0F0E2C;
+  --surface-3: #16153A;
 
   /* Borders */
-  --border: rgba(212, 175, 55, 0.14);
-  --border-2: rgba(212, 175, 55, 0.24);
-  --border-bright: rgba(212, 175, 55, 0.42);
+  --border: #1A1940;
+  --border-2: #282660;
+  --border-bright: #3E3C80;
 
-  /* Typography */
-  --text: #F5F1E6;
-  --text-2: #D9CFBC;
-  --text-3: #AA9E89;
-  --text-4: #766A58;
+  /* Star-white text — cooler, bluer than warm cream */
+  --text: #EAE8F8;
+  --text-2: #A8A4C8;
+  --text-3: #9490C4;
+  --text-4: #625E90;
 
-  /* Metallic gold — rich, not fluorescent yellow */
-  --gold: #D4AF37;
-  --gold-bright: #E5C65A;
-  --gold-light: #E7CE7A;
-  --gold-dim: #8F7127;
+  /* Gold — brighter, more star-like */
+  --gold: #FFC030;
+  --gold-bright: #FFD860;
+  --gold-light: #FFD060;
+  --gold-dim: #704818;
 
-  /* Legacy semantic accent tokens mapped into the AXIS gold family */
-  --cyan: #D4AF37;
-  --cyan-dim: rgba(212, 175, 55, 0.14);
-  --cyan-glow: rgba(212, 175, 55, 0.12);
+  /* Teal/cyan — primary interactive accent */
+  --cyan: #2CC8C0;
+  --cyan-dim: #0A4845;
+  --cyan-glow: rgba(44, 200, 192, 0.15);
 
-  --violet: #B89536;
-  --violet-light: #E7CE7A;
-  --violet-dim: rgba(184, 149, 54, 0.16);
+  /* Violet — for retrograde + accent */
+  --violet: #7844FF;
+  --violet-light: #C8B3FF;
+  --violet-dim: #2A1460;
 
   --font-wordmark: 'Cinzel', Georgia, serif;
   --font-display: 'Cinzel', Georgia, serif;
@@ -54,18 +55,17 @@ html {
 body {
   background-color: var(--void);
   background-image:
-    radial-gradient(circle at 8% 14%, rgba(245, 241, 230, 0.24) 0, transparent 1.2px),
-    radial-gradient(circle at 22% 7%, rgba(212, 175, 55, 0.22) 0, transparent 1px),
-    radial-gradient(circle at 66% 10%, rgba(245, 241, 230, 0.18) 0, transparent 1.1px),
-    radial-gradient(circle at 86% 20%, rgba(245, 241, 230, 0.16) 0, transparent 1px),
-    radial-gradient(circle at 73% 47%, rgba(212, 175, 55, 0.18) 0, transparent 1px),
-    radial-gradient(circle at 15% 69%, rgba(245, 241, 230, 0.16) 0, transparent 1px),
-    radial-gradient(circle at 36% 88%, rgba(212, 175, 55, 0.16) 0, transparent 1px),
-    radial-gradient(circle at 91% 86%, rgba(245, 241, 230, 0.18) 0, transparent 1.1px),
-    radial-gradient(ellipse 120% 70% at 50% -15%, rgba(212, 175, 55, 0.08) 0%, transparent 58%),
-    radial-gradient(ellipse 70% 50% at 4% 98%, rgba(212, 175, 55, 0.035) 0%, transparent 58%),
-    radial-gradient(ellipse 62% 48% at 96% 90%, rgba(245, 241, 230, 0.03) 0%, transparent 60%),
-    linear-gradient(180deg, #080706 0%, #0A0908 48%, #070605 100%);
+    radial-gradient(circle at 8% 14%, rgba(234, 232, 248, 0.18) 0, transparent 1.2px),
+    radial-gradient(circle at 22% 7%, rgba(44, 200, 192, 0.16) 0, transparent 1px),
+    radial-gradient(circle at 66% 10%, rgba(234, 232, 248, 0.14) 0, transparent 1.1px),
+    radial-gradient(circle at 86% 20%, rgba(234, 232, 248, 0.12) 0, transparent 1px),
+    radial-gradient(circle at 73% 47%, rgba(255, 192, 48, 0.15) 0, transparent 1px),
+    radial-gradient(circle at 15% 69%, rgba(234, 232, 248, 0.12) 0, transparent 1px),
+    radial-gradient(circle at 36% 88%, rgba(120, 68, 255, 0.13) 0, transparent 1px),
+    radial-gradient(circle at 91% 86%, rgba(234, 232, 248, 0.14) 0, transparent 1.1px),
+    radial-gradient(ellipse 120% 60% at 50% -10%, #06040F 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, #040210 0%, transparent 50%),
+    radial-gradient(ellipse 50% 35% at 95% 85%, #03010C 0%, transparent 50%);
   color: var(--text);
   font-family: var(--font-serif);
   min-height: 100vh;
@@ -74,7 +74,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Fine paper-grain texture, kept deliberately subtle */
+/* Paper grain stays but subtle */
 body::before {
   content: '';
   position: fixed;
@@ -82,7 +82,7 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.24;
+  opacity: 0.4;
 }
 
 ::-webkit-scrollbar { width: 3px; }
@@ -90,7 +90,7 @@ body::before {
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
 ::selection {
-  background: rgba(212, 175, 55, 0.26);
+  background: var(--violet-dim);
   color: var(--text);
 }
 

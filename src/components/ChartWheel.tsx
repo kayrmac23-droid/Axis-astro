@@ -16,18 +16,18 @@ const PLANET_SYMBOLS: Record<string, string> = {
   Pluto: `♇${VS}`, Rahu: `☊${VS}`, Ketu: `☋${VS}`
 }
 
-// Segment fill colors: subtle tonal differentiation, kept inside the AXIS dark-luxury palette.
+// Segment fill colors by element (Fire, Earth, Air, Water)
 const SIGN_COLORS = [
-  '#5A3E20', '#262019', '#23211D', '#1E2222',
-  '#5A3E20', '#262019', '#23211D', '#1E2222',
-  '#5A3E20', '#262019', '#23211D', '#1E2222',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
+  '#7A4A28', '#24242E', '#22303E', '#223A55',
 ]
 
-// Glyph colors stay cream/gold rather than introducing a competing colour system.
+// Glyph colors contrast-matched to each segment background
 const GLYPH_COLORS = [
-  '#E7CE7A', '#E8DDC8', '#E8DDC8', '#E8DDC8',
-  '#E7CE7A', '#E8DDC8', '#E8DDC8', '#E8DDC8',
-  '#E7CE7A', '#E8DDC8', '#E8DDC8', '#E8DDC8',
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
+  '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
 ]
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
@@ -138,12 +138,12 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         <desc id={`wheel-desc-${chart.system}`}>{svgDesc}</desc>
         <defs>
           <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#FFC030" stopOpacity="0.14" />
+            <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
+            <stop offset="0%" stopColor="#FFC030" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -169,17 +169,17 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         })}
 
         {/* Rings */}
-        <circle cx={cx} cy={cy} r={outerR}       fill="none" stroke="#D4AF37" strokeWidth="0.7" strokeOpacity="0.64" />
-        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="#B89536" strokeWidth="0.5" strokeOpacity="0.54" />
-        <circle cx={cx} cy={cy} r={innerR}        fill="none" stroke="#B89536" strokeWidth="0.5" strokeOpacity="0.45" />
-        <circle cx={cx} cy={cy} r={planetR}       fill="none" stroke="#B89536" strokeWidth="0.5" strokeOpacity="0.3" strokeDasharray="1.5 4" />
+        <circle cx={cx} cy={cy} r={outerR}       fill="none" stroke="#FFC030" strokeWidth="0.7" strokeOpacity="0.58" />
+        <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="#3E3C80" strokeWidth="0.5" strokeOpacity="0.65" />
+        <circle cx={cx} cy={cy} r={innerR}        fill="none" stroke="#3E3C80" strokeWidth="0.5" strokeOpacity="0.52" />
+        <circle cx={cx} cy={cy} r={planetR}       fill="none" stroke="#282660" strokeWidth="0.5" strokeOpacity="0.7" strokeDasharray="1.5 4" />
 
         {/* Sign division lines */}
         {Array.from({ length: 12 }).map((_, i) => {
           const angle = zodiacAngle(i * 30)
           const p1 = polarToCartesian(cx, cy, signBandInner, angle)
           const p2 = polarToCartesian(cx, cy, signBandOuter, angle)
-          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#B89536" strokeWidth="0.5" strokeOpacity="0.55" />
+          return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke="#3E3C80" strokeWidth="0.5" strokeOpacity="0.6" />
         })}
 
         {/* Sign symbols */}
@@ -202,25 +202,25 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
           const p2 = polarToCartesian(cx, cy, signBandInner - 1, angle)
           return (
             <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-              stroke={isAngle ? '#D4AF37' : '#B89536'}
+              stroke={isAngle ? '#FFC030' : '#3E3C80'}
               strokeWidth={isAngle ? 1 : 0.5}
-              strokeOpacity={isAngle ? 0.86 : 0.38} />
+              strokeOpacity={isAngle ? 0.82 : 0.45} />
           )
         })}
 
         {/* MC tick — dashed, separate from house lines since MC ≠ 10th house cusp */}
         <line x1={mcTickInner.x} y1={mcTickInner.y} x2={mcTickOuter.x} y2={mcTickOuter.y}
-          stroke="#B89536" strokeWidth="0.7" strokeOpacity="0.58" strokeDasharray="2 2" />
+          stroke="#3E3C80" strokeWidth="0.7" strokeOpacity="0.62" strokeDasharray="2 2" />
 
         {/* ASC label */}
         <text x={ascLabelPos.x} y={ascLabelPos.y} textAnchor="middle" dominantBaseline="central"
-          fontSize="7" fill="#D4AF37" opacity="0.92" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
+          fontSize="7" fill="#FFC030" opacity="0.92" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
           AC
         </text>
 
         {/* MC label */}
         <text x={mcLabelPos.x} y={mcLabelPos.y} textAnchor="middle" dominantBaseline="central"
-          fontSize="6" fill="rgba(212,175,55,0.72)" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
+          fontSize="6" fill="rgba(255,192,48,0.72)" fontFamily="Space Mono, monospace" letterSpacing="0.05em">
           MC
         </text>
 
@@ -258,19 +258,19 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
               {/* Selection ring */}
               {isSelected && (
                 <circle cx={pos.x} cy={pos.y} r="9"
-                  fill="none" stroke="rgba(212,175,55,0.52)" strokeWidth="0.8" />
+                  fill="none" stroke="rgba(255,192,48,0.52)" strokeWidth="0.8" />
               )}
               {/* Glow */}
               <circle cx={pos.x} cy={pos.y} r="7"
-                fill={isRetro ? 'rgba(231,206,122,0.14)' : 'rgba(212,175,55,0.08)'} />
+                fill={isRetro ? 'rgba(200,179,255,0.14)' : 'rgba(255,192,48,0.08)'} />
               {/* Symbol */}
               <text x={pos.x} y={pos.y} textAnchor="middle" dominantBaseline="central"
-                fontSize="11" fill={isRetro ? '#E7CE7A' : '#D4AF37'}
+                fontSize="11" fill={isRetro ? '#C8B3FF' : '#FFC030'}
                 opacity={isRetro ? 1 : 0.98} fontFamily="serif">
                 {symbol}
               </text>
               {isRetro && (
-                <text x={pos.x + 8} y={pos.y - 6} fontSize="5" fill="#E7CE7A" opacity="1"
+                <text x={pos.x + 8} y={pos.y - 6} fontSize="5" fill="#C8B3FF" opacity="1"
                   fontFamily="Space Mono, monospace">
                   R
                 </text>
@@ -281,8 +281,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
 
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGlow)" />
-        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#D4AF37" strokeWidth="0.5" strokeOpacity="0.68" />
-        <circle cx={cx} cy={cy} r="1.5" fill="#D4AF37" opacity="1" />
+        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#FFC030" strokeWidth="0.5" strokeOpacity="0.68" />
+        <circle cx={cx} cy={cy} r="1.5" fill="#FFC030" opacity="1" />
       </svg>
 
       {/* Planet placement tooltip */}
