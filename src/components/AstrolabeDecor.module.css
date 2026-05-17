@@ -1,0 +1,76 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding: 20px;
+  background: radial-gradient(circle, rgba(13,15,18,0.3) 0%, rgba(7,8,10,0) 70%);
+}
+
+.engineStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 2px;
+  color: #526075;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-bottom: 1.5rem;
+}
+
+.statusPulse {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 8px #38bdf8;
+  flex-shrink: 0;
+}
+
+.astrolabe {
+  width: 260px;
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 0 28px rgba(212, 175, 55, 0.08));
+}
+
+/* Sidereal platter precesses to Lahiri offset on load */
+.siderealPlatter {
+  transform-origin: 250px 250px;
+  animation: lahiriPrecession 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: 0.5s;
+}
+
+/* Ayanamsa label fades in after the precession settles */
+.ayanamsaCounter {
+  opacity: 0;
+  animation: fadeInLabel 1s ease forwards;
+  animation-delay: 2.5s;
+}
+
+@keyframes lahiriPrecession {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-23.85deg); }
+}
+
+@keyframes fadeInLabel {
+  to { opacity: 0.7; }
+}
+
+/* ─── Responsive ─────────────────────────────── */
+@media (max-width: 900px) {
+  .astrolabe {
+    width: 200px;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    display: none;
+  }
+}

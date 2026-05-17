@@ -86,14 +86,20 @@
   max-width: 960px;
   padding: 3.5rem 2.5rem 4rem;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4rem;
-  align-items: start;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 3rem;
+  align-items: center;
   animation: fadeUp 1s ease both;
   border-bottom: 1px solid var(--border);
 }
 
 .heroLeft {}
+
+.heroCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .heroEyebrow {
   font-family: var(--font-display);
@@ -477,9 +483,12 @@
 /* ─── Tablet ──────────────────────────────────────── */
 @media (max-width: 780px) {
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 2rem;
     padding: 4rem 2rem 4rem;
+  }
+  .heroCenter {
+    display: none;
   }
   .formSection {
     grid-template-columns: 1fr;

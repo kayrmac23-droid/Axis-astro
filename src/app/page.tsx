@@ -4,6 +4,7 @@ import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
+import AstrolabeDecor from '@/components/AstrolabeDecor'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 
@@ -88,6 +89,9 @@ export default function Home() {
               Two systems.<br />
               <span className={styles.heroAccent}>One truth.</span>
             </h2>
+          </div>
+          <div className={styles.heroCenter}>
+            <AstrolabeDecor />
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
