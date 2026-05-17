@@ -11,20 +11,9 @@
   font-size: 0.72rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.7;
-  margin-bottom: 0.5rem;
-}
-
-.panelDesc {
-  font-family: var(--font-serif);
-  font-size: 0.92rem;
-  font-style: italic;
-  color: var(--text-3);
-  font-weight: 300;
-  line-height: 1.6;
+  color: #C8A96B;
+  opacity: 0.85;
   margin-bottom: 1.4rem;
-  max-width: 48ch;
 }
 
 /* ─── Column header row ──────────────────────────────── */
@@ -41,10 +30,10 @@
 
 .hSys {
   font-family: var(--font-display);
-  font-size: 0.52rem;
-  letter-spacing: 0.32em;
+  font-size: 0.48rem;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-4);
 }
 
 .hDiff { }
@@ -66,7 +55,7 @@
   display: grid;
   grid-template-columns: 7.5rem 1fr 1.4rem 1fr;
   gap: 0;
-  padding: 0.55rem 0;
+  padding: 0.45rem 0;
   border-bottom: 1px solid rgba(26, 25, 64, 0.5);
   align-items: start;
   transition: background 0.15s;
@@ -81,11 +70,11 @@
 }
 
 .rowShifted {
-  background: rgba(44, 200, 192, 0.05);
+  background: rgba(44, 200, 192, 0.025);
 }
 
 .rowShifted:hover {
-  background: rgba(44, 200, 192, 0.085);
+  background: rgba(44, 200, 192, 0.04);
 }
 
 /* ─── Planet name column ─────────────────────────────── */
@@ -193,12 +182,11 @@
 /* ─── Diff indicator column ──────────────────────────── */
 .diffCol {
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   color: var(--cyan);
   text-align: center;
-  padding-top: 0.05rem;
-  opacity: 1;
-  line-height: 1;
+  padding-top: 0.08rem;
+  opacity: 0.85;
 }
 
 /* ─── Absent placeholder ─────────────────────────────── */

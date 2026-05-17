@@ -9,61 +9,58 @@
 .header {
   width: 100%;
   max-width: 960px;
-  padding: 3.5rem 2.5rem 3rem;
+  padding: 2.8rem 2.5rem 2.4rem;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: end;
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .headerRule {
   width: 100%;
   border: none;
-  border-top: 1px solid rgba(201,168,76,0.22);
+  border-top: 1.5px solid var(--text);
+  opacity: 0.9;
   grid-column: 1 / -1;
-  margin-top: 0.8rem;
+  margin-top: 0.6rem;
 }
 
 .logoBlock {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.2rem;
 }
 
 .logo {
   font-family: var(--font-wordmark);
-  font-size: 4.2rem;
+  font-size: 2.6rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.22em;
   line-height: 1;
   color: var(--text);
-  text-shadow:
-    0 0 60px rgba(201,168,76,0.18),
-    0 0 120px rgba(120,68,255,0.08);
 }
 
 .logoSub {
   font-family: var(--font-display);
-  font-size: 0.44rem;
-  letter-spacing: 0.52em;
+  font-size: 0.48rem;
+  letter-spacing: 0.45em;
   text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.65;
+  color: var(--text-3);
 }
 
 .headerMid {
   display: flex;
   align-items: flex-end;
-  padding-bottom: 0.5rem;
+  padding-bottom: 0.3rem;
 }
 
 .tagline {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 300;
   font-style: italic;
-  color: var(--text-3);
+  color: var(--text);
   letter-spacing: 0.02em;
 }
 
@@ -71,14 +68,14 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 0.25rem;
-  padding-bottom: 0.5rem;
+  gap: 0.2rem;
+  padding-bottom: 0.3rem;
 }
 
 .headerStat {
   font-family: var(--font-display);
-  font-size: 0.44rem;
-  letter-spacing: 0.32em;
+  font-size: 0.48rem;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
   color: var(--text-4);
 }
@@ -87,62 +84,47 @@
 .hero {
   width: 100%;
   max-width: 960px;
-  padding: 4.5rem 2.5rem 5rem;
+  padding: 3.5rem 2.5rem 4rem;
   display: grid;
-  grid-template-columns: 3fr 2fr;
-  gap: 5rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
   align-items: start;
   animation: fadeUp 1s ease both;
   border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
-/* Subtle gold atmospheric glow behind the hero headline */
-.hero::before {
-  content: '';
-  position: absolute;
-  top: -40px;
-  left: -60px;
-  width: 500px;
-  height: 300px;
-  background: radial-gradient(ellipse at 30% 40%, rgba(201,168,76,0.055) 0%, transparent 65%);
-  pointer-events: none;
 }
 
 .heroLeft {}
 
 .heroEyebrow {
   font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.50em;
+  font-size: 0.52rem;
+  letter-spacing: 0.45em;
   text-transform: uppercase;
   color: var(--gold);
-  margin-bottom: 2rem;
+  margin-bottom: 1.8rem;
   display: flex;
   align-items: center;
   gap: 0.8rem;
-  opacity: 0.8;
 }
 
 .heroEyebrow::before {
   content: '';
   display: inline-block;
-  width: 28px;
+  width: 24px;
   height: 1px;
   background: var(--gold);
   flex-shrink: 0;
-  opacity: 0.6;
 }
 
 .heroHeadline {
   font-family: var(--font-editorial);
-  font-size: 5.2rem;
+  font-size: 3.4rem;
   font-weight: 500;
   font-style: italic;
-  line-height: 1.05;
+  line-height: 1.1;
   color: var(--text);
-  letter-spacing: -0.02em;
-  margin-bottom: 2.5rem;
+  letter-spacing: -0.01em;
+  margin-bottom: 2rem;
 }
 
 .heroAccent {
@@ -150,27 +132,27 @@
 }
 
 .heroRight {
-  padding-top: 1.5rem;
+  padding-top: 1rem;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .heroBody {
   font-family: var(--font-serif);
-  font-size: 1.08rem;
-  line-height: 1.95;
+  font-size: 1.15rem;
+  line-height: 1.9;
   font-weight: 300;
-  color: var(--text-2);
+  color: var(--text);
 }
 
 .heroDetail {
   font-family: var(--font-display);
-  font-size: 0.56rem;
+  font-size: 0.63rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--text-4);
-  padding-top: 1.2rem;
+  color: var(--text-3);
+  padding-top: 1rem;
   border-top: 1px solid var(--border);
   line-height: 1.8;
 }
@@ -179,47 +161,34 @@
 .formSection {
   width: 100%;
   max-width: 960px;
-  padding: 4rem 2.5rem 5.5rem;
+  padding: 3.5rem 2.5rem 5rem;
   display: grid;
   grid-template-columns: 1fr 1.6fr;
   gap: 5rem;
   align-items: start;
   animation: fadeUp 1s ease 0.15s both;
   border-bottom: 1px solid var(--border);
-  position: relative;
-}
-
-.formSection::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 480px;
-  height: 380px;
-  background: radial-gradient(ellipse at 70% 60%, rgba(120,68,255,0.035) 0%, transparent 65%);
-  pointer-events: none;
 }
 
 .formIntro {
   display: flex;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1rem;
   position: sticky;
   top: 3rem;
 }
 
 .formIntroLabel {
   font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.45em;
+  font-size: 0.52rem;
+  letter-spacing: 0.4em;
   text-transform: uppercase;
   color: var(--gold);
-  opacity: 0.75;
 }
 
 .formIntroTitle {
   font-family: var(--font-editorial);
-  font-size: 2rem;
+  font-size: 1.9rem;
   font-weight: 400;
   font-style: italic;
   line-height: 1.2;
@@ -228,26 +197,23 @@
 
 .formIntroDesc {
   font-family: var(--font-serif);
-  font-size: 1rem;
-  line-height: 1.9;
+  font-size: 1.05rem;
+  line-height: 1.85;
   font-weight: 300;
-  color: var(--text-3);
-  margin-top: 0.4rem;
+  color: var(--text-2);
+  margin-top: 0.5rem;
 }
 
-.formRight {
-  position: relative;
-  z-index: 1;
-}
+.formRight {}
 
 .calcError {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
   padding: 1.4rem 1.6rem;
-  background: rgba(100, 20, 20, 0.08);
-  border: 1px solid rgba(138, 32, 32, 0.2);
-  border-left: 2px solid rgba(180, 40, 40, 0.5);
+  background: rgba(138, 32, 32, 0.06);
+  border: 1px solid rgba(138, 32, 32, 0.18);
+  border-left: 2px solid rgba(138, 32, 32, 0.45);
   margin-top: 1.5rem;
 }
 
@@ -261,8 +227,8 @@
 
 .calcRetryBtn {
   font-family: var(--font-display);
-  font-size: 0.50rem;
-  letter-spacing: 0.30em;
+  font-size: 0.54rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--text-3);
   background: none;
@@ -274,8 +240,8 @@
 }
 
 .calcRetryBtn:hover:not(:disabled) {
-  color: var(--gold);
-  border-color: rgba(201,168,76,0.4);
+  color: var(--text);
+  border-color: var(--text);
 }
 
 .calcRetryBtn:disabled {
@@ -308,16 +274,16 @@
   position: absolute;
   inset: 11px;
   border-radius: 50%;
-  border: 1px solid rgba(107, 80, 32, 0.12);
-  border-bottom-color: rgba(107, 80, 32, 0.40);
+  border: 1px solid rgba(138, 94, 20, 0.12);
+  border-bottom-color: rgba(138, 94, 20, 0.4);
   animation: spin 1.5s linear infinite reverse;
 }
 
 .loadingText {
   font-family: var(--font-display);
-  font-size: 0.50rem;
-  letter-spacing: 0.45em;
-  color: var(--text-4);
+  font-size: 0.54rem;
+  letter-spacing: 0.42em;
+  color: var(--text-3);
   text-transform: uppercase;
 }
 
@@ -331,7 +297,7 @@
 
 /* ─── Wheel Section ───────────────────────────────── */
 .wheelSection {
-  padding: 2rem 0 4rem;
+  padding: 1.5rem 0 5rem;
   border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -341,12 +307,12 @@
 
 .wheelSectionLabel {
   font-family: var(--font-display);
-  font-size: 0.68rem;
-  letter-spacing: 0.30em;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.6;
-  margin-bottom: 1.5rem;
+  color: #C8A96B;
+  opacity: 0.85;
+  margin-bottom: 1.75rem;
 }
 
 .wheelSingle {
@@ -372,10 +338,10 @@
 
 .wheelLabel {
   font-family: var(--font-display);
-  font-size: 0.52rem;
-  letter-spacing: 0.35em;
+  font-size: 0.56rem;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: #8E8ACF;
 }
 
 .wheelDivider {
@@ -383,37 +349,10 @@
   flex-shrink: 0;
 }
 
-/* ─── Reading Gate ────────────────────────────────── */
-.readingGate {
-  display: flex;
-  align-items: center;
-  gap: 1.4rem;
-  padding: 2.8rem 0 0;
-  margin-bottom: 0;
-}
-
-.readingGate::before,
-.readingGate::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border) 40%, var(--border) 60%, transparent);
-}
-
-.readingGateLabel {
-  font-family: var(--font-display);
-  font-size: 0.42rem;
-  letter-spacing: 0.44em;
-  text-transform: uppercase;
-  color: var(--text-4);
-  white-space: nowrap;
-}
-
 /* ─── Tab Bar ─────────────────────────────────────── */
 .tabBar {
   display: flex;
   border-bottom: 1px solid var(--border);
-  margin-top: 0;
 }
 
 .tab {
@@ -421,40 +360,25 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
-  padding: 1.6rem 1rem;
+  gap: 0.3rem;
+  padding: 1.8rem 1rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
-  color: var(--text-4);
+  transition: all 0.2s ease;
+  color: var(--text-3);
   margin-bottom: -1px;
 }
 
 .tab:hover {
-  color: var(--text-3);
-  background: rgba(201, 168, 76, 0.025);
-}
-
-.tab:focus-visible {
-  outline: 1px solid var(--border-bright);
-  outline-offset: -2px;
+  color: var(--text-2);
+  background: rgba(138, 94, 20, 0.03);
 }
 
 .tabActive {
   color: var(--gold);
   border-bottom-color: var(--gold);
-}
-
-.tabSynthesisActive {
-  color: var(--violet-light);
-  border-bottom-color: var(--violet);
-}
-
-.tabSynthesisActive .tabSub {
-  color: var(--violet-light);
-  opacity: 0.7;
 }
 
 .tabLabel {
@@ -466,10 +390,10 @@
 
 .tabSub {
   font-family: var(--font-display);
-  font-size: 0.42rem;
-  letter-spacing: 0.20em;
+  font-size: 0.46rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
 /* ─── Actions ─────────────────────────────────────── */
@@ -482,30 +406,30 @@
 
 .resetBtn {
   font-family: var(--font-display);
-  font-size: 0.50rem;
-  letter-spacing: 0.34em;
+  font-size: 0.54rem;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--text-3);
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-2);
   padding: 0.9rem 2.4rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .resetBtn:hover {
-  color: var(--text-2);
-  border-color: var(--border-2);
+  color: var(--text);
+  border-color: var(--text);
 }
 
 .pdfBtn {
   font-family: var(--font-display);
-  font-size: 0.50rem;
-  letter-spacing: 0.34em;
+  font-size: 0.54rem;
+  letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--text-3);
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-2);
   padding: 0.9rem 2.4rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -513,24 +437,25 @@
 
 .pdfBtn:hover {
   color: var(--gold);
-  border-color: rgba(201,168,76,0.4);
+  border-color: var(--gold);
 }
 
 /* ─── Footer ──────────────────────────────────────── */
 .footer {
   width: 100%;
   padding: 2rem;
-  border-top: 1px solid var(--border);
+  border-top: 1.5px solid var(--text);
+  opacity: 0.9;
   text-align: center;
   margin-top: auto;
 }
 
 .footer p {
   font-family: var(--font-display);
-  font-size: 0.44rem;
-  letter-spacing: 0.38em;
+  font-size: 0.48rem;
+  letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--text-3);
 }
 
 /* ─── Print ───────────────────────────────────────── */
@@ -545,8 +470,8 @@
 @media (max-width: 780px) {
   .hero {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
-    padding: 4rem 2rem 4.5rem;
+    gap: 2rem;
+    padding: 4rem 2rem 4rem;
   }
   .formSection {
     grid-template-columns: 1fr;
@@ -554,24 +479,24 @@
     padding: 4rem 2rem 5rem;
   }
   .formIntro { position: static; }
-  .heroHeadline { font-size: 3.6rem; }
-  .logo { font-size: 3.2rem; }
-  .header { grid-template-columns: 1fr 1fr; padding: 2.5rem 2rem 2rem; }
+  .heroHeadline { font-size: 2.4rem; }
+  .logo { font-size: 2.1rem; }
+  .header { grid-template-columns: 1fr 1fr; padding: 2rem 2rem 1.8rem; }
   .headerMid { display: none; }
 }
 
 /* ─── Mobile ──────────────────────────────────────── */
 @media (max-width: 560px) {
-  .logo { font-size: 2.4rem; }
-  .heroHeadline { font-size: 2.8rem; }
+  .logo { font-size: 1.7rem; }
+  .heroHeadline { font-size: 2rem; }
   .wheelPair { flex-direction: column; gap: 3rem; }
   .wheelDivider { display: none; }
   .tabLabel { font-size: 1rem; }
   .header {
     grid-template-columns: 1fr;
     gap: 0.5rem;
-    padding: 2rem 1.5rem 1.8rem;
+    padding: 1.8rem 1.5rem 1.5rem;
   }
   .headerRight { display: none; }
-  .headerRule { margin-top: 0.5rem; }
+  .headerRule { margin-top: 0.4rem; }
 }

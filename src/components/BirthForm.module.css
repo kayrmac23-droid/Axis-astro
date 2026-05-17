@@ -6,11 +6,10 @@
 
 .formLabel {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.28em;
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   color: var(--gold);
-  opacity: 0.75;
   margin-bottom: 0.5rem;
 }
 
@@ -22,7 +21,7 @@
 
 .label {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -35,7 +34,8 @@
   font-style: italic;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--text-4);
+  color: var(--text-3);
+  opacity: 0.6;
   font-family: var(--font-serif);
   font-size: 0.75rem;
 }
@@ -51,7 +51,7 @@
 }
 
 .timeSep {
-  color: var(--text-4);
+  color: var(--text-3);
   font-family: var(--font-mono);
   font-size: 1rem;
 }
@@ -60,8 +60,8 @@
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(4, 3, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--surface-2);
   overflow: hidden;
 }
 
@@ -69,8 +69,8 @@
   padding: 0.85rem 0.8rem;
   background: none;
   border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--text-4);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--text-3);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
@@ -89,48 +89,36 @@
 }
 
 .ampmActive {
-  background: rgba(201, 168, 76, 0.10);
+  background: rgba(201, 150, 46, 0.1);
   color: var(--gold);
 }
 
-.ampmBtn:focus-visible {
-  outline: 1px solid rgba(201, 168, 76, 0.45);
-  outline-offset: -2px;
-}
-
-/* Dark glass input — near-black, not the purple surface token */
 .input {
   width: 100%;
-  background: rgba(4, 3, 18, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.9rem;
   padding: 0.85rem 1rem;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease;
   -webkit-appearance: none;
   border-radius: 0;
 }
 
 .input::placeholder {
-  color: var(--text-4);
-  opacity: 0.6;
+  color: var(--text-2);
+  opacity: 0.4;
 }
 
 .input:focus {
-  border-color: rgba(201, 168, 76, 0.45);
-  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.06), inset 0 0 12px rgba(201, 168, 76, 0.03);
-}
-
-.input:focus-visible {
-  outline: none;
+  border-color: rgba(201, 150, 46, 0.5);
 }
 
 .inputConfirmed {
-  border-color: rgba(107, 80, 32, 0.7);
+  border-color: var(--gold-dim);
   color: var(--gold);
-  background: rgba(4, 3, 18, 0.95);
 }
 
 /* Remove number input arrows */
@@ -161,16 +149,15 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: rgba(6, 4, 20, 0.98);
-  border: 1px solid rgba(201,168,76,0.22);
-  border-top: 1px solid var(--border);
+  background: var(--surface-2);
+  border: 1px solid var(--border-2);
+  border-top: none;
   z-index: 100;
-  max-height: 220px;
+  max-height: 200px;
   overflow-y: auto;
   list-style: none;
   margin: 0;
   padding: 0;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(201,168,76,0.06);
 }
 
 .suggestion {
@@ -180,8 +167,8 @@
   padding: 0.75rem 1rem;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
   font-family: var(--font-serif);
   font-size: 0.85rem;
   cursor: pointer;
@@ -192,8 +179,8 @@
 
 .suggestion:hover,
 .suggestionActive {
-  background: rgba(201, 168, 76, 0.07);
-  color: var(--gold);
+  background: rgba(201, 150, 46, 0.08);
+  color: var(--text);
 }
 
 .suggestion:last-child {
@@ -208,10 +195,10 @@
   padding: 1.25rem 1rem;
   background: var(--gold);
   border: 1px solid var(--gold);
-  color: #060408;
+  color: var(--bg);
   font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -224,7 +211,7 @@
   left: -60%;
   width: 40%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
   transform: skewX(-15deg);
 }
 
@@ -240,17 +227,7 @@
 .submitBtn:hover:not(:disabled) {
   background: var(--gold-bright);
   border-color: var(--gold-bright);
-  color: #060408;
-}
-
-.submitBtn:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
-}
-
-.submitBtn:active:not(:disabled) {
-  background: var(--gold-light);
-  transform: translateY(1px);
+  color: var(--bg);
 }
 
 .submitBtn:disabled {
@@ -268,8 +245,8 @@
 .btnSpinner {
   width: 12px;
   height: 12px;
-  border: 1px solid rgba(6, 4, 8, 0.4);
-  border-top-color: #060408;
+  border: 1px solid var(--gold-dim);
+  border-top-color: var(--gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -292,21 +269,21 @@
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--text-3);
   opacity: 0.7;
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .unknownTimeBtn:hover {
   opacity: 1;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .unknownTimeCheck {
   display: inline-block;
   width: 10px;
   height: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   flex-shrink: 0;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -318,21 +295,10 @@
 
 .unknownTimeNote {
   font-family: var(--font-serif);
-  font-size: 0.82rem;
+  font-size: 0.75rem;
   font-style: italic;
-  color: rgba(180, 140, 60, 0.75);
+  color: #8A6020;
   letter-spacing: 0.01em;
-  margin-top: 0.6rem;
-  line-height: 1.7;
-  padding-left: 1rem;
-  border-left: 1.5px solid rgba(180, 140, 60, 0.22);
-}
-
-/* ─── Mobile ─────────────────────────────────────────── */
-@media (max-width: 640px) {
-  .dateRow { gap: 0.3rem; }
-  .input { font-size: 0.85rem; padding: 0.75rem 0.75rem; }
-  .ampmBtn { padding: 0.75rem 0.6rem; font-size: 0.6rem; }
-  .submitBtn { padding: 1.1rem 1rem; font-size: 0.68rem; }
-  .form { gap: 1.6rem; }
+  margin-top: 0.4rem;
+  opacity: 0.85;
 }

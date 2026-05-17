@@ -33,20 +33,13 @@
   bottom: calc(100% + 12px);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--surface-3, #16153A);
-  border: 1px solid rgba(212,168,69,0.45);
-  border-top: 2px solid rgba(212,168,69,0.6);
-  padding: 0.9rem 1.2rem;
-  min-width: 152px;
+  background: var(--surface-2, #1a1422);
+  border: 1px solid rgba(212,168,69,0.35);
+  padding: 0.85rem 1.1rem;
+  min-width: 140px;
   z-index: 50;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.7), 0 2px 8px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
   pointer-events: auto;
-  animation: fadeIn 0.12s ease both;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
-  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .tooltipPlanet {
@@ -94,19 +87,14 @@
   right: 0.5rem;
   background: none;
   border: none;
-  color: rgba(255,255,255,0.4);
-  font-size: 1rem;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.9rem;
   cursor: pointer;
   line-height: 1;
-  padding: 0.2rem 0.25rem;
+  padding: 0;
   transition: color 0.15s;
 }
 
 .tooltipClose:hover {
-  color: rgba(255,255,255,0.85);
-}
-
-.tooltipClose:focus-visible {
-  outline: 1px solid rgba(212,168,69,0.5);
-  outline-offset: 1px;
+  color: rgba(255,255,255,0.7);
 }
