@@ -5,37 +5,37 @@
 }
 
 :root {
-  /* True void — cooler and darker than before */
+  /* True void */
   --void: #010108;
   --bg: #030212;
   --deep: #05041A;
-  --surface: #090820;
-  --surface-2: #0F0E2C;
-  --surface-3: #16153A;
+  --surface: #080618;
+  --surface-2: #0A0918;
+  --surface-3: #100F26;
 
   /* Borders */
-  --border: #1A1940;
-  --border-2: #282660;
-  --border-bright: #3E3C80;
+  --border: #181630;
+  --border-2: #222040;
+  --border-bright: #382E60;
 
-  /* Star-white text — cooler, bluer than warm cream */
-  --text: #EAE8F8;
-  --text-2: #A8A4C8;
-  --text-3: #9490C4;
-  --text-4: #625E90;
+  /* Warm cream text — not gray-purple */
+  --text: #EDE8DC;
+  --text-2: #B0A898;
+  --text-3: #8A8070;
+  --text-4: #5C5448;
 
-  /* Gold — brighter, more star-like */
-  --gold: #FFC030;
-  --gold-bright: #FFE060;
-  --gold-light: #FFD060;
-  --gold-dim: #704818;
+  /* Antique metallic gold — muted, not brassy yellow */
+  --gold: #C9A84C;
+  --gold-bright: #D4B86A;
+  --gold-light: #D4AF37;
+  --gold-dim: #6B5020;
 
-  /* Teal/cyan — primary interactive accent, never used before */
+  /* Teal/cyan — primary data accent */
   --cyan: #2CC8C0;
   --cyan-dim: #0A4845;
   --cyan-glow: rgba(44, 200, 192, 0.15);
 
-  /* Violet — for retrograde + accent */
+  /* Violet — retrograde + synthesis */
   --violet: #7844FF;
   --violet-light: #C8B3FF;
   --violet-dim: #2A1460;
@@ -55,9 +55,32 @@ html {
 body {
   background-color: var(--void);
   background-image:
-    radial-gradient(ellipse 120% 60% at 50% -10%, #06040F 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 5% 95%, #040210 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 95% 85%, #03010C 0%, transparent 50%);
+    /* Micro star field — warm cream points scattered across the dark */
+    radial-gradient(circle at  7% 12%, rgba(237,230,215,0.65) 0, transparent 1.2px),
+    radial-gradient(circle at 22%  4%, rgba(237,230,215,0.45) 0, transparent 0.8px),
+    radial-gradient(circle at 64%  8%, rgba(237,230,215,0.55) 0, transparent 1.0px),
+    radial-gradient(circle at 87% 17%, rgba(237,230,215,0.40) 0, transparent 0.8px),
+    radial-gradient(circle at 42% 24%, rgba(237,230,215,0.35) 0, transparent 0.8px),
+    radial-gradient(circle at 75% 31%, rgba(237,230,215,0.50) 0, transparent 1.0px),
+    radial-gradient(circle at 14% 44%, rgba(237,230,215,0.40) 0, transparent 0.8px),
+    radial-gradient(circle at 91% 47%, rgba(237,230,215,0.55) 0, transparent 1.0px),
+    radial-gradient(circle at 32% 57%, rgba(237,230,215,0.30) 0, transparent 0.7px),
+    radial-gradient(circle at 57% 63%, rgba(237,230,215,0.45) 0, transparent 0.8px),
+    radial-gradient(circle at  4% 71%, rgba(237,230,215,0.40) 0, transparent 0.8px),
+    radial-gradient(circle at 78% 77%, rgba(237,230,215,0.35) 0, transparent 0.7px),
+    radial-gradient(circle at 24% 84%, rgba(237,230,215,0.50) 0, transparent 1.0px),
+    radial-gradient(circle at 47% 91%, rgba(237,230,215,0.35) 0, transparent 0.7px),
+    radial-gradient(circle at 69% 95%, rgba(237,230,215,0.30) 0, transparent 0.7px),
+    /* Gold-warm star accents */
+    radial-gradient(circle at 37% 14%, rgba(200,168,76,0.55)  0, transparent 1.3px),
+    radial-gradient(circle at 54% 39%, rgba(200,168,76,0.35)  0, transparent 0.8px),
+    radial-gradient(circle at 82% 55%, rgba(200,168,76,0.45)  0, transparent 1.1px),
+    radial-gradient(circle at 11% 88%, rgba(200,168,76,0.30)  0, transparent 0.8px),
+    /* Deep atmospheric nebula layers */
+    radial-gradient(ellipse  90% 55% at 50%  -8%, rgba(22,  8, 48, 0.95) 0%, transparent 65%),
+    radial-gradient(ellipse  60% 45% at  5%  95%, rgba(10,  4, 28, 0.85) 0%, transparent 60%),
+    radial-gradient(ellipse  50% 40% at 95%  85%, rgba( 6,  2, 20, 0.80) 0%, transparent 60%),
+    radial-gradient(ellipse 110% 90% at 50%  50%, rgba( 5,  2, 16, 0.35) 0%, transparent 100%);
   color: var(--text);
   font-family: var(--font-serif);
   min-height: 100vh;
@@ -66,7 +89,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Paper grain stays but subtle */
+/* Paper grain */
 body::before {
   content: '';
   position: fixed;
@@ -74,7 +97,7 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.4;
+  opacity: 0.45;
 }
 
 ::-webkit-scrollbar { width: 3px; }

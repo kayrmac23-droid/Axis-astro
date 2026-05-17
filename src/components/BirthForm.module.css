@@ -6,10 +6,11 @@
 
 .formLabel {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.25em;
+  font-size: 0.68rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   color: var(--gold);
+  opacity: 0.75;
   margin-bottom: 0.5rem;
 }
 
@@ -21,7 +22,7 @@
 
 .label {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--text-3);
@@ -34,8 +35,7 @@
   font-style: italic;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--text-3);
-  opacity: 0.6;
+  color: var(--text-4);
   font-family: var(--font-serif);
   font-size: 0.75rem;
 }
@@ -51,7 +51,7 @@
 }
 
 .timeSep {
-  color: var(--text-3);
+  color: var(--text-4);
   font-family: var(--font-mono);
   font-size: 1rem;
 }
@@ -60,8 +60,8 @@
   display: flex;
   flex-direction: row;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--surface-2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(4, 3, 16, 0.9);
   overflow: hidden;
 }
 
@@ -69,8 +69,8 @@
   padding: 0.85rem 0.8rem;
   background: none;
   border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-3);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-4);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
@@ -89,37 +89,38 @@
 }
 
 .ampmActive {
-  background: rgba(255, 192, 48, 0.12);
+  background: rgba(201, 168, 76, 0.10);
   color: var(--gold);
 }
 
 .ampmBtn:focus-visible {
-  outline: 1px solid rgba(255, 192, 48, 0.5);
+  outline: 1px solid rgba(201, 168, 76, 0.45);
   outline-offset: -2px;
 }
 
+/* Dark glass input — near-black, not the purple surface token */
 .input {
   width: 100%;
-  background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(4, 3, 18, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 0.9rem;
   padding: 0.85rem 1rem;
   outline: none;
-  transition: border-color 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
   -webkit-appearance: none;
   border-radius: 0;
 }
 
 .input::placeholder {
-  color: var(--text-2);
-  opacity: 0.4;
+  color: var(--text-4);
+  opacity: 0.6;
 }
 
 .input:focus {
-  border-color: rgba(255, 192, 48, 0.55);
-  box-shadow: 0 0 0 2px rgba(255, 192, 48, 0.07);
+  border-color: rgba(201, 168, 76, 0.45);
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.06), inset 0 0 12px rgba(201, 168, 76, 0.03);
 }
 
 .input:focus-visible {
@@ -127,9 +128,9 @@
 }
 
 .inputConfirmed {
-  border-color: rgba(112, 72, 24, 0.9);
+  border-color: rgba(107, 80, 32, 0.7);
   color: var(--gold);
-  background: rgba(255, 192, 48, 0.03);
+  background: rgba(4, 3, 18, 0.95);
 }
 
 /* Remove number input arrows */
@@ -160,8 +161,8 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--surface-3);
-  border: 1px solid var(--border-bright);
+  background: rgba(6, 4, 20, 0.98);
+  border: 1px solid rgba(201,168,76,0.22);
   border-top: 1px solid var(--border);
   z-index: 100;
   max-height: 220px;
@@ -169,7 +170,7 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(201,168,76,0.06);
 }
 
 .suggestion {
@@ -179,8 +180,8 @@
   padding: 0.75rem 1rem;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-2);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--text-3);
   font-family: var(--font-serif);
   font-size: 0.85rem;
   cursor: pointer;
@@ -191,7 +192,7 @@
 
 .suggestion:hover,
 .suggestionActive {
-  background: rgba(255, 192, 48, 0.07);
+  background: rgba(201, 168, 76, 0.07);
   color: var(--gold);
 }
 
@@ -207,10 +208,10 @@
   padding: 1.25rem 1rem;
   background: var(--gold);
   border: 1px solid var(--gold);
-  color: var(--bg);
+  color: #060408;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.25em;
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -223,7 +224,7 @@
   left: -60%;
   width: 40%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
   transform: skewX(-15deg);
 }
 
@@ -267,8 +268,8 @@
 .btnSpinner {
   width: 12px;
   height: 12px;
-  border: 1px solid var(--gold-dim);
-  border-top-color: var(--gold);
+  border: 1px solid rgba(6, 4, 8, 0.4);
+  border-top-color: #060408;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -291,21 +292,21 @@
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--text-4);
   opacity: 0.7;
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .unknownTimeBtn:hover {
   opacity: 1;
-  color: var(--text-2);
+  color: var(--text-3);
 }
 
 .unknownTimeCheck {
   display: inline-block;
   width: 10px;
   height: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   flex-shrink: 0;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -319,12 +320,12 @@
   font-family: var(--font-serif);
   font-size: 0.82rem;
   font-style: italic;
-  color: rgba(180, 130, 60, 0.8);
+  color: rgba(180, 140, 60, 0.75);
   letter-spacing: 0.01em;
   margin-top: 0.6rem;
   line-height: 1.7;
   padding-left: 1rem;
-  border-left: 1.5px solid rgba(180, 130, 60, 0.25);
+  border-left: 1.5px solid rgba(180, 140, 60, 0.22);
 }
 
 /* ─── Mobile ─────────────────────────────────────────── */
