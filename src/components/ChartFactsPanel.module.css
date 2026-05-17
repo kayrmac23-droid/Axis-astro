@@ -7,12 +7,12 @@
 }
 
 .panelLabel {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: #C8A96B;
-  opacity: 0.85;
+  color: var(--gold);
+  opacity: 0.9;
   margin-bottom: 1.4rem;
 }
 
@@ -29,7 +29,7 @@
 .hName { }
 
 .hSys {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 0.48rem;
   letter-spacing: 0.35em;
   text-transform: uppercase;
@@ -56,7 +56,7 @@
   grid-template-columns: 7.5rem 1fr 1.4rem 1fr;
   gap: 0;
   padding: 0.45rem 0;
-  border-bottom: 1px solid rgba(26, 25, 64, 0.5);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.09);
   align-items: start;
   transition: background 0.15s;
 }
@@ -66,15 +66,15 @@
 }
 
 .row:hover {
-  background: rgba(255, 255, 255, 0.012);
+  background: rgba(245, 241, 230, 0.02);
 }
 
 .rowShifted {
-  background: rgba(44, 200, 192, 0.025);
+  background: rgba(212, 175, 55, 0.028);
 }
 
 .rowShifted:hover {
-  background: rgba(44, 200, 192, 0.04);
+  background: rgba(212, 175, 55, 0.045);
 }
 
 /* ─── Planet name column ─────────────────────────────── */
@@ -93,7 +93,7 @@
 }
 
 .planetName {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 0.5rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -110,7 +110,7 @@
 }
 
 .cellShifted .sign {
-  color: var(--cyan);
+  color: var(--gold-light);
 }
 
 /* First line: sign deg house retro */
@@ -122,7 +122,7 @@
 }
 
 .sign {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -147,13 +147,13 @@
 .retro {
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  color: var(--violet-light);
+  color: var(--gold-light);
   letter-spacing: 0.02em;
 }
 
 /* ─── Dignity badge ──────────────────────────────────── */
 .dignity {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 0.42rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -161,7 +161,7 @@
 }
 
 .domicile  { color: var(--gold); }
-.exaltation { color: var(--gold-light); opacity: 0.75; }
+.exaltation { color: var(--gold-light); opacity: 0.85; }
 .detriment { color: var(--text-4); }
 .fall      { color: var(--text-4); opacity: 0.65; }
 
@@ -183,10 +183,10 @@
 .diffCol {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: var(--cyan);
+  color: var(--gold);
   text-align: center;
   padding-top: 0.08rem;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* ─── Absent placeholder ─────────────────────────────── */
@@ -215,7 +215,7 @@
 }
 
 .plutoFallback {
-  color: rgba(220, 160, 60, 0.6);
+  color: rgba(212, 175, 55, 0.66);
 }
 
 .legend {
@@ -226,7 +226,7 @@
 }
 
 .legendItem {
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   font-size: 0.44rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
