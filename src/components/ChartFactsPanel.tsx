@@ -68,10 +68,6 @@ export default function ChartFactsPanel({ data }: Props) {
   return (
     <section className={styles.panel}>
       <p className={styles.panelLabel}>Chart positions</p>
-      <p className={styles.panelDesc}>
-        Exact placements by degree, house, and dignity — both systems side by side.
-        A <span style={{ color: 'var(--cyan)', fontStyle: 'normal' }}>≠</span> marks where Tropical and Sidereal diverge in sign.
-      </p>
 
       {/* Column headers */}
       <div className={styles.headerRow}>
