@@ -41,8 +41,8 @@ export default function AstrolabeDecor() {
         {/* Outer bezel */}
         <circle cx="250" cy="250" r="240" fill="#07080a" />
 
-        {/* Sidereal platter */}
-        <g filter="url(#ad-plate-shadow)">
+        {/* Sidereal platter — animates to −23.85° Lahiri offset */}
+        <g className={styles.siderealPlatter} filter="url(#ad-plate-shadow)">
           <circle cx="250" cy="250" r="185" fill="url(#ad-matte-obsidian)" stroke="#222936" strokeWidth="1" />
 
           <g stroke="#1C2330" strokeWidth="1" strokeDasharray="2,2">
@@ -75,8 +75,9 @@ export default function AstrolabeDecor() {
         <circle cx="250" cy="250" r="8" fill="#0D0F12" stroke="#717E94" strokeWidth="1.5" />
         <circle cx="250" cy="250" r="3" fill="#D4AF37" />
 
-        {/* Lahiri offset label */}
-        <text x="250" y="278" fontFamily="Space Mono, monospace" fontSize="9" fill="#717E94" textAnchor="middle">
+        {/* Lahiri offset label — fades in after precession settles */}
+        <text x="250" y="278" className={styles.ayanamsaCounter}
+          fontFamily="Space Mono, monospace" fontSize="9" fill="#717E94" textAnchor="middle">
           LAHIRI −23.85°
         </text>
       </svg>
