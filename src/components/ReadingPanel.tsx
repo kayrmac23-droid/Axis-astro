@@ -22,8 +22,9 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Integration',
 }
 
-// Per-section timeout in ms. 35s gives the 60s Vercel function limit plenty of margin.
-const SECTION_TIMEOUT_MS = 35_000
+// Per-section timeout in ms. 50s leaves a 10s buffer below the 60s Vercel function limit.
+// Keep-alive pings every 5s prevent the connection from being treated as idle before tokens arrive.
+const SECTION_TIMEOUT_MS = 50_000
 
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
@@ -68,14 +69,15 @@ function parseReading(text: string, section: string): Block[] {
   }
 
   for (const line of lines) {
-    if (line.startsWith('### ')) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith('### ')) {
       flush()
-      blocks.push({ type: 'subheading', content: line.replace('### ', '').trim() })
+      blocks.push({ type: 'subheading', content: trimmed.replace('### ', '').trim() })
       continue
     }
-    if (line.startsWith('## ')) {
+    if (trimmed.startsWith('## ')) {
       flush()
-      const content = line.replace('## ', '').trim()
+      const content = trimmed.replace('## ', '').trim()
       const descriptorKey = section === 'synthesis'
         ? getSynthesisKey(content)
         : getDescriptorKey(content, section)
@@ -84,9 +86,9 @@ function parseReading(text: string, section: string): Block[] {
     }
     // Skip lines that are purely italic (e.g. `*Sun in Aries*`); Claude sometimes emits
     // these as inline section dividers — they carry no prose value
-    if (line.match(/^\*[^*]+\*$/) || line.match(/^_[^_]+_$/)) continue
-    if (!line.trim()) { flush(); continue }
-    buf = buf ? buf + ' ' + line.trim() : line.trim()
+    if (trimmed.match(/^\*[^*]+\*$/) || trimmed.match(/^_[^_]+_$/)) continue
+    if (!trimmed) { flush(); continue }
+    buf = buf ? buf + ' ' + trimmed : trimmed
   }
   flush()
   return blocks
@@ -179,6 +181,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               chunkText += decoder.decode(value, { stream: true })
               setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
             }
+            // Flush any bytes the decoder buffered for incomplete multibyte sequences
+            chunkText += decoder.decode()
 
             if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
               lastError = 'Generation failed. Please retry this reading.'
@@ -191,8 +195,13 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             sectionSuccess = true
             break
           } catch (fetchErr: unknown) {
-            if (fetchErr instanceof Error && fetchErr.name === 'AbortError') throw fetchErr
-            if (fetchErr instanceof Error && fetchErr.name === 'TimeoutError') {
+            // Re-throw only when the user explicitly cancelled (abortRef fired).
+            // Timeouts from AbortSignal.timeout() may surface as AbortError in Node.js
+            // fetch — checking the user signal prevents silently swallowing timeouts.
+            if (fetchErr instanceof Error && fetchErr.name === 'AbortError' && abortRef.current?.signal.aborted) {
+              throw fetchErr
+            }
+            if (fetchErr instanceof Error && (fetchErr.name === 'TimeoutError' || fetchErr.name === 'AbortError')) {
               lastError = `${SECTION_DISPLAY[planetSec] ?? planetSec} timed out. Please retry.`
             } else {
               lastError = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
