@@ -24,7 +24,7 @@
   font-size: 0.65rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -34,7 +34,7 @@
   font-style: italic;
   text-transform: none;
   letter-spacing: 0;
-  color: var(--text-3);
+  color: var(--fg-3);
   opacity: 0.6;
   font-family: var(--font-serif);
   font-size: 0.75rem;
@@ -51,7 +51,7 @@
 }
 
 .timeSep {
-  color: var(--text-3);
+  color: var(--fg-3);
   font-family: var(--font-mono);
   font-size: 1rem;
 }
@@ -70,7 +70,7 @@
   background: none;
   border: none;
   border-right: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-3);
+  color: var(--fg-3);
   font-family: var(--font-mono);
   font-size: 0.65rem;
   letter-spacing: 0.1em;
@@ -84,7 +84,7 @@
 }
 
 .ampmBtn:hover {
-  color: var(--text-2);
+  color: var(--fg-2);
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -97,7 +97,7 @@
   width: 100%;
   background: var(--surface-2);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: var(--text);
+  color: var(--fg);
   font-family: var(--font-mono);
   font-size: 0.9rem;
   padding: 0.85rem 1rem;
@@ -108,12 +108,12 @@
 }
 
 .input::placeholder {
-  color: var(--text-2);
+  color: var(--fg-2);
   opacity: 0.4;
 }
 
 .input:focus {
-  border-color: rgba(44, 200, 192, 0.5);
+  border-color: rgba(200, 120, 64, 0.5);
 }
 
 .inputConfirmed {
@@ -169,7 +169,7 @@
   background: none;
   border: none;
   border-bottom: 1px solid var(--border);
-  color: var(--text-2);
+  color: var(--fg-2);
   font-family: var(--font-serif);
   font-size: 0.85rem;
   cursor: pointer;
@@ -181,7 +181,7 @@
 .suggestion:hover,
 .suggestionActive {
   background: rgba(201, 150, 46, 0.08);
-  color: var(--text);
+  color: var(--fg);
 }
 
 .suggestion:last-child {
@@ -226,8 +226,8 @@
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: var(--gold-bright);
-  border-color: var(--gold-bright);
+  background: var(--copper-light);
+  border-color: var(--copper-light);
   color: var(--bg);
 }
 
@@ -270,14 +270,14 @@
   font-size: 0.62rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
   opacity: 0.7;
   transition: opacity 0.15s ease, color 0.15s ease;
 }
 
 .unknownTimeBtn:hover {
   opacity: 1;
-  color: var(--text-2);
+  color: var(--fg-2);
 }
 
 .unknownTimeCheck {

@@ -5,46 +5,42 @@
 }
 
 :root {
-  /* True void — cooler and darker than before */
-  --void: #010108;
-  --bg: #030212;
-  --deep: #05041A;
-  --surface: #090820;
-  --surface-2: #0F0E2C;
-  --surface-3: #16153A;
+  /* Surfaces */
+  --void:      #060411;
+  --bg:        #0B0920;
+  --deep:      #0E0C24;
+  --surface:   #110F2C;
+  --surface-2: #18163A;
+  --surface-3: #201E48;
 
   /* Borders */
-  --border: #1A1940;
-  --border-2: #282660;
-  --border-bright: #3E3C80;
+  --border:        #242050;
+  --border-2:      #343068;
+  --border-bright: #484480;
 
-  /* Star-white text — cooler, bluer than warm cream */
-  --text: #EAE8F8;
-  --text-2: #A8A4C8;
-  --text-3: #9490C4;
-  --text-4: #625E90;
+  /* Text */
+  --fg:   #EDE8DC;
+  --fg-2: #B8AF9E;
+  --fg-3: #7C7468;
+  --fg-4: #4A4440;
 
-  /* Gold — brighter, more star-like */
-  --gold: #FFC030;
-  --gold-bright: #FFD860;
-  --gold-light: #FFD060;
-  --gold-dim: #704818;
+  /* Copper accent */
+  --copper:        #C87840;
+  --copper-light:  #E09860;
+  --copper-dim:    #5C3818;
+  --copper-subtle: rgba(200, 120, 64, 0.10);
+  --copper-border: rgba(200, 120, 64, 0.28);
 
-  /* Teal/cyan — primary interactive accent */
-  --cyan: #2CC8C0;
-  --cyan-dim: #0A4845;
-  --cyan-glow: rgba(44, 200, 192, 0.15);
+  /* Gold aliases — map to copper for backward compatibility */
+  --gold:       var(--copper);
+  --gold-light: var(--copper-light);
+  --gold-dim:   var(--copper-dim);
 
-  /* Violet — for retrograde + accent */
-  --violet: #7844FF;
-  --violet-light: #C8B3FF;
-  --violet-dim: #2A1460;
-
-  --font-wordmark: 'Cinzel', Georgia, serif;
-  --font-display: 'Cinzel', Georgia, serif;
+  --font-wordmark:  'Cinzel', Georgia, serif;
+  --font-display:   'Cinzel', Georgia, serif;
   --font-editorial: 'Cormorant Garamond', Georgia, serif;
-  --font-serif: 'Cormorant Garamond', Georgia, serif;
-  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-serif:     'Cormorant Garamond', Georgia, serif;
+  --font-mono:      'Space Mono', 'Courier New', monospace;
 }
 
 html {
@@ -55,18 +51,18 @@ html {
 body {
   background-color: var(--void);
   background-image:
-    radial-gradient(circle at 8% 14%, rgba(234, 232, 248, 0.18) 0, transparent 1.2px),
-    radial-gradient(circle at 22% 7%, rgba(44, 200, 192, 0.16) 0, transparent 1px),
-    radial-gradient(circle at 66% 10%, rgba(234, 232, 248, 0.14) 0, transparent 1.1px),
-    radial-gradient(circle at 86% 20%, rgba(234, 232, 248, 0.12) 0, transparent 1px),
-    radial-gradient(circle at 73% 47%, rgba(255, 192, 48, 0.15) 0, transparent 1px),
-    radial-gradient(circle at 15% 69%, rgba(234, 232, 248, 0.12) 0, transparent 1px),
-    radial-gradient(circle at 36% 88%, rgba(120, 68, 255, 0.13) 0, transparent 1px),
-    radial-gradient(circle at 91% 86%, rgba(234, 232, 248, 0.14) 0, transparent 1.1px),
-    radial-gradient(ellipse 120% 60% at 50% -10%, #06040F 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 5% 95%, #040210 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 95% 85%, #03010C 0%, transparent 50%);
-  color: var(--text);
+    radial-gradient(circle at 8% 14%, rgba(237, 232, 220, 0.18) 0, transparent 1.2px),
+    radial-gradient(circle at 22% 7%, rgba(200, 120, 64, 0.16) 0, transparent 1px),
+    radial-gradient(circle at 66% 10%, rgba(237, 232, 220, 0.14) 0, transparent 1.1px),
+    radial-gradient(circle at 86% 20%, rgba(237, 232, 220, 0.12) 0, transparent 1px),
+    radial-gradient(circle at 73% 47%, rgba(200, 120, 64, 0.15) 0, transparent 1px),
+    radial-gradient(circle at 15% 69%, rgba(237, 232, 220, 0.12) 0, transparent 1px),
+    radial-gradient(circle at 36% 88%, rgba(200, 120, 64, 0.13) 0, transparent 1px),
+    radial-gradient(circle at 91% 86%, rgba(237, 232, 220, 0.14) 0, transparent 1.1px),
+    radial-gradient(ellipse 120% 60% at 50% -10%, #080614 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 5% 95%, #060411 0%, transparent 50%),
+    radial-gradient(ellipse 50% 35% at 95% 85%, #050310 0%, transparent 50%);
+  color: var(--fg);
   font-family: var(--font-serif);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -90,8 +86,8 @@ body::before {
 ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
 
 ::selection {
-  background: var(--violet-dim);
-  color: var(--text);
+  background: var(--copper-dim);
+  color: var(--fg);
 }
 
 h1, h2, h3 {
@@ -105,7 +101,7 @@ p {
   font-size: 1.05rem;
   line-height: 1.85;
   font-weight: 300;
-  color: var(--text);
+  color: var(--fg);
 }
 
 @keyframes fadeIn {
