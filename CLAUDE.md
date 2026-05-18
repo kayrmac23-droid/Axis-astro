@@ -57,9 +57,9 @@ Planet sections per reading type:
 - **sidereal**: lagna, sun, moon, mercury, venus, mars, jupiter_saturn, rahu_ketu
 - **synthesis**: agree, diverge, tension, closing
 
-### `lib/astro-calc.ts` — Pure TS astronomical engine
+### `lib/astro-calc.ts` — Astronomical engine (astronomia package)
 
-No external ephemeris. Uses VSOP87-derived algorithms for planet longitudes. Sidereal positions are derived from Tropical via Lahiri ayanamsa (~23.85° calibrated to J2000). House system is Whole Sign. Exports `calculateDualChart(BirthData, overrides?)` → `DualChartData`.
+Uses the `astronomia` npm package (VSOP87B ephemeris via `astronomia/planetposition` + `astronomia/data/vsop87B*`) for all planets Mercury–Neptune, `astronomia/solar` (VSOP87 + nutation + aberration) for the Sun, and `astronomia/moonposition` (ELP2000 series) for the Moon. Nutation corrections applied via `astronomia/nutation`; light-time corrections via `astronomia/base`. Planet objects are instantiated once at module load. Pluto uses Meeus Ch. 37 polynomials (not in VSOP87) with an optional JPL Horizons override. Sidereal positions are derived from Tropical via Lahiri ayanamsa (~23.85° calibrated to J2000). House system is Whole Sign. Exports `calculateDualChart(BirthData, overrides?)` → `DualChartData`.
 
 `BirthData` includes optional `tzName: string` (IANA tz) and `birthTimeUnknown: boolean` (forces noon for house-agnostic readings). `DualChartData` includes `plutoSource` string and `birthData`.
 
