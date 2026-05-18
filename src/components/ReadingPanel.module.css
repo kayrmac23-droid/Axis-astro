@@ -18,7 +18,7 @@
   font-size: 1.7rem;
   font-weight: 500;
   font-style: italic;
-  color: var(--text);
+  color: var(--fg);
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
@@ -29,7 +29,7 @@
   font-weight: 400;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
   margin-top: 0.3rem;
 }
 
@@ -48,7 +48,7 @@
   font-size: 0.48rem;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--fg-4);
 }
 
 .summaryPlacements {
@@ -115,7 +115,7 @@
   font-size: 0.54rem;
   letter-spacing: 0.38em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
 }
 
 /* ─── Error ───────────────────────────────────────── */
@@ -139,7 +139,7 @@
   font-size: 0.56rem;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
   background: none;
   border: 1px solid var(--border-2);
   padding: 0.65rem 1.6rem;
@@ -147,7 +147,7 @@
   transition: all 0.2s ease;
 }
 
-.retryBtn:hover { color: var(--text); border-color: var(--text); }
+.retryBtn:hover { color: var(--fg); border-color: var(--fg); }
 
 /* ─── Reading body ────────────────────────────────── */
 .readingBody { max-width: 680px; }
@@ -163,7 +163,7 @@
   font-size: 0.58rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
   margin-top: 2.5rem;
   margin-bottom: 0.9rem;
   padding-bottom: 0.6rem;
@@ -176,7 +176,7 @@
   font-size: 2rem;
   font-weight: 400;
   font-style: italic;
-  color: var(--text);
+  color: var(--fg);
   padding-bottom: 0.8rem;
   margin-bottom: 1.4rem;
   border-bottom: 1px solid var(--border);
@@ -185,9 +185,9 @@
 
 /* ─── Info box ────────────────────────────────────── */
 .infoBox {
-  background: rgba(90, 64, 144, 0.06);
-  border: 1px solid rgba(90, 64, 144, 0.14);
-  border-left: 2px solid rgba(90, 64, 144, 0.38);
+  background: var(--copper-subtle);
+  border: 1px solid var(--copper-border);
+  border-left: 2px solid rgba(200, 120, 64, 0.50);
   padding: 1.2rem 1.5rem;
   margin-bottom: 1.8rem;
   animation: fadeIn 0.5s ease 0.1s both;
@@ -198,7 +198,7 @@
   font-size: 0.54rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--violet-light);
+  color: var(--copper);
   opacity: 0.75;
   margin-bottom: 0.55rem;
 }
@@ -208,7 +208,7 @@
   font-size: 1rem;
   line-height: 1.82;
   font-weight: 300;
-  color: var(--text-2);
+  color: var(--fg-2);
   font-style: italic;
 }
 
@@ -218,7 +218,7 @@
   font-size: 1.12rem;
   line-height: 2;
   font-weight: 300;
-  color: var(--text);
+  color: var(--fg);
   letter-spacing: 0.01em;
   margin-bottom: 1.1rem;
   animation: fadeIn 0.45s ease both;
@@ -309,7 +309,7 @@
 }
 
 .chip_pending {
-  color: var(--text-4);
+  color: var(--fg-4);
   border-color: var(--border);
   opacity: 0.45;
 }
@@ -321,7 +321,7 @@
 }
 
 .chip_done {
-  color: var(--text-3);
+  color: var(--fg-3);
   border-color: var(--border);
   opacity: 0.7;
 }
@@ -331,7 +331,7 @@
   border-color: rgba(138, 32, 32, 0.3);
 }
 
-.chipCheck { color: var(--text-4); }
+.chipCheck { color: var(--fg-4); }
 .chipFail  { color: rgba(180, 60, 60, 0.7); }
 
 @keyframes chipPulse {

@@ -33,7 +33,7 @@
   font-size: 0.48rem;
   letter-spacing: 0.35em;
   text-transform: uppercase;
-  color: var(--text-4);
+  color: var(--fg-4);
 }
 
 .hDiff { }
@@ -70,11 +70,11 @@
 }
 
 .rowShifted {
-  background: rgba(44, 200, 192, 0.025);
+  background: rgba(200, 120, 64, 0.025);
 }
 
 .rowShifted:hover {
-  background: rgba(44, 200, 192, 0.04);
+  background: rgba(200, 120, 64, 0.04);
 }
 
 /* ─── Planet name column ─────────────────────────────── */
@@ -87,7 +87,7 @@
 
 .symbol {
   font-size: 0.9rem;
-  color: var(--text-3);
+  color: var(--fg-3);
   line-height: 1;
   font-family: serif;
 }
@@ -97,7 +97,7 @@
   font-size: 0.5rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--fg-3);
 }
 
 /* ─── Data cell ──────────────────────────────────────── */
@@ -110,7 +110,7 @@
 }
 
 .cellShifted .sign {
-  color: var(--cyan);
+  color: var(--copper-light);
 }
 
 /* First line: sign deg house retro */
@@ -126,28 +126,28 @@
   font-size: 0.62rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--text);
+  color: var(--fg);
   min-width: 2.2rem;
 }
 
 .deg {
   font-family: var(--font-mono);
   font-size: 0.68rem;
-  color: var(--text-2);
+  color: var(--fg-2);
   letter-spacing: 0.02em;
 }
 
 .house {
   font-family: var(--font-mono);
   font-size: 0.58rem;
-  color: var(--text-4);
+  color: var(--fg-4);
   letter-spacing: 0.04em;
 }
 
 .retro {
   font-family: var(--font-mono);
   font-size: 0.6rem;
-  color: var(--violet-light);
+  color: var(--fg-2);
   letter-spacing: 0.02em;
 }
 
@@ -162,28 +162,28 @@
 
 .domicile  { color: var(--gold); }
 .exaltation { color: var(--gold-light); opacity: 0.75; }
-.detriment { color: var(--text-4); }
-.fall      { color: var(--text-4); opacity: 0.65; }
+.detriment { color: var(--fg-4); }
+.fall      { color: var(--fg-4); opacity: 0.65; }
 
 /* ─── Nakshatra ──────────────────────────────────────── */
 .nakshatra {
   font-family: var(--font-mono);
   font-size: 0.58rem;
-  color: var(--text-3);
+  color: var(--fg-3);
   letter-spacing: 0.02em;
   white-space: normal;
   line-height: 1.4;
 }
 
 .pada {
-  color: var(--text-4);
+  color: var(--fg-4);
 }
 
 /* ─── Diff indicator column ──────────────────────────── */
 .diffCol {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: var(--cyan);
+  color: var(--copper);
   text-align: center;
   padding-top: 0.08rem;
   opacity: 0.85;
@@ -193,7 +193,7 @@
 .absent {
   font-family: var(--font-mono);
   font-size: 0.65rem;
-  color: var(--text-4);
+  color: var(--fg-4);
   opacity: 0.4;
 }
 
@@ -210,7 +210,7 @@
 .plutoSource {
   font-family: var(--font-mono);
   font-size: 0.58rem;
-  color: var(--text-4);
+  color: var(--fg-4);
   letter-spacing: 0.04em;
 }
 
@@ -234,7 +234,7 @@
 
 .dot {
   font-size: 0.5rem;
-  color: var(--text-4);
+  color: var(--fg-4);
   margin: 0 0.5rem;
   opacity: 0.5;
 }

@@ -13,7 +13,7 @@
   position: absolute;
   inset: -20px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(44, 200, 192, 0.04) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(200, 120, 64, 0.04) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -68,7 +68,7 @@
 .tooltipRow {
   font-family: var(--font-mono, monospace);
   font-size: 0.68rem;
-  color: var(--text-2);
+  color: var(--fg-2);
   line-height: 1.8;
   letter-spacing: 0.03em;
 }
@@ -76,7 +76,7 @@
 .tooltipDignity {
   font-family: var(--font-mono, monospace);
   font-size: 0.62rem;
-  color: var(--violet-light);
+  color: var(--copper-light);
   line-height: 1.8;
   letter-spacing: 0.03em;
 }
@@ -87,7 +87,7 @@
   right: 0.5rem;
   background: none;
   border: none;
-  color: var(--text-4);
+  color: var(--fg-4);
   font-size: 0.9rem;
   cursor: pointer;
   line-height: 1;
@@ -96,5 +96,5 @@
 }
 
 .tooltipClose:hover {
-  color: var(--text-2);
+  color: var(--fg-2);
 }
