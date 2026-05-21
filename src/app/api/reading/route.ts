@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     // ── Cache check ────────────────────────────────────────────────────────────
     const cacheKey = makeCacheKey({ birth: chartData.birthData, section: validSection, planetSection })
-    const cached = getCachedReading(cacheKey)
+    const cached = await getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
         } finally {
           clearInterval(keepAlive)
           if (!streamErrored && accumulated.trim()) {
-            setCachedReading(cacheKey, accumulated)
+            await setCachedReading(cacheKey, accumulated)
           }
         }
       }
