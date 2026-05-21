@@ -4,18 +4,35 @@
 // READING_PROMPT_VERSION, and fixed methodology constants (ayanamsa, house system).
 // When prompts change, bump READING_PROMPT_VERSION to invalidate all prior entries.
 //
-// Storage: module-level Map, so it persists for the lifetime of a warm serverless
-// instance but is NOT shared across cold starts or concurrent instances. For
-// cross-instance persistence, replace getCachedReading / setCachedReading with
-// a KV/Redis client — the interface is deliberately small for that reason.
+// Storage: Upstash Redis (REST API). Requires UPSTASH_REDIS_REST_URL and
+// UPSTASH_REDIS_REST_TOKEN environment variables. Reads return null and writes
+// are silently skipped when those vars are absent (e.g. local dev without Redis).
 
 import { createHash } from 'crypto'
+import { Redis } from '@upstash/redis'
 import type { BirthData } from '@/lib/astro-calc'
 
 // ── Version constant ───────────────────────────────────────────────────────────
 // Bump this whenever prompts are intentionally changed.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
 export const READING_PROMPT_VERSION = 'v9.0'
+
+// Readings only change when the prompt version changes, so a 30-day TTL is safe.
+const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
+
+// ── Redis client ───────────────────────────────────────────────────────────────
+// Lazily initialised so the module is importable in environments that lack the
+// env vars (unit tests, local dev without Redis). Returns null when unconfigured.
+let _redis: Redis | null = null
+
+function getRedis(): Redis | null {
+  if (_redis) return _redis
+  const url   = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  if (!url || !token) return null
+  _redis = new Redis({ url, token })
+  return _redis
+}
 
 // ── Cache key construction ─────────────────────────────────────────────────────
 
@@ -46,7 +63,7 @@ export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams):
     ayanamsa:         'lahiri',
     houseSystem:      'whole-sign',
   }
-  return createHash('sha256')
+  return 'axis:reading:' + createHash('sha256')
     .update(JSON.stringify(normalized))
     .digest('hex')
     .slice(0, 40)
@@ -54,28 +71,23 @@ export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams):
 
 // ── Storage ────────────────────────────────────────────────────────────────────
 
-const _cache = new Map<string, string>()
-const MAX_BYTES = 25_000_000  // 25 MB ceiling (readings can reach ~24 KB at max_tokens:6000)
-
-let _totalBytes = 0
-
-export function getCachedReading(key: string): string | undefined {
-  return _cache.get(key)
+export async function getCachedReading(key: string): Promise<string | null> {
+  const redis = getRedis()
+  if (!redis) return null
+  try {
+    return await redis.get<string>(key)
+  } catch (err) {
+    console.error('Redis GET error:', err instanceof Error ? err.message : err)
+    return null
+  }
 }
 
-export function setCachedReading(key: string, text: string): void {
-  const existing = _cache.get(key)
-  const existingBytes = existing ? Buffer.byteLength(existing, 'utf8') : 0
-  const newBytes = Buffer.byteLength(text, 'utf8')
-
-  // Evict oldest entries until the new entry fits — Map iterates in insertion order
-  while (_totalBytes - existingBytes + newBytes > MAX_BYTES && _cache.size > 0) {
-    const oldest = _cache.keys().next().value
-    if (oldest === undefined) break
-    _totalBytes -= Buffer.byteLength(_cache.get(oldest)!, 'utf8')
-    _cache.delete(oldest)
+export async function setCachedReading(key: string, text: string): Promise<void> {
+  const redis = getRedis()
+  if (!redis) return
+  try {
+    await redis.set(key, text, { ex: TTL_SECONDS })
+  } catch (err) {
+    console.error('Redis SET error:', err instanceof Error ? err.message : err)
   }
-
-  _totalBytes = _totalBytes - existingBytes + newBytes
-  _cache.set(key, text)
 }
