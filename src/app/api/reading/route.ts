@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { DualChartData } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 
@@ -10,8 +10,8 @@ export const maxDuration = 60
 
 // ── Model config ───────────────────────────────────────────────────────────────
 // Centralised so a single-line change updates all reading requests.
-const MODEL        = 'claude-opus-4-5'
-const MAX_TOKENS   = 6000
+const MODEL        = 'claude-sonnet-4-5'
+const MAX_TOKENS   = 2000
 const TEMPERATURE  = 0.2
 
 // ── Payload limits ─────────────────────────────────────────────────────────────
@@ -72,6 +72,15 @@ const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
   sidereal:  SIDEREAL_SYSTEM_PROMPT,
   synthesis: SYNTHESIS_SYSTEM_PROMPT,
+}
+
+// SHARED_RULES is the same across all system prompt types and is the largest
+// block (~7 KB). Marking it as the cached prefix means every request hits the
+// same cache entry regardless of which section type is being streamed.
+const SHARED_RULES_BLOCK: Anthropic.TextBlockParam = {
+  type: 'text',
+  text: SHARED_RULES,
+  cache_control: { type: 'ephemeral' },
 }
 
 const anthropic = new Anthropic({
@@ -165,7 +174,7 @@ export async function POST(req: NextRequest) {
       model:       MODEL,
       max_tokens:  MAX_TOKENS,
       temperature: TEMPERATURE,
-      system:      systemPrompt,
+      system:      [SHARED_RULES_BLOCK, { type: 'text', text: systemPrompt }],
       messages:    [{ role: 'user', content: userContent }]
     })
 

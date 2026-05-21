@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
@@ -12,17 +12,28 @@ type ActiveSection = 'tropical' | 'sidereal' | 'synthesis'
 
 export default function Home() {
   const [chartData, setChartData] = useState<DualChartData | null>(null)
+  const [readingReady, setReadingReady] = useState(false)
   const [activeSection, setActiveSection] = useState<ActiveSection>('tropical')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
 
+  // Let the chart wheel and facts panel paint before mounting ReadingPanel.
+  // setTimeout(0) defers to the next macrotask — at least one render+paint
+  // cycle completes, so the user sees the chart before streaming requests fire.
+  useEffect(() => {
+    if (!chartData) return
+    const id = setTimeout(() => setReadingReady(true), 0)
+    return () => clearTimeout(id)
+  }, [chartData])
+
   const handleSubmit = async (formData: Record<string, string>) => {
     setLastFormData(formData)
     setLoading(true)
     setError(null)
     setChartData(null)
+    setReadingReady(false)
 
     try {
       const res = await fetch('/api/calculate', {
@@ -216,11 +227,14 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Reading */}
-          <ReadingPanel
-            chartData={chartData}
-            section={activeSection}
-          />
+          {/* Reading — mounted after chart paints so the wheel and facts
+              are visible before streaming requests fire */}
+          {readingReady && (
+            <ReadingPanel
+              chartData={chartData}
+              section={activeSection}
+            />
+          )}
 
           {/* Actions */}
           <div className={styles.resetRow}>
