@@ -48,8 +48,8 @@ GET `?lat=&lon=` → `{ tzName }`. Uses `tz-lookup` (bundled ~400KB grid databas
 7. Sends keep-alive spaces every 5s before first token
 
 Model config (centralised constants at top of route):
-- `MODEL = 'claude-opus-4-5'`
-- `MAX_TOKENS = 6000`
+- `MODEL = 'claude-sonnet-4-5'`
+- `MAX_TOKENS = 2000`
 - `TEMPERATURE = 0.2`
 
 Planet sections per reading type:
@@ -67,9 +67,9 @@ Uses the `astronomia` npm package (VSOP87B ephemeris via `astronomia/planetposit
 
 Fetches geocentric ecliptic longitude for Pluto (and other bodies) from `ssd.jpl.nasa.gov` REST API. Uses DE440 (1550–2650) or DE441 for extreme dates. Only Pluto is used in production. Has a module-level minute-resolution cache. Falls back gracefully — `getHorizonsEclipticLon()` returns `null` on any error. The benchmark script `scripts/benchmark-pluto.mjs` compares this against local Meeus Ch.37; expected error is ~10–20 arcminutes across 1930–2025.
 
-### `lib/reading-cache.ts` — In-memory response cache
+### `lib/reading-cache.ts` — Upstash Redis response cache
 
-Module-level `Map` (per warm serverless instance, not distributed). 25MB ceiling with LRU-style eviction. Cache key is SHA-256 of: normalized birth data, section, planetSection, `READING_PROMPT_VERSION`, ayanamsa, house system. **Bump `READING_PROMPT_VERSION`** (currently `v9.0`) whenever prompts are intentionally changed — this invalidates all prior cached readings.
+Persisted KV cache via `@upstash/redis` (REST API). Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` env vars; falls back gracefully (no-op reads/writes) when absent. Cache key is SHA-256 of: normalized birth data, section, planetSection, `READING_PROMPT_VERSION`, ayanamsa, house system. Entries carry a 30-day TTL. **Bump `READING_PROMPT_VERSION`** (currently `v9.2`) whenever prompts are intentionally changed — this invalidates all prior cached readings.
 
 ### `lib/interpretation-engine.ts` — Structured reasoning layer
 
@@ -92,7 +92,7 @@ Exports `TROPICAL_DESCRIPTORS`, `SIDEREAL_DESCRIPTORS`, and `SYNTHESIS_DESCRIPTO
 
 ### `lib/prompts.ts` — System prompts
 
-`GLOBAL_VOICE` is the shared voice/constraint layer (no predictions, no bullet points, cross-chart accuracy rules, cusp detection, depth requirements). Three top-level system prompts (`TROPICAL_SYSTEM_PROMPT`, `SIDEREAL_SYSTEM_PROMPT`, `SYNTHESIS_SYSTEM_PROMPT`) and a `SECTION_INSTRUCTIONS` map keyed by section → planetSection. Prompts are currently at v9.0.
+`SHARED_RULES` is the exported shared voice/constraint layer (no predictions, no bullet points, cross-chart accuracy rules, cusp detection, depth requirements). It is passed as the first block of the system prompt array with `cache_control: { type: 'ephemeral' }` so it is prompt-cached across all requests. Three top-level system prompts (`TROPICAL_SYSTEM_PROMPT`, `SIDEREAL_SYSTEM_PROMPT`, `SYNTHESIS_SYSTEM_PROMPT`) and a `SECTION_INSTRUCTIONS` map keyed by section → planetSection. Prompts are currently at v9.2.
 
 When editing prompts: the cusp rule (±3° of sign boundary), cross-chart accuracy section, and depth requirements (500–700 words for Sun/Moon/Ascendant, 300–400 for secondaries) are load-bearing constraints — the reading quality depends on them. Always bump `READING_PROMPT_VERSION` in `lib/reading-cache.ts` after structural prompt changes.
 
