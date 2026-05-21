@@ -23,7 +23,7 @@ export default function Home() {
   // setTimeout(0) defers to the next macrotask — at least one render+paint
   // cycle completes, so the user sees the chart before streaming requests fire.
   useEffect(() => {
-    if (!chartData) { setReadingReady(false); return }
+    if (!chartData) return
     const id = setTimeout(() => setReadingReady(true), 0)
     return () => clearTimeout(id)
   }, [chartData])
