@@ -232,4 +232,49 @@ describe('calculateDualChart — Rahu/Ketu axis', () => {
     if (diff > 180) diff = 360 - diff
     expect(diff).toBeCloseTo(180, 0)
   })
+
+  it('true node differs from mean node by up to ±1.5°', () => {
+    // Sample 8 dates across a ~173-day true-node oscillation cycle and verify
+    // that the correction is non-zero for at least one of them, confirming the
+    // periodic terms are applied. The amplitude of the dominant correction is
+    // ~1.5°, so across 8 samples we should see at least one > 0.1°.
+    const dates = [
+      { year: 1985, month: 1,  day: 1  },
+      { year: 1990, month: 6,  day: 15 },
+      { year: 1995, month: 11, day: 30 },
+      { year: 2000, month: 1,  day: 1  },
+      { year: 2005, month: 7,  day: 4  },
+      { year: 2010, month: 3,  day: 20 },
+      { year: 2015, month: 9,  day: 23 },
+      { year: 2020, month: 12, day: 21 },
+    ]
+
+    // Mean node formula (pre-correction) for comparison
+    function meanNode(year: number, month: number, day: number): number {
+      // JDE approximation: days from J2000.0
+      const a = Math.floor((14 - month) / 12)
+      const y = year + 4800 - a
+      const m = month + 12 * a - 3
+      const jd = day + Math.floor((153 * m + 2) / 5) + 365 * y +
+        Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045 - 0.5
+      const T = (jd - 2451545.0) / 36525.0
+      return ((125.04452 - 1934.136261 * T) % 360 + 360) % 360
+    }
+
+    let maxDiff = 0
+    for (const { year, month, day } of dates) {
+      const birth: BirthData = { year, month, day, hour: 12, minute: 0, latitude: 0, longitude: 0, timezone: 0 }
+      const d = calculateDualChart(birth, { plutoSource: 'local-meeus' })
+      const rahu = d.tropical.planets.find(p => p.name === 'Rahu')!
+      const mn = meanNode(year, month, day)
+      let diff = Math.abs(rahu.longitude - mn)
+      if (diff > 180) diff = 360 - diff
+      if (diff > maxDiff) maxDiff = diff
+    }
+
+    // At least one sample should show a correction > 0.1° (confirming periodic terms fire)
+    expect(maxDiff).toBeGreaterThan(0.1)
+    // No sample should exceed 1.7° (the known amplitude ceiling of the correction)
+    expect(maxDiff).toBeLessThan(1.7)
+  })
 })
