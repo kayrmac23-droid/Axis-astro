@@ -95,8 +95,9 @@ export default function Home() {
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
-              Tropical reveals the self you know. Sidereal reveals the
-              self underneath it. That gap is AXIS.
+              Tropical maps the psychological architecture of a self.
+              Sidereal maps the incarnational conditions it navigates.
+              The synthesis is where both truths meet.
             </p>
             <p className={styles.heroDetail}>
               Western Tropical · Vedic Sidereal · Synthesis Reading
