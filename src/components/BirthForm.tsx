@@ -44,7 +44,8 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   }, [])
 
   const to24Hour = (hour: string, ampm: string): number => {
-    const h = parseInt(hour) || 12
+    const hRaw = parseInt(hour)
+    const h = isNaN(hRaw) ? 12 : hRaw
     if (ampm === 'AM') return h === 12 ? 0 : h
     return h === 12 ? 12 : h + 12
   }
