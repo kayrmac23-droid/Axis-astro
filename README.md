@@ -26,7 +26,7 @@ Readings are written in continuous analytical prose. No bullet points. No generi
 |---|---|---|
 | House system | Whole Sign | Consistent for both Tropical and Sidereal; used throughout code, wheel, and interpretation engine |
 | Ayanamsa | Lahiri | IAU standard for Jyotish; ~23.85° at J2000, precessing at 50.2564"/yr |
-| Lunar nodes | Mean node | Jyotish convention; Rahu/Ketu as mean ascending node (true node ≈ ±1–2° different) |
+| Lunar nodes | True (osculating) node | Meeus Ch. 22 mean node + 4-term periodic corrections; matches Swiss Ephemeris to <0.05°. Oscillates ±1.5° around the mean with a ~173-day period. |
 | Dasha system | Vimshottari | Used for current-chapter contextualisation, not event prediction |
 | Midheaven | Shown as separate angle | MC is NOT the Whole Sign 10th-house cusp — displayed independently on the wheel |
 
@@ -48,7 +48,7 @@ AXIS uses two complementary ephemeris sources:
 | Moon | ELP2000 + nutation correction | < 10 arcseconds |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
 | Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~0.3°) | **< 1 arcsecond** |
-| Rahu/Ketu | Mean node formula (Meeus Ch. 24) | ± 0.1° vs. mean node; ≤ 2° vs. true node |
+| Rahu/Ketu | True node: Meeus Ch. 22 + periodic corrections | < 0.05° vs. Swiss Ephemeris osculating node |
 | Lahiri ayanamsa | Linear precession formula | Within ~0.01° of the IAU reference value |
 
 Every generated chart displays the active Pluto ephemeris source ("JPL Horizons DE440" or "⚠ local fallback") in the reading header so users know which source was used.
@@ -75,7 +75,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 |---|---|
 | Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
-| AI backend | Anthropic Claude (`claude-opus-4-5`) via streaming API |
+| AI backend | Anthropic Claude (`claude-sonnet-4-5`) via streaming API with prompt caching |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + JPL Horizons DE440 Pluto |
 | Geocoding | OpenStreetMap Nominatim |
 | Timezone | tz-lookup (offline IANA lookup) |
@@ -104,7 +104,7 @@ src/
 └── lib/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v9.0)
+    ├── prompts.ts               — system prompts (v9.2; SHARED_RULES prompt-cached)
     ├── cusps.ts                 — astrological cusp data and detection
     └── planet-descriptors.ts   — planet descriptor text for all three reading types
 ```
@@ -134,6 +134,8 @@ Three reading types, each composed of sequential per-planet streaming requests t
 | Variable | Description |
 |---|---|
 | `ANTHROPIC_API_KEY` | Required. Set in Vercel dashboard → Environment Variables. |
+| `UPSTASH_REDIS_REST_URL` | Recommended. Upstash Redis REST endpoint for the reading cache. Create a free database at [console.upstash.com](https://console.upstash.com). Falls back to no-op (no caching) when absent. |
+| `UPSTASH_REDIS_REST_TOKEN` | Recommended. Upstash Redis REST token (paired with the URL above). |
 
 ---
 
@@ -180,11 +182,11 @@ This section describes what is hardened now and what requires distributed infras
 - `/api/geocode` enforces a 200-character query length limit
 - All internal error messages are scrubbed from client-facing responses (server-side logging only)
 - Per-section streaming retry (2 attempts) with visible failure fallback
-- Cache uses byte-size eviction with a 25 MB ceiling
+- Truncated responses (`stop_reason: max_tokens`) are not cached and surface an inline notice to the user
+- **Reading cache:** Upstash Redis via REST API (`@upstash/redis`). Persists across cold starts and is shared between concurrent serverless instances. 30-day TTL. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` env vars; falls back to no-op when absent.
 
 **Not yet distributed — limitations for multi-instance deployment:**
-- **Rate limiter:** In-memory, per-process. On Vercel, each serverless function instance maintains its own counter. A client hitting N warm instances can make N × 20 requests per window. For real rate limiting at scale, replace with a Redis or Vercel KV-backed counter.
-- **Reading cache:** In-memory, per-process. Cache hits only occur on the same warm instance. For cross-instance caching (reducing repeat Claude API calls), replace `lib/reading-cache.ts` with a KV store (the interface is already swappable).
+- **Rate limiter:** In-memory, per-process. On Vercel, each serverless function instance maintains its own counter. A client hitting N warm instances can make N × 20 requests per window. For real rate limiting at scale, replace with a Redis-backed counter.
 
 **External service dependencies:**
 - Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
@@ -196,7 +198,7 @@ This section describes what is hardened now and what requires distributed infras
 ## Known limitations and accuracy notes
 
 - **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (~0.3° error) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used.
-- **Rahu/Ketu** use the **mean lunar node**, which is the Jyotish convention. The true node differs by up to ≈2°.
+- **Rahu/Ketu** use the **true (osculating) lunar node** — Meeus Ch. 22 mean node plus 4 dominant periodic correction terms. Matches Swiss Ephemeris to <0.05° over 1900–2100. The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
 - **Lahiri ayanamsa** is computed via a linear precession formula. Difference from the full polynomial calculation is < 0.01° for dates 1900–2100.
 - **Birth time** accuracy directly affects Ascendant, MC, house placements, Moon degree, and dasha timing. AXIS flags this explicitly in the UI when time is unknown.
 - **JPL Horizons availability:** AXIS requires one outbound HTTP call to `ssd.jpl.nasa.gov` per chart calculation for the Pluto position. If the endpoint is unreachable (downtime, network policy), the fallback engine activates transparently.
