@@ -69,13 +69,24 @@ function _fallbackCheck(ip: string): { allowed: boolean; retryAfter: number } {
   return { allowed: true, retryAfter: 0 }
 }
 
+// Lua script: INCR + repair-missing-TTL in one atomic round-trip.
+// TTL == -1 means the key exists with no expiry (created by a prior INCR
+// whose EXPIRE call was lost). We set EXPIRE in that case too, so the window
+// is always bounded regardless of previous failures.
+const _RL_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+if redis.call('TTL', KEYS[1]) == -1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return count
+`
+
 async function checkRateLimit(ip: string): Promise<{ allowed: boolean; retryAfter: number }> {
   const redis = getRedis()
   if (!redis) return _fallbackCheck(ip)
   try {
     const key   = RATE_KEY_PREFIX + ip
-    const count = await redis.incr(key)
-    if (count === 1) await redis.expire(key, RATE_LIMIT_WINDOW)
+    const count = await redis.eval(_RL_SCRIPT, [key], [String(RATE_LIMIT_WINDOW)]) as number
     if (count > RATE_LIMIT_MAX) {
       const ttl = await redis.ttl(key)
       return { allowed: false, retryAfter: Math.max(ttl, 1) }
