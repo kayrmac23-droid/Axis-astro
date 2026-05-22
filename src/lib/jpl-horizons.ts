@@ -35,7 +35,17 @@ export interface HorizonsPosition {
 
 // Module-level cache — persists for the lifetime of a warm serverless instance.
 // Key: "{bodyCode}:{YYYY-Mon-DD HH:MM UTC}" (rounded to minute).
+// Capped at MAX_CACHE_ENTRIES via FIFO eviction so the Map cannot grow unbounded.
+const MAX_CACHE_ENTRIES = 500
 const _cache = new Map<string, HorizonsPosition>()
+
+function cachePut(key: string, value: HorizonsPosition): void {
+  if (_cache.size >= MAX_CACHE_ENTRIES) {
+    // Delete the oldest entry (Map insertion order is preserved).
+    _cache.delete(_cache.keys().next().value!)
+  }
+  _cache.set(key, value)
+}
 
 export async function getHorizonsEclipticLon(
   bodyName:  string,
@@ -82,7 +92,7 @@ export async function getHorizonsEclipticLon(
 
     const json = await res.json() as Record<string, unknown>
     const pos  = parseHorizonsResult(json)
-    if (pos) _cache.set(cacheKey, pos)
+    if (pos) cachePut(cacheKey, pos)
     return pos
   } catch {
     clearTimeout(timer)

@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
     // ── Rate limiting ──────────────────────────────────────────────────────────
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
               ?? req.headers.get('x-real-ip')
-              ?? 'unknown'
+              ?? 'direct'
     const { allowed, retryAfter } = await checkRateLimit(ip)
     if (!allowed) {
       return NextResponse.json(
