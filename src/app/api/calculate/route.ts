@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
     const y  = parseInt(year)
     const mo = parseInt(month)
     const d  = parseInt(day)
-    const h  = parseInt(hour) || 12
+    const hRaw = parseInt(hour)
+    const h  = isNaN(hRaw) ? 12 : hRaw
     const mi = parseInt(minute) || 0
     const lat = parseFloat(latitude)
     const lon = parseFloat(longitude)
