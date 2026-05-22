@@ -196,7 +196,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               // Don't retry — retrying would hit the same limit. The server already
               // skipped caching, so bumping MAX_TOKENS_PER_SECTION will fix it on next load.
               chunkText = chunkText.replace('[AXIS_TRUNCATED]', '').trimEnd()
-              chunkText += '\n\n*[This section reached its generation limit and may be incomplete.]*'
+              chunkText += '\n\n[This section reached its generation limit and may be incomplete.]'
             }
 
             sectionText    = chunkText
