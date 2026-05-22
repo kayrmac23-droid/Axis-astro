@@ -4,7 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { makeCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
+import { makeCacheKey, getCachedReading, setCachedReading, getRedis } from '@/lib/reading-cache'
 
 export const maxDuration = 60
 
@@ -40,44 +40,50 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
   synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
 }
 
-// ── In-memory rate limiter ─────────────────────────────────────────────────────
-// IMPORTANT: this is a per-process, non-distributed limiter. On multi-instance
-// deployments (Vercel serverless functions scale horizontally) each instance
-// maintains its own window, so the effective limit is N × window per client
-// across N warm instances. For true rate limiting at scale, replace this with a
-// Redis/KV-backed solution (e.g. Upstash, Vercel KV). For single-instance or
-// low-traffic deployments this provides meaningful abuse protection.
+// ── Redis-backed rate limiter ──────────────────────────────────────────────────
+// Fixed window via Redis INCR + EXPIRE. Shared across all serverless instances,
+// so the limit is enforced globally regardless of how many warm instances exist.
+// Falls back to an in-memory fixed window when Redis is unavailable (local dev
+// without env vars, or Redis downtime) — same behaviour as before the migration.
 //
-// Policy: 20 requests per IP per 60-second sliding window.
+// Policy: 20 requests per IP per 60-second window.
 const RATE_LIMIT_MAX    = 20
-const RATE_LIMIT_WINDOW = 60_000   // ms
+const RATE_LIMIT_WINDOW = 60   // seconds
+const RATE_KEY_PREFIX   = 'axis:rl:'
 
 type RateRecord = { count: number; windowStart: number }
-const _rateMap = new Map<string, RateRecord>()
+const _fallbackMap = new Map<string, RateRecord>()
 
-function checkRateLimit(ip: string): { allowed: boolean; retryAfter: number } {
+function _fallbackCheck(ip: string): { allowed: boolean; retryAfter: number } {
   const now = Date.now()
-  const rec  = _rateMap.get(ip)
-  if (!rec || now - rec.windowStart >= RATE_LIMIT_WINDOW) {
-    _rateMap.set(ip, { count: 1, windowStart: now })
+  const rec = _fallbackMap.get(ip)
+  if (!rec || now - rec.windowStart >= RATE_LIMIT_WINDOW * 1000) {
+    _fallbackMap.set(ip, { count: 1, windowStart: now })
     return { allowed: true, retryAfter: 0 }
   }
   if (rec.count >= RATE_LIMIT_MAX) {
-    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW - (now - rec.windowStart)) / 1000)
+    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW * 1000 - (now - rec.windowStart)) / 1000)
     return { allowed: false, retryAfter }
   }
   rec.count++
   return { allowed: true, retryAfter: 0 }
 }
 
-// Periodically prune stale entries to prevent unbounded map growth.
-// This runs at most once per request; the cost is O(map size) but map is bounded
-// by the number of unique IPs active in the past window.
-function pruneRateMap(): void {
-  const cutoff = Date.now() - RATE_LIMIT_WINDOW
-  Array.from(_rateMap.entries()).forEach(([ip, rec]) => {
-    if (rec.windowStart < cutoff) _rateMap.delete(ip)
-  })
+async function checkRateLimit(ip: string): Promise<{ allowed: boolean; retryAfter: number }> {
+  const redis = getRedis()
+  if (!redis) return _fallbackCheck(ip)
+  try {
+    const key   = RATE_KEY_PREFIX + ip
+    const count = await redis.incr(key)
+    if (count === 1) await redis.expire(key, RATE_LIMIT_WINDOW)
+    if (count > RATE_LIMIT_MAX) {
+      const ttl = await redis.ttl(key)
+      return { allowed: false, retryAfter: Math.max(ttl, 1) }
+    }
+    return { allowed: true, retryAfter: 0 }
+  } catch {
+    return _fallbackCheck(ip)
+  }
 }
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
@@ -106,11 +112,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Rate limiting ──────────────────────────────────────────────────────────
-    pruneRateMap()
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
               ?? req.headers.get('x-real-ip')
               ?? 'unknown'
-    const { allowed, retryAfter } = checkRateLimit(ip)
+    const { allowed, retryAfter } = await checkRateLimit(ip)
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait before generating another reading.' },

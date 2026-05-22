@@ -25,7 +25,7 @@ const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
 // env vars (unit tests, local dev without Redis). Returns null when unconfigured.
 let _redis: Redis | null = null
 
-function getRedis(): Redis | null {
+export function getRedis(): Redis | null {
   if (_redis) return _redis
   const url   = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN

@@ -185,8 +185,8 @@ This section describes what is hardened now and what requires distributed infras
 - Truncated responses (`stop_reason: max_tokens`) are not cached and surface an inline notice to the user
 - **Reading cache:** Upstash Redis via REST API (`@upstash/redis`). Persists across cold starts and is shared between concurrent serverless instances. 30-day TTL. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` env vars; falls back to no-op when absent.
 
-**Not yet distributed — limitations for multi-instance deployment:**
-- **Rate limiter:** In-memory, per-process. On Vercel, each serverless function instance maintains its own counter. A client hitting N warm instances can make N × 20 requests per window. For real rate limiting at scale, replace with a Redis-backed counter.
+**Distributed — no warm-instance bypass:**
+- **Rate limiter:** Redis-backed fixed window via Upstash (same connection as the reading cache). All serverless instances share a single counter per IP, so the 20 req / 60s limit is enforced globally. Falls back to the previous in-memory behaviour when Redis env vars are absent.
 
 **External service dependencies:**
 - Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
