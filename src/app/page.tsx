@@ -7,6 +7,7 @@ import ReadingPanel from '@/components/ReadingPanel'
 import AstrolabeDecor from '@/components/AstrolabeDecor'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
+import { capture } from '@/lib/analytics'
 
 type ActiveSection = 'tropical' | 'sidereal' | 'synthesis'
 
@@ -34,6 +35,7 @@ export default function Home() {
     setError(null)
     setChartData(null)
     setReadingReady(false)
+    capture('chart_submit')
 
     try {
       const res = await fetch('/api/calculate', {
@@ -51,6 +53,7 @@ export default function Home() {
       }
 
       const data: DualChartData = await res.json()
+      capture('calculate_success', { pluto_source: data.plutoSource })
       setChartData(data)
       setActiveSection('tropical')
 
@@ -58,6 +61,8 @@ export default function Home() {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 300)
     } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      capture('calculate_failed', { error: msg })
       setError(
         err instanceof Error
           ? err.message
@@ -238,12 +243,12 @@ export default function Home() {
 
           {/* Actions */}
           <div className={styles.resetRow}>
-            <button className={styles.pdfBtn} onClick={() => window.print()}>
+            <button className={styles.pdfBtn} onClick={() => { capture('print_pdf'); window.print() }}>
               Download PDF
             </button>
             <button
               className={styles.resetBtn}
-              onClick={() => { setChartData(null); setError(null) }}
+              onClick={() => { capture('new_chart'); setChartData(null); setError(null) }}
             >
               New chart
             </button>
