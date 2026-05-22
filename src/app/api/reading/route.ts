@@ -191,8 +191,9 @@ export async function POST(req: NextRequest) {
     })
 
     const encoder = new TextEncoder()
-    let accumulated  = ''
+    let accumulated   = ''
     let streamErrored = false
+    let wasTruncated  = false
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -206,7 +207,12 @@ export async function POST(req: NextRequest) {
               hasFirstToken = true
               accumulated += chunk.delta.text
               controller.enqueue(encoder.encode(chunk.delta.text))
+            } else if (chunk.type === 'message_delta' && chunk.delta.stop_reason === 'max_tokens') {
+              wasTruncated = true
             }
+          }
+          if (wasTruncated) {
+            controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
           controller.close()
         } catch (err) {
@@ -220,7 +226,7 @@ export async function POST(req: NextRequest) {
           console.error('Stream error in /api/reading:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
-          if (!streamErrored && accumulated.trim()) {
+          if (!streamErrored && !wasTruncated && accumulated.trim()) {
             await setCachedReading(cacheKey, accumulated)
           }
         }
