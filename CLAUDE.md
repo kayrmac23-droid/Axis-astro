@@ -39,17 +39,17 @@ GET `?lat=&lon=` → `{ tzName }`. Uses `tz-lookup` (bundled ~400KB grid databas
 ### `/api/reading` — Claude streaming
 
 `maxDuration = 60`. Each request is a single planet section within one of three reading types (`tropical` | `sidereal` | `synthesis`). The route:
-1. Validates IP rate limit (20 req / 60s sliding window, per-process — not distributed)
+1. Validates IP rate limit (20 req / 60s fixed window, Redis-backed via Upstash — distributed across all instances; falls back to in-memory when Redis is absent)
 2. Enforces 64KB payload ceiling
 3. Validates `section` and `planetSection` against explicit allow-lists
-4. Checks the in-memory reading cache (keyed by SHA-256 of birth data + section + `READING_PROMPT_VERSION`)
+4. Checks the Upstash Redis reading cache (keyed by SHA-256 of birth data + section + `READING_PROMPT_VERSION`)
 5. Calls `buildInterpretationContext()` + `formatEliteChartBlock()` from `lib/interpretation-engine.ts`
 6. Streams raw text back via `ReadableStream`; caches the accumulated result on success
 7. Sends keep-alive spaces every 5s before first token
 
 Model config (centralised constants at top of route):
 - `MODEL = 'claude-sonnet-4-5'`
-- `MAX_TOKENS = 2000`
+- `MAX_TOKENS_PER_SECTION` — per-section budget map (sun/moon/ascendant: 2500; secondaries: 1500–1800; synthesis: 1500–2500); falls back to 2000 for unlisted keys
 - `TEMPERATURE = 0.2`
 
 Planet sections per reading type:

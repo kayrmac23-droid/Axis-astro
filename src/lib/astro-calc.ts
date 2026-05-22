@@ -82,6 +82,7 @@ const solar              = require('astronomia/solar')          as any
 const moonposition       = require('astronomia/moonposition')   as any
 const baseLib            = require('astronomia/base')           as any
 const nutationLib        = require('astronomia/nutation')       as any
+const plutoLib           = require('astronomia/pluto')          as any
 
 // Data modules: ESM `export default {...}` → CJS wraps under `.default`
 // Using static require paths so the bundler can resolve them at build time.
@@ -219,49 +220,28 @@ function getSaturnLongitude(jde: number): number   { return getGeocentricLon(get
 function getUranusLongitude(jde: number): number   { return getGeocentricLon(getPlanets()._uranus,  jde) }
 function getNeptuneLongitude(jde: number): number  { return getGeocentricLon(getPlanets()._neptune, jde) }
 
-// Pluto is not in VSOP87.
-// Meeus Chapter 37 polynomial series — accurate to ~0.3° from 1885–2099.
+// Pluto is not in VSOP87. Use the full Meeus Chapter 37 polynomial (43 terms,
+// sin + cos for each argument) via astronomia/pluto, then convert heliocentric →
+// geocentric using the same rectangular-coordinate approach as other planets.
+// Accuracy vs JPL Horizons: ~0.5° (few arcminutes near J2000, under 1° to 1885–2099).
 function getPlutoLongitude(jde: number): number {
-  const T = (jde - 2451545.0) / 36525.0
-  // Heliocentric longitude from Meeus Ch. 37 series
-  const Ja = normalize(34.35 + 3034.9057 * T)
-  const Sa = normalize(50.08 + 1222.1138 * T)
-  const Pa = normalize(238.96 + 144.9600 * T)
-
-  const JaR = Ja * DEG2RAD
-  const SaR = Sa * DEG2RAD
-  const PaR = Pa * DEG2RAD
-
-  // Heliocentric terms from Meeus Table 37.a (longitude)
-  const Σl = 238.958116
-    + 144.960455 * T
-    + 3.4 * Math.sin(PaR)
-    - 5.3 * Math.sin(2 * PaR)
-    + 0.5 * Math.sin(3 * PaR)
-    + 6.2 * Math.sin(JaR)
-    - 5.9 * Math.sin(JaR - PaR)
-    - 2.9 * Math.sin(2 * JaR - PaR)
-    + 1.0 * Math.sin(JaR + PaR)
-    - 0.6 * Math.sin(2 * (JaR - PaR))
-    - 1.1 * Math.sin(JaR - PaR + SaR)
-    + 0.5 * Math.sin(JaR - SaR)
-    - 1.0 * Math.sin(JaR + SaR - PaR)
-    + 0.2 * Math.sin(2 * SaR - PaR)
-
-  // Geocentric correction: Pluto is far enough out that the parallax vs
-  // Earth is small (~0.05°) but let's apply a rough helio→geo shift
-  // via the Sun-Earth-Pluto geometry approximation.
   const { _earth } = getPlanets()
   const earthPos = _earth.position(jde)
-  const R0 = earthPos.range  // Earth–Sun distance in AU
+  const [L0, B0, R0] = [earthPos.lon, earthPos.lat, earthPos.range]
 
-  // Pluto's heliocentric distance (Meeus Table 37.b simplified)
-  const R_Pluto = 40.7 + 2.0 * Math.cos(PaR) - 0.8 * Math.cos(2 * PaR)
+  // Full Meeus Ch.37 heliocentric position from astronomia/pluto (VSOP87B J2000 frame)
+  const plutoHelio = (plutoLib.default ?? plutoLib).heliocentric(jde)
+  const [L, B, R] = [plutoHelio.lon, plutoHelio.lat, plutoHelio.range]
 
-  // Angle correction (law of cosines — first-order)
-  const plutoRad = normalize(Σl) * DEG2RAD
-  const δλ = -(R0 / R_Pluto) * Math.sin(plutoRad - earthPos.lon)
-  return normalize(Σl + δλ * RAD2DEG)
+  // Heliocentric rectangular → geocentric rectangular (same as getGeocentricLon)
+  const x = R * Math.cos(B) * Math.cos(L) - R0 * Math.cos(B0) * Math.cos(L0)
+  const y = R * Math.cos(B) * Math.sin(L) - R0 * Math.cos(B0) * Math.sin(L0)
+
+  // Geocentric ecliptic longitude + nutation
+  let λ = Math.atan2(y, x)
+  const [Δψ] = nutationLib.nutation(jde)
+  λ += Δψ
+  return normalize(λ * RAD2DEG)
 }
 
 // True (osculating) ascending lunar node (Rahu) — Meeus Ch. 22 mean node

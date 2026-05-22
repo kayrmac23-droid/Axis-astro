@@ -47,7 +47,7 @@ AXIS uses two complementary ephemeris sources:
 | Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included) | < 1 arcsecond |
 | Moon | ELP2000 + nutation correction | < 10 arcseconds |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
-| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~0.3°) | **< 1 arcsecond** |
+| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~15–50 arcmin) | **< 1 arcsecond** |
 | Rahu/Ketu | True node: Meeus Ch. 22 + periodic corrections | < 0.05° vs. Swiss Ephemeris osculating node |
 | Lahiri ayanamsa | Linear precession formula | Within ~0.01° of the IAU reference value |
 
@@ -65,7 +65,7 @@ Horizons currently uses **DE440** for dates in the 1550–2650 range. DE440 is t
 
 The JPL Horizons API is the practical equivalent — same JPL data, same accuracy — accessed via HTTP instead of a native binary. For the 10 planets calculated via VSOP87/ELP2000, the current engine is already at Swiss Ephemeris accuracy. Horizons brings Pluto up to the same standard.
 
-**Ephemeris benchmark:** `node scripts/benchmark-pluto.mjs` compares Meeus Ch.37 vs Horizons DE440 across representative dates (1930–2025) and reports the difference in arcminutes per date.
+**Ephemeris benchmark:** `node scripts/benchmark-pluto.mjs` compares Meeus Ch.37 vs Horizons DE440 across representative dates (1930–2025) and reports the difference in arcminutes per date. See [BENCHMARK.md](BENCHMARK.md) for the full methodology and pre-computed Meeus values.
 
 ---
 
@@ -185,8 +185,8 @@ This section describes what is hardened now and what requires distributed infras
 - Truncated responses (`stop_reason: max_tokens`) are not cached and surface an inline notice to the user
 - **Reading cache:** Upstash Redis via REST API (`@upstash/redis`). Persists across cold starts and is shared between concurrent serverless instances. 30-day TTL. Requires `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` env vars; falls back to no-op when absent.
 
-**Not yet distributed — limitations for multi-instance deployment:**
-- **Rate limiter:** In-memory, per-process. On Vercel, each serverless function instance maintains its own counter. A client hitting N warm instances can make N × 20 requests per window. For real rate limiting at scale, replace with a Redis-backed counter.
+**Distributed — no warm-instance bypass:**
+- **Rate limiter:** Redis-backed fixed window via Upstash (same connection as the reading cache). All serverless instances share a single counter per IP, so the 20 req / 60s limit is enforced globally. Falls back to the previous in-memory behaviour when Redis env vars are absent.
 
 **External service dependencies:**
 - Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
@@ -197,7 +197,7 @@ This section describes what is hardened now and what requires distributed infras
 
 ## Known limitations and accuracy notes
 
-- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (~0.3° error) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used.
+- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (full 43-term table via `astronomia/pluto`; ~15–50 arcminutes vs DE440) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used. See [BENCHMARK.md](BENCHMARK.md).
 - **Rahu/Ketu** use the **true (osculating) lunar node** — Meeus Ch. 22 mean node plus 4 dominant periodic correction terms. Matches Swiss Ephemeris to <0.05° over 1900–2100. The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
 - **Lahiri ayanamsa** is computed via a linear precession formula. Difference from the full polynomial calculation is < 0.01° for dates 1900–2100.
 - **Birth time** accuracy directly affects Ascendant, MC, house placements, Moon degree, and dasha timing. AXIS flags this explicitly in the UI when time is unknown.
