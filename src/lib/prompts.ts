@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v9.1
+// AXIS Production System Prompts v9.2
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, Synthesis (establishes reading mode)
