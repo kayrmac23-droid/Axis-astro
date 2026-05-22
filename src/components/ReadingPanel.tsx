@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
+import { capture } from '@/lib/analytics'
 
 interface ReadingPanelProps {
   chartData: DualChartData
@@ -127,6 +128,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
     for (const s of sectionsToFetch) initialStates[s] = 'pending'
     setSectionStates(initialStates)
     setLiveStatus('Starting reading generation')
+    capture('reading_start', { section: sec, section_count: sectionsToFetch.length })
 
     try {
       let accumulatedText = ''
@@ -144,6 +146,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
         for (let attempt = 0; attempt < 2; attempt++) {
           if (abortRef.current?.signal.aborted) break
+          if (attempt === 1) capture('reading_section_regenerate', { section: sec, planet_section: planetSec })
           try {
             // Race each section fetch against a timeout
             const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
@@ -197,8 +200,10 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               // skipped caching, so bumping MAX_TOKENS_PER_SECTION will fix it on next load.
               chunkText = chunkText.replace('[AXIS_TRUNCATED]', '').trimEnd()
               chunkText += '\n\n[This section reached its generation limit and may be incomplete.]'
+              capture('reading_truncated', { section: sec, planet_section: planetSec })
             }
 
+            capture('reading_section_complete', { section: sec, planet_section: planetSec, attempt })
             sectionText    = chunkText
             sectionSuccess = true
             break
@@ -219,6 +224,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         }
 
         if (!sectionSuccess) {
+          capture('reading_section_failed', { section: sec, planet_section: planetSec, error: lastError })
           setSectionStates(prev => ({ ...prev, [planetSec]: 'failed' }))
           setLiveStatus(`${SECTION_DISPLAY[planetSec] ?? planetSec} failed to load`)
           const fallback = `\n\n[Section "${planetSec}" could not be generated — ${lastError}]\n\n`
