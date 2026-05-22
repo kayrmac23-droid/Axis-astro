@@ -9,10 +9,22 @@ import { makeCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-
 export const maxDuration = 60
 
 // ── Model config ───────────────────────────────────────────────────────────────
-// Centralised so a single-line change updates all reading requests.
-const MODEL        = 'claude-sonnet-4-5'
-const MAX_TOKENS   = 2000
-const TEMPERATURE  = 0.2
+const MODEL       = 'claude-sonnet-4-5'
+const TEMPERATURE = 0.2
+
+// Per-section token budgets. Keyed by planetSection; overlapping names
+// (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
+// and sidereal readings. Falls back to 2000 for any unlisted key.
+const MAX_TOKENS_PER_SECTION: Record<string, number> = {
+  // Tropical + sidereal primaries
+  sun: 2500, moon: 2500, ascendant: 2500, lagna: 2000,
+  // Secondaries (shared names across systems)
+  mercury: 1500, venus: 1500, mars: 1500,
+  jupiter_saturn: 1800, rahu_ketu: 1500,
+  key_aspects: 1200,
+  // Synthesis
+  agree: 2500, diverge: 2500, tension: 1800, closing: 1500,
+}
 
 // ── Payload limits ─────────────────────────────────────────────────────────────
 // A real chart payload (DualChartData + section strings) is ~12 KB at most.
@@ -172,15 +184,16 @@ export async function POST(req: NextRequest) {
     // ── Stream generation ──────────────────────────────────────────────────────
     const stream = await anthropic.messages.stream({
       model:       MODEL,
-      max_tokens:  MAX_TOKENS,
+      max_tokens:  MAX_TOKENS_PER_SECTION[planetSection] ?? 2000,
       temperature: TEMPERATURE,
       system:      [SHARED_RULES_BLOCK, { type: 'text', text: systemPrompt }],
       messages:    [{ role: 'user', content: userContent }]
     })
 
     const encoder = new TextEncoder()
-    let accumulated  = ''
+    let accumulated   = ''
     let streamErrored = false
+    let wasTruncated  = false
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -194,7 +207,12 @@ export async function POST(req: NextRequest) {
               hasFirstToken = true
               accumulated += chunk.delta.text
               controller.enqueue(encoder.encode(chunk.delta.text))
+            } else if (chunk.type === 'message_delta' && chunk.delta.stop_reason === 'max_tokens') {
+              wasTruncated = true
             }
+          }
+          if (wasTruncated) {
+            controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
           controller.close()
         } catch (err) {
@@ -208,7 +226,7 @@ export async function POST(req: NextRequest) {
           console.error('Stream error in /api/reading:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
-          if (!streamErrored && accumulated.trim()) {
+          if (!streamErrored && !wasTruncated && accumulated.trim()) {
             await setCachedReading(cacheKey, accumulated)
           }
         }
