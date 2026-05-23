@@ -1,0 +1,42 @@
+.notation {
+  position: absolute;
+  top: 18%;
+  left: 4%;
+  border: 1px solid var(--copper-border);
+  padding: 0.45rem 0.7rem;
+  display: inline-flex;
+  flex-direction: column;
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  letter-spacing: 0.08em;
+  background: rgba(11, 9, 32, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.degree {
+  color: var(--fg);
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.label {
+  color: var(--copper);
+  font-size: 0.55rem;
+  margin-top: 0.3rem;
+  line-height: 1;
+  letter-spacing: 0.2em;
+}
+
+@media (max-width: 780px) {
+  .notation {
+    top: auto;
+    bottom: 1rem;
+    left: 1rem;
+    padding: 0.35rem 0.55rem;
+  }
+  .degree { font-size: 0.75rem; }
+  .label  { font-size: 0.5rem; }
+}
