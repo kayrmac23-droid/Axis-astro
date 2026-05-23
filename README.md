@@ -16,6 +16,8 @@ Most astrology apps pick one system. AXIS treats them as complementary maps of d
 - **Sidereal** — incarnational patterning: the body, circumstances, and inherited tendencies a person arrived with; karmic emphases, deep instinctive orientations, and the time-conditioned unfolding of a life. Not fate — the specific terrain.
 - **Synthesis** — the only question that matters: how does this particular psychological interior navigate these particular incarnational conditions? Where both systems converge, the insight is load-bearing. Where they diverge, that is the specific terrain of this person's life.
 
+AXIS is written for readers who take astrology seriously — students of the technical literature, therapy-adjacent practitioners, those formed by the contemplative traditions. The interpretive vocabulary assumes a working understanding of both the Tropical and Sidereal frameworks before arriving. The chart is read once at depth rather than re-explained across a daily push notification.
+
 Readings are written in continuous analytical prose. No bullet points. No generic affirmations. No predictions. Every sentence earns its place.
 
 ---
@@ -47,7 +49,7 @@ AXIS uses two complementary ephemeris sources:
 | Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included) | < 1 arcsecond |
 | Moon | ELP2000 + nutation correction | < 10 arcseconds |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
-| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~15–50 arcmin) | **< 1 arcsecond** |
+| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~15–60 arcmin) | **< 1 arcsecond** |
 | Rahu/Ketu | True node: Meeus Ch. 22 + periodic corrections | < 0.05° vs. Swiss Ephemeris osculating node |
 | Lahiri ayanamsa | Linear precession formula | Within ~0.01° of the IAU reference value |
 
@@ -167,7 +169,7 @@ App runs at `http://localhost:5000`.
 
 Deployed via Vercel connected to this GitHub repo. Every push to `main` triggers an automatic production deployment.
 
-Do not add a `functions` block to `vercel.json` for Next.js App Router — it conflicts with the framework's native function handling. The existing config sets `maxDuration` for the reading route (60s) and the calculate route (30s, which covers the Horizons API call + computation).
+Both API routes set their `maxDuration` via `export const` in the route file itself — `/api/reading` declares 60 s (the Vercel Hobby ceiling), `/api/calculate` declares 30 s (covers the Horizons API call plus chart computation). This is the canonical Next.js App Router pattern; `vercel.json` only declares the framework.
 
 ---
 
@@ -178,7 +180,7 @@ This section describes what is hardened now and what requires distributed infras
 **Hardened (current state):**
 - `/api/reading` validates section and planetSection against explicit allow-lists before processing
 - `/api/reading` enforces a 64 KB payload size limit
-- `/api/reading` applies an in-memory per-IP rate limiter (20 req / 60s sliding window)
+- `/api/reading` applies a Redis-backed per-IP rate limiter (20 req / 60s fixed window via Upstash, with an atomic Lua INCR+EXPIRE; in-memory fallback when Redis env vars are absent)
 - `/api/geocode` enforces a 200-character query length limit
 - All internal error messages are scrubbed from client-facing responses (server-side logging only)
 - Per-section streaming retry (2 attempts) with visible failure fallback
@@ -190,14 +192,14 @@ This section describes what is hardened now and what requires distributed infras
 
 **External service dependencies:**
 - Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
-- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to local Meeus polynomial (~0.3° error) if unreachable.
+- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to the local Meeus Ch. 37 polynomial (~15–60 arcmin vs DE440 across 1930–2025; see [BENCHMARK.md](BENCHMARK.md)) if unreachable.
 - OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s, no bulk use).
 
 ---
 
 ## Known limitations and accuracy notes
 
-- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (full 43-term table via `astronomia/pluto`; ~15–50 arcminutes vs DE440) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used. See [BENCHMARK.md](BENCHMARK.md).
+- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (full 43-term table via `astronomia/pluto`; ~15–60 arcminutes vs DE440) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used. See [BENCHMARK.md](BENCHMARK.md).
 - **Rahu/Ketu** use the **true (osculating) lunar node** — Meeus Ch. 22 mean node plus 4 dominant periodic correction terms. Matches Swiss Ephemeris to <0.05° over 1900–2100. The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
 - **Lahiri ayanamsa** is computed via a linear precession formula. Difference from the full polynomial calculation is < 0.01° for dates 1900–2100.
 - **Birth time** accuracy directly affects Ascendant, MC, house placements, Moon degree, and dasha timing. AXIS flags this explicitly in the UI when time is unknown.

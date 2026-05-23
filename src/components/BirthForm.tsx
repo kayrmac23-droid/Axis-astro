@@ -184,7 +184,12 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     onSubmit({ ...rest, hour: hour24, minute, birthTimeUnknown: String(birthTimeUnknown) })
   }
 
-  const isValid = formData.year && formData.month && formData.day && locationConfirmed
+  // Time is required unless the user has explicitly flagged the birth time as unknown.
+  // Without this, a user who left hour/minute blank would silently get a noon chart
+  // without the birth-time-unknown notice attached, so the unreliability of Ascendant,
+  // MC, and houses would not surface in the reading.
+  const timeProvided = birthTimeUnknown || (formData.hour && formData.minute)
+  const isValid = formData.year && formData.month && formData.day && locationConfirmed && timeProvided
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
@@ -249,6 +254,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               value={formData.hour}
               onChange={handleChange}
               disabled={birthTimeUnknown}
+              required={!birthTimeUnknown}
               style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>
@@ -263,6 +269,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
               value={formData.minute}
               onChange={handleChange}
               disabled={birthTimeUnknown}
+              required={!birthTimeUnknown}
               style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>

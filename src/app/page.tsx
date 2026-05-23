@@ -115,6 +115,11 @@ export default function Home() {
               Sidereal maps the incarnational conditions it navigates.
               The synthesis is where both truths meet.
             </p>
+            <p className={styles.heroBody}>
+              Written for readers who take astrology seriously — students of
+              the technical literature, therapy-adjacent readers, the
+              contemplative traditions.
+            </p>
             <p className={styles.heroDetail}>
               Western Tropical · Vedic Sidereal · Synthesis Reading
             </p>

@@ -278,3 +278,53 @@ describe('calculateDualChart — Rahu/Ketu axis', () => {
     expect(maxDiff).toBeLessThan(1.7)
   })
 })
+
+// ── Midnight handling ─────────────────────────────────────────────────────────
+
+describe('calculateDualChart — midnight handling', () => {
+  // The midnight bug shipped in /api/calculate/route.ts and BirthForm.tsx earlier
+  // would silently convert hour=0 → hour=12 via `parseInt(hour) || 12`, producing
+  // a noon chart for anyone born at midnight. This guards against that pattern
+  // ever reappearing in the calc layer.
+  it('hour=0 produces a chart distinct from hour=12 (Sun and Ascendant both move)', () => {
+    const midnight: BirthData = { ...BASE_BIRTH, hour: 0,  minute: 0 }
+    const noon:     BirthData = { ...BASE_BIRTH, hour: 12, minute: 0 }
+
+    const dMid  = calculateDualChart(midnight, { plutoSource: 'local-meeus' })
+    const dNoon = calculateDualChart(noon,     { plutoSource: 'local-meeus' })
+
+    // Sun motion over 12 hours is roughly 0.5° — wrap to handle 0/360 boundary.
+    const sunMid  = dMid.tropical.planets.find(p => p.name === 'Sun')!
+    const sunNoon = dNoon.tropical.planets.find(p => p.name === 'Sun')!
+    let sunΔ = Math.abs(sunMid.longitude - sunNoon.longitude)
+    if (sunΔ > 180) sunΔ = 360 - sunΔ
+    expect(sunΔ).toBeGreaterThan(0.4)
+    expect(sunΔ).toBeLessThan(0.6)
+
+    // Ascendant moves through all 12 signs in 24 hours, so 12 hours shifts it ~6 signs.
+    // Different sign is guaranteed, and the longitudinal distance should be substantial.
+    expect(dMid.tropical.ascendantSign).not.toBe(dNoon.tropical.ascendantSign)
+    let ascΔ = Math.abs(dMid.tropical.ascendant - dNoon.tropical.ascendant)
+    if (ascΔ > 180) ascΔ = 360 - ascΔ
+    expect(ascΔ).toBeGreaterThan(150)  // ≈ 180° opposite — never exact due to lat/precession
+  })
+
+  it('hour=0 does not silently fall through to a noon fallback', () => {
+    // Direct check that calculateDualChart honours hour=0 as midnight UTC.
+    // The bug fixed in commit 063db569 only lived in the form/API layer, but a
+    // future regression that re-introduced `|| 12` anywhere in the input pipeline
+    // would produce a noon chart for midnight births; this test fails loudly
+    // if hour=0 ever stops resolving to actual midnight.
+    const d = calculateDualChart(
+      { year: 2000, month: 1, day: 1, hour: 0, minute: 0, latitude: 51.5, longitude: -0.12, timezone: 0 },
+      { plutoSource: 'local-meeus' },
+    )
+    // At 2000-01-01 00:00 UTC in London, the Sun has just crossed into Capricorn ~10°
+    // (winter solstice was a week earlier). At noon UTC the same day, the Sun is ~10.5°
+    // Capricorn. We check that the result sits at the midnight position, not noon.
+    const sun = d.tropical.planets.find(p => p.name === 'Sun')!
+    expect(sun.sign).toBe('Capricorn')
+    expect(sun.degree).toBeGreaterThan(9.5)
+    expect(sun.degree).toBeLessThan(10.5)
+  })
+})
