@@ -102,7 +102,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       // Create a UTC-based Date that represents the wall-clock time in the target timezone.
       // We use a UTC timestamp matching the calendar values; Intl then maps it to the
       // correct UTC offset for that timezone at that calendar date (DST-aware).
-      const isoStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00Z`
+      const isoStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
       const date = new Date(isoStr)
       const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: tzName,
@@ -141,10 +141,10 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     } catch { /* offline or server error — use longitude fallback */ }
 
     if (tzName) {
-      const year = parseInt(formData.year) || new Date().getFullYear()
+      const year  = parseInt(formData.year)  || new Date().getFullYear()
       const month = parseInt(formData.month) || 1
-      const day = parseInt(formData.day) || 1
-      const hour = formData.hour ? to24Hour(formData.hour, formData.ampm) : 12
+      const day   = parseInt(formData.day)   || 1
+      const hour  = formData.hour ? to24Hour(formData.hour, formData.ampm) : 12
       const minute = parseInt(formData.minute) || 0
       const offset = getUtcOffsetFromTzName(tzName, year, month, day, hour, minute)
       if (offset !== null) tz = offset
@@ -180,7 +180,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
     }
     const { ampm, ...rest } = formData
     const hour24 = birthTimeUnknown ? '12' : String(to24Hour(formData.hour, ampm))
-    const minute = birthTimeUnknown ? '0' : rest.minute
+    const minute = birthTimeUnknown ? '0'  : rest.minute
     onSubmit({ ...rest, hour: hour24, minute, birthTimeUnknown: String(birthTimeUnknown) })
   }
 
@@ -191,180 +191,156 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
   const timeProvided = birthTimeUnknown || (formData.hour && formData.minute)
   const isValid = formData.year && formData.month && formData.day && locationConfirmed && timeProvided
 
-  // Calibration panel status. Drives the "// AWAITING INPUT" → "// READY"
-  // indicator next to the cast button, plus the cast button's ready-state glow.
-  const statusLabel = !isValid ? '// AWAITING INPUT' : (loading ? '// CASTING…' : '// READY')
-
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      {/* Calibration header */}
-      <div className={styles.calibrationHeader}>
-        <span className={styles.calibrationLabel}>CALIBRATION</span>
-        <hr className={styles.calibrationRule} />
-      </div>
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <p className={styles.formLabel}>Enter birth data</p>
 
-      <p className={styles.calibrationIntro}>
-        Inputs determine the moment and place. Precision matters — especially for the Ascendant.
-      </p>
-
-      {/* Date of birth */}
-      <fieldset className={styles.field}>
-        <legend className={styles.label}>Date of birth</legend>
-        <div className={styles.row}>
-          <div className={styles.notationBox}>
+      {/* Date */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>Date of birth</label>
+        <div className={styles.dateRow}>
+          <div className={styles.fieldWrap}>
             <input
-              type="number"
+              className={styles.input}
               name="day"
+              type="number"
               placeholder="DD"
-              min="1"
-              max="31"
+              min="1" max="31"
               value={formData.day}
               onChange={handleChange}
               required
-              aria-label="Day"
-              className={styles.notationInput}
             />
           </div>
-          <div className={styles.notationBox}>
+          <div className={styles.fieldWrap}>
             <input
-              type="number"
+              className={styles.input}
               name="month"
+              type="number"
               placeholder="MM"
-              min="1"
-              max="12"
+              min="1" max="12"
               value={formData.month}
               onChange={handleChange}
               required
-              aria-label="Month"
-              className={styles.notationInput}
             />
           </div>
-          <div className={`${styles.notationBox} ${styles.notationBoxWide}`}>
+          <div className={styles.fieldWrap} style={{ flex: 2 }}>
             <input
-              type="number"
+              className={styles.input}
               name="year"
+              type="number"
               placeholder="YYYY"
-              min="1900"
-              max="2100"
+              min="1900" max="2099"
               value={formData.year}
               onChange={handleChange}
               required
-              aria-label="Year"
-              className={styles.notationInput}
             />
           </div>
         </div>
-        <span className={styles.fieldNote}>1900 – 2100</span>
-      </fieldset>
+      </div>
 
-      {/* Time of birth */}
-      <fieldset className={styles.field}>
-        <legend className={styles.label}>Time of birth</legend>
-        <div className={styles.row}>
-          <div className={`${styles.notationBox} ${birthTimeUnknown ? styles.notationBoxDisabled : ''}`}>
+      {/* Time */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>
+          Time of birth
+        </label>
+        <div className={styles.dateRow}>
+          <div className={styles.fieldWrap}>
             <input
-              type="number"
+              className={styles.input}
               name="hour"
+              type="number"
               placeholder="HH"
-              min="1"
-              max="12"
+              min="1" max="12"
               value={formData.hour}
               onChange={handleChange}
               disabled={birthTimeUnknown}
               required={!birthTimeUnknown}
-              aria-label="Hour"
-              className={styles.notationInput}
+              style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>
-          <span className={styles.timeSeparator}>:</span>
-          <div className={`${styles.notationBox} ${birthTimeUnknown ? styles.notationBoxDisabled : ''}`}>
+          <span className={styles.timeSep}>:</span>
+          <div className={styles.fieldWrap}>
             <input
-              type="number"
+              className={styles.input}
               name="minute"
+              type="number"
               placeholder="MM"
-              min="0"
-              max="59"
+              min="0" max="59"
               value={formData.minute}
               onChange={handleChange}
               disabled={birthTimeUnknown}
               required={!birthTimeUnknown}
-              aria-label="Minute"
-              className={styles.notationInput}
+              style={birthTimeUnknown ? { opacity: 0.35 } : undefined}
             />
           </div>
-          <div className={styles.ampmGroup} role="radiogroup" aria-label="AM or PM">
+          <div className={styles.ampmToggle} style={birthTimeUnknown ? { opacity: 0.35 } : undefined}>
             <button
               type="button"
-              className={`${styles.ampmButton} ${formData.ampm === 'AM' ? styles.ampmButtonActive : ''}`}
+              className={`${styles.ampmBtn} ${formData.ampm === 'AM' ? styles.ampmActive : ''}`}
               onClick={() => !birthTimeUnknown && setFormData(prev => ({ ...prev, ampm: 'AM' }))}
               disabled={birthTimeUnknown}
-              aria-pressed={formData.ampm === 'AM'}
             >AM</button>
             <button
               type="button"
-              className={`${styles.ampmButton} ${formData.ampm === 'PM' ? styles.ampmButtonActive : ''}`}
+              className={`${styles.ampmBtn} ${formData.ampm === 'PM' ? styles.ampmActive : ''}`}
               onClick={() => !birthTimeUnknown && setFormData(prev => ({ ...prev, ampm: 'PM' }))}
               disabled={birthTimeUnknown}
-              aria-pressed={formData.ampm === 'PM'}
             >PM</button>
           </div>
         </div>
-
-        <label className={styles.checkboxRow}>
-          <input
-            type="checkbox"
-            checked={birthTimeUnknown}
-            onChange={handleToggleBirthTimeUnknown}
-            className={styles.checkbox}
-          />
-          <span className={styles.checkboxLabel}>
-            Birth time unknown — use noon approximation
-          </span>
-        </label>
+        <button
+          type="button"
+          onClick={handleToggleBirthTimeUnknown}
+          className={styles.unknownTimeBtn}
+        >
+          <span className={`${styles.unknownTimeCheck} ${birthTimeUnknown ? styles.unknownTimeCheckActive : ''}`} />
+          Birth time unknown — use noon approximation
+        </button>
         {birthTimeUnknown && (
-          <p className={styles.checkboxNote}>
+          <p className={styles.unknownTimeNote}>
             Ascendant, houses, and MC will be unreliable. Sign positions remain accurate.
           </p>
         )}
-      </fieldset>
+      </div>
 
-      {/* Place of birth */}
-      <fieldset className={styles.field}>
-        <legend className={styles.label}>Place of birth</legend>
-        <div className={styles.locationWrapper}>
-          <div className={`${styles.notationBox} ${styles.notationBoxFull}`}>
-            <input
-              type="text"
-              name="location"
-              placeholder="City, country"
-              value={formData.location}
-              onChange={handleChange}
-              onKeyDown={handleLocationKeyDown}
-              autoComplete="off"
-              role="combobox"
-              aria-expanded={locationSuggestions.length > 0}
-              aria-autocomplete="list"
-              aria-controls={listboxId}
-              aria-activedescendant={
-                activeSuggestion >= 0 ? `location-option-${activeSuggestion}` : undefined
-              }
-              className={styles.notationInput}
-            />
-          </div>
-          {locationLoading && <span className={styles.locationLoading}>searching…</span>}
+      {/* Location */}
+      <div className={styles.fieldGroup}>
+        <label className={styles.label}>Place of birth</label>
+        <div className={styles.locationWrap}>
+          <input
+            className={`${styles.input} ${locationConfirmed ? styles.inputConfirmed : ''}`}
+            name="location"
+            type="text"
+            placeholder="City, country"
+            value={formData.location}
+            onChange={handleChange}
+            onKeyDown={handleLocationKeyDown}
+            autoComplete="off"
+            required
+            role="combobox"
+            aria-haspopup="listbox"
+            aria-expanded={locationSuggestions.length > 0}
+            aria-autocomplete="list"
+            aria-controls={listboxId}
+            aria-activedescendant={
+              activeSuggestion >= 0 ? `location-option-${activeSuggestion}` : undefined
+            }
+          />
+          {locationLoading && <span className={styles.locationLoader} aria-hidden="true" />}
           {locationSuggestions.length > 0 && (
             <ul
               id={listboxId}
-              className={styles.suggestionList}
               role="listbox"
+              aria-label="Location suggestions"
+              className={styles.suggestions}
             >
               {locationSuggestions.map((s, i) => (
                 <li
-                  key={s.display_name}
+                  key={i}
                   id={`location-option-${i}`}
-                  className={`${styles.suggestionItem} ${i === activeSuggestion ? styles.suggestionItemActive : ''}`}
                   role="option"
-                  aria-selected={i === activeSuggestion}
+                  aria-selected={activeSuggestion === i}
+                  className={`${styles.suggestion} ${activeSuggestion === i ? styles.suggestionActive : ''}`}
                   onClick={() => selectLocation(s)}
                   onMouseEnter={() => setActiveSuggestion(i)}
                 >
@@ -374,21 +350,22 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
             </ul>
           )}
         </div>
-      </fieldset>
-
-      {/* Cast row: button + status indicator */}
-      <div className={styles.castRow}>
-        <button
-          type="submit"
-          className={`${styles.castButton} ${isValid && !loading ? styles.castButtonReady : ''}`}
-          disabled={!isValid || loading}
-        >
-          {loading ? 'Casting…' : 'Cast chart'}
-        </button>
-        <span className={`${styles.statusIndicator} ${isValid ? styles.statusIndicatorReady : ''}`}>
-          {statusLabel}
-        </span>
       </div>
+
+      <button
+        type="submit"
+        className={styles.submitBtn}
+        disabled={loading || !isValid}
+      >
+        {loading ? (
+          <span className={styles.btnLoading}>
+            <span className={styles.btnSpinner} />
+            Calculating
+          </span>
+        ) : (
+          'Generate chart'
+        )}
+      </button>
     </form>
   )
 }
