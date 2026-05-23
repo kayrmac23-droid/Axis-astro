@@ -93,14 +93,14 @@
 
 .heroGrid {
   display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  gap: 3rem;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 2rem;
   align-items: center;
   position: relative;
   z-index: 1;
   min-height: calc(80vh - 8rem);
-  max-width: 960px;
-  margin: 0 auto;
+  width: 100%;
+  padding: 0 3rem;
 }
 
 .heroLeft {
@@ -505,6 +505,7 @@
     text-align: center;
     min-height: auto;
     gap: 2rem;
+    padding: 0 1.5rem;
   }
   .heroLeft,
   .heroRight {

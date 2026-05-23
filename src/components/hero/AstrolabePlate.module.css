@@ -1,8 +1,7 @@
 .plate {
-  width: 100%;
-  height: auto;
-  max-width: 480px;
-  filter: drop-shadow(0 0 30px var(--axis-copper-faint));
+  width: auto;
+  height: min(75vh, 700px);
+  filter: drop-shadow(0 0 40px var(--axis-copper-faint));
 }
 
 .outerBand {

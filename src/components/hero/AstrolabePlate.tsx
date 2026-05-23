@@ -22,6 +22,9 @@ export default function AstrolabePlate() {
           <stop offset="75%" stopColor="var(--axis-copper)" stopOpacity="0.18" />
           <stop offset="85%" stopColor="transparent" />
         </radialGradient>
+        {/* Guide arcs for band labels — invisible, only used by textPath */}
+        <path id="plateOuterArc" d="M -140,0 A 140,140 0 0,0 140,0" />
+        <path id="plateInnerArc" d="M -92,0 A 92,92 0 0,0 92,0" />
       </defs>
 
       {/* Partial arc fragments — static, outside the plate, suggesting larger map */}
@@ -62,6 +65,12 @@ export default function AstrolabePlate() {
             </text>
           )
         })}
+        {/* Arc label curving along the top of the outer band */}
+        <text fontSize="6" fill="var(--axis-copper-dim)" fontFamily="Cinzel, serif" letterSpacing="3">
+          <textPath href="#plateOuterArc" startOffset="50%" textAnchor="middle">
+            · TROPICAL ZODIAC ·
+          </textPath>
+        </text>
       </g>
 
       {/* Annular degree ticks */}
@@ -102,6 +111,12 @@ export default function AstrolabePlate() {
             </text>
           )
         })}
+        {/* Arc label curving along the top of the inner band */}
+        <text fontSize="5" fill="var(--axis-copper-dim)" fontFamily="Cinzel, serif" letterSpacing="2">
+          <textPath href="#plateInnerArc" startOffset="50%" textAnchor="middle">
+            · SIDEREAL ZODIAC ·
+          </textPath>
+        </text>
       </g>
 
       {/* Central armature: cross axes + diamond compass star */}
