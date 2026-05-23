@@ -1,0 +1,51 @@
+.plate {
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  filter: drop-shadow(0 0 30px var(--axis-copper-faint));
+}
+
+.outerBand {
+  transform-origin: center;
+  animation: outer-rotate 240s linear infinite;
+}
+
+.innerBand {
+  transform-origin: center;
+  animation: inner-rotate-with-offset 360s linear infinite;
+}
+
+.armature {
+  transform-origin: center;
+  animation: armature-pulse 8s ease-in-out infinite;
+}
+
+@keyframes outer-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Inner band: starts at -23.85° (Lahiri), rotates one full revolution */
+@keyframes inner-rotate-with-offset {
+  from { transform: rotate(-23.85deg); }
+  to   { transform: rotate(-383.85deg); }
+}
+
+/* Subtle armature pulse — opacity only, not transform */
+@keyframes armature-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outerBand,
+  .innerBand {
+    animation: none;
+  }
+  .innerBand {
+    transform: rotate(-23.85deg);
+  }
+  .armature {
+    animation: none;
+  }
+}

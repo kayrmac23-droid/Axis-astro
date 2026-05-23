@@ -4,7 +4,10 @@ import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
-import AstrolabeDecor from '@/components/AstrolabeDecor'
+import AstrolabePlate from '@/components/hero/AstrolabePlate'
+import Starfield from '@/components/hero/Starfield'
+import ConstellationDecor from '@/components/hero/ConstellationDecor'
+import HeroNotation from '@/components/hero/HeroNotation'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -99,30 +102,38 @@ export default function Home() {
       {/* Hero */}
       {!chartData && (
         <section className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <p className={styles.heroEyebrow}>Natal chart reading</p>
-            <h2 className={styles.heroHeadline}>
-              Two systems.<br />
-              <span className={styles.heroAccent}>One truth.</span>
-            </h2>
-          </div>
-          <div className={styles.heroCenter}>
-            <AstrolabeDecor />
-          </div>
-          <div className={styles.heroRight}>
-            <p className={styles.heroBody}>
-              Tropical maps the psychological architecture of a self.
-              Sidereal maps the incarnational conditions it navigates.
-              The synthesis is where both truths meet.
-            </p>
-            <p className={styles.heroBody}>
-              Written for readers who take astrology seriously — students of
-              the technical literature, therapy-adjacent readers, the
-              contemplative traditions.
-            </p>
-            <p className={styles.heroDetail}>
-              Western Tropical · Vedic Sidereal · Synthesis Reading
-            </p>
+          <Starfield />
+          <ConstellationDecor />
+
+          <div className={styles.heroGrid}>
+            <div className={styles.heroLeft}>
+              <p className={styles.heroEyebrow}>Natal chart reading</p>
+              <h2 className={styles.heroHeadline}>
+                Two systems.<br />
+                <span className={styles.heroAccent}>One truth.</span>
+              </h2>
+            </div>
+
+            <div className={styles.heroCenter}>
+              <HeroNotation />
+              <AstrolabePlate />
+            </div>
+
+            <div className={styles.heroRight}>
+              <p className={styles.heroBody}>
+                Tropical maps the psychological architecture of a self.
+                Sidereal maps the incarnational conditions it navigates.
+                The synthesis is where both truths meet.
+              </p>
+              <p className={styles.heroBody}>
+                Written for readers who take astrology seriously — students of
+                the technical literature, therapy-adjacent readers, the
+                contemplative traditions.
+              </p>
+              <p className={styles.heroDetail}>
+                Western Tropical · Vedic Sidereal · Synthesis Reading
+              </p>
+            </div>
           </div>
         </section>
       )}

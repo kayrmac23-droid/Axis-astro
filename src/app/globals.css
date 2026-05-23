@@ -41,6 +41,16 @@
   --font-editorial: 'Cormorant Garamond', Georgia, serif;
   --font-serif:     'Cormorant Garamond', Georgia, serif;
   --font-mono:      'Space Mono', 'Courier New', monospace;
+
+  /* Hero v1 — axis tokens */
+  --axis-navy:         #0a0e1a;
+  --axis-navy-deep:    #050810;
+  --axis-cream:        #ece4d6;
+  --axis-cream-dim:    rgba(236, 228, 214, 0.5);
+  --axis-copper:       #b87333;
+  --axis-copper-light: #d4884c;
+  --axis-copper-dim:   #6f4520;
+  --axis-copper-faint: rgba(184, 115, 51, 0.2);
 }
 
 html {

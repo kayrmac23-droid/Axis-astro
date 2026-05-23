@@ -1,0 +1,21 @@
+.constellations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.constellation {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+}
+
+.topLeft     { top: 2rem; left: 2rem; }
+.topRight    { top: 2rem; right: 2rem; }
+.bottomLeft  { bottom: 2rem; left: 2rem; }
+.bottomRight { bottom: 2rem; right: 2rem; }
+
+@media (max-width: 968px) {
+  .constellation { display: none; }
+}

@@ -1,0 +1,34 @@
+.notation {
+  position: absolute;
+  top: 25%;
+  left: 12%;
+  border: 1px solid var(--axis-copper-dim);
+  padding: 0.5rem 0.75rem;
+  display: inline-flex;
+  flex-direction: column;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: 0.05em;
+  background: rgba(10, 14, 26, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+.degree {
+  color: var(--axis-cream);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.label {
+  color: var(--axis-copper);
+  font-size: 0.65rem;
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 968px) {
+  .notation {
+    top: auto;
+    bottom: 1rem;
+    left: 1rem;
+  }
+}
