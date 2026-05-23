@@ -1,0 +1,90 @@
+.plate {
+  width: 100%;
+  height: auto;
+  max-width: 480px;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 0 30px var(--copper-subtle));
+}
+
+/* Critical: SVG transform attribute and CSS transform do not compose.
+   The Lahiri offset on the inner band must live in the keyframe values,
+   not on the SVG element. */
+
+.outerBand {
+  transform-origin: center;
+  animation: axis-outer-rotate 240s linear infinite;
+}
+
+.innerBand {
+  transform-origin: center;
+  animation: axis-inner-rotate-with-offset 360s linear infinite;
+}
+
+.armature {
+  transform-origin: center;
+  animation: axis-armature-pulse 8s ease-in-out infinite;
+}
+
+.partialArcs {
+  transform-origin: center;
+  animation: axis-arcs-rotate 600s linear infinite;
+  opacity: 0.6;
+}
+
+.degreeTicks {
+  transform-origin: center;
+  /* Ticks rotate WITH the outer band so the relative geometry holds.
+     Same period as outerBand. */
+  animation: axis-outer-rotate 240s linear infinite;
+}
+
+@keyframes axis-outer-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Inner band starts at -23.85° (Lahiri offset), rotates one full revolution
+   counter to the outer band so the bands appear to drift relative to each
+   other — visually echoing precession. */
+@keyframes axis-inner-rotate-with-offset {
+  from { transform: rotate(-23.85deg); }
+  to   { transform: rotate(-383.85deg); }
+}
+
+@keyframes axis-armature-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.88; }
+}
+
+@keyframes axis-arcs-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .outerBand,
+  .innerBand,
+  .armature,
+  .partialArcs,
+  .degreeTicks {
+    animation: none;
+  }
+  /* Static Lahiri offset still visible on inner band */
+  .innerBand {
+    transform: rotate(-23.85deg);
+  }
+}
+
+/* Mobile — scale the plate smaller; everything else stays */
+@media (max-width: 780px) {
+  .plate {
+    max-width: 360px;
+  }
+}
+
+@media (max-width: 560px) {
+  .plate {
+    max-width: 280px;
+  }
+}
