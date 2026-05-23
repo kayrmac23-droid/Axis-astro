@@ -1,8 +1,3 @@
 {
-  "framework": "nextjs",
-  "functions": {
-    "src/app/api/reading/route.ts": {
-      "maxDuration": 60
-    }
-  }
+  "framework": "nextjs"
 }

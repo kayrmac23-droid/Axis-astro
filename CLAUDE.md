@@ -19,7 +19,7 @@ ANTHROPIC_API_KEY=your_key_here
 
 ## Architecture
 
-Next.js 14 App Router, TypeScript. Four API routes + five React components + six core libs.
+Next.js 16 App Router, TypeScript. Four API routes + five React components + six core libs.
 
 ### Data flow
 
@@ -65,7 +65,7 @@ Uses the `astronomia` npm package (VSOP87B ephemeris via `astronomia/planetposit
 
 ### `lib/jpl-horizons.ts` — JPL Horizons DE440 ephemeris
 
-Fetches geocentric ecliptic longitude for Pluto (and other bodies) from `ssd.jpl.nasa.gov` REST API. Uses DE440 (1550–2650) or DE441 for extreme dates. Only Pluto is used in production. Has a module-level minute-resolution cache. Falls back gracefully — `getHorizonsEclipticLon()` returns `null` on any error. The benchmark script `scripts/benchmark-pluto.mjs` compares this against local Meeus Ch.37; expected error is ~10–20 arcminutes across 1930–2025.
+Fetches geocentric ecliptic longitude for Pluto (and other bodies) from `ssd.jpl.nasa.gov` REST API. Uses DE440 (1550–2650) or DE441 for extreme dates; Horizons response headers sometimes label the same data as DE441 even for in-range dates, which `parseHorizonsResult` surfaces verbatim. Only Pluto is used in production. Has a module-level minute-resolution cache capped at 500 entries via FIFO eviction so a long-running warm instance cannot grow it unbounded. Falls back gracefully — `getHorizonsEclipticLon()` returns `null` on any error. The benchmark script `scripts/benchmark-pluto.mjs` compares this against local Meeus Ch.37; observed error spans roughly ±60 arcminutes across 1930–2025, well within the polynomial's intended accuracy (see BENCHMARK.md).
 
 ### `lib/reading-cache.ts` — Upstash Redis response cache
 
@@ -112,6 +112,4 @@ Vitest tests live in `src/lib/__tests__/astro-calc.test.ts`. They cover output s
 
 Vercel — auto-deploys from `main`. `ANTHROPIC_API_KEY` must be set in Vercel project settings → Environment Variables.
 
-`vercel.json` sets `maxDuration: 60` for the reading route only. Do not add a top-level `functions` block — it conflicts with Next.js App Router's native function routing.
-
-The `/api/calculate` route has `maxDuration = 30` via the `export const` in the route file (accommodates the Horizons API call).
+Both API routes set their `maxDuration` via `export const` in the route file itself — `/api/reading` declares 60 s (the Vercel Hobby ceiling), `/api/calculate` declares 30 s (accommodates the Horizons API call). This is the canonical Next.js App Router pattern; `vercel.json` only declares the framework.

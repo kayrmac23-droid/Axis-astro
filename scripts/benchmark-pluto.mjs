@@ -7,7 +7,7 @@
 //
 // The local Meeus column uses the same code path as the in-app fallback:
 //   astronomia/pluto.heliocentric(jde)  →  rectangular geocentric  →  ecliptic lon + nutation
-// Expected accuracy vs DE440: ~15–30 arcminutes across 1930–2025.
+// Observed accuracy vs DE440: ~15–60 arcminutes across 1930–2025 (see BENCHMARK.md).
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)

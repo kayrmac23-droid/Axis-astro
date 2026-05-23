@@ -62,7 +62,7 @@ export default function ChartFactsPanel({ data }: Props) {
   const planets = PLANET_ORDER.filter(n => tMap[n] || sMap[n])
 
   const plutoLabel = data.plutoSource === 'local-meeus'
-    ? 'Pluto: local Meeus (~0.3° approx)'
+    ? 'Pluto: local Meeus (~15–60 arcmin)'
     : `Pluto: JPL Horizons ${data.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`
 
   return (

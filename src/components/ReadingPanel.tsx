@@ -320,7 +320,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
                   : styles.ephemerisSource
               }>
                 {chartData.plutoSource === 'local-meeus'
-                  ? '⚠ local fallback (~0.3°)'
+                  ? '⚠ local fallback (~15–60 arcmin)'
                   : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
               </span>
             </div>
