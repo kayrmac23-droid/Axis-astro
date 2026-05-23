@@ -1,305 +1,392 @@
+/* AXIS calibration panel — the birth-data form styled as a precision
+   instrument input console. Bordered notation boxes for each field,
+   outlined cast button, // AWAITING INPUT vs // READY status indicator. */
+
 .form {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.6rem;
+  width: 100%;
 }
 
-.formLabel {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.25em;
+/* ── Calibration header ───────────────────────────────────────────── */
+
+.calibrationHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.2rem;
+}
+
+.calibrationLabel {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.32em;
+  color: var(--copper);
   text-transform: uppercase;
-  color: var(--gold);
-  margin-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
-.fieldGroup {
+.calibrationRule {
+  flex: 1;
+  border: none;
+  border-top: 1px solid var(--copper-border);
+  margin: 0;
+}
+
+.calibrationIntro {
+  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
+  font-size: 1.05rem;
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.65;
+  color: var(--fg-2);
+  margin-bottom: 0.6rem;
+  max-width: 32rem;
+}
+
+/* ── Field group ──────────────────────────────────────────────────── */
+
+.field {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.55rem;
+  border: none;
+  padding: 0;
+  margin: 0;
 }
 
 .label {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  color: var(--copper);
   text-transform: uppercase;
-  color: var(--fg-3);
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.labelNote {
-  font-style: italic;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--fg-3);
-  opacity: 0.6;
-  font-family: var(--font-serif);
-  font-size: 0.75rem;
-}
-
-.dateRow {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.fieldWrap {
-  flex: 1;
-}
-
-.timeSep {
-  color: var(--fg-3);
-  font-family: var(--font-mono);
-  font-size: 1rem;
-}
-
-.ampmToggle {
-  display: flex;
-  flex-direction: row;
-  flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: var(--surface-2);
-  overflow: hidden;
-}
-
-.ampmBtn {
-  padding: 0.85rem 0.8rem;
-  background: none;
-  border: none;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--fg-3);
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  line-height: 1;
-}
-
-.ampmBtn:last-child {
-  border-right: none;
-}
-
-.ampmBtn:hover {
-  color: var(--fg-2);
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.ampmActive {
-  background: rgba(201, 150, 46, 0.1);
-  color: var(--gold);
-}
-
-.input {
-  width: 100%;
-  background: var(--surface-2);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: var(--fg);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  padding: 0.85rem 1rem;
-  outline: none;
-  transition: border-color 0.2s ease;
-  -webkit-appearance: none;
-  border-radius: 0;
-}
-
-.input::placeholder {
-  color: var(--fg-2);
-  opacity: 0.4;
-}
-
-.input:focus {
-  border-color: rgba(200, 120, 64, 0.5);
-}
-
-.inputConfirmed {
-  border-color: var(--gold-dim);
-  color: var(--gold);
-}
-
-/* Remove number input arrows */
-.input::-webkit-inner-spin-button,
-.input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-}
-
-.locationWrap {
-  position: relative;
-}
-
-.locationLoader {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--gold-dim);
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.suggestions {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--surface-2);
-  border: 1px solid var(--border-2);
-  border-top: none;
-  z-index: 100;
-  max-height: 200px;
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
   padding: 0;
-  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.5);
 }
 
-.suggestion {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  border-bottom: 1px solid var(--border);
-  color: var(--fg-2);
-  font-family: var(--font-serif);
-  font-size: 0.85rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  line-height: 1.4;
-  box-sizing: border-box;
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.suggestion:hover,
-.suggestionActive {
-  background: rgba(201, 150, 46, 0.08);
-  color: var(--fg);
-}
-
-.suggestion:last-child {
-  border-bottom: none;
-}
-
-.submitBtn {
-  position: relative;
-  overflow: hidden;
-  margin-top: 1rem;
-  width: 100%;
-  padding: 1.25rem 1rem;
-  background: var(--gold);
-  border: 1px solid var(--gold);
-  color: var(--bg);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.25em;
+.fieldNote {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: var(--fg-4);
   text-transform: uppercase;
+  margin-top: 0.15rem;
+}
+
+/* ── Notation box (the bordered field container) ──────────────────── */
+
+.notationBox {
+  border: 1px solid var(--copper-border);
+  background: rgba(11, 9, 32, 0.55);
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  flex: 0 0 auto;
+  width: 4.5rem;
+}
+
+.notationBox:focus-within {
+  border-color: var(--copper);
+  box-shadow: 0 0 0 1px var(--copper-subtle), 0 0 18px var(--copper-subtle) inset;
+}
+
+.notationBoxWide {
+  width: 6rem;
+}
+
+.notationBoxFull {
+  flex: 1;
+  width: 100%;
+}
+
+.notationBoxDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.notationInput {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0.65rem 0.7rem;
+  color: var(--fg);
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.notationInput::placeholder {
+  color: var(--fg-4);
+  letter-spacing: 0.15em;
+}
+
+.notationInput[type="text"] {
+  text-align: left;
+  letter-spacing: 0.04em;
+}
+
+/* Remove number-input spinners */
+.notationInput[type="number"]::-webkit-inner-spin-button,
+.notationInput[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.notationInput[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* ── Time separator + AM/PM ───────────────────────────────────────── */
+
+.timeSeparator {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 1.1rem;
+  color: var(--copper);
+  padding: 0 0.2rem;
+}
+
+.ampmGroup {
+  display: inline-flex;
+  border: 1px solid var(--copper-border);
+  background: rgba(11, 9, 32, 0.55);
+  margin-left: 0.4rem;
+}
+
+.ampmButton {
+  background: transparent;
+  border: none;
+  padding: 0.65rem 0.85rem;
+  color: var(--fg-3);
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.18s ease, background 0.18s ease;
 }
 
-.submitBtn::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -60%;
-  width: 40%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
-  transform: skewX(-15deg);
+.ampmButton:hover:not(:disabled) {
+  color: var(--copper-light);
 }
 
-.submitBtn:hover:not(:disabled)::after {
-  animation: shimmerSlide 0.55s ease forwards;
+.ampmButtonActive {
+  color: var(--fg);
+  background: var(--copper-subtle);
 }
 
-@keyframes shimmerSlide {
-  from { left: -60%; }
-  to { left: 130%; }
-}
-
-.submitBtn:hover:not(:disabled) {
-  background: var(--copper-light);
-  border-color: var(--copper-light);
-  color: var(--bg);
-}
-
-.submitBtn:disabled {
-  opacity: 0.35;
+.ampmButton:disabled {
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-.btnLoading {
+/* ── Checkbox row ─────────────────────────────────────────────────── */
+
+.checkboxRow {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.btnSpinner {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--gold-dim);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ─── Birth time unknown toggle ─────────────────────── */
-.unknownTimeBtn {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   margin-top: 0.5rem;
-  background: none;
-  border: none;
-  padding: 0;
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  opacity: 0.7;
-  transition: opacity 0.15s ease, color 0.15s ease;
+  user-select: none;
 }
 
-.unknownTimeBtn:hover {
-  opacity: 1;
-  color: var(--fg-2);
-}
-
-.unknownTimeCheck {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--copper-border);
+  background: rgba(11, 9, 32, 0.55);
+  cursor: pointer;
+  position: relative;
   flex-shrink: 0;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  margin-top: 0.15rem;
+  transition: border-color 0.18s ease, background 0.18s ease;
 }
 
-.unknownTimeCheckActive {
-  background: var(--gold);
-  border-color: var(--gold);
+.checkbox:hover {
+  border-color: var(--copper);
 }
 
-.unknownTimeNote {
-  font-family: var(--font-serif);
-  font-size: 0.75rem;
+.checkbox:checked {
+  background: var(--copper);
+  border-color: var(--copper);
+}
+
+.checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 5px;
+  height: 9px;
+  border: solid var(--void);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxLabel {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  color: var(--fg-2);
+  text-transform: uppercase;
+  line-height: 1.5;
+}
+
+.checkboxNote {
+  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
   font-style: italic;
-  color: #8A6020;
-  letter-spacing: 0.01em;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--fg-3);
   margin-top: 0.4rem;
-  opacity: 0.85;
+  padding-left: 1.7rem;
+  max-width: 30rem;
+}
+
+/* ── Location autocomplete ────────────────────────────────────────── */
+
+.locationWrapper {
+  position: relative;
+}
+
+.locationLoading {
+  position: absolute;
+  right: 0.8rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.55rem;
+  letter-spacing: 0.2em;
+  color: var(--fg-4);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.suggestionList {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--copper-border);
+  background: rgba(11, 9, 32, 0.96);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  max-height: 240px;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.suggestionItem {
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
+  font-size: 0.95rem;
+  font-weight: 400;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover,
+.suggestionItemActive {
+  background: var(--copper-subtle);
+  color: var(--fg);
+}
+
+/* ── Cast row (button + status indicator) ─────────────────────────── */
+
+.castRow {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.castButton {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid var(--copper-border);
+  padding: 0.95rem 2.4rem;
+  cursor: pointer;
+  position: relative;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.25s ease;
+}
+
+.castButton:hover:not(:disabled) {
+  border-color: var(--copper);
+  color: var(--copper-light);
+}
+
+.castButtonReady {
+  border-color: var(--copper);
+  color: var(--copper-light);
+  box-shadow: 0 0 24px var(--copper-subtle);
+}
+
+.castButtonReady:hover {
+  background: var(--copper-subtle);
+  color: var(--fg);
+}
+
+.castButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  border-color: var(--border-2);
+  color: var(--fg-3);
+  box-shadow: none;
+}
+
+.statusIndicator {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.28em;
+  color: var(--fg-4);
+  text-transform: uppercase;
+  transition: color 0.18s ease;
+}
+
+.statusIndicatorReady {
+  color: var(--copper);
+}
+
+/* ── Mobile ───────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .row {
+    gap: 0.4rem;
+  }
+  .notationBox { width: 3.6rem; }
+  .notationBoxWide { width: 5rem; }
+  .ampmGroup { margin-left: 0; margin-top: 0.5rem; }
+  .castRow { flex-direction: column; align-items: flex-start; gap: 0.8rem; }
+  .castButton { width: 100%; }
 }

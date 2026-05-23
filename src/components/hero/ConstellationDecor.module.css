@@ -1,0 +1,34 @@
+.constellations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.constellation {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  opacity: 0.5;
+}
+
+.topLeft     { top: 1.5rem; left: 1.5rem; }
+.topRight    { top: 1.5rem; right: 1.5rem; }
+.bottomLeft  { bottom: 1.5rem; left: 1.5rem; }
+.bottomRight { bottom: 1.5rem; right: 1.5rem; }
+
+/* On smaller screens the constellation decor becomes more clutter than
+   atmosphere — hide on mobile. */
+@media (max-width: 780px) {
+  .constellation {
+    width: 120px;
+    height: 120px;
+    opacity: 0.35;
+  }
+}
+
+@media (max-width: 560px) {
+  .constellation {
+    display: none;
+  }
+}

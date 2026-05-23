@@ -100,7 +100,7 @@ p {
   font-family: var(--font-serif);
   font-size: 1.05rem;
   line-height: 1.85;
-  font-weight: 300;
+  font-weight: 400;             /* was 300 — bumped for screen legibility on dark */
   color: var(--fg);
 }
 
@@ -153,4 +153,17 @@ p {
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+/* Reduced-motion: disable continuous animations system-wide.
+   Page-load fade-ins are short enough to leave; rotations/twinkle/pulse are not. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
