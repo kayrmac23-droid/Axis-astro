@@ -4,6 +4,7 @@ import styles from './ChartFactsPanel.module.css'
 
 interface Props {
   data: DualChartData
+  activeSection: 'tropical' | 'sidereal' | 'synthesis'
 }
 
 const VS = '︎'
@@ -54,7 +55,7 @@ const PLANET_ORDER = [
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu',
 ]
 
-export default function ChartFactsPanel({ data }: Props) {
+export default function ChartFactsPanel({ data, activeSection }: Props) {
   const { tropical, sidereal } = data
 
   const tMap = Object.fromEntries(tropical.planets.map(p => [p.name, p]))
@@ -65,17 +66,28 @@ export default function ChartFactsPanel({ data }: Props) {
     ? 'Pluto: local Meeus (~15–60 arcmin)'
     : `Pluto: JPL Horizons ${data.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`
 
+  const isSingle = activeSection !== 'synthesis'
+  const showTropical = activeSection === 'tropical' || activeSection === 'synthesis'
+  const showSidereal = activeSection === 'sidereal' || activeSection === 'synthesis'
+
   return (
     <section className={styles.panel}>
       <p className={styles.panelLabel}>Chart positions</p>
 
       {/* Column headers */}
-      <div className={styles.headerRow}>
-        <span className={styles.hName} />
-        <span className={styles.hSys}>Tropical</span>
-        <span className={styles.hDiff} />
-        <span className={styles.hSys}>Sidereal</span>
-      </div>
+      {isSingle ? (
+        <div className={styles.headerRowSingle}>
+          <span className={styles.hName} />
+          <span className={styles.hSys}>{activeSection === 'tropical' ? 'Tropical' : 'Sidereal'}</span>
+        </div>
+      ) : (
+        <div className={styles.headerRow}>
+          <span className={styles.hName} />
+          <span className={styles.hSys}>Tropical</span>
+          <span className={styles.hDiff} />
+          <span className={styles.hSys}>Sidereal</span>
+        </div>
+      )}
 
       {/* Angles */}
       <div className={styles.group}>
@@ -93,7 +105,20 @@ export default function ChartFactsPanel({ data }: Props) {
             },
           ] as const
         ).map(({ label, tSign, tDeg, sSign, sDeg }) => {
-          const shifted = tSign !== sSign
+          const shifted = !isSingle && tSign !== sSign
+          if (isSingle) {
+            const sign = showTropical ? tSign : sSign
+            const deg  = showTropical ? tDeg  : sDeg
+            return (
+              <div key={label} className={styles.rowSingle}>
+                <span className={styles.name}><span className={styles.planetName}>{label}</span></span>
+                <div className={styles.cell}>
+                  <span className={styles.sign}>{SIGN_ABBR[sign] ?? sign}</span>
+                  <span className={styles.deg}>{fmtDeg(deg)}</span>
+                </div>
+              </div>
+            )
+          }
           return (
             <div key={label} className={`${styles.row} ${shifted ? styles.rowShifted : ''}`}>
               <span className={styles.name}><span className={styles.planetName}>{label}</span></span>
@@ -118,9 +143,47 @@ export default function ChartFactsPanel({ data }: Props) {
         {planets.map(name => {
           const t = tMap[name]
           const s = sMap[name]
-          const shifted = !!(t && s && t.sign !== s.sign)
+          const shifted = !isSingle && !!(t && s && t.sign !== s.sign)
           const tDig = t ? getDignity(name, t.sign) : null
           const sDig = s ? getDignity(name, s.sign) : null
+
+          if (isSingle) {
+            const p   = showTropical ? t : s
+            const dig = showTropical ? tDig : sDig
+            return (
+              <div key={name} className={styles.rowSingle}>
+                <span className={styles.name}>
+                  <span className={styles.symbol} aria-hidden="true">{PLANET_SYMBOLS[name] ?? name[0]}</span>
+                  <span className={styles.planetName}>{name}</span>
+                </span>
+                <div className={styles.cell}>
+                  {p ? (
+                    <>
+                      <span className={styles.main}>
+                        <span className={styles.sign}>{SIGN_ABBR[p.sign] ?? p.sign}</span>
+                        <span className={styles.deg}>{fmtDeg(p.degree)}</span>
+                        <span className={styles.house}>H{p.house}</span>
+                        {p.retrograde && <span className={styles.retro}>℞</span>}
+                      </span>
+                      {dig && (
+                        <span className={`${styles.dignity} ${styles[dig]}`}>
+                          {dig}
+                        </span>
+                      )}
+                      {showSidereal && p.nakshatra && (
+                        <span className={styles.nakshatra}>
+                          {p.nakshatra}
+                          {p.nakshatraPada != null && (
+                            <span className={styles.pada}> · pada {p.nakshatraPada}</span>
+                          )}
+                        </span>
+                      )}
+                    </>
+                  ) : <span className={styles.absent}>—</span>}
+                </div>
+              </div>
+            )
+          }
 
           return (
             <div key={name} className={`${styles.row} ${shifted ? styles.rowShifted : ''}`}>
@@ -205,8 +268,12 @@ export default function ChartFactsPanel({ data }: Props) {
           <span className={`${styles.legendItem} ${styles.fall}`}>fall</span>
           <span className={styles.dot}>·</span>
           <span className={styles.legendItem} style={{ color: 'var(--gold-light)' }}>℞ retrograde</span>
-          <span className={styles.dot}>·</span>
-          <span className={styles.legendItem} style={{ color: 'var(--gold)' }}>≠ sign shift</span>
+          {!isSingle && (
+            <>
+              <span className={styles.dot}>·</span>
+              <span className={styles.legendItem} style={{ color: 'var(--gold)' }}>≠ sign shift</span>
+            </>
+          )}
         </div>
       </div>
     </section>
