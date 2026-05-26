@@ -356,7 +356,7 @@ export function calculateDualChart(birth: BirthData, overrides?: ChartOverrides)
 
   // Ketu is always exactly opposite Rahu; its motion mirrors Rahu's in reverse
   const rahu = rawPlanets.find(p => p.name === 'Rahu')!
-  rawPlanets.push({ name: 'Ketu', longitude: normalize(rahu.longitude + 180), retrograde: false, dailyMotion: -rahu.dailyMotion })
+  rawPlanets.push({ name: 'Ketu', longitude: normalize(rahu.longitude + 180), retrograde: rahu.retrograde, dailyMotion: -rahu.dailyMotion })
 
   const ascSignTropical   = getSign(ascendantTropical)
   const mcSignTropical    = getSign(mcTropical)
