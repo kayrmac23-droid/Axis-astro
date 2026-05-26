@@ -146,11 +146,3 @@ p {
 
 .animate-fadeIn { animation: fadeIn 0.6s ease forwards; }
 .animate-fadeUp { animation: fadeUp 0.8s ease forwards; }
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-}

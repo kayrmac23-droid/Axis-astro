@@ -72,7 +72,7 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
       setActiveSuggestion(i => Math.min(i + 1, locationSuggestions.length - 1))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setActiveSuggestion(i => Math.max(i - 1, 0))
+      setActiveSuggestion(i => Math.max(i - 1, -1))
     } else if (e.key === 'Enter' && activeSuggestion >= 0) {
       e.preventDefault()
       selectLocation(locationSuggestions[activeSuggestion])
