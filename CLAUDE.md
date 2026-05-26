@@ -48,7 +48,7 @@ GET `?lat=&lon=` → `{ tzName }`. Uses `tz-lookup` (bundled ~400KB grid databas
 7. Sends keep-alive spaces every 5s before first token
 
 Model config (centralised constants at top of route):
-- `MODEL = 'claude-sonnet-4-5'`
+- `MODEL = 'claude-sonnet-4-6'`
 - `MAX_TOKENS_PER_SECTION` — per-section budget map (sun/moon/ascendant: 2500; secondaries: 1500–1800; synthesis: 1500–2500); falls back to 2000 for unlisted keys
 - `TEMPERATURE = 0.2`
 

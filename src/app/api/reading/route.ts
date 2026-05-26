@@ -9,7 +9,7 @@ import { makeCacheKey, getCachedReading, setCachedReading, getRedis } from '@/li
 export const maxDuration = 60
 
 // ── Model config ───────────────────────────────────────────────────────────────
-const MODEL       = 'claude-sonnet-4-5'
+const MODEL       = 'claude-sonnet-4-6'
 const TEMPERATURE = 0.2
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
