@@ -107,7 +107,7 @@ export default function Home() {
             </h2>
           </div>
           <div className={styles.heroCenter}>
-            <AstrolabeDecor />
+            <HeroWheel />
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
