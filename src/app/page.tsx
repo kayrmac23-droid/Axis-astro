@@ -210,7 +210,7 @@ export default function Home() {
           </section>
 
           {/* Chart Facts */}
-          <ChartFactsPanel data={chartData} />
+          <ChartFactsPanel data={chartData} activeSection={activeSection} />
 
           {/* Section Tabs */}
           <div className={styles.tabBar}>

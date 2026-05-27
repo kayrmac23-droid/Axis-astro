@@ -26,6 +26,15 @@
   margin-bottom: 0.3rem;
 }
 
+.headerRowSingle {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0;
+  padding: 0 0 0.5rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.3rem;
+}
+
 .hName { }
 
 .hSys {
@@ -59,6 +68,24 @@
   border-bottom: 1px solid rgba(26, 25, 64, 0.5);
   align-items: start;
   transition: background 0.15s;
+}
+
+.rowSingle {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(26, 25, 64, 0.5);
+  align-items: start;
+  transition: background 0.15s;
+}
+
+.rowSingle:last-child {
+  border-bottom: none;
+}
+
+.rowSingle:hover {
+  background: rgba(255, 255, 255, 0.012);
 }
 
 .row:last-child {
@@ -244,6 +271,11 @@
   .headerRow,
   .row {
     grid-template-columns: 5.5rem 1fr 1rem 1fr;
+  }
+
+  .headerRowSingle,
+  .rowSingle {
+    grid-template-columns: 5.5rem 1fr;
   }
 
   .planetName {
