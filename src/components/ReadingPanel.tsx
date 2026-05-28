@@ -23,8 +23,6 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Integration',
 }
 
-// Per-section timeout in ms. 50s leaves a 10s buffer below the 60s Vercel function limit.
-// Keep-alive pings every 5s prevent the connection from being treated as idle before tokens arrive.
 const SECTION_TIMEOUT_MS = 50_000
 
 function getDescriptorKey(heading: string, section: string): string | null {
@@ -56,6 +54,8 @@ type Block =
   | { type: 'heading'; content: string; descriptorKey: string | null }
   | { type: 'subheading'; content: string }
   | { type: 'paragraph'; content: string }
+  | { type: 'sectionFailed'; planetSection: string }
+  | { type: 'sectionLoading'; planetSection: string }
 
 function parseReading(text: string, section: string): Block[] {
   const lines = text.split('\n')
@@ -71,6 +71,21 @@ function parseReading(text: string, section: string): Block[] {
 
   for (const line of lines) {
     const trimmed = line.trim()
+
+    const failedMatch = trimmed.match(/^\[AXIS_FAILED:([^\]]+)\]$/)
+    if (failedMatch) {
+      flush()
+      blocks.push({ type: 'sectionFailed', planetSection: failedMatch[1] })
+      continue
+    }
+
+    const loadingMatch = trimmed.match(/^\[AXIS_LOADING:([^\]]+)\]$/)
+    if (loadingMatch) {
+      flush()
+      blocks.push({ type: 'sectionLoading', planetSection: loadingMatch[1] })
+      continue
+    }
+
     if (trimmed.startsWith('### ')) {
       flush()
       blocks.push({ type: 'subheading', content: trimmed.replace('### ', '').trim() })
@@ -85,8 +100,6 @@ function parseReading(text: string, section: string): Block[] {
       blocks.push({ type: 'heading', content, descriptorKey })
       continue
     }
-    // Skip lines that are purely italic (e.g. `*Sun in Aries*`); Claude sometimes emits
-    // these as inline section dividers — they carry no prose value
     if (trimmed.match(/^\*[^*]+\*$/) || trimmed.match(/^_[^_]+_$/)) continue
     if (!trimmed) { flush(); continue }
     buf = buf ? buf + ' ' + trimmed : trimmed
@@ -101,40 +114,55 @@ const PLANET_SECTIONS = {
   synthesis: ['agree', 'diverge', 'tension', 'closing']
 }
 
-type SectionState = 'pending' | 'loading' | 'done' | 'failed'
+type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
+type TabStatus = 'pending' | 'loading' | 'done' | 'failed'
+type SystemSection = 'tropical' | 'sidereal' | 'synthesis'
 
 export default function ReadingPanel({ chartData, section }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({
+    tropical: 'pending',
+    sidereal: 'pending',
+    synthesis: 'pending',
+  })
+  const [tabErrors, setTabErrors] = useState<Record<string, string | null>>({
+    tropical: null,
+    sidereal: null,
+    synthesis: null,
+  })
+  // Maps `${sec}:${planetSec}` → error message for inline error blocks
+  const [planetSectionErrors, setPlanetSectionErrors] = useState<Record<string, string>>({})
+  const [sectionStates, setSectionStates] = useState<Record<string, PlanetSectionState>>({})
   const [activePlanetSection, setActivePlanetSection] = useState<string | null>(null)
-  const [sectionStates, setSectionStates] = useState<Record<string, SectionState>>({})
+  const [streamingTab, setStreamingTab] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
+
   const abortRef = useRef<AbortController | null>(null)
-  const loadingRef = useRef(false)
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
 
-  const generateReading = useCallback(async (sec: 'tropical' | 'sidereal' | 'synthesis') => {
-    if (abortRef.current) abortRef.current.abort()
-    abortRef.current = new AbortController()
-    loadingRef.current = true
-    setLoading(true)
-    setError(null)
+  const generateSingleReading = useCallback(async (
+    sec: SystemSection,
+    signal: AbortSignal
+  ) => {
+    setTabStatus(prev => ({ ...prev, [sec]: 'loading' }))
+    setTabErrors(prev => ({ ...prev, [sec]: null }))
     setReadings(prev => ({ ...prev, [sec]: '' }))
+    setStreamingTab(sec)
 
     const sectionsToFetch = PLANET_SECTIONS[sec]
-    const initialStates: Record<string, SectionState> = {}
+    const initialStates: Record<string, PlanetSectionState> = {}
     for (const s of sectionsToFetch) initialStates[s] = 'pending'
     setSectionStates(initialStates)
-    setLiveStatus('Starting reading generation')
+    setActivePlanetSection(null)
+    setLiveStatus(`Starting ${sec} reading`)
     capture('reading_start', { section: sec, section_count: sectionsToFetch.length })
 
-    try {
-      let accumulatedText = ''
+    let accumulatedText = ''
 
+    try {
       for (const planetSec of sectionsToFetch) {
-        if (abortRef.current?.signal.aborted) break
+        if (signal.aborted) break
 
         setSectionStates(prev => ({ ...prev, [planetSec]: 'loading' }))
         setActivePlanetSection(planetSec)
@@ -145,14 +173,13 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         let lastError = ''
 
         for (let attempt = 0; attempt < 2; attempt++) {
-          if (abortRef.current?.signal.aborted) break
+          if (signal.aborted) break
           if (attempt === 1) capture('reading_section_regenerate', { section: sec, planet_section: planetSec })
           try {
-            // Race each section fetch against a timeout
             const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
             const combinedSignal = AbortSignal.any
-              ? AbortSignal.any([abortRef.current!.signal, timeoutSignal])
-              : abortRef.current!.signal
+              ? AbortSignal.any([signal, timeoutSignal])
+              : signal
 
             const res = await fetch('/api/reading', {
               method: 'POST',
@@ -184,8 +211,6 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               chunkText += decoder.decode(value, { stream: true })
               setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
             }
-            // Flush any bytes the decoder buffered for incomplete multibyte sequences
-            // and push the final state so the display reflects the complete text.
             chunkText += decoder.decode()
             setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
 
@@ -197,9 +222,6 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             }
 
             if (chunkText.includes('[AXIS_TRUNCATED]')) {
-              // Keep the readable prose; strip the sentinel; append a visible notice.
-              // Don't retry — retrying would hit the same limit. The server already
-              // skipped caching, so bumping MAX_TOKENS_PER_SECTION will fix it on next load.
               chunkText = chunkText.replace('[AXIS_TRUNCATED]', '').trimEnd()
               chunkText += '\n\n[This section reached its generation limit and may be incomplete.]'
               capture('reading_truncated', { section: sec, planet_section: planetSec })
@@ -210,10 +232,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             sectionSuccess = true
             break
           } catch (fetchErr: unknown) {
-            // Re-throw only when the user explicitly cancelled (abortRef fired).
-            // Timeouts from AbortSignal.timeout() may surface as AbortError in Node.js
-            // fetch — checking the user signal prevents silently swallowing timeouts.
-            if (fetchErr instanceof Error && fetchErr.name === 'AbortError' && abortRef.current?.signal.aborted) {
+            if (fetchErr instanceof Error && fetchErr.name === 'AbortError' && signal.aborted) {
               throw fetchErr
             }
             if (fetchErr instanceof Error && (fetchErr.name === 'TimeoutError' || fetchErr.name === 'AbortError')) {
@@ -229,8 +248,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
           capture('reading_section_failed', { section: sec, planet_section: planetSec, error: lastError })
           setSectionStates(prev => ({ ...prev, [planetSec]: 'failed' }))
           setLiveStatus(`${SECTION_DISPLAY[planetSec] ?? planetSec} failed to load`)
-          const fallback = `\n\n[Section "${planetSec}" could not be generated — ${lastError}]\n\n`
-          accumulatedText += fallback
+          setPlanetSectionErrors(prev => ({ ...prev, [`${sec}:${planetSec}`]: lastError }))
+          accumulatedText += `\n\n[AXIS_FAILED:${planetSec}]\n\n`
           setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
           continue
         }
@@ -240,63 +259,164 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
 
-      setLiveStatus('Reading complete')
+      setTabStatus(prev => ({ ...prev, [sec]: 'done' }))
+      setLiveStatus(`${sec} reading complete`)
     } catch (err: unknown) {
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setError(err.message || 'Reading generation failed. Please try again.')
-        setLiveStatus('Reading generation failed')
-      }
+      if (err instanceof Error && err.name === 'AbortError') throw err
+      const msg = err instanceof Error ? err.message : 'Reading generation failed. Please try again.'
+      setTabErrors(prev => ({ ...prev, [sec]: msg }))
+      setTabStatus(prev => ({ ...prev, [sec]: 'failed' }))
+      setLiveStatus(`${sec} reading failed`)
     } finally {
-      if (!abortRef.current?.signal.aborted) {
-        loadingRef.current = false
-        setLoading(false)
-        setActivePlanetSection(null)
-      }
+      setStreamingTab(prev => prev === sec ? null : prev)
+      setActivePlanetSection(null)
     }
   }, [chartData])
 
+  // Sequential generation: tropical → sidereal → synthesis
+  // Synchronous state resets happen in the effect body; async work is deferred
+  // to setTimeout(0) so it runs outside the effect's synchronous frame.
   useEffect(() => {
-    if (readingsRef.current[section]) {
-      if (!loadingRef.current) {
-        // Content is complete and no request in-flight — clear loading UI.
-        setLoading(false)
-        setSectionStates({})
-        setActivePlanetSection(null)
-      }
-      // If loadingRef is still true, this section is currently streaming — leave
-      // loading state intact so the progress indicators stay visible.
-    } else if (!loadingRef.current) {
-      generateReading(section)
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTabStatus({ tropical: 'pending', sidereal: 'pending', synthesis: 'pending' })
+    setTabErrors({ tropical: null, sidereal: null, synthesis: null })
+    setPlanetSectionErrors({})
+    setReadings({})
+
+    const id = setTimeout(async () => {
+      const { signal } = controller
+      try {
+        await generateSingleReading('tropical', signal)
+        if (!signal.aborted) await generateSingleReading('sidereal', signal)
+        if (!signal.aborted) await generateSingleReading('synthesis', signal)
+      } catch { /* per-section errors already handled */ }
+    }, 0)
+
+    return () => {
+      clearTimeout(id)
+      controller.abort()
     }
-  }, [section, generateReading])
+  }, [generateSingleReading])
 
-  useEffect(() => {
-    return () => { abortRef.current?.abort() }
-  }, [])
+  // Retry an entire tab section (does not restart the sequential chain)
+  const retrySection = useCallback((sec: SystemSection) => {
+    const signal = abortRef.current?.signal
+    if (!signal || signal.aborted) return
+    setTimeout(async () => {
+      try { await generateSingleReading(sec, signal) } catch { /* handled */ }
+    }, 0)
+  }, [generateSingleReading])
 
-  const currentText = readings[section] || ''
-  const label = SECTION_LABELS[section]
-  const blocks = currentText ? parseReading(currentText, section) : []
-  const descriptors = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
+  // Retry a single planet section inline
+  const retryPlanetSection = useCallback(async (sec: string, planetSec: string) => {
+    const signal = abortRef.current?.signal ?? new AbortController().signal
+
+    // Clear the error entry and swap sentinel to loading
+    setPlanetSectionErrors(prev => {
+      const next = { ...prev }
+      delete next[`${sec}:${planetSec}`]
+      return next
+    })
+    setReadings(prev => {
+      const text = prev[sec] || ''
+      return {
+        ...prev,
+        [sec]: text.replace(`[AXIS_FAILED:${planetSec}]`, `[AXIS_LOADING:${planetSec}]`)
+      }
+    })
+
+    let fetchedText = ''
+    let success = false
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (signal.aborted) break
+      // Reset per attempt so a partial first-attempt stream can't corrupt the second.
+      fetchedText = ''
+      try {
+        const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
+        const combinedSignal = AbortSignal.any
+          ? AbortSignal.any([signal, timeoutSignal])
+          : signal
+
+        const res = await fetch('/api/reading', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
+          signal: combinedSignal
+        })
+
+        if (!res.ok || !res.body) {
+          if (attempt === 0) continue
+          break
+        }
+
+        const reader  = res.body.getReader()
+        const decoder = new TextDecoder()
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          fetchedText += decoder.decode(value, { stream: true })
+        }
+        fetchedText += decoder.decode()
+
+        if (fetchedText.includes('[AXIS_STREAM_ERROR:')) {
+          if (attempt === 0) continue
+          break
+        }
+
+        success = true
+        break
+      } catch {
+        if (attempt === 0) await new Promise(r => setTimeout(r, 1500))
+      }
+    }
+
+    if (success && fetchedText) {
+      setReadings(prev => {
+        const text = prev[sec] || ''
+        return {
+          ...prev,
+          [sec]: text.replace(`[AXIS_LOADING:${planetSec}]`, fetchedText)
+        }
+      })
+    } else {
+      const errMsg = 'Retry failed. Please try again.'
+      setPlanetSectionErrors(prev => ({ ...prev, [`${sec}:${planetSec}`]: errMsg }))
+      setReadings(prev => {
+        const text = prev[sec] || ''
+        return {
+          ...prev,
+          [sec]: text.replace(`[AXIS_LOADING:${planetSec}]`, `[AXIS_FAILED:${planetSec}]`)
+        }
+      })
+    }
+  }, [chartData])
+
+  const currentStatus    = tabStatus[section]
+  const currentError     = tabErrors[section]
+  const currentText      = readings[section] || ''
+  const isStreaming      = streamingTab === section
+  const label            = SECTION_LABELS[section]
+  const blocks           = currentText ? parseReading(currentText, section) : []
+  const descriptors      = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
   const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
 
-  const sunT = chartData.tropical.planets.find(p => p.name === 'Sun')
+  const sunT  = chartData.tropical.planets.find(p => p.name === 'Sun')
   const moonT = chartData.tropical.planets.find(p => p.name === 'Moon')
-  const sunS = chartData.sidereal.planets.find(p => p.name === 'Sun')
+  const sunS  = chartData.sidereal.planets.find(p => p.name === 'Sun')
   const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
   const currentSections = PLANET_SECTIONS[section]
-  const hasAnyFailed = currentSections.some(s => sectionStates[s] === 'failed')
 
   return (
     <div className={styles.panel}>
-      {/* Screen-reader live region for generation status */}
-      <div
-        role="status"
-        aria-live="polite"
-        aria-atomic="false"
-        className={styles.srOnly}
-      >
+      {/* Screen-reader live region */}
+      <div role="status" aria-live="polite" aria-atomic="false" className={styles.srOnly}>
         {liveStatus}
       </div>
 
@@ -348,8 +468,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         </div>
       )}
 
-      {/* Section progress bar (visible while loading) */}
-      {loading && (
+      {/* Planet-section progress bar — visible while this tab is actively streaming */}
+      {isStreaming && currentStatus === 'loading' && (
         <div className={styles.sectionProgress} aria-label="Section loading progress">
           {currentSections.map(s => {
             const state = sectionStates[s] ?? 'pending'
@@ -360,8 +480,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
                 aria-label={`${SECTION_DISPLAY[s] ?? s}: ${state}`}
               >
                 {SECTION_DISPLAY[s] ?? s}
-                {state === 'done' && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
-                {state === 'failed' && <span className={styles.chipFail} aria-hidden="true"> ✕</span>}
+                {state === 'done'   && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
+                {state === 'failed' && <span className={styles.chipFail}  aria-hidden="true"> ✕</span>}
               </span>
             )
           })}
@@ -369,55 +489,81 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
       )}
 
       <div className={styles.readingBody}>
-        {loading && !currentText && (
+
+        {/* Tab-level error */}
+        {currentError && (
+          <div className={styles.sectionErrorBlock}>
+            <p className={styles.sectionErrorLabel}>Section Unavailable</p>
+            <p className={styles.sectionErrorMsg}>
+              This section could not be generated. Check your connection and retry.
+            </p>
+            <button className={styles.retrySectionBtn} onClick={() => retrySection(section)}>
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Pending — waiting for earlier sections to stream */}
+        {!currentError && currentStatus === 'pending' && (
           <div className={styles.generating}>
             <div className={styles.generatingOrbit} />
             <p className={styles.generatingText}>
-              {activePlanetSection
+              {section === 'sidereal'
+                ? 'Sidereal reading begins after Tropical'
+                : section === 'synthesis'
+                  ? 'Synthesis begins after Tropical & Sidereal'
+                  : 'Preparing reading'}
+            </p>
+          </div>
+        )}
+
+        {/* Loading — this tab is actively streaming */}
+        {!currentError && currentStatus === 'loading' && !currentText && (
+          <div className={styles.generating}>
+            <div className={styles.generatingOrbit} />
+            <p className={styles.generatingText}>
+              {activePlanetSection && isStreaming
                 ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
                 : 'Interpreting chart'}
             </p>
           </div>
         )}
 
-        {error && (
-          <div className={styles.errorState}>
-            <p className={styles.errorText}>{error}</p>
-            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
-              Retry reading
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && !currentText.trim() && (
-          <div className={styles.errorState}>
-            <p className={styles.errorText}>No reading generated. The API may be unavailable or the key may not be configured.</p>
-            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Retry banner if any section failed after completion */}
-        {!loading && hasAnyFailed && (
-          <div className={styles.partialFailBanner}>
-            <p className={styles.partialFailText}>
-              One or more sections failed to generate. The rest of the reading is below.
-            </p>
-            <button className={styles.retryBtn} onClick={() => generateReading(section)}>
-              Regenerate full reading
-            </button>
-          </div>
-        )}
-
+        {/* Content blocks */}
         {blocks.length > 0 && (
           <div className={styles.readingText}>
             {blocks.map((block, i) => {
-              if (block.type === 'subheading') {
+              if (block.type === 'sectionFailed') {
+                const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
+                  || 'This section could not be generated.'
                 return (
-                  <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
+                  <div key={i} className={styles.sectionErrorBlock}>
+                    <p className={styles.sectionErrorLabel}>Section Unavailable</p>
+                    <p className={styles.sectionErrorMsg}>
+                      {errMsg} Check your connection and retry.
+                    </p>
+                    <button
+                      className={styles.retrySectionBtn}
+                      onClick={() => retryPlanetSection(section, block.planetSection)}
+                    >
+                      Retry
+                    </button>
+                  </div>
                 )
               }
+
+              if (block.type === 'sectionLoading') {
+                return (
+                  <div key={i} className={styles.sectionLoadingBlock}>
+                    <div className={styles.generatingOrbit} />
+                  </div>
+                )
+              }
+
+              if (block.type === 'subheading') {
+                return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
+              }
+
               if (block.type === 'heading') {
                 const descriptor = block.descriptorKey
                   ? section === 'synthesis'
@@ -441,6 +587,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
                   </div>
                 )
               }
+
               return (
                 <p
                   key={i}
@@ -451,7 +598,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
                 </p>
               )
             })}
-            {loading && <span className={styles.cursor} />}
+            {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
           </div>
         )}
       </div>

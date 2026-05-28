@@ -97,6 +97,7 @@
 .notationBox:focus-within {
   border-color: var(--copper);
   box-shadow: 0 0 0 1px var(--copper-subtle), 0 0 18px var(--copper-subtle) inset;
+  filter: drop-shadow(0 2px 6px rgba(255, 192, 48, 0.12));
 }
 
 .notationBoxWide {
@@ -342,23 +343,26 @@
 }
 
 .castButton:hover:not(:disabled) {
-  border-color: var(--copper);
-  color: var(--copper-light);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--void);
+  box-shadow: var(--glow-gold);
 }
 
 .castButtonReady {
   border-color: var(--copper);
   color: var(--copper-light);
-  box-shadow: 0 0 24px var(--copper-subtle);
 }
 
 .castButtonReady:hover {
-  background: var(--copper-subtle);
-  color: var(--fg);
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--void);
+  box-shadow: var(--glow-gold);
 }
 
 .castButton:disabled {
-  opacity: 0.55;
+  opacity: 0.28;
   cursor: not-allowed;
   border-color: var(--border-2);
   color: var(--fg-3);
