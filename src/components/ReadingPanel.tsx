@@ -334,6 +334,8 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
     for (let attempt = 0; attempt < 2; attempt++) {
       if (signal.aborted) break
+      // Reset per attempt so a partial first-attempt stream can't corrupt the second.
+      fetchedText = ''
       try {
         const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
         const combinedSignal = AbortSignal.any
@@ -363,7 +365,6 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         fetchedText += decoder.decode()
 
         if (fetchedText.includes('[AXIS_STREAM_ERROR:')) {
-          fetchedText = ''
           if (attempt === 0) continue
           break
         }

@@ -122,18 +122,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
-    // ── Rate limiting ──────────────────────────────────────────────────────────
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
-              ?? req.headers.get('x-real-ip')
-              ?? 'direct'
-    const { allowed, retryAfter } = await checkRateLimit(ip)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait before generating another reading.' },
-        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
-      )
-    }
-
     // ── Payload size guard ─────────────────────────────────────────────────────
     const contentLength = parseInt(req.headers.get('content-length') ?? '0', 10)
     if (isNaN(contentLength) || contentLength > MAX_PAYLOAD_BYTES) {
@@ -172,13 +160,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
     }
 
-    // ── Cache check ────────────────────────────────────────────────────────────
+    // ── Cache check (before rate limiting — cache hits don't call the AI) ──────
     const cacheKey = makeCacheKey({ birth: chartData.birthData, section: validSection, planetSection })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
       })
+    }
+
+    // ── Rate limiting (only uncached requests reach here) ──────────────────────
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+              ?? req.headers.get('x-real-ip')
+              ?? 'direct'
+    const { allowed, retryAfter } = await checkRateLimit(ip)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before generating another reading.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
     }
 
     // ── Build prompt ───────────────────────────────────────────────────────────
