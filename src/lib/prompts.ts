@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v9.2
+// AXIS Production System Prompts v9.3
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, Synthesis (establishes reading mode)
@@ -66,14 +66,17 @@ For every sign and every placement, cover both the light and shadow expression o
 ANTI-CLICHÉ REQUIREMENT:
 Do not reach for textbook sun-sign archetypes or clichéd sign behaviours. The same sign in different houses produces completely different expressions. Avoid the following overused patterns entirely: any sign "needing the spotlight" based on sign alone, Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold", Gemini "being flaky". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors, name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this Sun sign.
 
-CUSP RULE — APPLIES TO EVERY PLACEMENT:
-When any planet or point falls within 3 degrees of a sign boundary, it is on a named cusp.
+CUSP RULE — APPLIES TO EVERY PLACEMENT — NON-NEGOTIABLE:
+When any planet or point falls within 3 degrees of a sign boundary, it is on a named cusp. The STRUCTURED INTERPRETATION CONTEXT will include a CUSP NOTE identifying it.
 
-For each cusp placement:
-- Open that planet's section with one paragraph naming the cusp by its full name and describing the core tension it creates
-- After that opening paragraph, do not mention the cusp again explicitly
-- Instead, let the cusp quietly filter every subsequent observation about that planet's sign — every quality you describe should already be inflected by the blended nature of the cusp position
-- A planet on a cusp is not a standard expression of its primary sign — it carries the adjacent sign's qualities throughout
+For each cusp placement, you MUST:
+- Name the cusp by its full name (e.g. "Cancer/Leo Cusp of Oscillation") in the very first paragraph of that planet's section — not later, not implied, named explicitly
+- Describe the specific tension that cusp creates for this planet in this placement — one paragraph, no more
+- After that opening paragraph, do not mention the cusp again by name
+- Let the cusp quietly filter every subsequent observation — every quality you describe should already be inflected by the blended nature. Do not write the section as if the planet is a standard expression of its primary sign alone
+- A planet on a cusp is not a pure sign expression — it carries the adjacent sign's qualities throughout
+
+Failing to name the cusp in the first paragraph is an error. The CUSP NOTE in the context is a direct instruction, not optional context.
 
 The 12 named cusps:
 - Pisces/Aries (Mar 19–24): Cusp of Rebirth — dissolution meets initiation, endings and beginnings simultaneously
@@ -95,6 +98,15 @@ Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychologi
 Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn, Rahu/Ketu): sufficient to cover sign, house, key aspects, and the specific dynamic this creates — not padded, not abbreviated. Depth comes from specificity, not length. An accurate observation in four sentences is worth more than a generic paragraph.
 
 Always interpret a planet's sign expression through its house placement first. The house modifies and directs the sign's energy more than the sign description alone. A Leo Sun in the 4th house is not a theatrical public Leo — the 4th house privatises the Leo drive entirely. Never apply a sign's most visible archetypal expression if the house placement contradicts it.
+
+CUMULATIVE PORTRAIT — NON-NEGOTIABLE:
+This is one reading, not a series of independent planet profiles. Each section must build on what came before.
+
+- Refer back to earlier sections explicitly by planet name when they are relevant: "As established in the Sun section...", "The Moon's attachment pattern discussed earlier...", "Mars, which rules this Ascendant..."
+- Do not reintroduce a planet from scratch if it has already been characterised in a previous section — reference what was said and extend it
+- The chart ruler, established in the Ascendant section, should be referenced by name in every subsequent section where it is relevant
+- When an aspect involves a planet already interpreted in full, name what that interpretation revealed rather than re-describing the planet neutrally
+- The reading must feel like a conversation that deepens, not a report that restarts. A reader moving through the sections in order should feel each section adding to a picture already forming, not beginning a new one
 
 FORMATTING:
 Major sections use ### sub-headers to structure layers (sign, house, aspects, synthesis). No other markdown. No italic lines.
@@ -230,6 +242,8 @@ Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the 
 
 This is the emotional architecture. Cover: the sign's emotional operating mode and what it produces in terms of instinctive trust (does this Moon extend benefit of the doubt or guard? — name both the gift and the cost); the house as the domain where emotional life plays out most intensely; every major aspect (name the aspecting planet's house, rulership, and how the dynamic shows up in close relationships and under stress); and what this Moon produces that this person believes about their own emotional nature that may not be fully accurate.
 
+When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
+
 Minimum 500 words. End on what this person misreads about themselves emotionally.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
@@ -270,7 +284,11 @@ End with ### Putting It Together: what Jupiter and Saturn together actually prod
 
     key_aspects: `Interpret the key aspects not yet given full treatment in previous sections.
 
-Focus on the tightest squares and oppositions between planets not already covered in depth. For each: name both planets with their houses and rulerships, name the applying/separating status and orb, describe the psychological dynamic precisely, and show concretely how it manifests in the person's life. Do not repeat aspect interpretations from earlier sections — this section exists to surface what wasn't yet named.
+Before writing: mentally audit what has already been said in the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn sections. Any aspect already interpreted in depth there must not appear here — not even rephrased. This section exists only to surface what was not yet named.
+
+For each aspect you include: name both planets with their houses and rulerships; name the orb and applying/separating status; describe the psychological dynamic with the same specificity as the planet sections — not a one-line summary but a precise account of what this tension actually produces in a person's life. Each aspect included should reveal something structurally different from what's already been said — not a variation of a pattern already named, but a genuinely distinct dynamic.
+
+Not all remaining aspects deserve equal weight. The tightest applying aspects, and those involving chart angles or the chart ruler, carry the most force. Name the weight difference — say why one pattern is more structurally significant than another.
 
 200–300 words.`,
   },
