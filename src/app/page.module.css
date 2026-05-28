@@ -479,6 +479,161 @@
   color: var(--fg-3);
 }
 
+/* ─── Mode toggle ─────────────────────────────────── */
+.modeToggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-2);
+  margin: 0 0 0;
+  width: 100%;
+  max-width: 960px;
+  padding: 0 2.5rem;
+  box-sizing: border-box;
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 2.5rem 0;
+}
+
+.modeBtn {
+  flex: 1;
+  padding: 0.9rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modeBtnActive {
+  color: var(--copper);
+  border-bottom-color: var(--copper);
+}
+
+.modeBtn:hover:not(.modeBtnActive) {
+  color: var(--fg-2);
+}
+
+/* ─── Synastry forms ───────────────────────────────── */
+.synastryForms {
+  width: 100%;
+  max-width: 960px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  padding: 3rem 2.5rem 4rem;
+  align-items: start;
+}
+
+.synastryFormSlot {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.synastryPersonLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.synastryPersonTag {
+  width: 1.8rem;
+  height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--copper-border);
+  color: var(--copper);
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+}
+
+.synastryPersonTitle {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.synastryPersonSet {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-left: auto;
+}
+
+.synastryCalcRow {
+  width: 100%;
+  max-width: 480px;
+  padding: 0 2.5rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-self: center;
+  margin: 0 auto;
+}
+
+/* Synastry calculate button — mirrors BirthForm.submitBtn */
+.submitBtn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 1.25rem 1rem;
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: var(--bg);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--copper-light);
+  border-color: var(--copper-light);
+}
+
+.submitBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btnLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btnSpinner {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--gold-dim);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ─── Print ───────────────────────────────────────── */
 @media print {
   .header, .wheelSection, .tabBar, .resetRow, .footer {
@@ -501,6 +656,11 @@
     grid-template-columns: 1fr;
     gap: 2.5rem;
     padding: 4rem 2rem 5rem;
+  }
+  .synastryForms {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding: 3rem 2rem 4rem;
   }
   .formIntro { position: static; }
   .heroHeadline { font-size: 2.4rem; }

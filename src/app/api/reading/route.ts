@@ -2,9 +2,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { DualChartData } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { makeCacheKey, getCachedReading, setCachedReading, getRedis } from '@/lib/reading-cache'
+import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading, getRedis } from '@/lib/reading-cache'
+import { SynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 
 export const maxDuration = 60
 
@@ -24,6 +25,8 @@ const MAX_TOKENS_PER_SECTION: Record<string, number> = {
   key_aspects: 1200,
   // Synthesis
   agree: 2500, diverge: 2500, tension: 1800, closing: 1500,
+  // Synastry
+  luminaries: 2000, venus_mars: 1800, outer_planets: 1800, composite_chart: 2000, integration: 1500,
 }
 
 // ── Payload limits ─────────────────────────────────────────────────────────────
@@ -33,11 +36,12 @@ const MAX_PAYLOAD_BYTES = 64_000
 
 // ── Allow-lists ────────────────────────────────────────────────────────────────
 // Explicit sets mirror SECTION_INSTRUCTIONS keys; validation runs before body parse.
-const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis'])
+const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis', 'synastry'])
 const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
   tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects']),
   sidereal:  new Set(['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
   synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
+  synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration']),
 }
 
 // ── Redis-backed rate limiter ──────────────────────────────────────────────────
@@ -101,6 +105,7 @@ const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
   sidereal:  SIDEREAL_SYSTEM_PROMPT,
   synthesis: SYNTHESIS_SYSTEM_PROMPT,
+  synastry:  SYNASTRY_SYSTEM_PROMPT,
 }
 
 // SHARED_RULES is the same across all system prompt types and is the largest
@@ -129,17 +134,17 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Parse body ─────────────────────────────────────────────────────────────
-    let body: { chartData?: DualChartData; section?: string; planetSection?: string }
+    let body: { chartData?: DualChartData; synastryData?: SynastryData; section?: string; planetSection?: string }
     try {
       body = await req.json()
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { chartData, section, planetSection } = body
+    const { chartData, synastryData, section, planetSection } = body
 
-    if (!chartData || !section || !planetSection) {
-      return NextResponse.json({ error: 'Missing required fields: chartData, section, planetSection' }, { status: 400 })
+    if (!section || !planetSection) {
+      return NextResponse.json({ error: 'Missing required fields: section, planetSection' }, { status: 400 })
     }
 
     // ── Allow-list validation ──────────────────────────────────────────────────
@@ -150,18 +155,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid planetSection for this section' }, { status: 400 })
     }
 
-    // Safe cast: validated against allow-list above
-    const validSection = section as 'tropical' | 'sidereal' | 'synthesis'
+    // Synastry requests use synastryData; natal requests use chartData
+    if (section === 'synastry') {
+      if (!synastryData) {
+        return NextResponse.json({ error: 'synastryData required for synastry section' }, { status: 400 })
+      }
+    } else {
+      if (!chartData) {
+        return NextResponse.json({ error: 'chartData required for natal sections' }, { status: 400 })
+      }
+    }
 
-    const systemPrompt = SYSTEM_PROMPT_MAP[validSection]
-    const sectionInstruction = SECTION_INSTRUCTIONS[validSection]?.[planetSection]
-    // These lookups cannot fail after the allow-list checks above, but guard anyway.
+    const systemPrompt = SYSTEM_PROMPT_MAP[section]
+    const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
     if (!systemPrompt || !sectionInstruction) {
       return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
     }
 
     // ── Cache check (before rate limiting — cache hits don't call the AI) ──────
-    const cacheKey = makeCacheKey({ birth: chartData.birthData, section: validSection, planetSection })
+    const cacheKey = section === 'synastry' && synastryData
+      ? makeSynastryCacheKey({ birthA: synastryData.personA.birthData, birthB: synastryData.personB.birthData, section, planetSection })
+      : makeCacheKey({ birth: chartData!.birthData, section, planetSection })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
@@ -182,18 +196,23 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Build prompt ───────────────────────────────────────────────────────────
-    const interpretationContext = buildInterpretationContext(chartData, validSection, planetSection)
-
     let userContent: string
-    if (validSection === 'tropical') {
-      const chartBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
+    if (section === 'synastry' && synastryData) {
+      const synastryBlock = formatSynastryBlock(synastryData, planetSection)
+      userContent = `${synastryBlock}\n\n---\n\n${sectionInstruction}`
+    } else if (section === 'tropical') {
+      const interpretationContext = buildInterpretationContext(chartData!, 'tropical', planetSection)
+      const chartBlock = formatEliteChartBlock(chartData!.tropical, 'tropical')
       userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
-    } else if (validSection === 'sidereal') {
-      const chartBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
+    } else if (section === 'sidereal') {
+      const interpretationContext = buildInterpretationContext(chartData!, 'sidereal', planetSection)
+      const chartBlock = formatEliteChartBlock(chartData!.sidereal, 'sidereal')
       userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
     } else {
-      const tropicalBlock = formatEliteChartBlock(chartData.tropical, 'tropical')
-      const siderealBlock = formatEliteChartBlock(chartData.sidereal, 'sidereal')
+      // synthesis
+      const interpretationContext = buildInterpretationContext(chartData!, 'synthesis', planetSection)
+      const tropicalBlock = formatEliteChartBlock(chartData!.tropical, 'tropical')
+      const siderealBlock = formatEliteChartBlock(chartData!.sidereal, 'sidereal')
       userContent = `${tropicalBlock}\n\n${siderealBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
     }
 
