@@ -75,6 +75,7 @@ function getDignityLabel(planetName: string, sign: string): string {
   const d = DIGNITIES[planetName]
   if (!d) return ''
   if (d.domicile.includes(sign) && d.exaltation === sign) return 'Domicile + Exalt.'
+  if (d.detriment.includes(sign)  && d.fall === sign)     return 'Detriment + Fall'
   if (d.domicile.includes(sign))   return 'Domicile'
   if (d.exaltation === sign)        return 'Exaltation'
   if (d.detriment.includes(sign))   return 'Detriment'
@@ -83,13 +84,15 @@ function getDignityLabel(planetName: string, sign: string): string {
 }
 
 function fmtDeg(deg: number): string {
-  const d = Math.floor(deg)
-  const m = Math.round((deg - d) * 60)
+  let d = Math.floor(deg)
+  let m = Math.round((deg - d) * 60)
+  if (m === 60) { d += 1; m = 0 }
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
 export default function ChartWheel({ chart }: ChartWheelProps) {
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetPosition | null>(null)
+  const selectedDignity = selectedPlanet ? getDignityLabel(selectedPlanet.name, selectedPlanet.sign) : ''
 
   const size    = 320
   const cx      = size / 2
@@ -137,18 +140,18 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         <title id={`wheel-title-${chart.system}`}>{svgTitle}</title>
         <desc id={`wheel-desc-${chart.system}`}>{svgDesc}</desc>
         <defs>
-          <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
+          <radialGradient id={`innerGlow-${chart.system}`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#FFC030" stopOpacity="0.14" />
             <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
           </radialGradient>
-          <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+          <radialGradient id={`coreGlow-${chart.system}`} cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#FFC030" stopOpacity="0.15" />
             <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
           </radialGradient>
         </defs>
 
         {/* Background fill */}
-        <circle cx={cx} cy={cy} r={innerR} fill="url(#innerGlow)" />
+        <circle cx={cx} cy={cy} r={innerR} fill={`url(#innerGlow-${chart.system})`} />
 
         {/* Sign band segments */}
         {Array.from({ length: 12 }).map((_, i) => {
@@ -280,7 +283,7 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
         })}
 
         {/* Core */}
-        <circle cx={cx} cy={cy} r={coreR} fill="url(#coreGlow)" />
+        <circle cx={cx} cy={cy} r={coreR} fill={`url(#coreGlow-${chart.system})`} />
         <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#FFC030" strokeWidth="0.5" strokeOpacity="0.68" />
         <circle cx={cx} cy={cy} r="1.5" fill="#FFC030" opacity="1" />
       </svg>
@@ -298,10 +301,8 @@ export default function ChartWheel({ chart }: ChartWheelProps) {
             {selectedPlanet.sign} {fmtDeg(selectedPlanet.degree)}
           </div>
           <div className={styles.tooltipRow}>House {selectedPlanet.house}</div>
-          {getDignityLabel(selectedPlanet.name, selectedPlanet.sign) && (
-            <div className={styles.tooltipDignity}>
-              {getDignityLabel(selectedPlanet.name, selectedPlanet.sign)}
-            </div>
+          {selectedDignity && (
+            <div className={styles.tooltipDignity}>{selectedDignity}</div>
           )}
           <div className={styles.tooltipRow}>
             {selectedPlanet.retrograde ? 'Retrograde ℞' : 'Direct'}

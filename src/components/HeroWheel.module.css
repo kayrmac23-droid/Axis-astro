@@ -1,0 +1,90 @@
+.wrap {
+  position: relative;
+  width: 100%;
+  max-width: 580px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Tropical ring — 240s/revolution */
+.ringTropical {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: hwSpinTropical 240s linear infinite;
+}
+
+/* Sidereal ring — starts at Lahiri offset, 360s/revolution */
+.ringSidereal {
+  transform-origin: 50% 50%;
+  transform-box: fill-box;
+  animation: hwSpinSidereal 360s linear infinite;
+}
+
+@keyframes hwSpinTropical {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hwSpinSidereal {
+  from {
+    transform: rotate(23.85deg);
+  }
+
+  to {
+    transform: rotate(383.85deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ringTropical,
+  .ringSidereal {
+    animation: none;
+  }
+}
+
+/* Static annotations layer */
+.annotations {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.offsetBox {
+  position: absolute;
+  left: 0;
+  top: 38%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid rgba(200, 120, 64, 0.45);
+}
+
+.offsetValue {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.88rem;
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.offsetLabel {
+  font-family: 'Cinzel', serif;
+  font-size: 0.48rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  line-height: 1;
+}

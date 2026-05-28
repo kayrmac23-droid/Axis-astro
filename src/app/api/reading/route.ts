@@ -9,7 +9,7 @@ import { makeCacheKey, getCachedReading, setCachedReading, getRedis } from '@/li
 export const maxDuration = 60
 
 // ── Model config ───────────────────────────────────────────────────────────────
-const MODEL       = 'claude-sonnet-4-5'
+const MODEL       = 'claude-sonnet-4-6'
 const TEMPERATURE = 0.2
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
@@ -89,7 +89,7 @@ async function checkRateLimit(ip: string): Promise<{ allowed: boolean; retryAfte
     const count = await redis.eval(_RL_SCRIPT, [key], [String(RATE_LIMIT_WINDOW)]) as number
     if (count > RATE_LIMIT_MAX) {
       const ttl = await redis.ttl(key)
-      return { allowed: false, retryAfter: Math.max(ttl, 1) }
+      return { allowed: false, retryAfter: Math.max(ttl > 0 ? ttl : RATE_LIMIT_WINDOW, 1) }
     }
     return { allowed: true, retryAfter: 0 }
   } catch {
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
     // ── Payload size guard ─────────────────────────────────────────────────────
     const contentLength = parseInt(req.headers.get('content-length') ?? '0', 10)
-    if (contentLength > MAX_PAYLOAD_BYTES) {
+    if (isNaN(contentLength) || contentLength > MAX_PAYLOAD_BYTES) {
       return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
     }
 

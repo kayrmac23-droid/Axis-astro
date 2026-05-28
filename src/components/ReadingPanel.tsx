@@ -185,7 +185,9 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
               setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
             }
             // Flush any bytes the decoder buffered for incomplete multibyte sequences
+            // and push the final state so the display reflects the complete text.
             chunkText += decoder.decode()
+            setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
 
             if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
               lastError = 'Generation failed. Please retry this reading.'
@@ -254,7 +256,16 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   }, [chartData])
 
   useEffect(() => {
-    if (!readingsRef.current[section] && !loadingRef.current) {
+    if (readingsRef.current[section]) {
+      if (!loadingRef.current) {
+        // Content is complete and no request in-flight — clear loading UI.
+        setLoading(false)
+        setSectionStates({})
+        setActivePlanetSection(null)
+      }
+      // If loadingRef is still true, this section is currently streaming — leave
+      // loading state intact so the progress indicators stay visible.
+    } else if (!loadingRef.current) {
       generateReading(section)
     }
   }, [section, generateReading])
