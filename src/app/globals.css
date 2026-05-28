@@ -100,7 +100,7 @@ p {
   font-family: var(--font-serif);
   font-size: 1.05rem;
   line-height: 1.85;
-  font-weight: 300;
+  font-weight: 400;             /* was 300 — bumped for screen legibility on dark */
   color: var(--fg);
 }
 

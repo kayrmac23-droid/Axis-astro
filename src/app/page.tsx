@@ -4,7 +4,6 @@ import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
-import HeroWheel from '@/components/HeroWheel'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -99,6 +98,7 @@ export default function Home() {
       {/* Hero */}
       {!chartData && (
         <section className={styles.hero}>
+          <ConstellationDecor />
           <div className={styles.heroLeft}>
             <p className={styles.heroEyebrow}>Natal chart reading</p>
             <h2 className={styles.heroHeadline}>
@@ -107,7 +107,6 @@ export default function Home() {
             </h2>
           </div>
           <div className={styles.heroCenter}>
-            <HeroWheel />
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
@@ -136,9 +135,9 @@ export default function Home() {
               Enter your details to cast the chart.
             </h3>
             <p className={styles.formIntroDesc}>
-              Date, time, and place of birth determine the positions
-              of every planet at the moment you arrived on Earth.
-              Precision matters — especially for the Ascendant.
+              Every planet&apos;s position is computed from a local-time-based
+              ephemeris (VSOP87, ELP2000, JPL Horizons DE440 for Pluto). The chart
+              is exact to within ~0.05° of Swiss Ephemeris reference values.
             </p>
           </div>
           <div className={styles.formRight}>
