@@ -5,7 +5,7 @@
 }
 
 :root {
-  /* Surfaces */
+  /* ── Surfaces ─────────────────────────────────────── */
   --void:      #060411;
   --bg:        #0B0920;
   --deep:      #0E0C24;
@@ -13,34 +13,144 @@
   --surface-2: #18163A;
   --surface-3: #201E48;
 
-  /* Borders */
+  /* ── Borders ──────────────────────────────────────── */
   --border:        #242050;
   --border-2:      #343068;
   --border-bright: #484480;
 
-  /* Text */
+  /* ── Text scale ───────────────────────────────────── */
   --fg:   #EDE8DC;
   --fg-2: #B8AF9E;
   --fg-3: #7C7468;
   --fg-4: #4A4440;
 
-  /* Copper accent */
+  /* Legacy --text aliases */
+  --text-primary:   var(--fg);
+  --text-secondary: var(--fg-2);
+  --text-tertiary:  var(--fg-3);
+  --text-muted:     var(--fg-4);
+
+  /* ── Copper accent (component-level, keep for compat) */
   --copper:        #C87840;
   --copper-light:  #E09860;
   --copper-dim:    #5C3818;
   --copper-subtle: rgba(200, 120, 64, 0.10);
   --copper-border: rgba(200, 120, 64, 0.28);
 
-  /* Gold aliases — map to copper for backward compatibility */
-  --gold:       var(--copper);
-  --gold-light: var(--copper-light);
-  --gold-dim:   var(--copper-dim);
+  /* ── Gold accent ──────────────────────────────────── */
+  --gold:       #C8961E;
+  --gold-light: #E0B840;
+  --gold-dim:   rgba(200, 150, 30, 0.15);
 
-  --font-wordmark:  'Cinzel', Georgia, serif;
-  --font-display:   'Cinzel', Georgia, serif;
-  --font-editorial: 'Cormorant Garamond', Georgia, serif;
-  --font-serif:     'Cormorant Garamond', Georgia, serif;
-  --font-mono:      'Space Mono', 'Courier New', monospace;
+  /* ── Cyan accent ──────────────────────────────────── */
+  --cyan:      #3DD8C8;
+  --cyan-dim:  rgba(61, 216, 200, 0.12);
+  --cyan-glow: 0 0 20px rgba(61, 216, 200, 0.4);
+
+  /* ── Violet accent ────────────────────────────────── */
+  --violet:       #8E8ACF;
+  --violet-light: #B0ACDF;
+  --violet-dim:   rgba(142, 138, 207, 0.15);
+
+  /* ── Element tints ────────────────────────────────── */
+  --elem-fire:  rgba(220, 80, 40, 0.15);
+  --elem-earth: rgba(100, 140, 60, 0.15);
+  --elem-air:   rgba(200, 200, 80, 0.15);
+  --elem-water: rgba(60, 140, 220, 0.15);
+
+  /* ── Semantic tokens ──────────────────────────────── */
+  --danger:   #DC4040;
+  --danger-2: rgba(138, 32, 32, 0.08);
+  --success:  #4AA840;
+  --info:     #4A90D4;
+
+  /* ── Type scale ───────────────────────────────────── */
+  --t-label-xs: 0.45rem;
+  --t-label-sm: 0.54rem;
+  --t-label:    0.62rem;
+  --t-body-sm:  0.875rem;
+  --t-body:     1rem;
+  --t-body-lg:  1.125rem;
+  --t-lead:     1.25rem;
+  --t-h3:       1.5rem;
+  --t-h2:       2rem;
+  --t-h1:       2.8rem;
+  --t-display:  4rem;
+
+  /* ── Weight tokens ────────────────────────────────── */
+  --w-light:    300;
+  --w-regular:  400;
+  --w-medium:   500;
+  --w-semibold: 600;
+  --w-bold:     700;
+  --w-black:    900;
+
+  /* ── Line height tokens ───────────────────────────── */
+  --lh-tight:   1.1;
+  --lh-snug:    1.3;
+  --lh-normal:  1.5;
+  --lh-relaxed: 1.7;
+  --lh-reading: 1.9;
+
+  /* ── Letterspacing tokens ─────────────────────────── */
+  --ls-tight:   -0.02em;
+  --ls-normal:   0em;
+  --ls-wide:     0.05em;
+  --ls-caps:     0.12em;
+  --ls-caps-lg:  0.25em;
+  --ls-caps-xl:  0.38em;
+
+  /* ── Spacing tokens (8px grid) ────────────────────── */
+  --s-1:  0.25rem;
+  --s-2:  0.5rem;
+  --s-3:  0.75rem;
+  --s-4:  1rem;
+  --s-5:  1.25rem;
+  --s-6:  1.5rem;
+  --s-8:  2rem;
+  --s-10: 2.5rem;
+  --s-12: 3rem;
+
+  /* ── Radius tokens ────────────────────────────────── */
+  --r-none:   0;
+  --r-sm:     2px;
+  --r-pill:   9999px;
+  --r-circle: 50%;
+
+  /* ── Border width tokens ──────────────────────────── */
+  --bd-hair: 1px;
+  --bd-rule: 1.5px;
+
+  /* ── Shadow + glow tokens ─────────────────────────── */
+  --shadow-drop: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-deep: 0 28px 90px rgba(0, 0, 0, 0.5);
+  --glow-gold:      0 0 20px rgba(255, 192, 48, 0.45), 0 0 40px rgba(255, 192, 48, 0.15);
+  --glow-gold-soft: 0 0 14px rgba(255, 192, 48, 0.25);
+  --glow-cyan:      0 0 20px rgba(61, 216, 200, 0.4);
+  --glow-violet:    0 0 20px rgba(142, 138, 207, 0.4);
+
+  /* ── Motion tokens ────────────────────────────────── */
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    400ms;
+  --dur-arrival: 600ms;
+  --ease:     cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* ── Background tokens ────────────────────────────── */
+  --bg-stars:
+    radial-gradient(ellipse 120% 60% at 50% -10%, #1E0A52 0%, transparent 55%),
+    radial-gradient(ellipse 60% 40% at 5% 95%,   #0C0638 0%, transparent 50%),
+    radial-gradient(ellipse 50% 35% at 95% 85%, #08042A 0%, transparent 50%);
+
+  --noise-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+
+  /* ── Font stack tokens ────────────────────────────── */
+  --font-wordmark:  var(--font-cinzel), Georgia, serif;
+  --font-display:   var(--font-cinzel), Georgia, serif;
+  --font-editorial: var(--font-cormorant), Georgia, serif;
+  --font-serif:     var(--font-cormorant), Georgia, serif;
+  --font-mono:      var(--font-courier), 'Courier New', monospace;
 }
 
 html {
@@ -50,18 +160,7 @@ html {
 
 body {
   background-color: var(--void);
-  background-image:
-    radial-gradient(circle at 8% 14%, rgba(237, 232, 220, 0.18) 0, transparent 1.2px),
-    radial-gradient(circle at 22% 7%, rgba(200, 120, 64, 0.16) 0, transparent 1px),
-    radial-gradient(circle at 66% 10%, rgba(237, 232, 220, 0.14) 0, transparent 1.1px),
-    radial-gradient(circle at 86% 20%, rgba(237, 232, 220, 0.12) 0, transparent 1px),
-    radial-gradient(circle at 73% 47%, rgba(200, 120, 64, 0.15) 0, transparent 1px),
-    radial-gradient(circle at 15% 69%, rgba(237, 232, 220, 0.12) 0, transparent 1px),
-    radial-gradient(circle at 36% 88%, rgba(200, 120, 64, 0.13) 0, transparent 1px),
-    radial-gradient(circle at 91% 86%, rgba(237, 232, 220, 0.14) 0, transparent 1.1px),
-    radial-gradient(ellipse 120% 60% at 50% -10%, #080614 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 5% 95%, #060411 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 95% 85%, #050310 0%, transparent 50%);
+  background-image: var(--bg-stars);
   color: var(--fg);
   font-family: var(--font-serif);
   min-height: 100vh;
@@ -70,15 +169,15 @@ body {
   overflow-x: hidden;
 }
 
-/* Paper grain stays but subtle */
+/* Noise grain — SVG encodes 4% opacity; CSS opacity is additional attenuation */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-image: var(--noise-overlay);
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.4;
+  opacity: 0.04;
 }
 
 ::-webkit-scrollbar { width: 3px; }
@@ -100,7 +199,7 @@ p {
   font-family: var(--font-serif);
   font-size: 1.05rem;
   line-height: 1.85;
-  font-weight: 400;             /* was 300 — bumped for screen legibility on dark */
+  font-weight: 400;
   color: var(--fg);
 }
 

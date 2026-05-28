@@ -398,6 +398,10 @@
   border-bottom-color: var(--gold);
 }
 
+.tabActive .tabLabel {
+  text-shadow: 0 0 12px rgba(255, 192, 48, 0.35);
+}
+
 .tabLabel {
   font-family: var(--font-editorial);
   font-size: 1.2rem;
