@@ -257,11 +257,14 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
 
   useEffect(() => {
     if (readingsRef.current[section]) {
-      // Section already has content — clear loading UI from any in-flight previous section.
-      setLoading(false)
-      setSectionStates({})
-      setActivePlanetSection(null)
-      loadingRef.current = false
+      if (!loadingRef.current) {
+        // Content is complete and no request in-flight — clear loading UI.
+        setLoading(false)
+        setSectionStates({})
+        setActivePlanetSection(null)
+      }
+      // If loadingRef is still true, this section is currently streaming — leave
+      // loading state intact so the progress indicators stay visible.
     } else if (!loadingRef.current) {
       generateReading(section)
     }

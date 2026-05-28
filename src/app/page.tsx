@@ -4,6 +4,7 @@ import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
+import HeroWheel from '@/components/HeroWheel'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -98,7 +99,6 @@ export default function Home() {
       {/* Hero */}
       {!chartData && (
         <section className={styles.hero}>
-          <ConstellationDecor />
           <div className={styles.heroLeft}>
             <p className={styles.heroEyebrow}>Natal chart reading</p>
             <h2 className={styles.heroHeadline}>
@@ -107,6 +107,7 @@ export default function Home() {
             </h2>
           </div>
           <div className={styles.heroCenter}>
+            <HeroWheel />
           </div>
           <div className={styles.heroRight}>
             <p className={styles.heroBody}>
