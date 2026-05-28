@@ -168,9 +168,14 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
   }, [synastryData])
 
   useEffect(() => {
-    generateReading()
-    return () => { abortRef.current?.abort() }
+    if (!loadingRef.current) {
+      generateReading()
+    }
   }, [generateReading])
+
+  useEffect(() => {
+    return () => { abortRef.current?.abort() }
+  }, [])
 
   const blocks = text ? parseReading(text) : []
   const hasAnyFailed = SYNASTRY_SECTIONS.some(s => sectionStates[s] === 'failed')

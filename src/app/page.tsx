@@ -259,7 +259,7 @@ export default function Home() {
                 )}
               </section>
 
-              <ChartFactsPanel data={chartData} />
+              <ChartFactsPanel data={chartData} activeSection={activeSection} />
 
               <div className={styles.tabBar}>
                 <button
