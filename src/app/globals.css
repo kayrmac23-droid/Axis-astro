@@ -38,9 +38,9 @@
   --copper-border: rgba(200, 120, 64, 0.28);
 
   /* ── Gold accent ──────────────────────────────────── */
-  --gold:       #C8961E;
-  --gold-light: #E0B840;
-  --gold-dim:   rgba(200, 150, 30, 0.15);
+  --gold:        #C4784A;   /* mid copper */
+  --gold-light:  #D4956A;   /* highlight, lighter pull */
+  --gold-dim:    #5C2E10;   /* dim copper, used for borders/muted states */
 
   /* ── Cyan accent ──────────────────────────────────── */
   --cyan:      #3DD8C8;
@@ -139,9 +139,9 @@
 
   /* ── Background tokens ────────────────────────────── */
   --bg-stars:
-    radial-gradient(ellipse 120% 60% at 50% -10%, #1E0A52 0%, transparent 55%),
-    radial-gradient(ellipse 60% 40% at 5% 95%,   #0C0638 0%, transparent 50%),
-    radial-gradient(ellipse 50% 35% at 95% 85%, #08042A 0%, transparent 50%);
+  radial-gradient(ellipse 120% 60% at 50% -10%, #04063A 0%, transparent 55%),
+  radial-gradient(ellipse 60% 40% at 5% 95%,   #020430 0%, transparent 50%),
+  radial-gradient(ellipse 50% 35% at 95% 85%, #010320 0%, transparent 50%);
 
   --noise-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
 
