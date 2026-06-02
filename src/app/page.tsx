@@ -233,7 +233,7 @@ export default function Home() {
               <span className={styles.methodDot}>·</span>
               <span className={styles.methodItem}>Whole Sign houses</span>
               <span className={styles.methodDot}>·</span>
-              <span className={styles.methodItem}>JPL DE440 ephemeris</span>
+              <span className={styles.methodItem}>JPL Horizons · Meeus fallback</span>
             </div>
           )}
 
