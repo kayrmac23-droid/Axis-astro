@@ -53,7 +53,7 @@
 
 .tooltipSymbol {
   font-size: 1.1rem;
-  color: var(--gold);
+  color: var(--copper);
   line-height: 1;
 }
 
@@ -62,7 +62,7 @@
   font-size: 0.56rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--copper);
 }
 
 .tooltipRow {

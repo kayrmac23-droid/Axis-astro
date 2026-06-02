@@ -343,10 +343,10 @@
 }
 
 .castButton:hover:not(:disabled) {
-  background: var(--gold);
-  border-color: var(--gold);
+  background: var(--copper);
+  border-color: var(--copper);
   color: var(--void);
-  box-shadow: var(--glow-gold);
+  box-shadow: var(--glow-copper);
 }
 
 .castButtonReady {
@@ -355,10 +355,10 @@
 }
 
 .castButtonReady:hover {
-  background: var(--gold);
-  border-color: var(--gold);
+  background: var(--copper);
+  border-color: var(--copper);
   color: var(--void);
-  box-shadow: var(--glow-gold);
+  box-shadow: var(--glow-copper);
 }
 
 .castButton:disabled {

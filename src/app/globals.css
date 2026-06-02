@@ -6,51 +6,54 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────────────── */
-  --void:      #060411;
-  --bg:        #0B0920;
-  --deep:      #0E0C24;
-  --surface:   #110F2C;
-  --surface-2: #18163A;
-  --surface-3: #201E48;
+  --void:      #010108;
+  --bg:        #030212;
+  --deep:      #05041A;
+  --surface:   #090820;
+  --surface-2: #0F0E2C;
+  --surface-3: #16153A;
 
   /* ── Borders ──────────────────────────────────────── */
-  --border:        #242050;
-  --border-2:      #343068;
-  --border-bright: #484480;
+  --border:        #1A1940;
+  --border-2:      #282660;
+  --border-bright: #3E3C80;
 
   /* ── Text scale ───────────────────────────────────── */
-  --fg:   #EDE8DC;
-  --fg-2: #B8AF9E;
-  --fg-3: #7C7468;
-  --fg-4: #4A4440;
+  --text:   #EAE8F8;
+  --text-2: #A8A4C8;
+  --text-3: #9490C4;
+  --text-4: #625E90;
 
-  /* Legacy --text aliases */
-  --text-primary:   var(--fg);
-  --text-secondary: var(--fg-2);
-  --text-tertiary:  var(--fg-3);
-  --text-muted:     var(--fg-4);
+  /* --fg aliases for backward compat */
+  --fg:   var(--text);
+  --fg-2: var(--text-2);
+  --fg-3: var(--text-3);
+  --fg-4: var(--text-4);
 
-  /* ── Copper accent (component-level, keep for compat) */
-  --copper:        #C87840;
-  --copper-light:  #E09860;
-  --copper-dim:    #5C3818;
-  --copper-subtle: rgba(200, 120, 64, 0.10);
-  --copper-border: rgba(200, 120, 64, 0.28);
+  /* Legacy --text-* aliases */
+  --text-primary:   var(--text);
+  --text-secondary: var(--text-2);
+  --text-tertiary:  var(--text-3);
+  --text-muted:     var(--text-4);
 
-  /* ── Gold accent ──────────────────────────────────── */
-  --gold:        #C4784A;   /* mid copper */
-  --gold-light:  #D4956A;   /* highlight, lighter pull */
-  --gold-dim:    #5C2E10;   /* dim copper, used for borders/muted states */
+  /* ── Copper accent ────────────────────────────────── */
+  --copper:        #B87333;
+  --copper-bright: #D89455;
+  --copper-light:  #F0B978;
+  --copper-dim:    #5A2F18;
+  --copper-glow:   rgba(184, 115, 51, 0.18);
+  --copper-subtle: rgba(184, 115, 51, 0.10);
+  --copper-border: rgba(184, 115, 51, 0.28);
 
   /* ── Cyan accent ──────────────────────────────────── */
-  --cyan:      #3DD8C8;
-  --cyan-dim:  rgba(61, 216, 200, 0.12);
-  --cyan-glow: 0 0 20px rgba(61, 216, 200, 0.4);
+  --cyan:      #2CC8C0;
+  --cyan-dim:  #0A4845;
+  --cyan-glow: rgba(44, 200, 192, 0.15);
 
   /* ── Violet accent ────────────────────────────────── */
-  --violet:       #8E8ACF;
-  --violet-light: #B0ACDF;
-  --violet-dim:   rgba(142, 138, 207, 0.15);
+  --violet:       #7844FF;
+  --violet-light: #C8B3FF;
+  --violet-dim:   #2A1460;
 
   /* ── Element tints ────────────────────────────────── */
   --elem-fire:  rgba(220, 80, 40, 0.15);
@@ -124,8 +127,8 @@
   /* ── Shadow + glow tokens ─────────────────────────── */
   --shadow-drop: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-deep: 0 28px 90px rgba(0, 0, 0, 0.5);
-  --glow-gold:      0 0 20px rgba(255, 192, 48, 0.45), 0 0 40px rgba(255, 192, 48, 0.15);
-  --glow-gold-soft: 0 0 14px rgba(255, 192, 48, 0.25);
+  --glow-copper:      0 0 20px rgba(184, 115, 51, 0.45), 0 0 40px rgba(184, 115, 51, 0.15);
+  --glow-copper-soft: 0 0 14px rgba(184, 115, 51, 0.25);
   --glow-cyan:      0 0 20px rgba(61, 216, 200, 0.4);
   --glow-violet:    0 0 20px rgba(142, 138, 207, 0.4);
 

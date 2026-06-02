@@ -109,7 +109,7 @@
   font-size: 0.52rem;
   letter-spacing: 0.45em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--copper);
   margin-bottom: 1.8rem;
   display: flex;
   align-items: center;
@@ -121,7 +121,7 @@
   display: inline-block;
   width: 24px;
   height: 1px;
-  background: var(--gold);
+  background: var(--copper);
   flex-shrink: 0;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .heroAccent {
-  color: var(--gold);
+  color: var(--copper);
 }
 
 .heroRight {
@@ -192,7 +192,7 @@
   font-size: 0.52rem;
   letter-spacing: 0.4em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--copper);
 }
 
 .formIntroTitle {
@@ -282,7 +282,7 @@
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border-2);
-  border-top-color: var(--gold);
+  border-top-color: var(--copper);
   animation: spin 2.5s linear infinite;
 }
 
@@ -394,8 +394,8 @@
 }
 
 .tabActive {
-  color: var(--gold);
-  border-bottom-color: var(--gold);
+  color: var(--copper);
+  border-bottom-color: var(--copper);
 }
 
 .tabActive .tabLabel {
@@ -457,8 +457,8 @@
 }
 
 .pdfBtn:hover {
-  color: var(--gold);
-  border-color: var(--gold);
+  color: var(--copper);
+  border-color: var(--copper);
 }
 
 /* ─── Footer ──────────────────────────────────────── */
