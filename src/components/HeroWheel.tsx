@@ -39,7 +39,7 @@ function ZodiacRing({
     return (
       <line key={i}
         x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-        stroke="var(--gold)" strokeOpacity="0.32" strokeWidth="0.8" />
+        stroke="var(--copper)" strokeOpacity="0.32" strokeWidth="0.8" />
     )
   })
 
@@ -51,7 +51,7 @@ function ZodiacRing({
         x={p.x} y={p.y}
         textAnchor="middle" dominantBaseline="central"
         fontSize={glyphSize}
-        fill="var(--gold)" fillOpacity={opacity}
+        fill="var(--copper)" fillOpacity={opacity}
         style={{ fontFamily: "'Cormorant Garamond', serif" }}>
         {g}
       </text>
@@ -64,7 +64,7 @@ function ZodiacRing({
   const labelInstances = [0, 33.33, 66.66].map((offset, i) => (
     <text key={i}
       fontSize={labelSize}
-      fill="var(--gold)" fillOpacity="0.65"
+      fill="var(--copper)" fillOpacity="0.65"
       letterSpacing={labelLetterSpacing}
       style={{ fontFamily: "'Cinzel', serif", textTransform: 'uppercase' as const }}>
       <textPath href={`#${pathId}`} startOffset={`${offset}%`}>
@@ -79,9 +79,9 @@ function ZodiacRing({
         <path id={pathId} d={labelPathD} fill="none" />
       </defs>
       <circle cx="0" cy="0" r={rOuter} fill="none"
-        stroke="var(--gold)" strokeOpacity="0.42" strokeWidth="1" />
+        stroke="var(--copper)" strokeOpacity="0.42" strokeWidth="1" />
       <circle cx="0" cy="0" r={rInner} fill="none"
-        stroke="var(--gold)" strokeOpacity="0.42" strokeWidth="1" />
+        stroke="var(--copper)" strokeOpacity="0.42" strokeWidth="1" />
       {dividers}
       {glyphs}
       {labelInstances}
@@ -101,8 +101,8 @@ export default function HeroWheel() {
         aria-label="AXIS dual-zodiac chart wheel — Tropical outer ring, Sidereal inner ring">
         <defs>
           <radialGradient id="hw-core-glow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="var(--gold)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
+            <stop offset="0%" stopColor="var(--copper)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--copper)" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -120,9 +120,9 @@ export default function HeroWheel() {
 
         {/* Fixed reference band between the two rings */}
         <circle cx="0" cy="0" r="245" fill="none"
-          stroke="var(--gold)" strokeOpacity="0.15" strokeWidth="0.6" />
+          stroke="var(--copper)" strokeOpacity="0.15" strokeWidth="0.6" />
         <circle cx="0" cy="0" r="215" fill="none"
-          stroke="var(--gold)" strokeOpacity="0.15" strokeWidth="0.6" />
+          stroke="var(--copper)" strokeOpacity="0.15" strokeWidth="0.6" />
 
         {/* Inner ring — Sidereal, starts at Lahiri offset, rotates slower */}
         <g className={styles.ringSidereal}
@@ -136,18 +136,18 @@ export default function HeroWheel() {
 
         {/* Central ornament — static */}
         <circle cx="0" cy="0" r="62" fill="none"
-          stroke="var(--gold)" strokeOpacity="0.32" strokeWidth="0.8" />
+          stroke="var(--copper)" strokeOpacity="0.32" strokeWidth="0.8" />
         <circle cx="0" cy="0" r="42" fill="none"
-          stroke="var(--gold)" strokeOpacity="0.18" strokeWidth="0.5" />
+          stroke="var(--copper)" strokeOpacity="0.18" strokeWidth="0.5" />
         <line x1="-57" y1="0" x2="-16" y2="0"
-          stroke="var(--gold)" strokeOpacity="0.52" strokeWidth="1" />
+          stroke="var(--copper)" strokeOpacity="0.52" strokeWidth="1" />
         <line x1="16" y1="0" x2="57" y2="0"
-          stroke="var(--gold)" strokeOpacity="0.52" strokeWidth="1" />
+          stroke="var(--copper)" strokeOpacity="0.52" strokeWidth="1" />
         <line x1="0" y1="-57" x2="0" y2="-16"
-          stroke="var(--gold)" strokeOpacity="0.52" strokeWidth="1" />
+          stroke="var(--copper)" strokeOpacity="0.52" strokeWidth="1" />
         <line x1="0" y1="16" x2="0" y2="57"
-          stroke="var(--gold)" strokeOpacity="0.52" strokeWidth="1" />
-        <circle cx="0" cy="0" r="3" fill="var(--gold)" />
+          stroke="var(--copper)" strokeOpacity="0.52" strokeWidth="1" />
+        <circle cx="0" cy="0" r="3" fill="var(--copper)" />
       </svg>
 
       {/* Static annotations — do not rotate */}

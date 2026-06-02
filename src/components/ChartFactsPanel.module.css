@@ -187,8 +187,8 @@
   align-self: flex-start;
 }
 
-.domicile  { color: var(--gold); }
-.exaltation { color: var(--gold-light); opacity: 0.75; }
+.domicile  { color: var(--copper); }
+.exaltation { color: var(--copper-light); opacity: 0.75; }
 .detriment { color: var(--fg-4); }
 .fall      { color: var(--fg-4); opacity: 0.65; }
 
