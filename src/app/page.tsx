@@ -167,8 +167,8 @@ export default function Home() {
               <div className={styles.heroLeft}>
                 <p className={styles.heroEyebrow}>Natal chart reading</p>
                 <h2 className={styles.heroHeadline}>
-                  Two systems,<br />
-                  <span className={styles.heroAccent}>one self.</span>
+                  Your personality<br />
+                  <span className={styles.heroAccent}>is not the whole map.</span>
                 </h2>
               </div>
               <div className={styles.heroCenter}>
@@ -187,17 +187,67 @@ export default function Home() {
             </section>
           )}
 
+          {/* Premise */}
+          {!chartData && (
+            <section className={styles.premiseSection}>
+              <div className={styles.premiseGrid}>
+                <div className={styles.premiseCard}>
+                  <div className={`${styles.premiseRule} ${styles.premiseRuleCopper}`} />
+                  <p className={styles.premiseSystem}>Tropical</p>
+                  <p className={styles.premiseRole}>The self you know.</p>
+                  <p className={styles.premiseDesc}>
+                    Psychological architecture. The defences you built, the identity
+                    you perform, the inner logic that organises how you experience
+                    being alive.
+                  </p>
+                </div>
+                <div className={styles.premiseCard}>
+                  <div className={`${styles.premiseRule} ${styles.premiseRuleViolet}`} />
+                  <p className={styles.premiseSystem}>Sidereal</p>
+                  <p className={styles.premiseRole}>The self beneath.</p>
+                  <p className={styles.premiseDesc}>
+                    Karmic exterior. Inherited patterns, material life trajectory,
+                    the conditions that shaped you before self-awareness had language.
+                  </p>
+                </div>
+                <div className={styles.premiseCard}>
+                  <div className={`${styles.premiseRule} ${styles.premiseRuleAxis}`} />
+                  <p className={styles.premiseSystem}>Synthesis</p>
+                  <p className={styles.premiseRole}>Where they diverge.</p>
+                  <p className={styles.premiseDesc}>
+                    Most people resolve the contradiction. AXIS maps it instead —
+                    because the tension between both systems is the most honest
+                    description of a person.
+                  </p>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Methodology strip */}
+          {!chartData && (
+            <div className={styles.methodStrip}>
+              <span className={styles.methodItem}>VSOP87B positions</span>
+              <span className={styles.methodDot}>·</span>
+              <span className={styles.methodItem}>Lahiri ayanamsa</span>
+              <span className={styles.methodDot}>·</span>
+              <span className={styles.methodItem}>Whole Sign houses</span>
+              <span className={styles.methodDot}>·</span>
+              <span className={styles.methodItem}>JPL Horizons · Meeus fallback</span>
+            </div>
+          )}
+
           {/* Birth Form */}
           {!chartData && (
             <section className={styles.formSection}>
               <div className={styles.formIntro}>
-                <p className={styles.formIntroLabel}>Your birth data</p>
+                <p className={styles.formIntroLabel}>Birth coordinates</p>
                 <h3 className={styles.formIntroTitle}>
-                  Enter your details to cast the chart.
+                  Enter birth coordinates.
                 </h3>
                 <p className={styles.formIntroDesc}>
-                  Date, time, and place of birth determine the positions
-                  of every planet at the moment you arrived on Earth.
+                  Date, time, and place determine the positions of every planet
+                  at the moment you arrived on Earth.
                   Precision matters — especially for the Ascendant.
                 </p>
               </div>
@@ -219,7 +269,7 @@ export default function Home() {
           {loading && (
             <div className={styles.loadingState}>
               <div className={styles.loadingOrb} />
-              <p className={styles.loadingText}>Calculating positions</p>
+              <p className={styles.loadingText}>Aligning dual map</p>
             </div>
           )}
 
@@ -443,7 +493,7 @@ export default function Home() {
       )}
 
       <footer className={styles.footer}>
-        <p>Axis — Precision dual-system astrology</p>
+        <p>AXIS — Precision dual-system astrology</p>
       </footer>
     </main>
   )

@@ -166,6 +166,104 @@
   line-height: 1.8;
 }
 
+/* ─── Premise Section ─────────────────────────────── */
+.premiseSection {
+  width: 100%;
+  max-width: 960px;
+  padding: 5rem 2.5rem 4rem;
+  border-top: 1px solid var(--border);
+  animation: fadeIn 0.8s ease;
+}
+
+.premiseGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 3rem;
+}
+
+.premiseCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.premiseRule {
+  height: 1px;
+  width: 100%;
+  margin-bottom: 1.4rem;
+}
+
+.premiseRuleCopper {
+  background: var(--copper);
+}
+
+.premiseRuleViolet {
+  background: var(--violet);
+}
+
+.premiseRuleAxis {
+  background: linear-gradient(to right, var(--copper), var(--cyan));
+}
+
+.premiseSystem {
+  font-family: var(--font-editorial);
+  font-size: 1.55rem;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.1;
+  color: var(--fg);
+  margin: 0 0 0.5rem;
+}
+
+.premiseRole {
+  font-family: var(--font-display);
+  font-size: 0.50rem;
+  font-weight: 400;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin: 0 0 1.4rem;
+}
+
+.premiseDesc {
+  font-family: var(--font-serif);
+  font-size: 0.96rem;
+  font-weight: 300;
+  line-height: 1.9;
+  color: var(--fg-2);
+  margin: 0;
+}
+
+/* ─── Methodology Strip ────────────────────────────── */
+.methodStrip {
+  width: 100%;
+  max-width: 960px;
+  padding: 1.8rem 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  animation: fadeIn 0.9s ease;
+}
+
+.methodItem {
+  font-family: var(--font-display);
+  font-size: 0.46rem;
+  font-weight: 400;
+  letter-spacing: 0.30em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+.methodDot {
+  font-family: var(--font-display);
+  font-size: 0.46rem;
+  color: var(--border-2);
+  letter-spacing: 0;
+}
+
 /* ─── Form Section ────────────────────────────────── */
 .formSection {
   width: 100%;
@@ -664,6 +762,9 @@
   }
   .formIntro { position: static; }
   .heroHeadline { font-size: 2.4rem; }
+  .premiseGrid { grid-template-columns: 1fr; gap: 2.5rem; }
+  .premiseSection { padding: 3.5rem 2rem 3rem; }
+  .methodStrip { padding: 1.4rem 2rem; gap: 1rem; }
   .logo { font-size: 2.1rem; }
   .header { grid-template-columns: 1fr 1fr; padding: 2rem 2rem 1.8rem; }
   .headerMid { display: none; }
