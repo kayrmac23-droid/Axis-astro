@@ -42,6 +42,22 @@ interface CacheKeyParams {
   planetSection: string
 }
 
+export function makeSynastryCacheKey({
+  birthA, birthB, section, planetSection,
+}: { birthA: BirthData; birthB: BirthData; section: string; planetSection: string }): string {
+  const norm = (b: BirthData) => ({
+    year: b.year, month: b.month, day: b.day,
+    hour:   b.birthTimeUnknown ? 12 : b.hour,
+    minute: b.birthTimeUnknown ? 0  : b.minute,
+    lat: Math.round(b.latitude  * 100) / 100,
+    lon: Math.round(b.longitude * 100) / 100,
+    tz:  Math.round(b.timezone  * 100) / 100,
+    btu: b.birthTimeUnknown === true,
+  })
+  const key = { a: norm(birthA), b: norm(birthB), section, planetSection, promptVersion: READING_PROMPT_VERSION }
+  return 'axis:synastry:' + createHash('sha256').update(JSON.stringify(key)).digest('hex').slice(0, 40)
+}
+
 export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams): string {
   // Normalize birth data to ensure equivalent inputs produce identical keys.
   // - lat/lon: 2 decimal places (~1.1 km, sufficient for astrological precision)

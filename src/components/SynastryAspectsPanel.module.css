@@ -1,0 +1,148 @@
+/* ─── Panel shell ──────────────────────────────────── */
+.panel {
+  width: 100%;
+  padding: 2.2rem 0 2.4rem;
+  border-bottom: 1px solid var(--border);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.panelLabel {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--copper);
+  opacity: 0.85;
+  margin-bottom: 1.4rem;
+}
+
+/* ─── Composite summary bar ────────────────────────── */
+.compositeBar {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  background: rgba(184, 115, 51, 0.06);
+  border: 1px solid rgba(184, 115, 51, 0.18);
+  border-radius: 4px;
+  margin-bottom: 1.6rem;
+  flex-wrap: wrap;
+}
+
+.compositeLabel {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--copper);
+  flex-shrink: 0;
+}
+
+.compositePlacements {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--fg-2);
+  flex: 1;
+}
+
+.compositeCount {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+  flex-shrink: 0;
+}
+
+.noAspects {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--fg-4);
+  font-style: italic;
+}
+
+/* ─── Aspect groups ────────────────────────────────── */
+.group {
+  margin-bottom: 1.2rem;
+}
+
+.groupHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.3rem;
+}
+
+.aspectSymbol {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sym_harmonious { color: var(--copper-light); }
+.sym_tense      { color: var(--fg-3); }
+.sym_neutral    { color: var(--copper); }
+
+.groupLabel {
+  font-family: var(--font-display);
+  font-size: 0.48rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+
+/* ─── Aspect rows ──────────────────────────────────── */
+.aspectList {
+  display: flex;
+  flex-direction: column;
+}
+
+.aspectRow {
+  display: grid;
+  grid-template-columns: 1fr 1.6rem 1fr 2.8rem;
+  align-items: center;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid rgba(26, 25, 64, 0.35);
+}
+
+.aspectRow:last-child {
+  border-bottom: none;
+}
+
+.planetA,
+.planetB {
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: var(--fg-2);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.planetB {
+  padding-left: 0.4rem;
+}
+
+.aspectGlyph {
+  text-align: center;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.glyph_harmonious { color: var(--copper-light); }
+.glyph_tense      { color: var(--fg-3); }
+.glyph_neutral    { color: var(--copper); }
+
+.orb {
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-4);
+  text-align: right;
+}

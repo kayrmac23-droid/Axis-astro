@@ -5,6 +5,7 @@ import styles from './BirthForm.module.css'
 interface BirthFormProps {
   onSubmit: (data: Record<string, string>) => void
   loading: boolean
+  submitLabel?: string
 }
 
 interface GeoResult {
@@ -13,7 +14,7 @@ interface GeoResult {
   lon: string
 }
 
-export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
+export default function BirthForm({ onSubmit, loading, submitLabel = 'Generate chart' }: BirthFormProps) {
   const [formData, setFormData] = useState({
     year: '',
     month: '',
@@ -376,19 +377,20 @@ export default function BirthForm({ onSubmit, loading }: BirthFormProps) {
         </div>
       </fieldset>
 
-      {/* Cast row: button + status indicator */}
-      <div className={styles.castRow}>
-        <button
-          type="submit"
-          className={`${styles.castButton} ${isValid && !loading ? styles.castButtonReady : ''}`}
-          disabled={!isValid || loading}
-        >
-          {loading ? 'Casting…' : 'Cast chart'}
-        </button>
-        <span className={`${styles.statusIndicator} ${isValid ? styles.statusIndicatorReady : ''}`}>
-          {statusLabel}
-        </span>
-      </div>
+      <button
+        type="submit"
+        className={styles.submitBtn}
+        disabled={loading || !isValid}
+      >
+        {loading ? (
+          <span className={styles.btnLoading}>
+            <span className={styles.btnSpinner} />
+            Calculating
+          </span>
+        ) : (
+          submitLabel
+        )}
+      </button>
     </form>
   )
 }

@@ -698,19 +698,6 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
   }
   lines.push('')
 
-  // Full aspect table
-  const allAspects = computeAspects(chart.planets)
-  if (allAspects.length > 0) {
-    lines.push('ASPECTS (tightest first):')
-    for (const a of allAspects) {
-      const appSep = a.applying ? 'applying' : 'separating'
-      const p2     = chart.planets.find(p => p.name === a.planet2)
-      const hInfo  = p2 ? ` — ${a.planet2} in House ${p2.house}` : ''
-      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${fmtOrb(a.orb)} · ${appSep})${hInfo}`)
-    }
-    lines.push('')
-  }
-
   // Chart ruler / Lagna lord
   const rulers    = vedic ? SIGN_RULERS_VEDIC : SIGN_RULERS_TRADITIONAL
   const rulerName = rulers[chart.ascendantSign]
@@ -877,31 +864,16 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   }
   lines.push('')
 
-  lines.push(`CORE FUNCTION OF ${planet.name.toUpperCase()}:`)
-  if (pData) {
-    lines.push(`Function: ${pData.coreFunction}`)
-    lines.push(`Drives: ${pData.drives}`)
-    lines.push(`Shadow: ${pData.shadow}`)
-  }
+  lines.push(`CORE FUNCTION OF ${planet.name.toUpperCase()}: ${pData ? `${pData.coreFunction} | ${pData.drives}` : ''}`)
   lines.push('')
 
-  lines.push(`SIGN MODIFICATION (${planet.sign}):`)
-  if (sData) {
-    lines.push(`${sData.element} ${sData.modality} | Ruled by ${sData.ruler} | Core need: ${sData.coreNeed}`)
-    lines.push(`Effect on ${planet.name}: ${sData.modifies}`)
-    lines.push(`Keywords: ${sData.keywords.join(', ')}`)
-  }
+  lines.push(`SIGN (${planet.sign}): ${sData ? `${sData.element} ${sData.modality} | Ruler: ${sData.ruler} | Core need: ${sData.coreNeed} | Keywords: ${sData.keywords.join(', ')}` : ''}`)
   lines.push('')
 
-  lines.push(`DIGNITY STATUS: ${dignity.status}`)
-  lines.push(dignity.description)
+  lines.push(`DIGNITY: ${dignity.status} — ${dignity.description}`)
   lines.push('')
 
-  lines.push(`HOUSE ENVIRONMENT (H${planet.house}):`)
-  if (hData) {
-    lines.push(`Domain: ${hData.domain}`)
-    lines.push(`Effect on ${planet.name}: ${hData.modifies}`)
-  }
+  lines.push(`HOUSE H${planet.house}: ${hData ? hData.domain : ''}`)
   lines.push('')
 
   lines.push('DISPOSITOR / RULERSHIP CHAIN:')
@@ -911,14 +883,11 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   if (aspects.length > 0) {
     lines.push('ASPECTS (tightest first):')
     aspects.forEach(a => {
-      const other     = a.planet1 === planet.name ? a.planet2 : a.planet1
-      const otherData = PLANET_CORE[other]
-      const appSep    = a.applying ? 'applying' : 'separating'
-      const otherP    = chart.planets.find(p => p.name === other)
-      const hInfo     = otherP ? ` | ${other} in House ${otherP.house}` : ''
-      lines.push(`• ${a.aspectName} ${other} (orb ${a.orb}°, ${appSep}, ${a.quality})${hInfo}`)
-      lines.push(`  ${other}: ${otherData?.coreFunction || 'unknown function'}`)
-      lines.push(`  Dynamic: ${a.nature}`)
+      const other  = a.planet1 === planet.name ? a.planet2 : a.planet1
+      const appSep = a.applying ? 'applying' : 'separating'
+      const otherP = chart.planets.find(p => p.name === other)
+      const hInfo  = otherP ? ` | ${other} H${otherP.house}` : ''
+      lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${appSep}, ${a.quality})${hInfo}`)
     })
     lines.push('')
   }
@@ -939,25 +908,6 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
       lines.push(`Psychological quality: ${nData.psychologicalQuality}`)
       lines.push('')
     }
-  }
-
-  // First-principles synthesis note
-  if (pData && sData && hData) {
-    lines.push('FIRST-PRINCIPLES SYNTHESIS NOTE:')
-    const digStatus = dignity.status
-    const digNote =
-      digStatus === 'DOMICILE' || digStatus === 'EXALTATION' || digStatus === 'DOMICILE + EXALTATION'
-        ? 'amplified and well-expressed'
-        : digStatus === 'DETRIMENT'
-          ? 'frustrated — must find indirect or redirected expression'
-          : digStatus === 'FALL'
-            ? 'deeply challenged — operates against significant internal resistance'
-            : 'unmodified by dignity, operating according to sign and house character alone'
-    lines.push(
-      `${planet.name} (${pData.coreFunction}) filtered through ${planet.sign} (${sData.coreNeed}, ${digStatus}) ` +
-      `in H${planet.house} (${hData.domain}): the planet's drive is ${digNote}. ` +
-      `The house places this energy in the domain of ${hData.domain}.`
-    )
   }
 
   return lines.join('\n')

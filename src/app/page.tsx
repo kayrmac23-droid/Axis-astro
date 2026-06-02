@@ -4,20 +4,31 @@ import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
-import HeroWheel from '@/components/HeroWheel'
+import SynastryAspectsPanel from '@/components/SynastryAspectsPanel'
+import SynastryReadingPanel from '@/components/SynastryReadingPanel'
+import AstrolabeDecor from '@/components/AstrolabeDecor'
 import { DualChartData } from '@/lib/astro-calc'
+import { SynastryData } from '@/lib/synastry-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
 
 type ActiveSection = 'tropical' | 'sidereal' | 'synthesis'
+type AppMode = 'natal' | 'synastry'
 
 export default function Home() {
+  const [appMode, setAppMode] = useState<AppMode>('natal')
   const [chartData, setChartData] = useState<DualChartData | null>(null)
   const [readingReady, setReadingReady] = useState(false)
   const [activeSection, setActiveSection] = useState<ActiveSection>('tropical')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
+  // Synastry state
+  const [synastryData, setSynastryData] = useState<SynastryData | null>(null)
+  const [personAData, setPersonAData] = useState<Record<string, string> | null>(null)
+  const [personBData, setPersonBData] = useState<Record<string, string> | null>(null)
+  const [synastryLoading, setSynastryLoading] = useState(false)
+  const [synastryError, setSynastryError] = useState<string | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
 
   // Let the chart wheel and facts panel paint before mounting ReadingPanel.
@@ -77,6 +88,39 @@ export default function Home() {
     if (lastFormData) handleSubmit(lastFormData)
   }
 
+  const handleCalculateSynastry = async () => {
+    if (!personAData || !personBData) return
+    setSynastryLoading(true)
+    setSynastryError(null)
+    setSynastryData(null)
+    try {
+      const res = await fetch('/api/synastry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ personA: personAData, personB: personBData }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.message || "Synastry calculation failed. Please check both sets of birth data.")
+      }
+      const data: SynastryData = await res.json()
+      setSynastryData(data)
+      setTimeout(() => {
+        readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 300)
+    } catch (err) {
+      setSynastryError(err instanceof Error ? err.message : "Synastry calculation failed. Please try again.")
+    } finally {
+      setSynastryLoading(false)
+    }
+  }
+
+  const switchMode = (mode: AppMode) => {
+    setAppMode(mode)
+    setChartData(null); setReadingReady(false); setError(null)
+    setSynastryData(null); setPersonAData(null); setPersonBData(null); setSynastryError(null)
+  }
+
   return (
     <main className={styles.main}>
 
@@ -96,169 +140,306 @@ export default function Home() {
         <hr className={styles.headerRule} />
       </header>
 
-      {/* Hero */}
-      {!chartData && (
-        <section className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <p className={styles.heroEyebrow}>Natal chart reading</p>
-            <h2 className={styles.heroHeadline}>
-              Two systems,<br />
-              <span className={styles.heroAccent}>one self.</span>
-            </h2>
-          </div>
-          <div className={styles.heroCenter}>
-            <HeroWheel />
-          </div>
-          <div className={styles.heroRight}>
-            <p className={styles.heroBody}>
-              Tropical maps the psychological architecture of a self.
-              Sidereal maps the incarnational conditions it navigates.
-              The synthesis is where both truths meet.
-            </p>
-            <p className={styles.heroBody}>
-              Written for readers who take astrology seriously — students of
-              the technical literature, therapy-adjacent readers, the
-              contemplative traditions.
-            </p>
-            <p className={styles.heroDetail}>
-              Western Tropical · Vedic Sidereal · Synthesis Reading
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Birth Form */}
-      {!chartData && (
-        <section className={styles.formSection}>
-          <div className={styles.formIntro}>
-            <p className={styles.formIntroLabel}>Your birth data</p>
-            <h3 className={styles.formIntroTitle}>
-              Enter your details to cast the chart.
-            </h3>
-            <p className={styles.formIntroDesc}>
-              Every planet&apos;s position is computed from a local-time-based
-              ephemeris (VSOP87, ELP2000, JPL Horizons DE440 for Pluto). The chart
-              is exact to within ~0.05° of Swiss Ephemeris reference values.
-            </p>
-          </div>
-          <div className={styles.formRight}>
-            <BirthForm onSubmit={handleSubmit} loading={loading} />
-            {error && (
-              <div className={styles.calcError}>
-                <p className={styles.calcErrorMsg}>{error}</p>
-                <button
-                  className={styles.calcRetryBtn}
-                  onClick={handleRetry}
-                  disabled={loading}
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Loading */}
-      {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.loadingOrb} />
-          <p className={styles.loadingText}>Calculating positions</p>
+      {/* Mode toggle */}
+      {!chartData && !synastryData && (
+        <div className={styles.modeToggle}>
+          <button
+            className={`${styles.modeBtn} ${appMode === 'natal' ? styles.modeBtnActive : ''}`}
+            onClick={() => switchMode('natal')}
+          >
+            Natal Chart
+          </button>
+          <button
+            className={`${styles.modeBtn} ${appMode === 'synastry' ? styles.modeBtnActive : ''}`}
+            onClick={() => switchMode('synastry')}
+          >
+            Synastry
+          </button>
         </div>
       )}
 
-      {/* Chart + Reading */}
-      {chartData && (
-        <div className={styles.readingLayout} ref={readingRef}>
-
-          {/* Chart Wheels */}
-          <section className={styles.wheelSection}>
-            <p className={styles.wheelSectionLabel}>Natal chart</p>
-
-            {activeSection === 'tropical' && (
-              <div className={styles.wheelSingle}>
-                <p className={styles.wheelLabel}>Tropical</p>
-                <ChartWheel chart={chartData.tropical} />
+      {/* ── NATAL MODE ── */}
+      {appMode === 'natal' && (
+        <>
+          {/* Hero */}
+          {!chartData && (
+            <section className={styles.hero}>
+              <div className={styles.heroLeft}>
+                <p className={styles.heroEyebrow}>Natal chart reading</p>
+                <h2 className={styles.heroHeadline}>
+                  Two systems,<br />
+                  <span className={styles.heroAccent}>one self.</span>
+                </h2>
               </div>
-            )}
-
-            {activeSection === 'sidereal' && (
-              <div className={styles.wheelSingle}>
-                <p className={styles.wheelLabel}>Sidereal</p>
-                <ChartWheel chart={chartData.sidereal} />
+              <div className={styles.heroCenter}>
+                <AstrolabeDecor />
               </div>
-            )}
-
-            {activeSection === 'synthesis' && (
-              <div className={styles.wheelPair}>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Tropical</p>
-                  <ChartWheel chart={chartData.tropical} />
-                </div>
-                <div className={styles.wheelDivider}>
-                  <svg width="1" height="240" viewBox="0 0 1 240">
-                    <line x1="0.5" y1="0" x2="0.5" y2="240"
-                      stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                  </svg>
-                </div>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Sidereal</p>
-                  <ChartWheel chart={chartData.sidereal} />
-                </div>
+              <div className={styles.heroRight}>
+                <p className={styles.heroBody}>
+                  Tropical maps the psychological architecture of a self.
+                  Sidereal maps the incarnational conditions it navigates.
+                  The synthesis is where both truths meet.
+                </p>
+                <p className={styles.heroDetail}>
+                  Western Tropical · Vedic Sidereal · Synthesis Reading
+                </p>
               </div>
-            )}
-          </section>
-
-          {/* Chart Facts */}
-          <ChartFactsPanel data={chartData} activeSection={activeSection} />
-
-          {/* Section Tabs */}
-          <div className={styles.tabBar}>
-            <button
-              className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('tropical')}
-            >
-              <span className={styles.tabLabel}>Tropical</span>
-              <span className={styles.tabSub}>the self you know</span>
-            </button>
-            <button
-              className={`${styles.tab} ${activeSection === 'sidereal' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('sidereal')}
-            >
-              <span className={styles.tabLabel}>Sidereal</span>
-              <span className={styles.tabSub}>the self beneath</span>
-            </button>
-            <button
-              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('synthesis')}
-            >
-              <span className={styles.tabLabel}>Synthesis</span>
-              <span className={styles.tabSub}>concordance · dissonance · integration</span>
-            </button>
-          </div>
-
-          {/* Reading — mounted after chart paints so the wheel and facts
-              are visible before streaming requests fire */}
-          {readingReady && (
-            <ReadingPanel
-              chartData={chartData}
-              section={activeSection}
-            />
+            </section>
           )}
 
-          {/* Actions */}
-          <div className={styles.resetRow}>
-            <button className={styles.pdfBtn} onClick={() => { capture('print_pdf'); window.print() }}>
-              Download PDF
-            </button>
-            <button
-              className={styles.resetBtn}
-              onClick={() => { capture('new_chart'); setChartData(null); setError(null) }}
-            >
-              New chart
-            </button>
-          </div>
-        </div>
+          {/* Birth Form */}
+          {!chartData && (
+            <section className={styles.formSection}>
+              <div className={styles.formIntro}>
+                <p className={styles.formIntroLabel}>Your birth data</p>
+                <h3 className={styles.formIntroTitle}>
+                  Enter your details to cast the chart.
+                </h3>
+                <p className={styles.formIntroDesc}>
+                  Date, time, and place of birth determine the positions
+                  of every planet at the moment you arrived on Earth.
+                  Precision matters — especially for the Ascendant.
+                </p>
+              </div>
+              <div className={styles.formRight}>
+                <BirthForm onSubmit={handleSubmit} loading={loading} />
+                {error && (
+                  <div className={styles.calcError}>
+                    <p className={styles.calcErrorMsg}>{error}</p>
+                    <button className={styles.calcRetryBtn} onClick={handleRetry} disabled={loading}>
+                      Try again
+                    </button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Loading */}
+          {loading && (
+            <div className={styles.loadingState}>
+              <div className={styles.loadingOrb} />
+              <p className={styles.loadingText}>Calculating positions</p>
+            </div>
+          )}
+
+          {/* Chart + Reading */}
+          {chartData && (
+            <div className={styles.readingLayout} ref={readingRef}>
+              <section className={styles.wheelSection}>
+                <p className={styles.wheelSectionLabel}>Natal chart</p>
+                {activeSection === 'tropical' && (
+                  <div className={styles.wheelSingle}>
+                    <p className={styles.wheelLabel}>Tropical</p>
+                    <ChartWheel chart={chartData.tropical} />
+                  </div>
+                )}
+                {activeSection === 'sidereal' && (
+                  <div className={styles.wheelSingle}>
+                    <p className={styles.wheelLabel}>Sidereal</p>
+                    <ChartWheel chart={chartData.sidereal} />
+                  </div>
+                )}
+                {activeSection === 'synthesis' && (
+                  <div className={styles.wheelPair}>
+                    <div className={styles.wheelItem}>
+                      <p className={styles.wheelLabel}>Tropical</p>
+                      <ChartWheel chart={chartData.tropical} />
+                    </div>
+                    <div className={styles.wheelDivider}>
+                      <svg width="1" height="240" viewBox="0 0 1 240">
+                        <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
+                      </svg>
+                    </div>
+                    <div className={styles.wheelItem}>
+                      <p className={styles.wheelLabel}>Sidereal</p>
+                      <ChartWheel chart={chartData.sidereal} />
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <ChartFactsPanel data={chartData} activeSection={activeSection} />
+
+              <div className={styles.tabBar}>
+                <button
+                  className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
+                  onClick={() => setActiveSection('tropical')}
+                >
+                  <span className={styles.tabLabel}>Tropical</span>
+                  <span className={styles.tabSub}>the self you know</span>
+                </button>
+                <button
+                  className={`${styles.tab} ${activeSection === 'sidereal' ? styles.tabActive : ''}`}
+                  onClick={() => setActiveSection('sidereal')}
+                >
+                  <span className={styles.tabLabel}>Sidereal</span>
+                  <span className={styles.tabSub}>the self beneath</span>
+                </button>
+                <button
+                  className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
+                  onClick={() => setActiveSection('synthesis')}
+                >
+                  <span className={styles.tabLabel}>Synthesis</span>
+                  <span className={styles.tabSub}>concordance · dissonance · integration</span>
+                </button>
+              </div>
+
+              {readingReady && (
+                <ReadingPanel chartData={chartData} section={activeSection} />
+              )}
+
+              <div className={styles.resetRow}>
+                <button className={styles.pdfBtn} onClick={() => { capture('print_pdf'); window.print() }}>
+                  Download PDF
+                </button>
+                <button
+                  className={styles.resetBtn}
+                  onClick={() => { capture('new_chart'); setChartData(null); setError(null) }}
+                >
+                  New chart
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── SYNASTRY MODE ── */}
+      {appMode === 'synastry' && (
+        <>
+          {/* Synastry hero */}
+          {!synastryData && (
+            <section className={styles.hero}>
+              <div className={styles.heroLeft}>
+                <p className={styles.heroEyebrow}>Synastry reading</p>
+                <h2 className={styles.heroHeadline}>
+                  Two charts.<br />
+                  <span className={styles.heroAccent}>One field.</span>
+                </h2>
+              </div>
+              <div className={styles.heroCenter}>
+                <AstrolabeDecor />
+              </div>
+              <div className={styles.heroRight}>
+                <p className={styles.heroBody}>
+                  Synastry maps the live field between two charts —
+                  the aspects, the composite entity, and what each person
+                  activates in the other.
+                </p>
+                <p className={styles.heroDetail}>
+                  Inter-chart aspects · Composite chart · Relationship reading
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* Dual birth forms */}
+          {!synastryData && (
+            <section className={styles.synastryForms}>
+              <div className={styles.synastryFormSlot}>
+                <div className={styles.synastryPersonLabel}>
+                  <span className={styles.synastryPersonTag}>A</span>
+                  <span className={styles.synastryPersonTitle}>Person A</span>
+                  {personAData && <span className={styles.synastryPersonSet}>✓ Set</span>}
+                </div>
+                <BirthForm
+                  onSubmit={data => setPersonAData(data)}
+                  loading={false}
+                  submitLabel="Set Person A"
+                />
+              </div>
+              <div className={styles.synastryFormSlot}>
+                <div className={styles.synastryPersonLabel}>
+                  <span className={styles.synastryPersonTag}>B</span>
+                  <span className={styles.synastryPersonTitle}>Person B</span>
+                  {personBData && <span className={styles.synastryPersonSet}>✓ Set</span>}
+                </div>
+                <BirthForm
+                  onSubmit={data => setPersonBData(data)}
+                  loading={false}
+                  submitLabel="Set Person B"
+                />
+              </div>
+            </section>
+          )}
+
+          {/* Calculate synastry button */}
+          {!synastryData && (personAData || personBData) && (
+            <div className={styles.synastryCalcRow}>
+              {synastryError && (
+                <p className={styles.calcErrorMsg}>{synastryError}</p>
+              )}
+              <button
+                className={styles.submitBtn}
+                disabled={!personAData || !personBData || synastryLoading}
+                onClick={handleCalculateSynastry}
+              >
+                {synastryLoading ? (
+                  <span className={styles.btnLoading}>
+                    <span className={styles.btnSpinner} />
+                    Calculating
+                  </span>
+                ) : (
+                  !personAData ? 'Set Person A first'
+                  : !personBData ? 'Set Person B first'
+                  : 'Calculate Synastry'
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Synastry loading */}
+          {synastryLoading && (
+            <div className={styles.loadingState}>
+              <div className={styles.loadingOrb} />
+              <p className={styles.loadingText}>Calculating synastry</p>
+            </div>
+          )}
+
+          {/* Synastry results */}
+          {synastryData && (
+            <div className={styles.readingLayout} ref={readingRef}>
+              {/* Side-by-side wheels */}
+              <section className={styles.wheelSection}>
+                <p className={styles.wheelSectionLabel}>Natal charts</p>
+                <div className={styles.wheelPair}>
+                  <div className={styles.wheelItem}>
+                    <p className={styles.wheelLabel}>Person A — Tropical</p>
+                    <ChartWheel chart={synastryData.personA.tropical} />
+                  </div>
+                  <div className={styles.wheelDivider}>
+                    <svg width="1" height="240" viewBox="0 0 1 240">
+                      <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
+                    </svg>
+                  </div>
+                  <div className={styles.wheelItem}>
+                    <p className={styles.wheelLabel}>Person B — Tropical</p>
+                    <ChartWheel chart={synastryData.personB.tropical} />
+                  </div>
+                </div>
+              </section>
+
+              <SynastryAspectsPanel data={synastryData} />
+              <SynastryReadingPanel synastryData={synastryData} />
+
+              <div className={styles.resetRow}>
+                <button className={styles.pdfBtn} onClick={() => window.print()}>
+                  Download PDF
+                </button>
+                <button
+                  className={styles.resetBtn}
+                  onClick={() => {
+                    setSynastryData(null); setPersonAData(null)
+                    setPersonBData(null); setSynastryError(null)
+                  }}
+                >
+                  New synastry
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       <footer className={styles.footer}>
