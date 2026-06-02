@@ -14,7 +14,7 @@ interface GeoResult {
   lon: string
 }
 
-export default function BirthForm({ onSubmit, loading, submitLabel = 'Generate chart' }: BirthFormProps) {
+export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the AXIS reading' }: BirthFormProps) {
   const [formData, setFormData] = useState({
     year: '',
     month: '',
@@ -385,7 +385,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Generate c
         {loading ? (
           <span className={styles.btnLoading}>
             <span className={styles.btnSpinner} />
-            Calculating
+            Casting
           </span>
         ) : (
           submitLabel
