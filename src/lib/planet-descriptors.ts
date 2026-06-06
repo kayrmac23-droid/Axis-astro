@@ -108,18 +108,22 @@ export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
 export const SYNTHESIS_DESCRIPTORS = {
   agree: {
     title: 'Where the Systems Agree',
-    keywords: 'structural convergence · load-bearing truths'
+    keywords: 'structural convergence · load-bearing truths',
+    description: `Concordance — where both charts point to the same psychological theme — is the most certain, least negotiable part of a person's character. These placements hold regardless of which astrological framework is used. They are the bedrock of the synthesis: the things that cannot be explained away by system differences.`
   },
   diverge: {
     title: 'Where the Systems Diverge',
-    keywords: 'layered contradictions · what the gap means'
+    keywords: 'layered contradictions · what the gap means',
+    description: `Divergence is not error: it is the specific terrain this person must navigate. Where the Tropical layer names one orientation and the Sidereal layer names another, the gap between them describes what it actually feels like to live from inside this chart — the friction between constructed identity and essential nature.`
   },
   tension: {
     title: 'The Central Tension',
-    keywords: 'the defining dynamic · what cannot be resolved away'
+    keywords: 'the defining dynamic · what cannot be resolved away',
+    description: `The central tension is the single friction that makes this person specifically this person rather than a type. It is not a list of challenges — it is the one thing that runs through everything, visible only when both charts are held together. Neither system shows it fully alone.`
   },
   closing: {
-    title: 'The Closing Observation',
-    keywords: 'final precision · what holds across both systems'
+    title: 'Integration',
+    keywords: 'final precision · what holds across both systems',
+    description: `The integration names the precise causal chain: how the Tropical psychological architecture functions as the specific mechanism through which the Sidereal karmic trajectory is actually lived. The final observation is the sharpest in the reading — something true that has probably been felt but never articulated.`
   }
 }

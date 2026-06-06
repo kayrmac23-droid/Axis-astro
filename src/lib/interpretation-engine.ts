@@ -981,11 +981,15 @@ function houseDomainsRelated(h1: number, h2: number): boolean {
   const relatedGroups = [
     [1, 5, 9],      // fire trine: self-expression axis
     [2, 8],         // resources / shared resources axis
+    [2, 10],        // value / career-worth axis
+    [3, 6],         // mind / daily work axis
     [3, 9],         // mind / belief axis
     [4, 10],        // roots / public axis
     [4, 12],        // private / hidden axis
+    [5, 11],        // creative self / collective axis
     [6, 12],        // service / hidden axis
     [7, 1],         // self / other axis
+    [8, 10],        // shared power / public authority axis
   ]
   return relatedGroups.some(g => g.includes(h1) && g.includes(h2))
 }
@@ -1018,7 +1022,10 @@ function formatSynthesisBlock(chartData: DualChartData): string {
       }
     } else {
       if (!signShift && houseShift) {
-        lines.push(`  ~ PARTIAL CONCORDANCE: same sign in both systems — the quality of ${pName} is consistent; only the life domain shifts`)
+        lines.push(`  ~ SAME-SIGN CONCORDANCE: ${trop.sign} in both systems — the essential quality of this ${pName} is fixed across both frameworks; only the life domain shifts (H${trop.house} Tropical → H${sid.house} Sidereal)`)
+        if (tropDig.status === sidDig.status && tropDig.status !== 'peregrine') {
+          lines.push(`    Dignity consistent: [${tropDig.status}] in both — the strength or challenge of this ${pName} is a cross-system fact, not an artifact of framework`)
+        }
       }
 
       if (signShift) {
@@ -1083,6 +1090,31 @@ function formatSynthesisBlock(chartData: DualChartData): string {
         }
       }
     }
+
+    // Cusp detection: flag planets within 3° of a sign boundary in either system
+    const tropNearEnd   = trop.degree > 27
+    const tropNearStart = trop.degree < 3
+    const sidNearEnd    = sid.degree  > 27
+    const sidNearStart  = sid.degree  < 3
+    const tropOnCusp    = tropNearEnd || tropNearStart
+    const sidOnCusp     = sidNearEnd  || sidNearStart
+
+    if (tropOnCusp || sidOnCusp) {
+      const nextSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 1) % 12]
+      const prevSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 11) % 12]
+      if (tropNearEnd)   lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${trop.sign}/${nextSign(trop.sign)} boundary`)
+      if (tropNearStart) lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${prevSign(trop.sign)}/${trop.sign} boundary`)
+      if (sidNearEnd)    lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${sid.sign}/${nextSign(sid.sign)} boundary`)
+      if (sidNearStart)  lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${prevSign(sid.sign)}/${sid.sign} boundary`)
+      if (tropOnCusp && !sidOnCusp) {
+        lines.push(`    The Tropical cusp resolves into the body of ${sid.sign} in the Sidereal chart — what reads as boundary ambiguity at the psychological level becomes more settled at the essential level`)
+      } else if (!tropOnCusp && sidOnCusp) {
+        lines.push(`    The ayanamsa shift places Sidereal ${pName} near a sign boundary despite a non-cusp Tropical position — boundary ambiguity exists at the essential level but not at the psychological`)
+      } else {
+        lines.push(`    ${pName} is near a sign boundary in both systems — adjacent-sign qualities blend into its expression at both the psychological and essential levels`)
+      }
+    }
+
     lines.push('')
   })
 
