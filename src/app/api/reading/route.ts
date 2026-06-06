@@ -199,7 +199,15 @@ export async function POST(req: NextRequest) {
     let userContent: string
     if (section === 'synastry' && synastryData) {
       const synastryBlock = formatSynastryBlock(synastryData, planetSection)
-      userContent = `${synastryBlock}\n\n---\n\n${sectionInstruction}`
+      // For composite-focused sections, append an elite chart block for the
+      // composite so the model has dignity labels, chart ruler, and direction
+      // — data the simple position table in formatSynastryBlock doesn't include.
+      if (planetSection === 'composite_chart' || planetSection === 'integration') {
+        const compositeEliteBlock = formatEliteChartBlock(synastryData.composite, 'tropical')
+        userContent = `${synastryBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${compositeEliteBlock}\n\n---\n\n${sectionInstruction}`
+      } else {
+        userContent = `${synastryBlock}\n\n---\n\n${sectionInstruction}`
+      }
     } else if (section === 'tropical') {
       const interpretationContext = buildInterpretationContext(chartData!, 'tropical', planetSection)
       const chartBlock = formatEliteChartBlock(chartData!.tropical, 'tropical')
