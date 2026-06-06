@@ -105,6 +105,34 @@ export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
   }
 }
 
+export const SYNASTRY_DESCRIPTORS = {
+  luminaries: {
+    title: 'The Luminaries',
+    keywords: 'core relational drivers · identity meets emotional need · recognition and attunement',
+    description: `Sun and Moon contacts between two charts are the structural foundation of a relationship — where one person's conscious identity meets the other's emotional nature, and vice versa. These aspects determine whether the two charts orient toward each other naturally, whether genuine recognition is built in, or whether ego and emotional need create friction by design.`
+  },
+  venus_mars: {
+    title: 'Venus and Mars',
+    keywords: 'attraction · desire · relational style meets drive',
+    description: `Venus and Mars contacts govern the mechanics of attraction, desire, and how each person's relational orientation meets the other's drive. Venus describes what is sought in connection and how affection moves; Mars describes how each person asserts, pursues, and acts when something is at stake. The quality of these contacts determines whether the two energies draw each other in or work at cross-purposes.`
+  },
+  outer_planets: {
+    title: 'Mind, Structure, and the Outer Planets',
+    keywords: 'intellectual exchange · expansion and limit · transformative contacts',
+    description: `Mercury contacts describe how two people think together — the ease or friction of shared intellectual exchange. Jupiter and Saturn aspects show where one person expands or structures the other's experience. Uranus, Neptune, and Pluto contacts to personal planets describe where outer-planet forces transform, disrupt, or dissolve something fundamental in the receiving chart — often felt more intensely by the planet person than the outer-planet person.`
+  },
+  composite_chart: {
+    title: 'The Composite Chart',
+    keywords: 'the relationship as its own entity · what you create together',
+    description: `The composite chart is not the sum of two people — it is a third entity with its own character, drives, and challenges. Its Sun, Moon, and Ascendant describe the identity, emotional life, and outward presentation of the relationship itself. The composite reveals what this pairing naturally moves toward, what it tends to produce in the world, and where its central psychological tension lives.`
+  },
+  integration: {
+    title: 'The Central Dynamic',
+    keywords: 'the defining feature · what makes this pairing itself',
+    description: `The integration names the single most defining feature of this combination — the observation that makes everything else cohere. It may be a dominant inter-aspect, a pattern repeated across multiple contacts, or a tension between the composite chart and the individual charts. The final observation names what this relationship structurally requires each person to carry or confront.`
+  }
+}
+
 export const SYNTHESIS_DESCRIPTORS = {
   agree: {
     title: 'Where the Systems Agree',
