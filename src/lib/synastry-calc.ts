@@ -35,11 +35,19 @@ const PLANET_ORBS: Record<string, number> = {
   Mercury: 6, Venus: 6, Mars: 6,
   Jupiter: 5, Saturn: 5,
   Uranus: 4, Neptune: 4, Pluto: 4,
+  Rahu: 3, Ketu: 3,
 }
 
+// Note: Mercury is intentionally included here so Mercury inter-aspects land in
+// the outer_planets section (mind/structure) rather than the venus_mars section.
+// Rahu/Ketu (lunar nodes) are included because nodal contacts — especially Rahu
+// conjunct the other person's Sun or Moon — are structurally significant.
+// Ketu is always exactly opposite Rahu; both are included so contacts to either
+// pole of the nodal axis are captured.
 const SYNASTRY_PLANETS = [
   'Sun', 'Moon', 'Mercury', 'Venus', 'Mars',
   'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto',
+  'Rahu', 'Ketu',
 ]
 
 const SIGNS = [
@@ -93,7 +101,11 @@ export function calculateInterAspects(a: ChartData, b: ChartData): SynastryAspec
             angle,
             orb: Math.round(orb * 100) / 100,
           })
-          break // each pair gets at most one aspect
+          // Each pair gets at most one aspect. With max orb of 8° and a minimum
+          // gap of 30° between any two adjacent aspect angles, two aspects cannot
+          // simultaneously be within orb for the same pair — so this break never
+          // silently drops a valid second match.
+          break
         }
       }
     }
@@ -123,10 +135,11 @@ export function calculateComposite(a: ChartData, b: ChartData): ChartData {
   const allNamesSet = new Set([...Object.keys(mapA), ...Object.keys(mapB)])
   const allNames = Array.from(allNamesSet)
   const planets: PlanetPosition[] = []
+  const skippedPlanets: string[] = []
   for (const name of allNames) {
     const pa = mapA[name]
     const pb = mapB[name]
-    if (!pa || !pb) continue
+    if (!pa || !pb) { skippedPlanets.push(name); continue }
     const lon = midpointLon(pa.longitude, pb.longitude)
     const { sign, signIndex, degree } = lonToSignInfo(lon)
     planets.push({
@@ -141,7 +154,8 @@ export function calculateComposite(a: ChartData, b: ChartData): ChartData {
     ascendant: compAsc, ascendantSign: ascInfo.sign, ascendantDegree: ascInfo.degree,
     midheaven: compMC,  midheavenSign: mcInfo.sign,  midheavenDegree: mcInfo.degree,
     planets, houses, system: 'tropical',
-  }
+    ...(skippedPlanets.length > 0 ? { _skippedPlanets: skippedPlanets } : {}),
+  } as ChartData & { _skippedPlanets?: string[] }
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -200,6 +214,10 @@ export function formatSynastryBlock(data: SynastryData, planetSection: string): 
   ).join('\n')
 
   const compLines = chartLines(composite)
+  const skipped = (composite as ChartData & { _skippedPlanets?: string[] })._skippedPlanets
+  const skippedNote = skipped && skipped.length > 0
+    ? `\n  ⚠ INCOMPLETE: ${skipped.join(', ')} excluded from composite — position data missing from one chart (birth time unknown or planet not computed)`
+    : ''
 
   return `PERSON A — TROPICAL CHART
 ${chartLines(personA.tropical)}
@@ -211,14 +229,17 @@ SYNASTRY INTER-ASPECTS (Person A → Person B, section: ${planetSection})
 ${aspectLines || '  (no aspects within orb for this section)'}
 
 COMPOSITE CHART (midpoint method, Whole Sign houses)
-${compLines}`
+${compLines}${skippedNote}`
 }
 
-// Which planets are relevant for each reading section
+// Which planets are relevant for each reading section.
+// Mercury is in outer_planets (mind/structure) not venus_mars (attraction/desire) — intentional.
+// Rahu/Ketu are in outer_planets: nodal contacts are structurally significant and
+// belong with the transformative/structural group rather than personal-planet sections.
 const SECTION_PLANET_GROUPS: Record<string, string[]> = {
   luminaries:     ['Sun', 'Moon'],
   venus_mars:     ['Venus', 'Mars'],
-  outer_planets:  ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Mercury'],
+  outer_planets:  ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Mercury', 'Rahu', 'Ketu'],
   composite_chart: [],  // composite section — show all aspects
   integration:    [],   // show all aspects
 }

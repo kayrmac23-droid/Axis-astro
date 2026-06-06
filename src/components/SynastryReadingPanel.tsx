@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { SynastryData } from '@/lib/synastry-calc'
+import { SYNASTRY_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
 
 interface Props {
@@ -21,6 +22,16 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
 const SECTION_TIMEOUT_MS = 50_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
+
+function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | null {
+  const h = heading.toLowerCase()
+  if (h.includes('luminaries')) return 'luminaries'
+  if (h.includes('venus') && h.includes('mars')) return 'venus_mars'
+  if (h.includes('mind') && h.includes('structure')) return 'outer_planets'
+  if (h.includes('composite')) return 'composite_chart'
+  if (h.includes('central dynamic')) return 'integration'
+  return null
+}
 
 function parseReading(text: string): Array<{ type: 'heading' | 'subheading' | 'paragraph'; content: string }> {
   const lines = text.split('\n')
@@ -248,11 +259,21 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
           <div className={styles.readingText}>
             {blocks.map((block, i) => {
               if (block.type === 'subheading') return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
-              if (block.type === 'heading')    return (
-                <div key={i} className={styles.sectionBlock}>
-                  <h3 className={styles.planetHeading}>{block.content}</h3>
-                </div>
-              )
+              if (block.type === 'heading') {
+                const descriptorKey = getSynastryKey(block.content)
+                const descriptor = descriptorKey ? SYNASTRY_DESCRIPTORS[descriptorKey] : null
+                return (
+                  <div key={i} className={styles.sectionBlock}>
+                    <h3 className={styles.planetHeading}>{block.content}</h3>
+                    {descriptor && (
+                      <div className={styles.infoBox}>
+                        <p className={styles.infoKeywords}>{descriptor.keywords}</p>
+                        <p className={styles.infoText}>{descriptor.description}</p>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
               return (
                 <p key={i} className={styles.paragraph} style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}>
                   {block.content}
