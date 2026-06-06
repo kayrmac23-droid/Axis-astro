@@ -45,8 +45,8 @@ function getSynthesisKey(heading: string): string | null {
   const h = heading.toLowerCase()
   if (h.includes('agree')) return 'agree'
   if (h.includes('diverge')) return 'diverge'
-  if (h.includes('central')) return 'tension'
-  if (h.includes('closing')) return 'closing'
+  if (h.includes('central tension')) return 'tension'
+  if (h === 'integration' || h.includes('integration')) return 'closing'
   return null
 }
 
