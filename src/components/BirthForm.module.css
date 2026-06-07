@@ -393,6 +393,54 @@
   margin: 0;
 }
 
+/* ── Submit button ────────────────────────────────────────────────── */
+
+.submitBtn {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  padding: 1.25rem 1rem;
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: var(--bg);
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.75rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: var(--copper-light);
+  border-color: var(--copper-light);
+}
+
+.submitBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.btnLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.btnSpinner {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--gold-dim);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Mobile ───────────────────────────────────────────────────────── */
 
 @media (max-width: 560px) {
