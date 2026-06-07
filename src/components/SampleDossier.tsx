@@ -3,7 +3,8 @@
 import React, { forwardRef } from 'react'
 import styles from './SampleDossier.module.css'
 
-const SampleDossier = forwardRef<HTMLElement, Record<string, never>>((_, ref) => {
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+const SampleDossier = forwardRef<HTMLElement, {}>((_, ref) => {
   return (
     <section className={styles.section} ref={ref}>
       <div className={styles.intro}>
