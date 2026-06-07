@@ -102,7 +102,12 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
             const res = await fetch('/api/reading', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ synastryData, section: 'synastry', planetSection: sec }),
+              body: JSON.stringify({
+                birthA: synastryData.personA.birthData,
+                birthB: synastryData.personB.birthData,
+                section: 'synastry',
+                planetSection: sec,
+              }),
               signal: combinedSignal,
             })
 

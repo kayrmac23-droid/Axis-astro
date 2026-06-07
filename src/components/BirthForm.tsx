@@ -32,6 +32,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const [locationSuggestions, setLocationSuggestions] = useState<GeoResult[]>([])
   const [locationLoading, setLocationLoading] = useState(false)
   const [locationConfirmed, setLocationConfirmed] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const geocodeAbortRef = useRef<AbortController | null>(null)
@@ -176,9 +177,10 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.latitude || !formData.longitude) {
-      alert('Please select a location from the suggestions.')
+      setSubmitError('Please select a location from the suggestions.')
       return
     }
+    setSubmitError(null)
     const { ampm, ...rest } = formData
     const hour24 = birthTimeUnknown ? '12' : String(to24Hour(formData.hour, ampm))
     const minute = birthTimeUnknown ? '0' : rest.minute
@@ -372,6 +374,10 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
           )}
         </div>
       </fieldset>
+
+      {submitError && (
+        <p className={styles.submitError} role="alert">{submitError}</p>
+      )}
 
       <button
         type="submit"

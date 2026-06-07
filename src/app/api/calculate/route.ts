@@ -2,47 +2,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
+import { tzNameToOffset } from '@/lib/tz'
+import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
 // Allow up to 30s for this route — needed for the Horizons API call (~300ms typical,
 // 5s timeout, plus chart computation time).
 export const maxDuration = 30
 
-// Derive UTC offset from an IANA timezone name and a calendar date/time.
-// The calendar values are treated as wall-clock time in the target timezone;
-// the returned offset is the UTC offset (hours) active at that moment.
-function tzNameToOffset(
-  tzName: string,
-  year: number, month: number, day: number,
-  hour: number, minute: number
-): number | null {
-  try {
-    // Build a UTC timestamp whose clock reading equals the birth wall-clock time.
-    // This is approximate (±1h near DST transitions) but is immediately corrected
-    // by the Intl round-trip below.
-    const isoStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
-    const date = new Date(isoStr)
-
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: tzName,
-      timeZoneName: 'longOffset'
-    }).formatToParts(date)
-
-    const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
-    if (offsetStr === 'GMT') return 0
-
-    const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
-    if (m) {
-      const sign    = m[1] === '+' ? 1 : -1
-      const hours   = parseInt(m[2])
-      const minutes = parseInt(m[3] ?? '0')
-      return sign * (hours + minutes / 60)
-    }
-  } catch { /* unknown timezone identifier */ }
-  return null
-}
+// 30 chart calculations per IP per 60-second window.
+const CALC_RATE_LIMIT = { max: 30, windowSecs: 60, keyPrefix: 'axis:rl:calc:' }
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Rate limiting ──────────────────────────────────────────────────────────
+    const ip = getClientIp(req)
+    const { allowed, retryAfter } = await checkRateLimit(ip, CALC_RATE_LIMIT)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before calculating another chart.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
+
     const body = await req.json()
     const { year, month, day, hour, minute, latitude, longitude, timezone, tzName, birthTimeUnknown } = body
 

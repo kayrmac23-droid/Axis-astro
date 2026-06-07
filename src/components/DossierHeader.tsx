@@ -6,13 +6,17 @@ import { DualChartData } from '@/lib/astro-calc'
 
 interface DossierHeaderProps {
   chartData: DualChartData
+  displayLocation?: string
 }
 
-export default function DossierHeader({ chartData }: DossierHeaderProps) {
+export default function DossierHeader({ chartData, displayLocation }: DossierHeaderProps) {
   const { birthData } = chartData
-  
-  // Format the birth location from timezone (e.g. "Australia/Melbourne" -> "Melbourne")
-  const location = birthData.tzName ? birthData.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown Location'
+
+  // Prefer the geocoded display name supplied by the form over the timezone city.
+  // Timezone-derived location (e.g. "America/New_York" → "New York") is a coarse
+  // fallback that misattributes users in cities that share a timezone.
+  const location = displayLocation
+    || (birthData.tzName ? birthData.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown Location')
   
   // Format date
   const dateStr = new Date(birthData.year, birthData.month - 1, birthData.day).toLocaleDateString('en-GB', {
@@ -42,7 +46,7 @@ export default function DossierHeader({ chartData }: DossierHeaderProps) {
       </div>
       <div className={styles.right}>
         <button className={styles.btn} onClick={handlePrint}>Keep reading</button>
-        <button className={styles.btn}>Share</button>
+        <button className={styles.btn} disabled title="Share — coming soon">Share</button>
       </div>
     </header>
   )

@@ -184,7 +184,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             const res = await fetch('/api/reading', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
+              body: JSON.stringify({ birthData: chartData.birthData, section: sec, planetSection: planetSec }),
               signal: combinedSignal
             })
 
@@ -345,7 +345,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         const res = await fetch('/api/reading', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chartData, section: sec, planetSection: planetSec }),
+          body: JSON.stringify({ birthData: chartData.birthData, section: sec, planetSection: planetSec }),
           signal: combinedSignal
         })
 

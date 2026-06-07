@@ -1,11 +1,12 @@
 // app/api/reading/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { DualChartData } from '@/lib/astro-calc'
+import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading, getRedis } from '@/lib/reading-cache'
-import { SynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
+import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
+import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
+import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
 export const maxDuration = 60
 
@@ -30,12 +31,11 @@ const MAX_TOKENS_PER_SECTION: Record<string, number> = {
 }
 
 // ── Payload limits ─────────────────────────────────────────────────────────────
-// A real chart payload (DualChartData + section strings) is ~12 KB at most.
-// 64 KB is generous headroom; anything larger is almost certainly an abuse attempt.
-const MAX_PAYLOAD_BYTES = 64_000
+// A real BirthData payload + section strings is well under 2 KB.
+// 16 KB is generous headroom; anything larger is almost certainly abuse.
+const MAX_PAYLOAD_BYTES = 16_000
 
 // ── Allow-lists ────────────────────────────────────────────────────────────────
-// Explicit sets mirror SECTION_INSTRUCTIONS keys; validation runs before body parse.
 const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis', 'synastry'])
 const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
   tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects']),
@@ -44,62 +44,9 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
   synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration']),
 }
 
-// ── Redis-backed rate limiter ──────────────────────────────────────────────────
-// Fixed window via Redis INCR + EXPIRE. Shared across all serverless instances,
-// so the limit is enforced globally regardless of how many warm instances exist.
-// Falls back to an in-memory fixed window when Redis is unavailable (local dev
-// without env vars, or Redis downtime) — same behaviour as before the migration.
-//
-// Policy: 20 requests per IP per 60-second window.
-const RATE_LIMIT_MAX    = 20
-const RATE_LIMIT_WINDOW = 60   // seconds
-const RATE_KEY_PREFIX   = 'axis:rl:'
-
-type RateRecord = { count: number; windowStart: number }
-const _fallbackMap = new Map<string, RateRecord>()
-
-function _fallbackCheck(ip: string): { allowed: boolean; retryAfter: number } {
-  const now = Date.now()
-  const rec = _fallbackMap.get(ip)
-  if (!rec || now - rec.windowStart >= RATE_LIMIT_WINDOW * 1000) {
-    _fallbackMap.set(ip, { count: 1, windowStart: now })
-    return { allowed: true, retryAfter: 0 }
-  }
-  if (rec.count >= RATE_LIMIT_MAX) {
-    const retryAfter = Math.ceil((RATE_LIMIT_WINDOW * 1000 - (now - rec.windowStart)) / 1000)
-    return { allowed: false, retryAfter }
-  }
-  rec.count++
-  return { allowed: true, retryAfter: 0 }
-}
-
-// Lua script: INCR + repair-missing-TTL in one atomic round-trip.
-// TTL == -1 means the key exists with no expiry (created by a prior INCR
-// whose EXPIRE call was lost). We set EXPIRE in that case too, so the window
-// is always bounded regardless of previous failures.
-const _RL_SCRIPT = `
-local count = redis.call('INCR', KEYS[1])
-if redis.call('TTL', KEYS[1]) == -1 then
-  redis.call('EXPIRE', KEYS[1], ARGV[1])
-end
-return count
-`
-
-async function checkRateLimit(ip: string): Promise<{ allowed: boolean; retryAfter: number }> {
-  const redis = getRedis()
-  if (!redis) return _fallbackCheck(ip)
-  try {
-    const key   = RATE_KEY_PREFIX + ip
-    const count = await redis.eval(_RL_SCRIPT, [key], [String(RATE_LIMIT_WINDOW)]) as number
-    if (count > RATE_LIMIT_MAX) {
-      const ttl = await redis.ttl(key)
-      return { allowed: false, retryAfter: Math.max(ttl > 0 ? ttl : RATE_LIMIT_WINDOW, 1) }
-    }
-    return { allowed: true, retryAfter: 0 }
-  } catch {
-    return _fallbackCheck(ip)
-  }
-}
+// ── Rate limiting ──────────────────────────────────────────────────────────────
+// 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
+const READING_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -121,6 +68,36 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
+// Parse and validate a BirthData object from unknown user input.
+// Returns null if any required field is missing or out of range.
+function parseBirthData(raw: unknown): BirthData | null {
+  if (!raw || typeof raw !== 'object') return null
+  const d   = raw as Record<string, unknown>
+  const y   = Number(d.year)
+  const mo  = Number(d.month)
+  const dy  = Number(d.day)
+  const hRaw = Number(d.hour)
+  const h   = isNaN(hRaw) ? 12 : hRaw
+  const mi  = Number(d.minute) || 0
+  const lat = Number(d.latitude)
+  const lon = Number(d.longitude)
+  const tzRaw = Number(d.timezone)
+  const tz  = (isNaN(tzRaw) || tzRaw < -14 || tzRaw > 14) ? 0 : tzRaw
+  if (isNaN(y)   || y   < 1    || y   > 9999) return null
+  if (isNaN(mo)  || mo  < 1    || mo  > 12)   return null
+  if (isNaN(dy)  || dy  < 1    || dy  > 31)   return null
+  if (isNaN(h)   || h   < 0    || h   > 23)   return null
+  if (isNaN(mi)  || mi  < 0    || mi  > 59)   return null
+  if (isNaN(lat) || lat < -90  || lat > 90)   return null
+  if (isNaN(lon) || lon < -180 || lon > 180)  return null
+  return {
+    year: y, month: mo, day: dy, hour: h, minute: mi,
+    latitude: lat, longitude: lon, timezone: tz,
+    tzName:           typeof d.tzName === 'string' ? d.tzName : undefined,
+    birthTimeUnknown: d.birthTimeUnknown === true || d.birthTimeUnknown === 'true',
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -128,20 +105,28 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Payload size guard ─────────────────────────────────────────────────────
-    const contentLength = parseInt(req.headers.get('content-length') ?? '0', 10)
-    if (isNaN(contentLength) || contentLength > MAX_PAYLOAD_BYTES) {
+    // Read the actual body bytes — the Content-Length header is advisory only
+    // and can be omitted or spoofed by the client.
+    const rawBody = await req.text()
+    if (rawBody.length > MAX_PAYLOAD_BYTES) {
       return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
     }
 
     // ── Parse body ─────────────────────────────────────────────────────────────
-    let body: { chartData?: DualChartData; synastryData?: SynastryData; section?: string; planetSection?: string }
+    let body: {
+      birthData?: unknown
+      birthA?: unknown
+      birthB?: unknown
+      section?: string
+      planetSection?: string
+    }
     try {
-      body = await req.json()
+      body = JSON.parse(rawBody)
     } catch {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
-    const { chartData, synastryData, section, planetSection } = body
+    const { section, planetSection } = body
 
     if (!section || !planetSection) {
       return NextResponse.json({ error: 'Missing required fields: section, planetSection' }, { status: 400 })
@@ -155,27 +140,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid planetSection for this section' }, { status: 400 })
     }
 
-    // Synastry requests use synastryData; natal requests use chartData
+    // ── Validate birth data ────────────────────────────────────────────────────
+    // Accept BirthData instead of pre-computed DualChartData/SynastryData.
+    // Chart positions are recalculated server-side from the validated birth data,
+    // preventing cache poisoning via client-supplied fake planet positions.
+    let birthData: BirthData | null = null
+    let birthA:    BirthData | null = null
+    let birthB:    BirthData | null = null
+
     if (section === 'synastry') {
-      if (!synastryData) {
-        return NextResponse.json({ error: 'synastryData required for synastry section' }, { status: 400 })
+      birthA = parseBirthData(body.birthA)
+      birthB = parseBirthData(body.birthB)
+      if (!birthA || !birthB) {
+        return NextResponse.json({ error: 'Invalid or missing birthA / birthB for synastry section' }, { status: 400 })
       }
     } else {
-      if (!chartData) {
-        return NextResponse.json({ error: 'chartData required for natal sections' }, { status: 400 })
+      birthData = parseBirthData(body.birthData)
+      if (!birthData) {
+        return NextResponse.json({ error: 'Invalid or missing birthData for natal section' }, { status: 400 })
       }
     }
 
-    const systemPrompt = SYSTEM_PROMPT_MAP[section]
+    const systemPrompt      = SYSTEM_PROMPT_MAP[section]
     const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
     if (!systemPrompt || !sectionInstruction) {
       return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
     }
 
-    // ── Cache check (before rate limiting — cache hits don't call the AI) ──────
-    const cacheKey = section === 'synastry' && synastryData
-      ? makeSynastryCacheKey({ birthA: synastryData.personA.birthData, birthB: synastryData.personB.birthData, section, planetSection })
-      : makeCacheKey({ birth: chartData!.birthData, section, planetSection })
+    // ── Cache check (before rate limiting — cache hits are free) ───────────────
+    const cacheKey = section === 'synastry'
+      ? makeSynastryCacheKey({ birthA: birthA!, birthB: birthB!, section, planetSection })
+      : makeCacheKey({ birth: birthData!, section, planetSection })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
@@ -183,11 +178,9 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // ── Rate limiting (only uncached requests reach here) ──────────────────────
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
-              ?? req.headers.get('x-real-ip')
-              ?? 'direct'
-    const { allowed, retryAfter } = await checkRateLimit(ip)
+    // ── Rate limiting (only uncached AI requests reach here) ──────────────────
+    const ip = getClientIp(req)
+    const { allowed, retryAfter } = await checkRateLimit(ip, READING_RATE_LIMIT)
     if (!allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait before generating another reading.' },
@@ -195,25 +188,33 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Build prompt ───────────────────────────────────────────────────────────
+    // ── Recalculate chart server-side ──────────────────────────────────────────
+    // Uses local Meeus for Pluto (no outbound JPL call in this hot path).
+    // Planet positions in the prompt are authoritative — not client-supplied.
     let userContent: string
-    if (section === 'synastry' && synastryData) {
-      const synastryBlock = formatSynastryBlock(synastryData, planetSection)
-      userContent = `${synastryBlock}\n\n---\n\n${sectionInstruction}`
+    if (section === 'synastry') {
+      const dualA      = calculateDualChart(birthA!)
+      const dualB      = calculateDualChart(birthB!)
+      const synData    = buildSynastryData(dualA, dualB)
+      const synBlock   = formatSynastryBlock(synData, planetSection)
+      userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
     } else if (section === 'tropical') {
-      const interpretationContext = buildInterpretationContext(chartData!, 'tropical', planetSection)
-      const chartBlock = formatEliteChartBlock(chartData!.tropical, 'tropical')
-      userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+      const dual       = calculateDualChart(birthData!)
+      const ctxBlock   = buildInterpretationContext(dual, 'tropical', planetSection)
+      const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
+      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     } else if (section === 'sidereal') {
-      const interpretationContext = buildInterpretationContext(chartData!, 'sidereal', planetSection)
-      const chartBlock = formatEliteChartBlock(chartData!.sidereal, 'sidereal')
-      userContent = `${chartBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+      const dual       = calculateDualChart(birthData!)
+      const ctxBlock   = buildInterpretationContext(dual, 'sidereal', planetSection)
+      const chartBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
+      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     } else {
-      // synthesis
-      const interpretationContext = buildInterpretationContext(chartData!, 'synthesis', planetSection)
-      const tropicalBlock = formatEliteChartBlock(chartData!.tropical, 'tropical')
-      const siderealBlock = formatEliteChartBlock(chartData!.sidereal, 'sidereal')
-      userContent = `${tropicalBlock}\n\n${siderealBlock}\n${interpretationContext}\n\n---\n\n${sectionInstruction}`
+      // synthesis — needs both chart systems
+      const dual          = calculateDualChart(birthData!)
+      const ctxBlock      = buildInterpretationContext(dual, 'synthesis', planetSection)
+      const tropicalBlock = formatEliteChartBlock(dual.tropical, 'tropical')
+      const siderealBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
+      userContent = `${tropicalBlock}\n\n${siderealBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     }
 
     // ── Stream generation ──────────────────────────────────────────────────────
@@ -257,7 +258,6 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()
           } catch { /* stream already closed or client disconnected */ }
-          // Log the real error server-side only.
           console.error('Stream error in /api/reading:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
@@ -275,7 +275,6 @@ export async function POST(req: NextRequest) {
       }
     })
   } catch (error: unknown) {
-    // Do not expose internal error details to the client.
     console.error('Reading generation error:', error instanceof Error ? error.message : error)
     return NextResponse.json({
       error: 'READING_FAILED',

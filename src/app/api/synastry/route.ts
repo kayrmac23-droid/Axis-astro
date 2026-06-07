@@ -2,30 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
 import { buildSynastryData } from '@/lib/synastry-calc'
+import { tzNameToOffset } from '@/lib/tz'
+import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
 export const maxDuration = 30
 
-function tzNameToOffset(
-  tzName: string,
-  year: number, month: number, day: number,
-  hour: number, minute: number,
-): number | null {
-  try {
-    const isoStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
-    const date = new Date(isoStr)
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: tzName, timeZoneName: 'longOffset',
-    }).formatToParts(date)
-    const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
-    if (offsetStr === 'GMT') return 0
-    const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
-    if (m) {
-      const sign = m[1] === '+' ? 1 : -1
-      return sign * (parseInt(m[2]) + parseInt(m[3] ?? '0') / 60)
-    }
-  } catch { /* unknown tz */ }
-  return null
-}
+// 20 synastry calculations per IP per 60-second window (two JPL calls each).
+const SYNASTRY_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:synastry:' }
 
 interface RawBirthInput {
   year?: unknown; month?: unknown; day?: unknown
@@ -80,6 +63,16 @@ function parsePerson(raw: RawBirthInput, label: string): { data: BirthData } | {
 
 export async function POST(req: NextRequest) {
   try {
+    // ── Rate limiting ──────────────────────────────────────────────────────────
+    const ip = getClientIp(req)
+    const { allowed, retryAfter } = await checkRateLimit(ip, SYNASTRY_RATE_LIMIT)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before calculating another synastry.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
+
     const body = await req.json()
     const { personA: rawA, personB: rawB } = body
 
