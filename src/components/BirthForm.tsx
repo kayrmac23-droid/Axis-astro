@@ -192,10 +192,6 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const timeProvided = birthTimeUnknown || (formData.hour && formData.minute)
   const isValid = formData.year && formData.month && formData.day && locationConfirmed && timeProvided
 
-  // Calibration panel status. Drives the "// AWAITING INPUT" → "// READY"
-  // indicator next to the cast button, plus the cast button's ready-state glow.
-  const statusLabel = !isValid ? '// AWAITING INPUT' : (loading ? '// CASTING…' : '// READY')
-
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
       {/* Calibration header */}

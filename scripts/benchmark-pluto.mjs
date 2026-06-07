@@ -21,7 +21,7 @@ const d = m => m.default ?? m
 const _earth   = new Planet(d(vsop87Bearth))
 const plutoFn  = (plutoLib.default ?? plutoLib).heliocentric
 
-const DEG2RAD = Math.PI / 180
+const _DEG2RAD = Math.PI / 180
 const RAD2DEG = 180 / Math.PI
 const HORIZONS_URL = 'https://ssd.jpl.nasa.gov/api/horizons.api'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']

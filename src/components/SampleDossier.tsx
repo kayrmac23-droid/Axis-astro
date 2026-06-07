@@ -3,7 +3,7 @@
 import React, { forwardRef } from 'react'
 import styles from './SampleDossier.module.css'
 
-const SampleDossier = forwardRef<HTMLElement, {}>((props, ref) => {
+const SampleDossier = forwardRef<HTMLElement, Record<string, never>>((_, ref) => {
   return (
     <section className={styles.section} ref={ref}>
       <div className={styles.intro}>
