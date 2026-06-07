@@ -7,6 +7,13 @@ import ReadingPanel from '@/components/ReadingPanel'
 import SynastryAspectsPanel from '@/components/SynastryAspectsPanel'
 import SynastryReadingPanel from '@/components/SynastryReadingPanel'
 import AstrolabeDecor from '@/components/AstrolabeDecor'
+import SiteHeader from '@/components/SiteHeader'
+import HeroSection from '@/components/hero/HeroSection'
+import MethodPremise from '@/components/MethodPremise'
+import SampleDossier from '@/components/SampleDossier'
+import MethodologyStrip from '@/components/MethodologyStrip'
+import DossierHeader from '@/components/DossierHeader'
+import AxisTensionSummary from '@/components/AxisTensionSummary'
 import { DualChartData } from '@/lib/astro-calc'
 import { SynastryData } from '@/lib/synastry-calc'
 import styles from './page.module.css'
@@ -30,6 +37,9 @@ export default function Home() {
   const [synastryLoading, setSynastryLoading] = useState(false)
   const [synastryError, setSynastryError] = useState<string | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
+  const formRef = useRef<HTMLDivElement>(null)
+  const sampleRef = useRef<HTMLElement>(null)
+  const methodRef = useRef<HTMLElement>(null)
 
   // Let the chart wheel and facts panel paint before mounting ReadingPanel.
   // setTimeout(0) defers to the next macrotask — at least one render+paint
@@ -124,21 +134,12 @@ export default function Home() {
   return (
     <main className={styles.main}>
 
-      {/* Masthead */}
-      <header className={styles.header}>
-        <div className={styles.logoBlock}>
-          <h1 className={styles.logo}>AXIS</h1>
-          <p className={styles.logoSub}>Dual-system astrology</p>
-        </div>
-        <div className={styles.headerMid}>
-          <p className={styles.tagline}>Tropical · Sidereal · Synthesis</p>
-        </div>
-        <div className={styles.headerRight}>
-          <span className={styles.headerStat}>Tropical</span>
-          <span className={styles.headerStat}>Sidereal</span>
-        </div>
-        <hr className={styles.headerRule} />
-      </header>
+      {/* Modular Header */}
+      <SiteHeader 
+        onMethodClick={() => methodRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onSampleClick={() => sampleRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onCreateClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}
+      />
 
       {/* Mode toggle */}
       {!chartData && !synastryData && (
@@ -161,98 +162,33 @@ export default function Home() {
       {/* ── NATAL MODE ── */}
       {appMode === 'natal' && (
         <>
-          {/* Hero */}
+          {/* Pre-chart Flow */}
           {!chartData && (
-            <section className={styles.hero}>
-              <div className={styles.heroLeft}>
-                <p className={styles.heroEyebrow}>Natal chart reading</p>
-                <h2 className={styles.heroHeadline}>
-                  Your personality<br />
-                  <span className={styles.heroAccent}>is not the whole map.</span>
-                </h2>
-              </div>
-              <div className={styles.heroCenter}>
-                <AstrolabeDecor />
-              </div>
-              <div className={styles.heroRight}>
-                <p className={styles.heroBody}>
-                  Tropical maps the psychological architecture of a self.
-                  Sidereal maps the incarnational conditions it navigates.
-                  The synthesis is where both truths meet.
-                </p>
-                <p className={styles.heroDetail}>
-                  Western Tropical · Vedic Sidereal · Synthesis Reading
-                </p>
-              </div>
-            </section>
-          )}
-
-          {/* Premise */}
-          {!chartData && (
-            <section className={styles.premiseSection}>
-              <div className={styles.premiseGrid}>
-                <div className={styles.premiseCard}>
-                  <div className={`${styles.premiseRule} ${styles.premiseRuleCopper}`} />
-                  <p className={styles.premiseSystem}>Tropical</p>
-                  <p className={styles.premiseRole}>The self you know.</p>
-                  <p className={styles.premiseDesc}>
-                    Psychological architecture. The defences you built, the identity
-                    you perform, the inner logic that organises how you experience
-                    being alive.
-                  </p>
-                </div>
-                <div className={styles.premiseCard}>
-                  <div className={`${styles.premiseRule} ${styles.premiseRuleViolet}`} />
-                  <p className={styles.premiseSystem}>Sidereal</p>
-                  <p className={styles.premiseRole}>The self beneath.</p>
-                  <p className={styles.premiseDesc}>
-                    Karmic exterior. Inherited patterns, material life trajectory,
-                    the conditions that shaped you before self-awareness had language.
-                  </p>
-                </div>
-                <div className={styles.premiseCard}>
-                  <div className={`${styles.premiseRule} ${styles.premiseRuleAxis}`} />
-                  <p className={styles.premiseSystem}>Synthesis</p>
-                  <p className={styles.premiseRole}>Where they diverge.</p>
-                  <p className={styles.premiseDesc}>
-                    Most people resolve the contradiction. AXIS maps it instead —
-                    because the tension between both systems is the most honest
-                    description of a person.
-                  </p>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Methodology strip */}
-          {!chartData && (
-            <div className={styles.methodStrip}>
-              <span className={styles.methodItem}>VSOP87B positions</span>
-              <span className={styles.methodDot}>·</span>
-              <span className={styles.methodItem}>Lahiri ayanamsa</span>
-              <span className={styles.methodDot}>·</span>
-              <span className={styles.methodItem}>Whole Sign houses</span>
-              <span className={styles.methodDot}>·</span>
-              <span className={styles.methodItem}>JPL Horizons · Meeus fallback</span>
-            </div>
+            <>
+              <HeroSection 
+                onCreateClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                onSampleClick={() => sampleRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              />
+              <MethodPremise ref={methodRef} />
+              <SampleDossier ref={sampleRef} />
+              <MethodologyStrip />
+            </>
           )}
 
           {/* Birth Form */}
           {!chartData && (
-            <section className={styles.formSection}>
+            <section className={styles.formSection} ref={formRef}>
               <div className={styles.formIntro}>
                 <p className={styles.formIntroLabel}>Birth coordinates</p>
                 <h3 className={styles.formIntroTitle}>
                   Enter birth coordinates.
                 </h3>
                 <p className={styles.formIntroDesc}>
-                  Date, time, and place determine the positions of every planet
-                  at the moment you arrived on Earth.
-                  Precision matters — especially for the Ascendant.
+                  Date, time, and place anchor the map. Precision matters most for the Ascendant and house structure.
                 </p>
               </div>
               <div className={styles.formRight}>
-                <BirthForm onSubmit={handleSubmit} loading={loading} />
+                <BirthForm onSubmit={handleSubmit} loading={loading} submitLabel="Begin the AXIS reading" />
                 {error && (
                   <div className={styles.calcError}>
                     <p className={styles.calcErrorMsg}>{error}</p>
@@ -270,12 +206,16 @@ export default function Home() {
             <div className={styles.loadingState}>
               <div className={styles.loadingOrb} />
               <p className={styles.loadingText}>Aligning dual map</p>
+              <p className={styles.loadingSubText}>Resolving coordinates · calculating houses · preparing synthesis</p>
             </div>
           )}
 
           {/* Chart + Reading */}
           {chartData && (
             <div className={styles.readingLayout} ref={readingRef}>
+              <DossierHeader chartData={chartData} />
+              <AxisTensionSummary chartData={chartData} />
+              
               <section className={styles.wheelSection}>
                 <p className={styles.wheelSectionLabel}>Natal chart</p>
                 {activeSection === 'tropical' && (
@@ -340,14 +280,11 @@ export default function Home() {
               )}
 
               <div className={styles.resetRow}>
-                <button className={styles.pdfBtn} onClick={() => { capture('print_pdf'); window.print() }}>
-                  Download PDF
-                </button>
                 <button
                   className={styles.resetBtn}
                   onClick={() => { capture('new_chart'); setChartData(null); setError(null) }}
                 >
-                  New chart
+                  Cast another chart
                 </button>
               </div>
             </div>

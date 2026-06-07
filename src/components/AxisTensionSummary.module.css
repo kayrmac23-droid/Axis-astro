@@ -1,0 +1,49 @@
+.summary {
+  background: var(--surface);
+  border-left: var(--bd-rule) solid var(--copper);
+  padding: var(--s-6) var(--s-8);
+  margin-bottom: var(--s-8);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: var(--s-4);
+}
+
+.thesis {
+  font-family: var(--font-editorial);
+  font-size: var(--t-h3);
+  color: var(--text);
+  line-height: var(--lh-snug);
+  margin-bottom: var(--s-6);
+  max-width: 800px;
+}
+
+.pillRow {
+  display: flex;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.pill {
+  font-family: var(--font-mono);
+  font-size: var(--t-label-sm);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  border: var(--bd-hair) solid var(--border);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.pillConcordance { color: var(--copper-light); border-color: var(--copper-dim); }
+.pillDivergence { color: var(--violet-light); border-color: var(--violet-dim); }
+.pillIntegration { color: var(--cyan); border-color: var(--cyan-dim); }

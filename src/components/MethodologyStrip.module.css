@@ -1,0 +1,58 @@
+.strip {
+  padding: var(--s-8) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--surface-3);
+  border-top: var(--bd-hair) solid var(--border);
+  border-bottom: var(--bd-hair) solid var(--border);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: var(--s-4);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--s-3);
+  margin-bottom: var(--s-4);
+}
+
+.chip {
+  background: var(--void);
+  border: var(--bd-hair) solid var(--border-2);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--t-label-sm);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.chipCopper {
+  border-color: var(--copper-dim);
+  color: var(--copper-light);
+}
+
+.cyanDot {
+  width: 4px;
+  height: 4px;
+  background-color: var(--cyan);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.subline {
+  font-size: var(--t-body-sm);
+  color: var(--text-3);
+  text-align: center;
+}

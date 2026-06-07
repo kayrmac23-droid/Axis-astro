@@ -1,84 +1,158 @@
+'use client'
+
+import React from 'react'
 import styles from './AstrolabeDecor.module.css'
 
+const ZODIAC = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓']
+
 export default function AstrolabeDecor() {
+  const renderRing = (radius: number, width: number, isSidereal: boolean) => {
+    const innerRadius = radius - width
+    const textRadius = radius - (width / 2)
+    const strokeColor = isSidereal ? "var(--copper-dim)" : "var(--border-2)"
+    const textColor = isSidereal ? "var(--copper-light)" : "var(--text-3)"
+    
+    return (
+      <g>
+        {/* Bounds */}
+        <circle cx="250" cy="250" r={radius} fill="none" stroke={strokeColor} strokeWidth="1" opacity={0.6} />
+        <circle cx="250" cy="250" r={innerRadius} fill="none" stroke={strokeColor} strokeWidth="1" opacity={0.3} />
+        
+        {/* Ring Background */}
+        <circle cx="250" cy="250" r={radius - (width/2)} fill="transparent" stroke="var(--surface-2)" strokeWidth={width} opacity={isSidereal ? 0.3 : 0.1} />
+
+        {/* 12 Zodiac Blocks */}
+        {Array.from({ length: 12 }).map((_, i) => {
+          const angle = i * 30
+          return (
+            <g key={i} transform={`rotate(${angle} 250 250)`}>
+              {/* Block divider */}
+              <line 
+                x1="250" y1={250 - radius} 
+                x2="250" y2={250 - innerRadius} 
+                stroke={strokeColor} 
+                strokeWidth="1" 
+                opacity={0.8}
+              />
+              
+              {/* Degree Ticks (30 per sign) */}
+              {Array.from({ length: 30 }).map((_, j) => {
+                if (j === 0) return null // Divider line covers 0
+                const isMajor = j % 10 === 0
+                const isMedium = j % 5 === 0
+                const tickLen = isMajor ? 8 : isMedium ? 5 : 3
+                return (
+                  <line 
+                    key={j} 
+                    x1="250" y1={250 - radius} 
+                    x2="250" y2={250 - radius + tickLen} 
+                    stroke={strokeColor} 
+                    strokeWidth={isMajor ? 1 : 0.5} 
+                    opacity={isMajor ? 0.8 : 0.4}
+                    transform={`rotate(${j} 250 250)`} 
+                  />
+                )
+              })}
+
+              {/* Zodiac Symbol */}
+              <g transform={`rotate(15 250 250)`}>
+                {/* Rotate the text back to upright relative to the viewer for readability, or let it spin.
+                    Given the celestial instrument feel, letting it spin is more authentic. */}
+                <text 
+                  x="250" y={250 - textRadius} 
+                  fill={textColor} 
+                  fontSize="16" 
+                  fontFamily="sans-serif" 
+                  textAnchor="middle" 
+                  dominantBaseline="middle"
+                >
+                  {ZODIAC[i]}
+                </text>
+              </g>
+            </g>
+          )
+        })}
+      </g>
+    )
+  }
+
+  const renderCompass = () => (
+    <g className={styles.compass}>
+      {/* Compass Base */}
+      <circle cx="250" cy="250" r="45" fill="var(--surface)" stroke="var(--border-2)" strokeWidth="1" />
+      <circle cx="250" cy="250" r="38" fill="none" stroke="var(--copper-dim)" strokeWidth="1" strokeDasharray="2 4" />
+      
+      {/* 8-point subtle star background */}
+      <path 
+        d="M 250 205 L 253 247 L 295 250 L 253 253 L 250 295 L 247 253 L 205 250 L 247 247 Z" 
+        fill="var(--surface-3)" 
+        transform="rotate(45 250 250)"
+      />
+
+      {/* 4-point primary star */}
+      <path 
+        d="M 250 185 L 256 244 L 315 250 L 256 256 L 250 315 L 244 256 L 185 250 L 244 244 Z" 
+        fill="url(#ad-matte-obsidian)" 
+        stroke="var(--copper)" 
+        strokeWidth="1.5" 
+      />
+      
+      {/* Inner mechanics */}
+      <circle cx="250" cy="250" r="12" fill="var(--surface-2)" stroke="var(--copper-dim)" strokeWidth="1" />
+      <circle cx="250" cy="250" r="4" fill="var(--cyan)" className={styles.cyanGlow} />
+      <circle cx="250" cy="250" r="1.5" fill="var(--void)" />
+    </g>
+  )
+
   return (
     <div className={styles.container}>
-      <div className={styles.engineStatus}>
-        <span className={styles.statusPulse} />
-        SYSTEM: ACTIVE // PLUTO: JPL_HORIZONS_DE440
-      </div>
-
       <svg className={styles.astrolabe} viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="ad-satin-silver" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#EBF0F5" />
-            <stop offset="50%" stopColor="#D5DCED" />
-            <stop offset="100%" stopColor="#BCC5D6" />
-          </linearGradient>
-
           <linearGradient id="ad-matte-obsidian" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#0D0F12" />
-            <stop offset="100%" stopColor="#1A1D24" />
+            <stop offset="0%" stopColor="var(--void)" />
+            <stop offset="100%" stopColor="var(--surface-2)" />
           </linearGradient>
 
-          <filter id="ad-plate-shadow" x="-10%" y="-10%" width="120%" height="120%">
-            <feDropShadow dx="0" dy="8" stdDeviation="12" floodColor="#000000" floodOpacity="0.6" />
-          </filter>
-
-          <filter id="ad-inner-shadow">
-            <feComponentTransfer in="SourceAlpha">
-              <feFuncA type="linear" slope="1" />
-            </feComponentTransfer>
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feOffset dx="0" dy="3" />
-            <feComposite operator="out" in2="SourceGraphic" result="inverse" />
-            <feFlood floodColor="black" floodOpacity="0.7" result="color" />
-            <feComposite operator="in" in2="inverse" result="shadow" />
-            <feComposite operator="over" in2="SourceGraphic" />
+          <filter id="ad-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="15" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
 
-        {/* Outer bezel */}
-        <circle cx="250" cy="250" r="240" fill="#07080a" />
-
-        {/* Sidereal platter — animates to −23.85° Lahiri offset */}
-        <g className={styles.siderealPlatter} filter="url(#ad-plate-shadow)">
-          <circle cx="250" cy="250" r="185" fill="url(#ad-matte-obsidian)" stroke="#222936" strokeWidth="1" />
-
-          <g stroke="#1C2330" strokeWidth="1" strokeDasharray="2,2">
-            <line x1="250" y1="65" x2="250" y2="435" />
-            <line x1="65" y1="250" x2="435" y2="250" />
-          </g>
-
-          <circle cx="250" cy="250" r="175" fill="none" stroke="#2a3547" strokeWidth="1" strokeDasharray="1,5" opacity="0.4" />
+        {/* Deep Background */}
+        <circle cx="250" cy="250" r="235" fill="var(--void)" />
+        
+        {/* Outer Tropical Ring (Fixed/Slow Spin) */}
+        <g className={styles.outerRing}>
+          {renderRing(235, 45, false)}
         </g>
 
-        {/* Tropical ring */}
-        <g filter="url(#ad-plate-shadow)">
-          <path
-            d="M 250,15 A 235,235 0 1,0 250,485 A 235,235 0 1,0 250,15 Z M 250,65 A 185,185 0 1,1 250,435 A 185,185 0 1,1 250,65 Z"
-            fill="url(#ad-satin-silver)"
-            filter="url(#ad-inner-shadow)"
-          />
-          <circle cx="250" cy="250" r="230" fill="none" stroke="#717E94" strokeWidth="1" strokeDasharray="1,3" opacity="0.5" />
-          <circle cx="250" cy="250" r="190" fill="none" stroke="#717E94" strokeWidth="1" strokeDasharray="2,8" opacity="0.3" />
+        {/* Inner Sidereal Ring (Precesses) */}
+        <g className={styles.innerRing}>
+          <circle cx="250" cy="250" r="185" fill="url(#ad-matte-obsidian)" />
+          {renderRing(185, 45, true)}
+          
+          {/* Inner measurement rings */}
+          <circle cx="250" cy="250" r="130" fill="none" stroke="var(--border-2)" strokeWidth="1" strokeDasharray="4 8" opacity={0.3} />
+          <circle cx="250" cy="250" r="100" fill="none" stroke="var(--border-2)" strokeWidth="1" opacity={0.1} />
         </g>
 
-        {/* MC meridian axis */}
-        <g>
-          <line x1="250" y1="30" x2="250" y2="250" stroke="#D4AF37" strokeWidth="1.5" strokeLinecap="round" />
-          <polygon points="250,22 247,32 253,32" fill="#D4AF37" />
-          <text x="250" y="16" fill="#D4AF37" fontFamily="Space Mono, monospace" fontSize="10" textAnchor="middle" letterSpacing="1">MC</text>
+        {/* Center Compass */}
+        {renderCompass()}
+
+        {/* Fixed Horizon / Meridian Lines */}
+        <g opacity="0.3">
+          <line x1="10" y1="250" x2="490" y2="250" stroke="var(--cyan)" strokeWidth="0.5" strokeDasharray="2 4" />
+          <line x1="250" y1="10" x2="250" y2="490" stroke="var(--cyan)" strokeWidth="0.5" strokeDasharray="2 4" />
         </g>
 
-        {/* Center pivot */}
-        <circle cx="250" cy="250" r="8" fill="#0D0F12" stroke="#717E94" strokeWidth="1.5" />
-        <circle cx="250" cy="250" r="3" fill="#D4AF37" />
-
-        {/* Lahiri offset label — fades in after precession settles */}
-        <text x="250" y="278" className={styles.ayanamsaCounter}
-          fontFamily="Space Mono, monospace" fontSize="9" fill="#717E94" textAnchor="middle">
-          LAHIRI −23.85°
+        {/* Lahiri Ayanamsa Reading Label */}
+        <text 
+          x="250" y="340" 
+          className={styles.ayanamsaCounter} 
+          textAnchor="middle"
+        >
+          LAHIRI OFFSET: −23.85°
         </text>
       </svg>
     </div>

@@ -1,0 +1,97 @@
+.section {
+  padding: var(--s-12) var(--s-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--void);
+}
+
+.intro {
+  text-align: center;
+  margin-bottom: var(--s-8);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: var(--s-4);
+}
+
+.headline {
+  font-size: var(--t-h2);
+  color: var(--text);
+}
+
+.dossierCard {
+  background: var(--surface-2);
+  border: var(--bd-hair) solid var(--border-2);
+  border-left: 3px solid var(--copper);
+  border-radius: var(--r-sm);
+  padding: var(--s-8);
+  max-width: 760px;
+  width: 100%;
+  box-shadow: var(--shadow-drop);
+}
+
+.dossierTitle {
+  font-family: var(--font-mono);
+  font-size: var(--t-label);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--copper);
+  margin-bottom: var(--s-4);
+}
+
+.dossierThesis {
+  font-family: var(--font-editorial);
+  font-size: var(--t-h3);
+  color: var(--text);
+  line-height: var(--lh-snug);
+  margin-bottom: var(--s-6);
+}
+
+.pillList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-bottom: var(--s-6);
+}
+
+.pillRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+
+.pillLabel {
+  font-family: var(--font-mono);
+  font-size: var(--t-label-sm);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  background: var(--deep);
+  color: var(--text-3);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  border: var(--bd-hair) solid var(--border);
+  flex-shrink: 0;
+  width: 110px;
+  text-align: center;
+}
+
+.pillText {
+  font-size: var(--t-body-sm);
+  color: var(--text-2);
+  line-height: var(--lh-relaxed);
+  padding-top: 2px;
+}
+
+.integrationText {
+  font-size: var(--t-body);
+  color: var(--copper-light);
+  font-style: italic;
+  border-top: var(--bd-hair) solid var(--border);
+  padding-top: var(--s-6);
+}
