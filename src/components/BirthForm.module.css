@@ -382,6 +382,17 @@
   color: var(--copper);
 }
 
+/* ── Inline validation error ──────────────────────────────────────── */
+
+.submitError {
+  font-family: var(--font-mono, 'Space Mono', monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  color: #e07070;
+  text-transform: uppercase;
+  margin: 0;
+}
+
 /* ── Mobile ───────────────────────────────────────────────────────── */
 
 @media (max-width: 560px) {

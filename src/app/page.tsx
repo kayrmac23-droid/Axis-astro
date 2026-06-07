@@ -13,7 +13,6 @@ import MethodPremise from '@/components/MethodPremise'
 import SampleDossier from '@/components/SampleDossier'
 import MethodologyStrip from '@/components/MethodologyStrip'
 import DossierHeader from '@/components/DossierHeader'
-import AxisTensionSummary from '@/components/AxisTensionSummary'
 import { DualChartData } from '@/lib/astro-calc'
 import { SynastryData } from '@/lib/synastry-calc'
 import styles from './page.module.css'
@@ -30,6 +29,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
+  const [displayLocation, setDisplayLocation] = useState<string>('')
   // Synastry state
   const [synastryData, setSynastryData] = useState<SynastryData | null>(null)
   const [personAData, setPersonAData] = useState<Record<string, string> | null>(null)
@@ -52,6 +52,7 @@ export default function Home() {
 
   const handleSubmit = async (formData: Record<string, string>) => {
     setLastFormData(formData)
+    setDisplayLocation(formData.location || '')
     setLoading(true)
     setError(null)
     setChartData(null)
@@ -127,7 +128,7 @@ export default function Home() {
 
   const switchMode = (mode: AppMode) => {
     setAppMode(mode)
-    setChartData(null); setReadingReady(false); setError(null)
+    setChartData(null); setReadingReady(false); setError(null); setDisplayLocation('')
     setSynastryData(null); setPersonAData(null); setPersonBData(null); setSynastryError(null)
   }
 
@@ -213,8 +214,7 @@ export default function Home() {
           {/* Chart + Reading */}
           {chartData && (
             <div className={styles.readingLayout} ref={readingRef}>
-              <DossierHeader chartData={chartData} />
-              <AxisTensionSummary chartData={chartData} />
+              <DossierHeader chartData={chartData} displayLocation={displayLocation} />
               
               <section className={styles.wheelSection}>
                 <p className={styles.wheelSectionLabel}>Natal chart</p>
@@ -282,7 +282,7 @@ export default function Home() {
               <div className={styles.resetRow}>
                 <button
                   className={styles.resetBtn}
-                  onClick={() => { capture('new_chart'); setChartData(null); setError(null) }}
+                  onClick={() => { capture('new_chart'); setChartData(null); setDisplayLocation(''); setError(null) }}
                 >
                   Cast another chart
                 </button>
