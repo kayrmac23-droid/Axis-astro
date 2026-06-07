@@ -656,14 +656,6 @@ function fmtDeg(deg: number): string {
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
-// Formats orb as D°MM' or MM' if D=0
-function fmtOrb(orb: number): string {
-  const d = Math.floor(orb)
-  const m = Math.round((orb - d) * 60)
-  if (d === 0) return `${m}'`
-  return `${d}°${String(m).padStart(2, '0')}'`
-}
-
 /**
  * Produces the compact, human-readable elite chart block injected at the top of
  * every user message.  Format matches the task specification:

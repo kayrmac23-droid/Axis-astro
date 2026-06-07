@@ -8,7 +8,7 @@ interface AxisTensionSummaryProps {
   chartData: DualChartData
 }
 
-export default function AxisTensionSummary({ chartData }: AxisTensionSummaryProps) {
+export default function AxisTensionSummary({ chartData: _chartData }: AxisTensionSummaryProps) {
   return (
     <div className={styles.summary}>
       <p className={styles.label}>AXIS Tension</p>
