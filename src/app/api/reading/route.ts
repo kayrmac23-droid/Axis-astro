@@ -27,7 +27,7 @@ const MAX_TOKENS_PER_SECTION: Record<string, number> = {
   // Synthesis
   agree: 2500, diverge: 2500, tension: 1800, closing: 2000,
   // Synastry
-  luminaries: 2500, venus_mars: 1800, outer_planets: 1800, composite_chart: 2000, integration: 2000,
+  luminaries: 2500, venus_mars: 1800, outer_planets: 1800, composite_chart: 2000, integration: 2000, navigation: 2000,
 }
 
 // ── Payload limits ─────────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
   tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects']),
   sidereal:  new Set(['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
   synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
-  synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration']),
+  synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration', 'navigation']),
 }
 
 // ── Rate limiting ──────────────────────────────────────────────────────────────

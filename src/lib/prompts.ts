@@ -469,5 +469,17 @@ Name the one most defining feature of this combination — the thing that makes 
 The final paragraph: what does this relationship ask of each person? Not prescriptively — not what they should do — but structurally, what each chart requires the other to carry or confront. End on the sharpest observation in the reading.
 
 250–300 words.`,
+
+    navigation: `Write the navigating differences section for this synastry reading.
+
+Start with: ## What Each Chart Requires
+
+For each person, name what their chart structurally requires from a partner — drawn from the most significant inter-aspect contacts, the composite chart's central challenge, and each person's natal patterns that generate the most friction in this pairing. This is not what each person consciously wants; it is what their chart is built to need, and what the other person's chart structurally produces or withholds.
+
+Then address 2–3 specific friction points identified across the previous sections. For each friction point: name what Person A's placement produces as a behavioural pattern and what it is actually doing at the chart level; name how Person B's placement reads or receives that behaviour and what it triggers in their chart; then reverse — name what Person B's placement produces, and how Person A's chart encounters it.
+
+The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that it can be recognised as chart-driven rather than personal, chosen, or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
+
+300–400 words.`,
   },
 }

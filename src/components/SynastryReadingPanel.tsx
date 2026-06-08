@@ -8,7 +8,7 @@ interface Props {
   synastryData: SynastryData
 }
 
-const SYNASTRY_SECTIONS = ['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration'] as const
+const SYNASTRY_SECTIONS = ['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration', 'navigation'] as const
 type SynastrySection = typeof SYNASTRY_SECTIONS[number]
 
 const SECTION_DISPLAY: Record<SynastrySection, string> = {
@@ -17,6 +17,7 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
   outer_planets:  'Mind & Structure',
   composite_chart:'Composite Chart',
   integration:    'Central Dynamic',
+  navigation:     'What Each Requires',
 }
 
 const SECTION_TIMEOUT_MS = 50_000
@@ -30,6 +31,7 @@ function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | nu
   if (h.includes('mind') && h.includes('structure')) return 'outer_planets'
   if (h.includes('composite')) return 'composite_chart'
   if (h.includes('central dynamic')) return 'integration'
+  if (h.includes('each chart')) return 'navigation'
   return null
 }
 

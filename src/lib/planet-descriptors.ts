@@ -130,6 +130,11 @@ export const SYNASTRY_DESCRIPTORS = {
     title: 'The Central Dynamic',
     keywords: 'the defining feature · what makes this pairing itself',
     description: `The integration names the single most defining feature of this combination — the observation that makes everything else cohere. It may be a dominant inter-aspect, a pattern repeated across multiple contacts, or a tension between the composite chart and the individual charts. The final observation names what this relationship structurally requires each person to carry or confront.`
+  },
+  navigation: {
+    title: 'What Each Chart Requires',
+    keywords: 'structural needs · friction made legible · what each chart is actually doing',
+    description: `Each chart is built to need specific things from a partner — not preferences, but structural requirements that produce friction when unmet. This section names what each person's chart requires, then works through the specific friction points: what each person's placement is actually producing, and how the other chart receives it. The goal is to make behaviour legible — not to resolve tension, but to name the mechanism precisely enough that it can be recognised rather than misread.`
   }
 }
 
