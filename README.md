@@ -86,6 +86,31 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 
 ---
 
+## Design system
+
+AXIS uses a restrained dark-void palette. Copper is the primary emphasis colour — it marks revelation, section rituals, premium actions, chart ticks, and symbolic emphasis. It is not an orange theme; the hue is muted and used sparingly. Cyan signals active computation, selected states, streaming, and focus. Violet marks unresolved tension, dissonance, and liminal states.
+
+| Token | Value | Role |
+|---|---|---|
+| `--void` | `#010108` | True background black-blue |
+| `--bg` | `#030212` | Page base |
+| `--surface` | `#090820` | Panels and form surfaces |
+| `--surface-2` | `#0F0E2C` | Raised cards |
+| `--text` | `#EAE8F8` | Primary star-white text |
+| `--text-2` | `#A8A4C8` | Body support text |
+| `--text-3` | `#9490C4` | Labels and metadata |
+| `--copper` | `#B87333` | Main accent |
+| `--copper-bright` | `#D89455` | Hover, emphasis, selected action |
+| `--copper-light` | `#F0B978` | Rare highlight or glow edge |
+| `--copper-dim` | `#5A2F18` | Borders, shadows, subdued rules |
+| `--copper-glow` | `rgba(184, 115, 51, 0.18)` | Soft ambient accent |
+| `--cyan` | `#2CC8C0` | Active computation and focus state |
+| `--violet` | `#7844FF` | Dissonance, contradiction, liminal insight |
+
+All tokens are defined in `src/app/globals.css`. There are no `--gold` references anywhere in the codebase.
+
+---
+
 ## Architecture
 
 ```
