@@ -2,7 +2,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: var(--s-6) var(--s-8);
+  padding: var(--s-6) 0;
   border-bottom: var(--bd-rule) solid var(--copper);
   margin-bottom: var(--s-8);
   margin-top: var(--s-12);
