@@ -430,7 +430,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             <div className={styles.summaryGroup}>
               <span className={styles.summarySystem}>Tropical</span>
               <span className={styles.summaryPlacements}>
-                ☉ {sunT?.sign} · ☽ {moonT?.sign} · ↑ {chartData.tropical.ascendantSign}
+                {'☉︎'} {sunT?.sign} · {'☽︎'} {moonT?.sign} · {'↑︎'} {chartData.tropical.ascendantSign}
               </span>
             </div>
           )}
@@ -438,7 +438,7 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
             <div className={styles.summaryGroup}>
               <span className={styles.summarySystem}>Sidereal</span>
               <span className={styles.summaryPlacements}>
-                ☉ {sunS?.sign} · ☽ {moonS?.sign} · ↑ {chartData.sidereal.ascendantSign}
+                {'☉︎'} {sunS?.sign} · {'☽︎'} {moonS?.sign} · {'↑︎'} {chartData.sidereal.ascendantSign}
               </span>
             </div>
           )}

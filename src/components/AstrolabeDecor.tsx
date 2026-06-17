@@ -3,7 +3,11 @@
 import React from 'react'
 import styles from './AstrolabeDecor.module.css'
 
-const ZODIAC = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓']
+// ︎ (variation selector-15) forces flat text rendering. Without it,
+// Android/Chrome render these zodiac characters as full-colour emoji, which
+// looks cheap against the copper palette.
+const VS = '︎'
+const ZODIAC = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map(g => g + VS)
 
 export default function AstrolabeDecor() {
   const renderRing = (radius: number, width: number, isSidereal: boolean) => {
@@ -61,8 +65,8 @@ export default function AstrolabeDecor() {
                 <text 
                   x="250" y={250 - textRadius} 
                   fill={textColor} 
-                  fontSize="16" 
-                  fontFamily="sans-serif" 
+                  fontSize="16"
+                  fontFamily="serif"
                   textAnchor="middle" 
                   dominantBaseline="middle"
                 >
