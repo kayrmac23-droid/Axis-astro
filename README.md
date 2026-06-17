@@ -77,7 +77,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 |---|---|
 | Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
-| AI backend | Anthropic Claude (`claude-sonnet-4-5`) via streaming API with prompt caching |
+| AI backend | Anthropic Claude (`claude-sonnet-4-6`) via streaming API with prompt caching |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + JPL Horizons DE440 Pluto |
 | Geocoding | OpenStreetMap Nominatim |
 | Timezone | tz-lookup (offline IANA lookup) |
@@ -123,17 +123,37 @@ src/
 │       ├── geocode/             — Nominatim proxy for birth location coordinates
 │       ├── timezone/            — offline IANA timezone lookup (tz-lookup)
 │       ├── calculate/           — chart calculation endpoint (Tropical + Sidereal)
-│       └── reading/             — Claude streaming endpoint
+│       ├── reading/             — Claude streaming endpoint (natal reading)
+│       └── synastry/            — synastry calculation endpoint (inter-aspects + composite)
 ├── components/
 │   ├── BirthForm.tsx            — date/time/location input with birth-time-unknown toggle
 │   ├── ChartWheel.tsx           — SVG chart wheel (Whole Sign, clickable planets, MC marker)
-│   └── ReadingPanel.tsx         — streaming reading display with per-section retry
+│   ├── ChartFactsPanel.tsx      — tropical vs sidereal comparison table (hidden in print)
+│   ├── ReadingPanel.tsx         — streaming reading display with per-section retry
+│   ├── SynastryReadingPanel.tsx — streaming reading display for synastry sections
+│   ├── SynastryAspectsPanel.tsx — inter-aspect table for two charts
+│   ├── AxisTensionSummary.tsx   — synthesis tension callout panel
+│   ├── DossierHeader.tsx        — per-chart dossier header with key placements
+│   ├── SiteHeader.tsx           — top navigation bar
+│   ├── MethodologyStrip.tsx     — compact methodology disclosure strip
+│   ├── MethodPremise.tsx        — explanatory premise block (AXIS dual-system rationale)
+│   ├── SampleDossier.tsx        — static sample reading for the landing page
+│   ├── AstrolabeDecor.tsx       — decorative astrolabe SVG element
+│   └── HeroWheel.tsx            — decorative hero SVG (purely presentational)
 └── lib/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
+    ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v9.2; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v9.3; SHARED_RULES prompt-cached)
+    ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
+    ├── rate-limit.ts            — per-IP rate limit primitives
+    ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
     ├── cusps.ts                 — astrological cusp data and detection
-    └── planet-descriptors.ts   — planet descriptor text for all three reading types
+    ├── jpl-horizons.ts          — JPL Horizons DE440 Pluto fetch with module-level cache
+    ├── planet-descriptors.ts   — planet descriptor text for all reading types (incl. synastry)
+    ├── zodiac-constants.ts      — centralised ZODIAC_SIGNS array (shared source of truth)
+    ├── analytics.ts             — PostHog thin wrapper (no-op when key absent)
+    └── tz.ts                    — DST-aware UTC offset from IANA timezone name
 ```
 
 ### Chart Calculation
@@ -148,11 +168,12 @@ The evidence-weighted approach (rather than categorical rules) means Claude rece
 
 ### Reading Generation
 
-Three reading types, each composed of sequential per-planet streaming requests to the Claude API. Per-section retry (2 attempts) prevents a single failed request from blocking the rest of the reading. Failed sections produce a visible placeholder so the readable portions remain intact.
+Four reading types, each composed of sequential per-planet streaming requests to the Claude API. Per-section retry (2 attempts) prevents a single failed request from blocking the rest of the reading. Failed sections produce a visible placeholder so the readable portions remain intact.
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
 3. **Synthesis** — Concordance, Divergence, Central Tension, Integration. The synthesis context block includes thematic convergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis.
+4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
 
 ---
 
