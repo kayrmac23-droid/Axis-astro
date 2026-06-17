@@ -1,31 +1,40 @@
 'use client'
 
 import React from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import styles from './SiteHeader.module.css'
 
-interface SiteHeaderProps {
-  onMethodClick?: () => void
-  onSampleClick?: () => void
-  onCreateClick?: () => void
-}
+const NAV = [
+  { href: '/method', label: 'Method' },
+  { href: '/sample', label: 'Sample' },
+  { href: '/guides', label: 'Guides' },
+  { href: '/synastry', label: 'Synastry' },
+]
 
-export default function SiteHeader({ onMethodClick, onSampleClick, onCreateClick }: SiteHeaderProps) {
+export default function SiteHeader() {
+  const pathname = usePathname()
+
   return (
     <header className={styles.header}>
-      <button
-        type="button"
-        className={styles.logoBlock}
-        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-        aria-label="Scroll to top"
-      >
+      <Link href="/" className={styles.logoBlock} aria-label="AXIS — home">
         <h1 className={styles.logo}>AXIS</h1>
         <p className={styles.logoSub}>Dual-system astrology</p>
-      </button>
+      </Link>
 
       <nav className={styles.nav}>
-        <button className={styles.navLink} onClick={onMethodClick}>Method</button>
-        <button className={styles.navLink} onClick={onSampleClick}>Sample</button>
-        <button className={styles.navLink} onClick={onCreateClick}>Create</button>
+        {NAV.map(item => {
+          const active = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`${styles.navLink} ${active ? styles.navLinkActive : ''}`}
+            >
+              {item.label}
+            </Link>
+          )
+        })}
         <button className={styles.navLink} disabled title="Save — coming soon">Save</button>
       </nav>
     </header>
