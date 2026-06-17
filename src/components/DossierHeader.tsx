@@ -16,15 +16,15 @@ export default function DossierHeader({ chartData, displayLocation }: DossierHea
   // Timezone-derived location (e.g. "America/New_York" → "New York") is a coarse
   // fallback that misattributes users in cities that share a timezone.
   const location = displayLocation
-    || (birthData.tzName ? birthData.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown Location')
-  
+    || (birthData.tzName ? birthData.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown location')
+
   // Format date
   const dateStr = new Date(birthData.year, birthData.month - 1, birthData.day).toLocaleDateString('en-GB', {
     day: 'numeric', month: 'short', year: 'numeric'
   })
 
   // Format time
-  let timeStr = 'Unknown time'
+  let timeStr = 'Time unknown'
   if (!birthData.birthTimeUnknown) {
     const isPM = birthData.hour >= 12
     const h = birthData.hour % 12 || 12
@@ -32,22 +32,16 @@ export default function DossierHeader({ chartData, displayLocation }: DossierHea
     timeStr = `${h}:${m} ${isPM ? 'PM' : 'AM'}`
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
-
   return (
     <header className={styles.header}>
-      <div className={styles.left}>
-        <h2 className={styles.title}>AXIS Dossier</h2>
-        <p className={styles.metadata}>
-          Born: {location} · {dateStr} · {timeStr}
-        </p>
-      </div>
-      <div className={styles.right}>
-        <button className={styles.btn} onClick={handlePrint}>Keep reading</button>
-        <button className={styles.btn} disabled title="Share — coming soon">Share</button>
-      </div>
+      <p className={styles.label}>Your reading</p>
+      <p className={styles.coordinates}>
+        <span className={styles.place}>{location}</span>
+        <span className={styles.divider} aria-hidden="true">·</span>
+        <span>{dateStr}</span>
+        <span className={styles.divider} aria-hidden="true">·</span>
+        <span>{timeStr}</span>
+      </p>
     </header>
   )
 }

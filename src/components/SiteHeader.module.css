@@ -31,6 +31,7 @@
   border: none;
   padding: 0;
   text-align: left;
+  text-decoration: none;
 }
 
 .logo {
@@ -62,11 +63,16 @@
   font-size: var(--t-label-sm);
   text-transform: uppercase;
   letter-spacing: var(--ls-caps);
+  text-decoration: none;
   cursor: pointer;
   transition: color var(--dur-fast) var(--ease);
 }
 
 .navLink:hover {
+  color: var(--copper-bright);
+}
+
+.navLinkActive {
   color: var(--copper-bright);
 }
 
