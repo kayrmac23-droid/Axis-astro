@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import Link from 'next/link'
 import styles from './HeroSection.module.css'
 import AstrolabePlate from './AstrolabePlate'
 

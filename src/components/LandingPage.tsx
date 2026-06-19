@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import Link from 'next/link'
 import styles from './LandingPage.module.css'
 
 /* ─── Why Two Systems Section ─────────────────────── */
@@ -263,7 +264,7 @@ function SiteFooter() {
         {/* CTA */}
         <div className={styles.footerCta}>
           <p className={styles.footerCtaHeadline}>Ready to see the whole picture?</p>
-          <a href="/#get-reading" className={styles.footerCtaBtn}>Get Your Reading &nbsp;→</a>
+          <Link href="/#get-reading" className={styles.footerCtaBtn}>Get Your Reading &nbsp;→</Link>
         </div>
 
         {/* Links */}
