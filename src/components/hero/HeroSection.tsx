@@ -1,8 +1,8 @@
 'use client'
-
 import React from 'react'
+import Link from 'next/link'
 import styles from './HeroSection.module.css'
-import AstrolabeDecor from '../AstrolabeDecor'
+import AstrolabePlate from './AstrolabePlate'
 
 interface HeroSectionProps {
   onCreateClick: () => void
@@ -12,36 +12,55 @@ interface HeroSectionProps {
 export default function HeroSection({ onCreateClick, onSampleClick }: HeroSectionProps) {
   return (
     <section className={styles.hero}>
-      <div className={styles.heroLeft}>
-        <p className={styles.eyebrow}>Dual-system astrology</p>
-        <h2 className={styles.headline}>
-          Two maps.<br />
-          <span className={styles.headlineAccent}>One true axis.</span>
-        </h2>
-        <p className={styles.body}>
-          AXIS compares the self you recognise with the deeper pattern underneath it — then reads the tension between them.
-        </p>
-        <p className={styles.microline}>
-          Tropical psyche · Sidereal terrain · AXIS synthesis
-        </p>
-        <div className={styles.actions}>
-          <button className={styles.primaryBtn} onClick={onCreateClick}>
-            Begin the AXIS reading
-          </button>
-          <button className={styles.secondaryBtn} onClick={onSampleClick}>
-            <span className={styles.cyanDot} />
-            See a sample
-          </button>
+      {/* Star field background */}
+      <div className={styles.starField} aria-hidden="true" />
+
+      <div className={styles.heroContent}>
+        {/* Left: copy */}
+        <div className={styles.heroLeft}>
+          <h2 className={styles.headline}>
+            TWO SYSTEMS.<br />
+            <span className={styles.headlineAccent}>ONE TRUTH.</span>
+          </h2>
+          <p className={styles.body}>
+            AXIS merges Tropical and Sidereal astrology to reveal the full story of who you are—your psyche, your karma, your purpose.
+          </p>
+          <div className={styles.actions}>
+            <button className={styles.primaryBtn} onClick={onCreateClick}>
+              Get Your Reading &nbsp;→
+            </button>
+            <button className={styles.secondaryBtn} onClick={onSampleClick}>
+              See How It Works &nbsp;↓
+            </button>
+          </div>
+          <div className={styles.socialProof}>
+            <div className={styles.avatarRow} aria-hidden="true">
+              {['J','L','M','A','R'].map((initial, i) => (
+                <div key={i} className={styles.avatar} style={{ zIndex: 5 - i }}>{initial}</div>
+              ))}
+            </div>
+            <p className={styles.socialProofText}>
+              Join 50,000+ seekers<br />
+              <span className={styles.socialProofSub}>exploring their true blueprint</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Right: chart wheel */}
+        <div className={styles.heroRight}>
+          <div className={styles.wheelWrap}>
+            <AstrolabePlate />
+            <div className={styles.wheelLabelTropical} aria-hidden="true">TROPICAL</div>
+            <div className={styles.wheelLabelSidereal} aria-hidden="true">SIDEREAL</div>
+          </div>
         </div>
       </div>
 
-      <div className={styles.heroRight}>
-        <AstrolabeDecor />
-      </div>
-
-      <div className={styles.instrumentStatus}>
-        <span className={styles.cyanDot} />
-        System Active // Dual Map
+      <div className={styles.scrollHint} aria-hidden="true">
+        <span className={styles.scrollLabel}>SCROLL TO EXPLORE</span>
+        <div className={styles.scrollIcon}>
+          <div className={styles.scrollDot} />
+        </div>
       </div>
     </section>
   )

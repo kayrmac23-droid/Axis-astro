@@ -7,6 +7,7 @@ import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
 import HeroSection from '@/components/hero/HeroSection'
 import DossierHeader from '@/components/DossierHeader'
+import LandingPage from '@/components/LandingPage'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -25,9 +26,6 @@ export default function Home() {
   const readingRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLDivElement>(null)
 
-  // Let the chart wheel and facts panel paint before mounting ReadingPanel.
-  // setTimeout(0) defers to the next macrotask — at least one render+paint
-  // cycle completes, so the user sees the chart before streaming requests fire.
   useEffect(() => {
     if (!chartData) return
     const id = setTimeout(() => setReadingReady(true), 0)
@@ -42,14 +40,12 @@ export default function Home() {
     setChartData(null)
     setReadingReady(false)
     capture('chart_submit')
-
     try {
       const res = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       })
-
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         throw new Error(
@@ -57,12 +53,10 @@ export default function Home() {
           "We couldn't calculate your chart. This usually means the birth data, location lookup, or ephemeris service failed. Please check the details and try again."
         )
       }
-
       const data: DualChartData = await res.json()
       capture('calculate_success', { pluto_source: data.plutoSource })
       setChartData(data)
       setActiveSection('tropical')
-
       setTimeout(() => {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 300)
@@ -88,17 +82,17 @@ export default function Home() {
       {/* Pre-chart flow */}
       {!chartData && (
         <>
+          {/* ── Hero ── */}
           <HeroSection
             onCreateClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}
             onSampleClick={() => router.push('/sample')}
           />
 
-          <section className={styles.formSection} ref={formRef}>
+          {/* ── Birth form ── */}
+          <section className={styles.formSection} id="get-reading" ref={formRef}>
             <div className={styles.formIntro}>
               <p className={styles.formIntroLabel}>Birth coordinates</p>
-              <h3 className={styles.formIntroTitle}>
-                Enter birth coordinates.
-              </h3>
+              <h3 className={styles.formIntroTitle}>Enter birth coordinates.</h3>
               <p className={styles.formIntroDesc}>
                 Date, time, and place anchor the map. Precision matters most for the Ascendant and house structure.
               </p>
@@ -115,6 +109,9 @@ export default function Home() {
               )}
             </div>
           </section>
+
+          {/* ── Marketing sections ── */}
+          <LandingPage />
         </>
       )}
 
@@ -131,7 +128,6 @@ export default function Home() {
       {chartData && (
         <div className={styles.readingLayout} ref={readingRef}>
           <DossierHeader chartData={chartData} displayLocation={displayLocation} />
-
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal chart</p>
             {activeSection === 'tropical' && (
@@ -164,9 +160,7 @@ export default function Home() {
               </div>
             )}
           </section>
-
           <ChartFactsPanel data={chartData} activeSection={activeSection} />
-
           <div className={styles.tabBar}>
             <button
               className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
@@ -190,11 +184,9 @@ export default function Home() {
               <span className={styles.tabSub}>concordance · dissonance · the gap</span>
             </button>
           </div>
-
           {readingReady && (
             <ReadingPanel chartData={chartData} section={activeSection} />
           )}
-
           <div className={styles.resetRow}>
             <button
               className={styles.resetBtn}
@@ -205,10 +197,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      <footer className={styles.footer}>
-        <p>AXIS — Precision dual-system astrology</p>
-      </footer>
     </main>
   )
 }
