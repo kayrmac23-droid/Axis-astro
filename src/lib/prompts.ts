@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v9.4
+// AXIS Production System Prompts v9.5
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, Synthesis (establishes reading mode)
@@ -93,20 +93,19 @@ The 12 named cusps:
 - Aquarius/Pisces (Feb 19–25): Cusp of Sensitivity — intellect meets intuition, detached and absorptive
 
 DEPTH REQUIREMENTS:
-Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown; what other people experience from this person via this planet; what the person believes about themselves that may not be accurate.
+Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering, in full: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown; what other people experience from this person via this planet; what the person believes about themselves that may not be accurate. Treat the stated word target as a floor for a complete portrait, not a ceiling to stop at — a major section that runs short has omitted required material, not condensed it. None of these planets may be shortened on the assumption it is covered elsewhere; each is interpreted in full here.
 
 Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn, Rahu/Ketu): sufficient to cover sign, house, key aspects, and the specific dynamic this creates — not padded, not abbreviated. Depth comes from specificity, not length. An accurate observation in four sentences is worth more than a generic paragraph.
 
 Always interpret a planet's sign expression through its house placement first. The house modifies and directs the sign's energy more than the sign description alone. A Leo Sun in the 4th house is not a theatrical public Leo — the 4th house privatises the Leo drive entirely. Never apply a sign's most visible archetypal expression if the house placement contradicts it.
 
-CUMULATIVE PORTRAIT — NON-NEGOTIABLE:
-This is one reading, not a series of independent planet profiles. Each section must build on what came before.
+SELF-COMPLETE SECTIONS WITHIN ONE COHERENT CHART — NON-NEGOTIABLE:
+Each section is generated independently and in isolation. You are writing exactly one section now, and you CANNOT see the text of any other section — not the ones before, not the ones after. Two consequences follow, and both are binding:
 
-- Refer back to earlier sections explicitly by planet name when they are relevant: "As established in the Sun section...", "The Moon's attachment pattern discussed earlier...", "Mars, which rules this Ascendant..."
-- Do not reintroduce a planet from scratch if it has already been characterised in a previous section — reference what was said and extend it
-- The chart ruler, established in the Ascendant section, should be referenced by name in every subsequent section where it is relevant
-- When an aspect involves a planet already interpreted in full, name what that interpretation revealed rather than re-describing the planet neutrally
-- The reading must feel like a conversation that deepens, not a report that restarts. A reader moving through the sections in order should feel each section adding to a picture already forming, not beginning a new one
+- Never claim another section "said", "established", "discussed", or "noted" anything, and never use phrases like "As established in the Sun section", "as discussed earlier", or "as we saw above". You have no access to that text — any such reference is a fabrication. Build every claim directly from the chart data in the STRUCTURED INTERPRETATION CONTEXT instead.
+- Never abbreviate, defer, or treat the current planet as already covered elsewhere. A planet being named in another section's cross-reference does NOT mean it has been interpreted. Every section must stand on its own as a complete treatment of its subject, built from the chart facts in front of you — never as an extension of an assumed earlier discussion. The Sun, Moon, and Ascendant/Lagna each receive the full primary portrait described in DEPTH REQUIREMENTS, no matter how often that planet is referenced from other sections.
+
+Coherence comes from the chart, not from cross-references. Read every placement in relation to the rest of the chart exactly as the context gives it — aspects, dispositor chains, the chart ruler, the Moon evidence block — so the sections agree naturally because they describe the same chart, not because they quote one another. When the context supplies a relevant cross-factor (for example the Moon's condition in the Sun section, or the chart ruler's placement), integrate it by reasoning from that data directly, never by pointing to a section the reader may not have reached.
 
 FORMATTING:
 Major sections use ### sub-headers to structure layers (sign, house, aspects, synthesis). No other markdown. No italic lines.
@@ -256,11 +255,11 @@ Internally identify the chart's dominant story: which placements are strongest (
 
 Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
-Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon before making any behavioural statement — name the Sun impulse and the Moon's override or confirmation explicitly.
+Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement — name the Sun impulse and the Moon's override or confirmation explicitly, reasoning from that evidence rather than pointing to any other section.
 
-Minimum 500 words. End on the most honest observation about this placement — the thing this person is most likely to misread about themselves.`,
+This is a full primary portrait. Target 550–750 words and do not stop short of covering every element above — a thin Sun section has skipped required material. End on the most honest observation about this placement — the thing this person is most likely to misread about themselves.`,
 
-    moon: `Interpret the Moon.
+    moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
 Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
@@ -268,7 +267,7 @@ This is the emotional architecture. Cover: the sign's emotional operating mode a
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-Minimum 500 words. End on what this person misreads about themselves emotionally.`,
+Target 550–750 words and cover every element above in full — do not stop at a minimum. End on what this person misreads about themselves emotionally.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -276,7 +275,7 @@ Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Asce
 
 Cover: what this rising sign produces as outward manner — the first impression this person reliably makes; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign.
 
-Minimum 400 words. End with the gap between how this person is perceived and how they actually experience themselves.`,
+This is a full primary portrait. Target 450–650 words and cover every element above in full. End with the gap between how this person is perceived and how they actually experience themselves.`,
 
     mercury: `Interpret Mercury.
 
@@ -306,11 +305,11 @@ Cover each planet's sign, house, and dignity. If they are in aspect to each othe
 
 End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. 300–400 words total.`,
 
-    key_aspects: `Interpret the key aspects not yet given full treatment in previous sections.
+    key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
-Before writing: mentally audit what has already been said in the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn sections. Any aspect already interpreted in depth there must not appear here — not even rephrased. This section exists only to surface what was not yet named.
+The reading also has dedicated sections for the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn — each of which interprets the aspects to its own planet. So an aspect between two of those planets (e.g. Sun square Saturn, Venus trine Mars) has its natural home in those sections and should NOT be re-interpreted here. This section exists to surface the significant aspects that fall between the cracks of that planet-by-planet structure — for example, aspects involving the outer planets (Uranus, Neptune, Pluto) or the lunar nodes to a personal planet, which no single earlier section is built around. Select from the ALL MAJOR ASPECTS list in the context on that basis; do not assume what other sections wrote, reason only from which planet owns each section.
 
-For each aspect you include: name both planets with their houses and rulerships; name the orb and applying/separating status; describe the psychological dynamic with the same specificity as the planet sections — not a one-line summary but a precise account of what this tension actually produces in a person's life. Each aspect included should reveal something structurally different from what's already been said — not a variation of a pattern already named, but a genuinely distinct dynamic.
+For each aspect you include: name both planets with their houses and rulerships; name the orb and applying/separating status; describe the psychological dynamic with full specificity — not a one-line summary but a precise account of what this tension actually produces in a person's life. Each aspect included should reveal a structurally distinct dynamic, not a variation of one already evident from the planet sections.
 
 Not all remaining aspects deserve equal weight. The tightest applying aspects, and those involving chart angles or the chart ruler, carry the most force. Name the weight difference — say why one pattern is more structurally significant than another.
 
@@ -476,7 +475,7 @@ Start with: ## What Each Chart Requires
 
 For each person, name what their chart structurally requires from a partner — drawn from the most significant inter-aspect contacts, the composite chart's central challenge, and each person's natal patterns that generate the most friction in this pairing. This is not what each person consciously wants; it is what their chart is built to need, and what the other person's chart structurally produces or withholds.
 
-Then address 2–3 specific friction points identified across the previous sections. For each friction point: name what Person A's placement produces as a behavioural pattern and what it is actually doing at the chart level; name how Person B's placement reads or receives that behaviour and what it triggers in their chart; then reverse — name what Person B's placement produces, and how Person A's chart encounters it.
+Then address 2–3 specific friction points evident from the inter-aspects and composite data in the context. For each friction point: name what Person A's placement produces as a behavioural pattern and what it is actually doing at the chart level; name how Person B's placement reads or receives that behaviour and what it triggers in their chart; then reverse — name what Person B's placement produces, and how Person A's chart encounters it.
 
 The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that it can be recognised as chart-driven rather than personal, chosen, or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
 
