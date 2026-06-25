@@ -12,6 +12,11 @@ export const maxDuration = 30
 // 30 chart calculations per IP per 60-second window.
 const CALC_RATE_LIMIT = { max: 30, windowSecs: 60, keyPrefix: 'axis:rl:calc:' }
 
+// A real birth-data payload is well under 2 KB; 16 KB is generous headroom.
+// Anything larger is almost certainly abuse. Route handlers don't impose a body
+// limit by default, so guard it explicitly.
+const MAX_PAYLOAD_BYTES = 16_000
+
 export async function POST(req: NextRequest) {
   try {
     // ── Rate limiting ──────────────────────────────────────────────────────────
@@ -24,21 +29,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const rawBody = await req.text()
+    if (rawBody.length > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
+    }
+    let body: Record<string, unknown>
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
     const { year, month, day, hour, minute, latitude, longitude, timezone, tzName, birthTimeUnknown } = body
 
     if (!year || !month || !day || latitude === undefined || longitude === undefined) {
       return NextResponse.json({ error: 'Missing required birth data' }, { status: 400 })
     }
 
-    const y  = parseInt(year)
-    const mo = parseInt(month)
-    const d  = parseInt(day)
-    const hRaw = parseInt(hour)
+    const y  = parseInt(String(year))
+    const mo = parseInt(String(month))
+    const d  = parseInt(String(day))
+    const hRaw = parseInt(String(hour))
     const h  = isNaN(hRaw) ? 12 : hRaw
-    const mi = parseInt(minute) || 0
-    const lat = parseFloat(latitude)
-    const lon = parseFloat(longitude)
+    const mi = parseInt(String(minute)) || 0
+    const lat = parseFloat(String(latitude))
+    const lon = parseFloat(String(longitude))
 
     if (isNaN(y)  || y  < 1    || y  > 9999) return NextResponse.json({ error: 'Invalid year'      }, { status: 400 })
     if (isNaN(mo) || mo < 1    || mo > 12)   return NextResponse.json({ error: 'Invalid month'     }, { status: 400 })
@@ -58,7 +72,7 @@ export async function POST(req: NextRequest) {
     // 1. Server-side DST lookup from IANA name (most accurate)
     // 2. Numeric UTC offset supplied by client (already DST-aware if from /api/timezone)
     // 3. Fallback: 0 (UTC)
-    let tzOffset: number = parseFloat(timezone) || 0
+    let tzOffset: number = parseFloat(String(timezone)) || 0
     if (isNaN(tzOffset) || tzOffset < -14 || tzOffset > 14) tzOffset = 0
     if (tzName && typeof tzName === 'string' && tzName.length > 0) {
       const computed = tzNameToOffset(tzName, y, mo, d, h, mi)
@@ -69,7 +83,7 @@ export async function POST(req: NextRequest) {
       year: y, month: mo, day: d, hour: h, minute: mi,
       latitude: lat, longitude: lon,
       timezone: tzOffset,
-      tzName: tzName || undefined,
+      tzName: typeof tzName === 'string' ? tzName : undefined,
       birthTimeUnknown: birthTimeUnknown === true || birthTimeUnknown === 'true',
     }
 
