@@ -985,7 +985,7 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
 
   const strengths = buildStrengths(planet, aspects)
   if (strengths.length > 0) {
-    lines.push('GIFTS / CAPACITIES (this person at their most alive here — give these the SAME precision and airtime as the tensions below; these are not affirmations, they are real strengths):')
+    lines.push('GIFTS / CAPACITIES (this person at their most alive here — give these the SAME precision and airtime as the tensions below; these are not affirmations, they are real strengths. CROSS-REFERENCE each against the rest of the chart before stating it clean — the dispositor chain, the aspects above, and the TENSIONS below may amplify, qualify, or undercut a gift; name it WITH that cross-reference, never in isolation):')
     strengths.forEach(s => lines.push(`• ${s}`))
     lines.push('')
   }
