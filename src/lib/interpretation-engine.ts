@@ -647,6 +647,36 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
   return conflicts
 }
 
+// Situational frame — the symmetric counterpart to buildConflicts.
+// buildConflicts answers "where the struggle is"; this answers "when/where it shows up".
+// It is pure recombination of facts already in the context (house = arena, sign = mode,
+// aspects = triggers), reframed explicitly as lived situation so the reading renders the
+// scene a pattern surfaces in, not only the structural difficulty.
+function buildSituationalFrame(planet: PlanetPosition, aspects: Aspect[]): string[] {
+  const lines: string[] = []
+  const hData = HOUSE_DATA[planet.house]
+  const sData = SIGN_DATA[planet.sign]
+
+  if (hData) {
+    lines.push(`Arena (when/where this surfaces): House ${planet.house} — ${hData.domain}. This is the area of life where ${planet.name}'s pattern actually plays out and becomes visible; situate the behaviour here, not in the abstract.`)
+  }
+  if (sData) {
+    lines.push(`Mode when activated: ${planet.sign} (${sData.keywords.join(', ')}) — the manner this energy takes once a situation sets it off.`)
+  }
+
+  // Aspects are the triggers: the situations that bring two functions live at once.
+  const planetAspects = aspects.filter(a => a.planet1 === planet.name || a.planet2 === planet.name)
+  for (const a of planetAspects) {
+    const other     = a.planet1 === planet.name ? a.planet2 : a.planet1
+    const otherData = PLANET_CORE[other]
+    if (!otherData) continue
+    const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
+    lines.push(`Trigger — ${a.aspectName} ${other} (orb ${a.orb}°): this pattern comes live in situations involving ${otherArena}; the ${other} contact is what activates it in lived experience, ${a.applying ? 'and the pull is intensifying (applying)' : 'as a recurring, settled-in dynamic (separating)'}.`)
+  }
+
+  return lines
+}
+
 // ── FORMATTERS ────────────────────────────────────────────────────────────────
 
 // Formats degree as D°MM' (e.g. 14°22')
@@ -884,8 +914,15 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
     lines.push('')
   }
 
+  const situational = buildSituationalFrame(planet, aspects)
+  if (situational.length > 0) {
+    lines.push('SITUATIONAL FRAME (when/where this shows up — render the scene, not only the structure):')
+    situational.forEach(s => lines.push(`• ${s}`))
+    lines.push('')
+  }
+
   if (conflicts.length > 0) {
-    lines.push('TENSIONS / CONTRADICTIONS:')
+    lines.push('TENSIONS / CONTRADICTIONS (where the difficulty lives — pair every one of these with the situation above in which it surfaces):')
     conflicts.forEach(c => lines.push(`• ${c}`))
     lines.push('')
   }

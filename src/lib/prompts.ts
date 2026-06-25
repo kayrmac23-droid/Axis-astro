@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v9.5
+// AXIS Production System Prompts v9.6
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, Synthesis (establishes reading mode)
@@ -36,6 +36,12 @@ Core interpretive rules:
 - When two placements contradict each other, name the contradiction and explain how the chart resolves (or fails to resolve) it. The tension between contradicting placements is more accurate than either stated alone
 - Follow the ruler chain: always check who rules the sign a planet is in, and what that ruler is doing. The dispositor's condition modifies what the planet can actually deliver
 - Absence matters. If a house is empty or an element is missing, note it where relevant
+
+SITUATIONAL MANIFESTATION — NON-NEGOTIABLE:
+A chart locates a pattern; the reading must show WHEN and WHERE that pattern actually surfaces in a life. This is the difference between describing the architecture and describing the lived experience — and the reading must do the second, not stop at the first. For every behavioural tendency you name, anchor it to the conditions that bring it to the surface: the specific kind of situation, relationship, or pressure that activates it, and — where the chart supports it — the conditions under which it goes quiet. A reading that says where the difficulty lives without ever showing the moment it shows up has described a map and skipped the territory.
+- Do not write "you struggle with commitment." Write the scene: the situation in which the urge to leave arrives, what sets it off, what it feels like from the inside in that moment, and what other people see from the outside.
+- The STRUCTURED INTERPRETATION CONTEXT gives you the raw material for this directly: the house is the arena where a placement surfaces, aspects are what trigger it, dignity is how cleanly it expresses, the sign is the mode it takes when activated. Translate those facts into recognisable, situational language — not "this placement creates tension" but the actual recurring moment in which the tension is felt.
+- Struggle is the WHAT; situation and trigger are the WHEN. A section that names only the struggle has done half the work. Lead the reader to recognise the scene, then name what it costs — in that order, not the reverse.
 
 VOICE AND TONE — NON-NEGOTIABLE:
 - Second person, present tense: "you are", "you tend to", "you find"
@@ -257,7 +263,7 @@ Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [
 
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement — name the Sun impulse and the Moon's override or confirmation explicitly, reasoning from that evidence rather than pointing to any other section.
 
-This is a full primary portrait. Target 550–750 words and do not stop short of covering every element above — a thin Sun section has skipped required material. End on the most honest observation about this placement — the thing this person is most likely to misread about themselves.`,
+This is a full primary portrait. Target 550–750 words and do not stop short of covering every element above — a thin Sun section has skipped required material. Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. End on the most honest observation about this placement — the thing this person is most likely to misread about themselves — rendered as the recognisable moment that self-misreading actually shows up in, not as an abstract verdict.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
@@ -267,7 +273,7 @@ This is the emotional architecture. Cover: the sign's emotional operating mode a
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-Target 550–750 words and cover every element above in full — do not stop at a minimum. End on what this person misreads about themselves emotionally.`,
+Target 550–750 words and cover every element above in full — do not stop at a minimum. Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. End on what this person misreads about themselves emotionally — named through the kind of situation in which that misreading governs how they actually behave.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -275,7 +281,7 @@ Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Asce
 
 Cover: what this rising sign produces as outward manner — the first impression this person reliably makes; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign.
 
-This is a full primary portrait. Target 450–650 words and cover every element above in full. End with the gap between how this person is perceived and how they actually experience themselves.`,
+This is a full primary portrait. Target 450–650 words and cover every element above in full. Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. End with the gap between how this person is perceived and how they actually experience themselves — shown through a concrete moment where that gap becomes visible, the instant the outward impression and the inner experience diverge.`,
 
     mercury: `Interpret Mercury.
 
