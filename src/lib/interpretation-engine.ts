@@ -16,66 +16,79 @@ import { ChartData, DualChartData, PlanetPosition } from './astro-calc'
 const PLANET_CORE: Record<string, {
   coreFunction: string
   drives: string
+  gift: string
   shadow: string
 }> = {
   Sun: {
     coreFunction: 'identity, will, vitality, ego, the conscious self, authority',
     drives: 'need to matter, to be recognized as significant, to express the essential self',
+    gift: 'a steady centre others orient around; warmth and vitality that bring a room to life; the capacity to be genuinely, generously oneself without needing to perform it',
     shadow: 'pride, need for constant validation, inability to admit weakness or need'
   },
   Moon: {
     coreFunction: 'emotional instinct, subconscious habit, security needs, the mother, memory',
     drives: 'need for emotional safety, belonging, and nurturing connection',
+    gift: 'attunement that reads what a room needs before words; the capacity to make others feel safe and held; an emotional memory that keeps faith with the people it loves',
     shadow: 'emotional reactivity, clinging to the past, moodiness, irrational fear'
   },
   Mercury: {
     coreFunction: 'mind, communication, perception, reasoning, information processing',
     drives: 'need to understand, to exchange ideas, to make connections between concepts',
+    gift: 'quickness that connects what others keep separate; clarity that makes the complicated usable; genuine curiosity that makes people feel heard and understood',
     shadow: 'over-analysis, anxiety, scattered thinking, using intellect to avoid feeling'
   },
   Venus: {
     coreFunction: 'love, beauty, pleasure, values, attraction, harmony, relationship',
     drives: 'need for connection, beauty, sensory pleasure, and relational harmony',
+    gift: 'the capacity to draw people and beauty close; warmth that makes others feel valued and chosen; a sure eye for what is worth keeping and a real talent for pleasure',
     shadow: 'vanity, dependency, prioritizing harmony over truth, inability to be alone'
   },
   Mars: {
     coreFunction: 'assertion, desire, drive, anger, courage, conflict, sexual energy',
     drives: 'need to act, to assert, to pursue desire, to overcome obstacles',
+    gift: 'the courage to act when others hesitate; energy that starts things and sees them through; a protective drive that will go to the wall for what and whom it loves',
     shadow: 'aggression, impulsivity, combativeness, inability to modulate anger'
   },
   Jupiter: {
     coreFunction: 'expansion, wisdom, philosophy, faith, abundance, growth, meaning',
     drives: 'need for meaning, growth, and connection to something larger than self',
+    gift: 'generosity of spirit and an eye for the larger picture; faith that lifts the people nearby; the instinct to grow and to make room for others to grow too',
     shadow: 'excess, overconfidence, grandiosity, laziness through over-abundance'
   },
   Saturn: {
     coreFunction: 'structure, discipline, limitation, time, karma, responsibility, mastery',
     drives: 'need for security through earned achievement and demonstrated competence',
+    gift: 'the capacity to build what lasts; a reliability others quietly lean on; mastery earned slowly that hardens into genuine, unbluffable authority',
     shadow: 'rigidity, chronic fear, self-limitation, emotional contraction, depression'
   },
   Uranus: {
     coreFunction: 'disruption, innovation, liberation, rebellion, sudden change, awakening',
     drives: 'need for radical freedom, authenticity, liberation from conventional constraint',
+    gift: 'originality that sees straight past the given; the nerve to be authentically different; a spark that frees others from assumptions they had stopped questioning',
     shadow: 'chaos, instability, willful contrarianism, inability to commit'
   },
   Neptune: {
     coreFunction: 'dissolution, spirituality, imagination, compassion, illusion, transcendence',
     drives: 'need to transcend ego boundaries, to merge with something infinite',
+    gift: 'compassion that actually reaches people; imaginative and creative attunement; the capacity to sense what goes unspoken and to give it form',
     shadow: 'delusion, escapism, addiction, victim patterns, losing self in others'
   },
   Pluto: {
     coreFunction: 'transformation, power, depth, destruction and rebirth, the unconscious',
     drives: 'need for total transformation, power, and truth at any cost',
+    gift: 'depth that does not flinch from the real; the power to regenerate after loss; the capacity to transform oneself and to hold others through their own undoing',
     shadow: 'obsession, control, destructive rage, psychological manipulation'
   },
   Rahu: {
     coreFunction: 'desire, obsession, karmic hunger, the direction of soul evolution, ambition',
     drives: 'karmic hunger for the sign/house qualities — what the soul is moving toward in this life',
+    gift: 'hunger that drives real growth into unfamiliar territory; the nerve to want openly and to reach beyond what was inherited',
     shadow: 'insatiable craving, illusion, overreach, inflation in pursuit of the new'
   },
   Ketu: {
     coreFunction: 'release, detachment, past-life mastery, liberation, dissolution of ego',
     drives: 'karmic release — moving away from the sign/house qualities that have been over-developed',
+    gift: 'innate mastery that needs no proving; the capacity to let go cleanly and to see through to essence; wisdom that arrives without effort',
     shadow: 'disconnection, inability to fully engage, self-undoing through detachment'
   }
 }
@@ -647,6 +660,55 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
   return conflicts
 }
 
+// Strengths / gifts — the symmetric counterpart to buildConflicts.
+// buildConflicts was the only evaluative block the context emitted, which skewed
+// readings toward diagnosis. This surfaces the planet's genuine capacities with
+// equal weight: its constructive gift, dignified placement, and harmonious aspects.
+// These are capacities rendered precisely, NOT affirmations — the reading must give
+// them the same airtime and specificity as the difficulties.
+const BENEFICS = new Set(['Venus', 'Jupiter'])
+
+function buildStrengths(planet: PlanetPosition, aspects: Aspect[]): string[] {
+  const strengths: string[] = []
+  const pData = PLANET_CORE[planet.name]
+  if (!pData) return strengths
+
+  if (pData.gift) {
+    strengths.push(`${planet.name}'s constructive capacity: ${pData.gift}. This is a real strength of the chart — render it as specifically as any difficulty, never as a consolation tacked on at the end`)
+  }
+
+  const dignity = computeDignity(planet.name, planet.sign)
+  if (['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(dignity.status)) {
+    strengths.push(`${planet.name} is dignified (${dignity.status}) in ${planet.sign}: this function operates with unusual ease and confidence — one of the places this person is naturally, reliably strong`)
+  }
+
+  aspects
+    .filter(a => (a.planet1 === planet.name || a.planet2 === planet.name) && (a.aspectName === 'Trine' || a.aspectName === 'Sextile'))
+    .forEach(a => {
+      const other = a.planet1 === planet.name ? a.planet2 : a.planet1
+      const otherData = PLANET_CORE[other]
+      if (!otherData) return
+      const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
+      const flavour = a.aspectName === 'Trine'
+        ? 'a natural, flowing support — so easy it may go unnoticed and underused'
+        : 'a latent support that rewards deliberate use'
+      strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another — a genuine talent, not just an absence of friction`)
+    })
+
+  aspects
+    .filter(a => (a.planet1 === planet.name || a.planet2 === planet.name) && a.aspectName === 'Conjunction')
+    .forEach(a => {
+      const other = a.planet1 === planet.name ? a.planet2 : a.planet1
+      if (!BENEFICS.has(other) || other === planet.name) return
+      const otherData = PLANET_CORE[other]
+      if (!otherData) return
+      const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
+      strengths.push(`${planet.name} conjunct ${other} (orb ${a.orb}°): fusion with a natural benefic — ${other}'s ${otherArena} lends grace and ease to how ${planet.name} expresses`)
+    })
+
+  return strengths
+}
+
 // Situational frame — the symmetric counterpart to buildConflicts.
 // buildConflicts answers "where the struggle is"; this answers "when/where it shows up".
 // It is pure recombination of facts already in the context (house = arena, sign = mode,
@@ -921,8 +983,15 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
     lines.push('')
   }
 
+  const strengths = buildStrengths(planet, aspects)
+  if (strengths.length > 0) {
+    lines.push('GIFTS / CAPACITIES (this person at their most alive here — give these the SAME precision and airtime as the tensions below; these are not affirmations, they are real strengths):')
+    strengths.forEach(s => lines.push(`• ${s}`))
+    lines.push('')
+  }
+
   if (conflicts.length > 0) {
-    lines.push('TENSIONS / CONTRADICTIONS (where the difficulty lives — pair every one of these with the situation above in which it surfaces):')
+    lines.push('TENSIONS / CONTRADICTIONS (where the difficulty lives — one colour in the portrait, not the whole of it; pair each with the situation in which it surfaces):')
     conflicts.forEach(c => lines.push(`• ${c}`))
     lines.push('')
   }
