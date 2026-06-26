@@ -144,9 +144,8 @@ src/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v9.3; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v9.8; SHARED_RULES prompt-cached)
     ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
-    ├── rate-limit.ts            — per-IP rate limit primitives
     ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
     ├── cusps.ts                 — astrological cusp data and detection
     ├── jpl-horizons.ts          — JPL Horizons DE440 Pluto fetch with module-level cache
@@ -227,7 +226,9 @@ This section describes what is hardened now and what requires distributed infras
 - `/api/reading` validates section and planetSection against explicit allow-lists before processing
 - `/api/reading` enforces a 64 KB payload size limit
 - `/api/reading` applies a Redis-backed per-IP rate limiter (20 req / 60s fixed window via Upstash, with an atomic Lua INCR+EXPIRE; in-memory fallback when Redis env vars are absent)
-- `/api/geocode` enforces a 200-character query length limit
+- `/api/calculate` and `/api/synastry` enforce a 16 KB payload size limit with explicit JSON parse guard (reject oversized or malformed bodies before any processing)
+- `/api/calculate` applies a Redis-backed per-IP rate limiter (30 req / 60s); `/api/synastry` applies 20 req / 60s
+- `/api/geocode` enforces a 200-character query length limit and a Redis-backed per-IP rate limiter (30 req / 60s)
 - All internal error messages are scrubbed from client-facing responses (server-side logging only)
 - Per-section streaming retry (2 attempts) with visible failure fallback
 - Truncated responses (`stop_reason: max_tokens`) are not cached and surface an inline notice to the user
