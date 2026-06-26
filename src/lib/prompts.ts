@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v9.8
+// AXIS Production System Prompts v9.9
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, Synthesis (establishes reading mode)
@@ -320,13 +320,25 @@ End with ### Putting It Together: what Jupiter and Saturn together actually prod
 
     key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
-The reading also has dedicated sections for the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn — each of which interprets the aspects to its own planet. So an aspect between two of those planets (e.g. Sun square Saturn, Venus trine Mars) has its natural home in those sections and should NOT be re-interpreted here. This section exists to surface the significant aspects that fall between the cracks of that planet-by-planet structure — for example, aspects involving the outer planets (Uranus, Neptune, Pluto) or the lunar nodes to a personal planet, which no single earlier section is built around. Select from the ALL MAJOR ASPECTS list in the context on that basis; do not assume what other sections wrote, reason only from which planet owns each section.
+The reading also has dedicated sections for the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn — each of which interprets the aspects to its own planet. So an aspect between two of those planets (e.g. Sun square Saturn, Venus trine Mars) has its natural home in those sections and should NOT be re-interpreted here. This section exists to surface the significant aspects that fall between the cracks of that planet-by-planet structure — for example, aspects involving the outer planets (Uranus, Neptune, Pluto) to a personal planet, which no single earlier section is built around. The lunar nodes have their own dedicated section and are NOT covered here. Select from the ALL MAJOR ASPECTS list in the context on that basis; do not assume what other sections wrote, reason only from which planet owns each section.
 
 For each aspect you include: name both planets with their houses and rulerships; name the orb and applying/separating status; describe the psychological dynamic with full specificity — not a one-line summary but a precise account of what this tension actually produces in a person's life. Each aspect included should reveal a structurally distinct dynamic, not a variation of one already evident from the planet sections.
 
 Not all remaining aspects deserve equal weight. The tightest applying aspects, and those involving chart angles or the chart ruler, carry the most force. Name the weight difference — say why one pattern is more structurally significant than another.
 
 200–300 words.`,
+
+    rahu_ketu: `Interpret the Lunar Nodes — Rahu (North Node) and Ketu (South Node) — in the Tropical chart.
+
+Start with: ## The Lunar Nodes
+
+The nodal axis describes the psychological direction of growth: Rahu names the territory the self is reaching into and being pulled to develop, often awkwardly and over-reachingly at first; Ketu names what the self has over-relied on and must learn to set down. The nodes are not a karmic verdict — they are a structural pull inside this lifetime, the axis along which the constructed identity grows.
+
+Cover, in continuous prose: each node's sign and house and what each produces psychologically in this specific configuration; the felt experience of being pulled toward Rahu's domain — the hunger, the inflation risk, the way it shows up as a magnetism toward unfamiliar territory; the felt experience of Ketu's domain as the over-developed competence the person leans on by default and the cost of leaning on it; the relationship between the two axes — what the person gives up by staying in Ketu's groove, and what surfaces as they begin to inhabit Rahu's. If the nodal axis aspects a personal planet tightly (Sun, Moon, Ascendant ruler), name that contact and the dynamic it creates. Use the GIFTS / CAPACITIES and TENSIONS material in the context — Rahu and Ketu both carry real capacities, not only difficulty, and the section must show both.
+
+Anchor every claim to the recognisable situation in which it surfaces — when the Rahu pull arrives, what Ketu's groove feels like in a familiar moment — not abstract destiny language. No "soul mission," no "past life" claims, no fatalistic framing.
+
+250–350 words. End with the sharpest precise observation about how this person's nodal axis actually operates in lived experience, not a prescription for growth.`,
   },
 
   sidereal: {

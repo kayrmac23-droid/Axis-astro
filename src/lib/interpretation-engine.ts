@@ -1281,7 +1281,8 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
     venus:          ['Venus'],
     mars:           ['Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
-    key_aspects:    []
+    key_aspects:    [],
+    rahu_ketu:      ['Rahu']
   },
   sidereal: {
     lagna:          [],
@@ -1392,6 +1393,7 @@ export function buildInterpretationContext(
     const ketu = chart.planets.find(p => p.name === 'Ketu')
     if (ketu) {
       const ketuSData = SIGN_DATA[ketu.sign]
+      const ketuCore  = PLANET_CORE['Ketu']
       lines.push('── KETU (SOUTH NODE) ─────────────────────────────')
       lines.push(`Placement: ${ketu.sign} ${ketu.degree.toFixed(1)}° | House ${ketu.house}`)
       if (ketu.nakshatra) {
@@ -1406,6 +1408,13 @@ export function buildInterpretationContext(
       if (ketuSData) {
         lines.push('')
         lines.push(`KETU IN ${ketu.sign.toUpperCase()}: the qualities of ${ketu.sign} (${ketuSData.keywords.join(', ')}) represent what the soul has mastered and now needs to release attachment to; the soul is moving toward Rahu's sign/house`)
+      }
+      if (ketuCore) {
+        lines.push('')
+        lines.push('GIFTS / CAPACITIES (cross-reference each against the rest of the chart before stating it clean):')
+        lines.push(`• Ketu's structural gift — ${ketuCore.gift}`)
+        lines.push('TENSIONS / CONTRADICTIONS (one colour in the portrait, not the whole of it):')
+        lines.push(`• Ketu's structural shadow — ${ketuCore.shadow}`)
       }
       lines.push('')
     }
