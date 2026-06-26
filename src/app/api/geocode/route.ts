@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
-// Simple in-memory rate limit for geocode: 30 requests per IP per 60 seconds.
-type RateRecord = { count: number; windowStart: number }
-const _ratemap = new Map<string, RateRecord>()
-const GEO_RATE_MAX    = 30
-const GEO_RATE_WINDOW = 60_000  // ms
-
-function checkGeoRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const rec = _ratemap.get(ip)
-  if (!rec || now - rec.windowStart >= GEO_RATE_WINDOW) {
-    _ratemap.set(ip, { count: 1, windowStart: now })
-    return true
-  }
-  if (rec.count >= GEO_RATE_MAX) return false
-  rec.count++
-  return true
-}
+// 30 geocode requests per IP per 60-second window. Uses the shared Redis-backed
+// limiter (with a bounded in-memory fallback) so the per-IP state cannot grow
+// unbounded across instances or during a Redis outage.
+const GEO_RATE_LIMIT = { max: 30, windowSecs: 60, keyPrefix: 'axis:rl:geo:' }
 
 interface NominatimResult {
   lat: string
@@ -28,10 +16,9 @@ export async function GET(req: NextRequest) {
   const query = req.nextUrl.searchParams.get('q')
   if (!query || query.length > 200) return NextResponse.json([], { status: 400 })
 
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
-           ?? req.headers.get('x-real-ip')
-           ?? 'direct'
-  if (!checkGeoRateLimit(ip)) {
+  const ip = getClientIp(req)
+  const { allowed } = await checkRateLimit(ip, GEO_RATE_LIMIT)
+  if (!allowed) {
     return NextResponse.json([], { status: 429 })
   }
 

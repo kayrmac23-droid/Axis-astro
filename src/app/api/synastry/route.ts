@@ -10,6 +10,10 @@ export const maxDuration = 30
 // 20 synastry calculations per IP per 60-second window (two JPL calls each).
 const SYNASTRY_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:synastry:' }
 
+// Two birth-data payloads are well under 4 KB; 16 KB is generous headroom.
+// Route handlers don't impose a body limit by default, so guard it explicitly.
+const MAX_PAYLOAD_BYTES = 16_000
+
 interface RawBirthInput {
   year?: unknown; month?: unknown; day?: unknown
   hour?: unknown; minute?: unknown
@@ -73,7 +77,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const body = await req.json()
+    const rawBody = await req.text()
+    if (rawBody.length > MAX_PAYLOAD_BYTES) {
+      return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
+    }
+    let body: { personA?: unknown; personB?: unknown }
+    try {
+      body = JSON.parse(rawBody)
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+    }
     const { personA: rawA, personB: rawB } = body
 
     if (!rawA || !rawB) {
