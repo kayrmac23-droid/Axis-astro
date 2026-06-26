@@ -7,6 +7,7 @@ import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpr
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
+import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
 
 export const maxDuration = 60
 
@@ -38,7 +39,7 @@ const MAX_PAYLOAD_BYTES = 16_000
 // ── Allow-lists ────────────────────────────────────────────────────────────────
 const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis', 'synastry'])
 const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
-  tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects']),
+  tropical:  new Set(['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects', 'rahu_ketu']),
   sidereal:  new Set(['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
   synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
   synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'integration', 'navigation']),
@@ -47,6 +48,11 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
 const READING_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
+
+// ── Quality-gate budget ────────────────────────────────────────────────────────
+// Wall-clock budget after first pass + eval beyond which we skip the repair pass
+// to stay under maxDuration. Tunable; conservative for the 60s ceiling.
+const REPAIR_SKIP_THRESHOLD_MS = 42_000
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -67,6 +73,13 @@ const SHARED_RULES_BLOCK: Anthropic.TextBlockParam = {
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
+
+function extractText(message: Anthropic.Message): string {
+  return message.content
+    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
+    .map(b => b.text)
+    .join('')
+}
 
 // Parse and validate a BirthData object from unknown user input.
 // Returns null if any required field is missing or out of range.
@@ -217,53 +230,107 @@ export async function POST(req: NextRequest) {
       userContent = `${tropicalBlock}\n\n${siderealBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     }
 
-    // ── Stream generation ──────────────────────────────────────────────────────
-    const stream = await anthropic.messages.stream({
-      model:       MODEL,
-      max_tokens:  MAX_TOKENS_PER_SECTION[planetSection] ?? 2000,
-      temperature: TEMPERATURE,
-      system:      [SHARED_RULES_BLOCK, { type: 'text', text: systemPrompt }],
-      messages:    [{ role: 'user', content: userContent }]
-    })
+    const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
+    const systemBlocks: Anthropic.TextBlockParam[] = [
+      SHARED_RULES_BLOCK,
+      { type: 'text', text: systemPrompt },
+    ]
 
+    // ── Quality-gated generation pipeline ──────────────────────────────────────
+    // Wraps first-pass + evaluator + optional repair in a streaming response so
+    // the connection stays warm via 5s whitespace pings, but no text reaches the
+    // client until the validated (or repaired) version is ready. Caching only
+    // happens after the gate passes — failed first drafts are never persisted.
     const encoder = new TextEncoder()
-    let accumulated   = ''
-    let streamErrored = false
-    let wasTruncated  = false
 
     const readable = new ReadableStream({
       async start(controller) {
-        let hasFirstToken = false
+        const startedAt = Date.now()
+        let pipelineDone = false
         const keepAlive = setInterval(() => {
-          if (!hasFirstToken) controller.enqueue(encoder.encode(' '))
+          if (!pipelineDone) {
+            try { controller.enqueue(encoder.encode(' ')) } catch { /* closed */ }
+          }
         }, 5000)
+
         try {
-          for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              hasFirstToken = true
-              accumulated += chunk.delta.text
-              controller.enqueue(encoder.encode(chunk.delta.text))
-            } else if (chunk.type === 'message_delta' && chunk.delta.stop_reason === 'max_tokens') {
-              wasTruncated = true
+          // 1. First pass — full non-streaming generation.
+          const firstPass = await anthropic.messages.create({
+            model:       MODEL,
+            max_tokens:  maxTokens,
+            temperature: TEMPERATURE,
+            system:      systemBlocks,
+            messages:    [{ role: 'user', content: userContent }],
+          })
+          const firstText = extractText(firstPass)
+          const truncated = firstPass.stop_reason === 'max_tokens'
+
+          // 2. Evaluate. Truncated drafts are never gated — they get returned
+          //    with the truncation marker so the client can surface it.
+          let finalText = firstText
+          let cacheable = !truncated && firstText.trim().length > 0
+
+          if (!truncated && firstText.trim().length > 0) {
+            const gate = await evaluateSection({
+              generatedText: firstText,
+              chartContext:  userContent,
+              section,
+              planetSection,
+            })
+
+            // 3. Repair once if the gate fails AND we have budget for it.
+            const elapsedMs = Date.now() - startedAt
+            const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
+
+            if (!gate.pass && gate.critique && haveBudget) {
+              try {
+                const repaired = await repairSection({
+                  originalUserContent: userContent,
+                  systemBlocks,
+                  failedDraft:         firstText,
+                  critique:            gate.critique,
+                  maxTokens,
+                  model:               MODEL,
+                })
+                if (repaired.trim().length > 0) {
+                  finalText = repaired
+                }
+              } catch (repairErr) {
+                // Repair failed — fall back to the first pass. Log but don't
+                // break the user-facing response.
+                console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
+                // First pass still ships, but don't cache a known-failed draft.
+                cacheable = false
+              }
+            } else if (!gate.pass && gate.critique && !haveBudget) {
+              // Out of budget for a repair — ship the first pass but don't
+              // cache it, so the next request gets a fresh attempt.
+              cacheable = false
+              console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
             }
           }
-          if (wasTruncated) {
+
+          // 4. Emit final text (and truncation marker if present), then cache
+          //    only the validated, complete version.
+          pipelineDone = true
+          controller.enqueue(encoder.encode(finalText))
+          if (truncated) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
           controller.close()
+
+          if (cacheable && finalText.trim().length > 0) {
+            await setCachedReading(cacheKey, finalText)
+          }
         } catch (err) {
-          streamErrored = true
-          // Surface a sanitised sentinel to the client — never leak internal error text.
+          pipelineDone = true
           try {
             controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()
-          } catch { /* stream already closed or client disconnected */ }
-          console.error('Stream error in /api/reading:', err instanceof Error ? err.message : err)
+          } catch { /* already closed */ }
+          console.error('Reading generation error:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
-          if (!streamErrored && !wasTruncated && accumulated.trim()) {
-            await setCachedReading(cacheKey, accumulated)
-          }
         }
       }
     })

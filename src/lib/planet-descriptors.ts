@@ -59,6 +59,11 @@ export const TROPICAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
     name: 'Pluto',
     keywords: 'concentrated power · irreversible change · compulsion · what cannot stay surface-level',
     description: `Pluto governs the domain of concentrated power and irreversible change — where surface-level treatment fails and the underlying psychological structure must be directly encountered. Its house placement shows where compulsion, intensity, and transformation tend to concentrate over a lifetime. A Pluto placement is not inherently destructive; it is inherently unable to remain at surface level indefinitely.`
+  },
+  Nodes: {
+    name: 'The Lunar Nodes',
+    keywords: 'developmental axis · what the self reaches into · what it learns to set down',
+    description: `The lunar nodes describe the psychological direction of growth in this lifetime — not a karmic verdict, but a structural pull along which the constructed identity stretches and matures. Rahu (North Node) names the unfamiliar territory the self is drawn toward, often awkwardly and with risk of overreach; Ketu (South Node) names the over-developed competence the self leans on by default. The nodal axis is the one psychological coordinate that names a direction inside the chart rather than a static placement.`
   }
 }
 

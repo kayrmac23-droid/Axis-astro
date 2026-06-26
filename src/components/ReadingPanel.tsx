@@ -27,6 +27,11 @@ const SECTION_TIMEOUT_MS = 50_000
 
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
+  // Match nodes before individual planet names so "Rahu and Ketu" / "The Lunar Nodes"
+  // doesn't get caught by a generic planet substring further down.
+  if (h.includes('node') || h.includes('rahu') || h.includes('ketu')) {
+    return section === 'tropical' ? 'Nodes' : null
+  }
   if (h.includes('sun')) return 'Sun'
   if (h.includes('moon')) return 'Moon'
   if (h.includes('mercury')) return 'Mercury'
@@ -109,7 +114,7 @@ function parseReading(text: string, section: string): Block[] {
 }
 
 const PLANET_SECTIONS = {
-  tropical: ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects'],
+  tropical: ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
   sidereal: ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
   synthesis: ['agree', 'diverge', 'tension', 'closing']
 }
