@@ -50,12 +50,9 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 const READING_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
 
 // ── Quality-gate budget ────────────────────────────────────────────────────────
-// Wall-clock budget after first pass + eval beyond which we skip the repair pass.
-// The repair is a full regeneration (~15–25s), so it must only start when it can
-// still finish inside the 60s maxDuration ceiling — otherwise the function is
-// killed mid-repair and the reader gets a hard failure. 36s leaves headroom for
-// the slowest repairs to land before the cap.
-const REPAIR_SKIP_THRESHOLD_MS = 36_000
+// Wall-clock budget after first pass + eval beyond which we skip the repair pass
+// to stay under maxDuration. Tunable; conservative for the 60s ceiling.
+const REPAIR_SKIP_THRESHOLD_MS = 42_000
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -240,18 +237,10 @@ export async function POST(req: NextRequest) {
     ]
 
     // ── Quality-gated generation pipeline ──────────────────────────────────────
-    // The reader only ever sees gate-approved prose: a non-streaming first pass
-    // is evaluated and, if it falls short, rewritten from the evaluator's
-    // critique BEFORE any text is sent. The response is still a stream so the
-    // connection stays warm via 5s whitespace pings, but the actual reading is
-    // emitted in one piece once the gate is satisfied — never a raw draft.
-    //
-    // Timing: first pass + eval + repair must land inside the 60s maxDuration
-    // ceiling. The repair only starts when there is budget left for it to finish
-    // (REPAIR_SKIP_THRESHOLD_MS); when there isn't, the first pass ships instead,
-    // so the function always returns before the cap rather than being killed.
-    // The client timeout sits above this ceiling so the browser never aborts a
-    // reading the server is still about to deliver.
+    // Wraps first-pass + evaluator + optional repair in a streaming response so
+    // the connection stays warm via 5s whitespace pings, but no text reaches the
+    // client until the validated (or repaired) version is ready. Caching only
+    // happens after the gate passes — failed first drafts are never persisted.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
