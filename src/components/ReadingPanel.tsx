@@ -23,11 +23,7 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Integration',
 }
 
-// Sits above the API route's 60s maxDuration ceiling so the browser always
-// gives the server its full budget to finish a gated (evaluate + repair)
-// section. A lower client timeout was aborting readings the server was still
-// about to deliver, surfacing as "timed out. Please retry."
-const SECTION_TIMEOUT_MS = 65_000
+const SECTION_TIMEOUT_MS = 50_000
 
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
