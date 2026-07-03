@@ -210,7 +210,15 @@ export async function POST(req: NextRequest) {
       const dualB      = calculateDualChart(birthB!)
       const synData    = buildSynastryData(dualA, dualB)
       const synBlock   = formatSynastryBlock(synData, planetSection)
-      userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
+      // For composite-focused sections, append an elite chart block for the
+      // composite so the model has dignity labels, chart ruler, and direction
+      // — data the position table in formatSynastryBlock doesn't include.
+      if (planetSection === 'composite_chart' || planetSection === 'integration') {
+        const compositeEliteBlock = formatEliteChartBlock(synData.composite, 'tropical')
+        userContent = `${synBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${compositeEliteBlock}\n\n---\n\n${sectionInstruction}`
+      } else {
+        userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
+      }
     } else if (section === 'tropical') {
       const dual       = calculateDualChart(birthData!)
       const ctxBlock   = buildInterpretationContext(dual, 'tropical', planetSection)
