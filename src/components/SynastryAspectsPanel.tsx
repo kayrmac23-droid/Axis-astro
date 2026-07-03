@@ -6,9 +6,11 @@ interface Props {
   data: SynastryData
 }
 
+// ︎ (variation selector-15) forces flat text rendering instead of emoji.
+const VS = '︎'
 const PLANET_SYMBOLS: Record<string, string> = {
-  Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂',
-  Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇',
+  Sun: `☉${VS}`, Moon: `☽${VS}`, Mercury: `☿${VS}`, Venus: `♀${VS}`, Mars: `♂${VS}`,
+  Jupiter: `♃${VS}`, Saturn: `♄${VS}`, Uranus: `♅${VS}`, Neptune: `♆${VS}`, Pluto: `♇${VS}`,
 }
 
 const ASPECT_LABELS: Record<AspectType, string> = {
@@ -59,7 +61,7 @@ export default function SynastryAspectsPanel({ data }: Props) {
       <div className={styles.compositeBar}>
         <span className={styles.compositeLabel}>Composite</span>
         <span className={styles.compositePlacements}>
-          ☉ {compSun?.sign ?? '—'} · ☽ {compMoon?.sign ?? '—'} · ↑ {data.composite.ascendantSign}
+          {'☉︎'} {compSun?.sign ?? '—'} · {'☽︎'} {compMoon?.sign ?? '—'} · {'↑︎'} {data.composite.ascendantSign}
         </span>
         <span className={styles.compositeCount}>
           {interAspects.length} inter-aspect{interAspects.length !== 1 ? 's' : ''}
