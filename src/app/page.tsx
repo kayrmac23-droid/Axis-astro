@@ -12,13 +12,10 @@ import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
 
-type ActiveSection = 'tropical' | 'sidereal' | 'synthesis'
-
 export default function Home() {
   const router = useRouter()
   const [chartData, setChartData] = useState<DualChartData | null>(null)
   const [readingReady, setReadingReady] = useState(false)
-  const [activeSection, setActiveSection] = useState<ActiveSection>('tropical')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
@@ -56,7 +53,6 @@ export default function Home() {
       const data: DualChartData = await res.json()
       capture('calculate_success', { pluto_source: data.plutoSource })
       setChartData(data)
-      setActiveSection('tropical')
       setTimeout(() => {
         readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       }, 300)
@@ -120,7 +116,7 @@ export default function Home() {
         <div className={styles.loadingState}>
           <div className={styles.loadingOrb} />
           <p className={styles.loadingText}>Aligning dual map</p>
-          <p className={styles.loadingSubText}>Resolving coordinates · calculating houses · preparing synthesis</p>
+          <p className={styles.loadingSubText}>Resolving coordinates · calculating houses · preparing both charts</p>
         </div>
       )}
 
@@ -130,62 +126,30 @@ export default function Home() {
           <DossierHeader chartData={chartData} displayLocation={displayLocation} />
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal chart</p>
-            {activeSection === 'tropical' && (
-              <div className={styles.wheelSingle}>
+            {/* Both wheels always visible (DOCTRINE.md: CO-VISIBILITY).
+                A unified dual-ring wheel (outer Tropical, inner Sidereal,
+                offset by the true ayanamsa) replaces this in a later pass. */}
+            <div className={styles.wheelPair}>
+              <div className={styles.wheelItem}>
                 <p className={styles.wheelLabel}>Tropical</p>
                 <ChartWheel chart={chartData.tropical} />
               </div>
-            )}
-            {activeSection === 'sidereal' && (
-              <div className={styles.wheelSingle}>
+              <div className={styles.wheelDivider}>
+                <svg width="1" height="240" viewBox="0 0 1 240">
+                  <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
+                </svg>
+              </div>
+              <div className={styles.wheelItem}>
                 <p className={styles.wheelLabel}>Sidereal</p>
                 <ChartWheel chart={chartData.sidereal} />
               </div>
-            )}
-            {activeSection === 'synthesis' && (
-              <div className={styles.wheelPair}>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Tropical</p>
-                  <ChartWheel chart={chartData.tropical} />
-                </div>
-                <div className={styles.wheelDivider}>
-                  <svg width="1" height="240" viewBox="0 0 1 240">
-                    <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                  </svg>
-                </div>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Sidereal</p>
-                  <ChartWheel chart={chartData.sidereal} />
-                </div>
-              </div>
-            )}
+            </div>
           </section>
-          <ChartFactsPanel data={chartData} activeSection={activeSection} />
-          <div className={styles.tabBar}>
-            <button
-              className={`${styles.tab} ${activeSection === 'tropical' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('tropical')}
-            >
-              <span className={styles.tabLabel}>Tropical</span>
-              <span className={styles.tabSub}>the self you know</span>
-            </button>
-            <button
-              className={`${styles.tab} ${activeSection === 'sidereal' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('sidereal')}
-            >
-              <span className={styles.tabLabel}>Sidereal</span>
-              <span className={styles.tabSub}>the self beneath</span>
-            </button>
-            <button
-              className={`${styles.tab} ${activeSection === 'synthesis' ? styles.tabActive : ''}`}
-              onClick={() => setActiveSection('synthesis')}
-            >
-              <span className={styles.tabLabel}>Synthesis</span>
-              <span className={styles.tabSub}>concordance · dissonance · the gap</span>
-            </button>
-          </div>
+          {/* 'synthesis' here is the component's dual-display mode identifier,
+              not a rendered label — it shows both systems' columns at once */}
+          <ChartFactsPanel data={chartData} activeSection="synthesis" />
           {readingReady && (
-            <ReadingPanel chartData={chartData} section={activeSection} />
+            <ReadingPanel chartData={chartData} />
           )}
           <div className={styles.resetRow}>
             <button
