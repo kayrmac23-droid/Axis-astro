@@ -1,17 +1,61 @@
 .panel { padding: 4rem 0; }
 
-/* ─── Header ──────────────────────────────────────── */
-.readingHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding-bottom: 2.5rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 4rem;
-  gap: 2rem;
+/* ─── Layout ──────────────────────────────────────────
+   Tropical and Sidereal side by side, hairline divider
+   between them; The Gap full-width below both.
+   (DOCTRINE.md: CO-VISIBILITY)                          */
+.systemsGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  align-items: stretch;
+  /* Breakout: two comfortable prose measures need more than the
+     960px chrome column. Clipped by the page's overflow-x hidden. */
+  width: min(1320px, calc(100vw - 3rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
 }
 
-.readingMeta { display: flex; flex-direction: column; gap: 0.4rem; }
+.columnDivider {
+  width: 1px;
+  background: var(--border);
+}
+
+/* Raised surface behind long-form prose only — radius 0, no shadow
+   (DOCTRINE.md: READING SURFACE EXCEPTION) */
+.readingColumn {
+  background: var(--reading-surface);
+  padding: 2.8rem 2.4rem 3.5rem;
+  min-width: 0;
+}
+
+.gapSection {
+  width: min(1320px, calc(100vw - 3rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+  margin-top: 4rem;
+  border-top: 1px solid var(--border);
+}
+
+.gapSection .readingBody { margin-inline: auto; }
+
+/* ─── Header ──────────────────────────────────────── */
+.metaStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 3rem;
+}
+
+.columnHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-bottom: 1.6rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2.5rem;
+}
 
 .readingTitle {
   font-family: var(--font-editorial);
@@ -31,14 +75,6 @@
   text-transform: uppercase;
   color: var(--fg-3);
   margin-top: 0.3rem;
-}
-
-.chartSummary {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  text-align: right;
-  flex-shrink: 0;
 }
 
 .summaryGroup { display: flex; flex-direction: column; gap: 0.15rem; }
@@ -205,8 +241,11 @@
   padding: 2.5rem 0;
 }
 
-/* ─── Reading body ────────────────────────────────── */
-.readingBody { max-width: 680px; }
+/* ─── Reading body ────────────────────────────────────
+   Prose measure ~65ch, line-height ≥ 1.6, body type sized
+   for sustained reading (DOCTRINE.md: READING SURFACE
+   EXCEPTION).                                            */
+.readingBody { max-width: 65ch; }
 
 .readingText { display: flex; flex-direction: column; gap: 0; }
 
@@ -415,10 +454,29 @@
   line-height: 1.6;
 }
 
+/* ─── Stacked columns ─────────────────────────────── */
+@media (max-width: 900px) {
+  .systemsGrid {
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+  .columnDivider {
+    width: 100%;
+    height: 1px;
+  }
+  .gapSection {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+}
+
 /* ─── Mobile ──────────────────────────────────────── */
 @media (max-width: 640px) {
-  .readingHeader { flex-direction: column; }
-  .chartSummary { text-align: left; }
+  .metaStrip { gap: 1.5rem; }
+  .readingColumn { padding: 2rem 1.4rem 2.5rem; }
   .paragraph { font-size: 1rem; }
   .planetHeading { font-size: 1.55rem; }
   .infoText { font-size: 0.92rem; }

@@ -466,57 +466,6 @@
   flex-shrink: 0;
 }
 
-/* ─── Tab Bar ─────────────────────────────────────── */
-.tabBar {
-  display: flex;
-  border-bottom: 1px solid var(--border);
-}
-
-.tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 1.8rem 1rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--fg-3);
-  margin-bottom: -1px;
-}
-
-.tab:hover {
-  color: var(--fg-2);
-  background: rgba(200, 120, 64, 0.03);
-}
-
-.tabActive {
-  color: var(--copper);
-  border-bottom-color: var(--copper);
-}
-
-.tabActive .tabLabel {
-  text-shadow: 0 0 12px rgba(255, 192, 48, 0.35);
-}
-
-.tabLabel {
-  font-family: var(--font-editorial);
-  font-size: 1.2rem;
-  font-weight: 400;
-  font-style: italic;
-}
-
-.tabSub {
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  opacity: 0.6;
-}
-
 /* ─── Actions ─────────────────────────────────────── */
 .resetRow {
   display: flex;
@@ -736,7 +685,7 @@
 
 /* ─── Print ───────────────────────────────────────── */
 @media print {
-  .header, .wheelSection, .tabBar, .resetRow, .footer {
+  .header, .wheelSection, .resetRow, .footer {
     display: none !important;
   }
   .readingLayout { padding: 0; max-width: 100%; }
@@ -779,7 +728,6 @@
   .heroHeadline { font-size: 2rem; }
   .wheelPair { flex-direction: column; gap: 3rem; }
   .wheelDivider { display: none; }
-  .tabLabel { font-size: 1rem; }
   .header {
     grid-template-columns: 1fr;
     gap: 0.5rem;

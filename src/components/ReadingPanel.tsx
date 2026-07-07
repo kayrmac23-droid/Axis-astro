@@ -7,20 +7,21 @@ import { capture } from '@/lib/analytics'
 
 interface ReadingPanelProps {
   chartData: DualChartData
-  section: 'tropical' | 'sidereal' | 'synthesis'
 }
 
+// 'synthesis' survives here as the internal reading-type identifier only
+// (cache keys, API contract). Everything rendered says "The Gap". DOCTRINE.md: NAMING.
 const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
   tropical: { title: 'Tropical Reading', subtitle: 'Western · the self you know' },
   sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic · the self beneath' },
-  synthesis: { title: 'AXIS Synthesis', subtitle: 'Convergence & Divergence' }
+  synthesis: { title: 'The Gap', subtitle: 'concordance · dissonance · the distance between' }
 }
 
 const SECTION_DISPLAY: Record<string, string> = {
   sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', mercury: 'Mercury',
   venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
-  agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Integration',
+  agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Gap',
 }
 
 const SECTION_TIMEOUT_MS = 50_000
@@ -48,10 +49,10 @@ function getDescriptorKey(heading: string, section: string): string | null {
 
 function getSynthesisKey(heading: string): string | null {
   const h = heading.toLowerCase()
-  if (h.includes('agree')) return 'agree'
+  if (h.includes('agree') || h.includes('negotiable')) return 'agree'
   if (h.includes('diverge')) return 'diverge'
   if (h.includes('central tension')) return 'tension'
-  if (h === 'integration' || h.includes('integration')) return 'closing'
+  if (h.includes('living the gap') || h.includes('integration')) return 'closing'
   return null
 }
 
@@ -123,7 +124,7 @@ type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
 type TabStatus = 'pending' | 'loading' | 'done' | 'failed'
 type SystemSection = 'tropical' | 'sidereal' | 'synthesis'
 
-export default function ReadingPanel({ chartData, section }: ReadingPanelProps) {
+export default function ReadingPanel({ chartData }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
   const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({
     tropical: 'pending',
@@ -402,13 +403,6 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
     }
   }, [chartData])
 
-  const currentStatus    = tabStatus[section]
-  const currentError     = tabErrors[section]
-  const currentText      = readings[section] || ''
-  const isStreaming      = streamingTab === section
-  const label            = SECTION_LABELS[section]
-  const blocks           = currentText ? parseReading(currentText, section) : []
-  const descriptors      = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
   const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
 
   const sunT  = chartData.tropical.planets.find(p => p.name === 'Sun')
@@ -416,7 +410,162 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
   const sunS  = chartData.sidereal.planets.find(p => p.name === 'Sun')
   const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
-  const currentSections = PLANET_SECTIONS[section]
+  // Renders one reading section's header, progress, states, and prose blocks.
+  // Tropical and Sidereal render side by side; the gap section renders below both.
+  const renderSection = (section: SystemSection) => {
+    const currentStatus   = tabStatus[section]
+    const currentError    = tabErrors[section]
+    const currentText     = readings[section] || ''
+    const isStreaming     = streamingTab === section
+    const label           = SECTION_LABELS[section]
+    const blocks          = currentText ? parseReading(currentText, section) : []
+    const descriptors     = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
+    const currentSections = PLANET_SECTIONS[section]
+
+    return (
+      <>
+        <div className={styles.columnHeader}>
+          <h2 className={styles.readingTitle}>{label.title}</h2>
+          <p className={styles.readingSubtitle}>{label.subtitle}</p>
+        </div>
+
+        {/* Planet-section progress bar — visible while this section is actively streaming */}
+        {isStreaming && currentStatus === 'loading' && (
+          <div className={styles.sectionProgress} aria-label="Section loading progress">
+            {currentSections.map(s => {
+              const state = sectionStates[s] ?? 'pending'
+              return (
+                <span
+                  key={s}
+                  className={`${styles.sectionChip} ${styles[`chip_${state}`]}`}
+                  aria-label={`${SECTION_DISPLAY[s] ?? s}: ${state}`}
+                >
+                  {SECTION_DISPLAY[s] ?? s}
+                  {state === 'done'   && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
+                  {state === 'failed' && <span className={styles.chipFail}  aria-hidden="true"> ✕</span>}
+                </span>
+              )
+            })}
+          </div>
+        )}
+
+        <div className={styles.readingBody}>
+
+          {/* Section-level error */}
+          {currentError && (
+            <div className={styles.sectionErrorBlock}>
+              <p className={styles.sectionErrorLabel}>Section Unavailable</p>
+              <p className={styles.sectionErrorMsg}>
+                This section could not be generated. Check your connection and retry.
+              </p>
+              <button className={styles.retrySectionBtn} onClick={() => retrySection(section)}>
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Pending — waiting for earlier sections to stream */}
+          {!currentError && currentStatus === 'pending' && (
+            <div className={styles.generating}>
+              <div className={styles.generatingOrbit} />
+              <p className={styles.generatingText}>
+                {section === 'sidereal'
+                  ? 'Sidereal reading begins after Tropical'
+                  : section === 'synthesis'
+                    ? 'The Gap is read after and below both'
+                    : 'Preparing reading'}
+              </p>
+            </div>
+          )}
+
+          {/* Loading — this section is actively streaming */}
+          {!currentError && currentStatus === 'loading' && !currentText && (
+            <div className={styles.generating}>
+              <div className={styles.generatingOrbit} />
+              <p className={styles.generatingText}>
+                {activePlanetSection && isStreaming
+                  ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
+                  : 'Interpreting chart'}
+              </p>
+            </div>
+          )}
+
+          {/* Content blocks */}
+          {blocks.length > 0 && (
+            <div className={styles.readingText}>
+              {blocks.map((block, i) => {
+                if (block.type === 'sectionFailed') {
+                  const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
+                    || 'This section could not be generated.'
+                  return (
+                    <div key={i} className={styles.sectionErrorBlock}>
+                      <p className={styles.sectionErrorLabel}>Section Unavailable</p>
+                      <p className={styles.sectionErrorMsg}>
+                        {errMsg} Check your connection and retry.
+                      </p>
+                      <button
+                        className={styles.retrySectionBtn}
+                        onClick={() => retryPlanetSection(section, block.planetSection)}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  )
+                }
+
+                if (block.type === 'sectionLoading') {
+                  return (
+                    <div key={i} className={styles.sectionLoadingBlock}>
+                      <div className={styles.generatingOrbit} />
+                    </div>
+                  )
+                }
+
+                if (block.type === 'subheading') {
+                  return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
+                }
+
+                if (block.type === 'heading') {
+                  const descriptor = block.descriptorKey
+                    ? section === 'synthesis'
+                      ? SYNTHESIS_DESCRIPTORS[block.descriptorKey as keyof typeof SYNTHESIS_DESCRIPTORS]
+                      : (descriptors as Record<string, { name: string; keywords: string; description: string }>)[block.descriptorKey]
+                    : null
+
+                  return (
+                    <div key={i} className={styles.sectionBlock}>
+                      <h3 className={styles.planetHeading}>{block.content}</h3>
+                      {descriptor && (
+                        <div className={styles.infoBox}>
+                          <p className={styles.infoKeywords}>
+                            {'keywords' in descriptor ? descriptor.keywords : ''}
+                          </p>
+                          {'description' in descriptor && (
+                            <p className={styles.infoText}>{descriptor.description}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                }
+
+                return (
+                  <p
+                    key={i}
+                    className={styles.paragraph}
+                    style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}
+                  >
+                    {block.content}
+                  </p>
+                )
+              })}
+              {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
+            </div>
+          )}
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className={styles.panel}>
@@ -425,43 +574,34 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         {liveStatus}
       </div>
 
-      <div className={styles.readingHeader}>
-        <div className={styles.readingMeta}>
-          <h2 className={styles.readingTitle}>{label.title}</h2>
-          <p className={styles.readingSubtitle}>{label.subtitle}</p>
+      {/* Shared chart meta — both systems always visible (DOCTRINE.md: CO-VISIBILITY) */}
+      <div className={styles.metaStrip}>
+        <div className={styles.summaryGroup}>
+          <span className={styles.summarySystem}>Tropical</span>
+          <span className={styles.summaryPlacements}>
+            {'☉︎'} {sunT?.sign} · {'☽︎'} {moonT?.sign} · {'↑︎'} {chartData.tropical.ascendantSign}
+          </span>
         </div>
-        <div className={styles.chartSummary}>
-          {section !== 'sidereal' && (
-            <div className={styles.summaryGroup}>
-              <span className={styles.summarySystem}>Tropical</span>
-              <span className={styles.summaryPlacements}>
-                {'☉︎'} {sunT?.sign} · {'☽︎'} {moonT?.sign} · {'↑︎'} {chartData.tropical.ascendantSign}
-              </span>
-            </div>
-          )}
-          {section !== 'tropical' && (
-            <div className={styles.summaryGroup}>
-              <span className={styles.summarySystem}>Sidereal</span>
-              <span className={styles.summaryPlacements}>
-                {'☉︎'} {sunS?.sign} · {'☽︎'} {moonS?.sign} · {'↑︎'} {chartData.sidereal.ascendantSign}
-              </span>
-            </div>
-          )}
-          {chartData.plutoSource && (
-            <div className={styles.summaryGroup}>
-              <span className={styles.summarySystem}>Pluto ephemeris</span>
-              <span className={
-                chartData.plutoSource === 'local-meeus'
-                  ? styles.ephemerisFallback
-                  : styles.ephemerisSource
-              }>
-                {chartData.plutoSource === 'local-meeus'
-                  ? '⚠ local fallback (~15–60 arcmin)'
-                  : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
-              </span>
-            </div>
-          )}
+        <div className={styles.summaryGroup}>
+          <span className={styles.summarySystem}>Sidereal</span>
+          <span className={styles.summaryPlacements}>
+            {'☉︎'} {sunS?.sign} · {'☽︎'} {moonS?.sign} · {'↑︎'} {chartData.sidereal.ascendantSign}
+          </span>
         </div>
+        {chartData.plutoSource && (
+          <div className={styles.summaryGroup}>
+            <span className={styles.summarySystem}>Pluto ephemeris</span>
+            <span className={
+              chartData.plutoSource === 'local-meeus'
+                ? styles.ephemerisFallback
+                : styles.ephemerisSource
+            }>
+              {chartData.plutoSource === 'local-meeus'
+                ? '⚠ local fallback (~15–60 arcmin)'
+                : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
+            </span>
+          </div>
+        )}
       </div>
 
       {birthTimeUnknown && (
@@ -473,140 +613,23 @@ export default function ReadingPanel({ chartData, section }: ReadingPanelProps) 
         </div>
       )}
 
-      {/* Planet-section progress bar — visible while this tab is actively streaming */}
-      {isStreaming && currentStatus === 'loading' && (
-        <div className={styles.sectionProgress} aria-label="Section loading progress">
-          {currentSections.map(s => {
-            const state = sectionStates[s] ?? 'pending'
-            return (
-              <span
-                key={s}
-                className={`${styles.sectionChip} ${styles[`chip_${state}`]}`}
-                aria-label={`${SECTION_DISPLAY[s] ?? s}: ${state}`}
-              >
-                {SECTION_DISPLAY[s] ?? s}
-                {state === 'done'   && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
-                {state === 'failed' && <span className={styles.chipFail}  aria-hidden="true"> ✕</span>}
-              </span>
-            )
-          })}
-        </div>
-      )}
-
-      <div className={styles.readingBody}>
-
-        {/* Tab-level error */}
-        {currentError && (
-          <div className={styles.sectionErrorBlock}>
-            <p className={styles.sectionErrorLabel}>Section Unavailable</p>
-            <p className={styles.sectionErrorMsg}>
-              This section could not be generated. Check your connection and retry.
-            </p>
-            <button className={styles.retrySectionBtn} onClick={() => retrySection(section)}>
-              Retry
-            </button>
-          </div>
-        )}
-
-        {/* Pending — waiting for earlier sections to stream */}
-        {!currentError && currentStatus === 'pending' && (
-          <div className={styles.generating}>
-            <div className={styles.generatingOrbit} />
-            <p className={styles.generatingText}>
-              {section === 'sidereal'
-                ? 'Sidereal reading begins after Tropical'
-                : section === 'synthesis'
-                  ? 'Synthesis begins after Tropical & Sidereal'
-                  : 'Preparing reading'}
-            </p>
-          </div>
-        )}
-
-        {/* Loading — this tab is actively streaming */}
-        {!currentError && currentStatus === 'loading' && !currentText && (
-          <div className={styles.generating}>
-            <div className={styles.generatingOrbit} />
-            <p className={styles.generatingText}>
-              {activePlanetSection && isStreaming
-                ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
-                : 'Interpreting chart'}
-            </p>
-          </div>
-        )}
-
-        {/* Content blocks */}
-        {blocks.length > 0 && (
-          <div className={styles.readingText}>
-            {blocks.map((block, i) => {
-              if (block.type === 'sectionFailed') {
-                const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
-                  || 'This section could not be generated.'
-                return (
-                  <div key={i} className={styles.sectionErrorBlock}>
-                    <p className={styles.sectionErrorLabel}>Section Unavailable</p>
-                    <p className={styles.sectionErrorMsg}>
-                      {errMsg} Check your connection and retry.
-                    </p>
-                    <button
-                      className={styles.retrySectionBtn}
-                      onClick={() => retryPlanetSection(section, block.planetSection)}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                )
-              }
-
-              if (block.type === 'sectionLoading') {
-                return (
-                  <div key={i} className={styles.sectionLoadingBlock}>
-                    <div className={styles.generatingOrbit} />
-                  </div>
-                )
-              }
-
-              if (block.type === 'subheading') {
-                return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
-              }
-
-              if (block.type === 'heading') {
-                const descriptor = block.descriptorKey
-                  ? section === 'synthesis'
-                    ? SYNTHESIS_DESCRIPTORS[block.descriptorKey as keyof typeof SYNTHESIS_DESCRIPTORS]
-                    : (descriptors as Record<string, { name: string; keywords: string; description: string }>)[block.descriptorKey]
-                  : null
-
-                return (
-                  <div key={i} className={styles.sectionBlock}>
-                    <h3 className={styles.planetHeading}>{block.content}</h3>
-                    {descriptor && (
-                      <div className={styles.infoBox}>
-                        <p className={styles.infoKeywords}>
-                          {'keywords' in descriptor ? descriptor.keywords : ''}
-                        </p>
-                        {'description' in descriptor && (
-                          <p className={styles.infoText}>{descriptor.description}</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              }
-
-              return (
-                <p
-                  key={i}
-                  className={styles.paragraph}
-                  style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}
-                >
-                  {block.content}
-                </p>
-              )
-            })}
-            {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
-          </div>
-        )}
+      {/* Tropical and Sidereal side by side — neither hidden while the other shows.
+          The long-form prose columns take the raised reading surface
+          (DOCTRINE.md: READING SURFACE EXCEPTION); all chrome stays on the void. */}
+      <div className={styles.systemsGrid}>
+        <section className={styles.readingColumn} aria-label="Tropical reading">
+          {renderSection('tropical')}
+        </section>
+        <div className={styles.columnDivider} aria-hidden="true" />
+        <section className={styles.readingColumn} aria-label="Sidereal reading">
+          {renderSection('sidereal')}
+        </section>
       </div>
+
+      {/* The Gap — full width, after and below both systems */}
+      <section className={`${styles.readingColumn} ${styles.gapSection}`} aria-label="The Gap reading">
+        {renderSection('synthesis')}
+      </section>
     </div>
   )
 }

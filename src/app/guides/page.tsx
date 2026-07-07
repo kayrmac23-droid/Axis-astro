@@ -45,10 +45,10 @@ export default function GuidesPage() {
 
         <section className={styles.section}>
           <p className={styles.kicker}>The reason AXIS exists</p>
-          <h2 className={styles.sectionTitle}>Synthesis — the gap that doesn&apos;t close</h2>
+          <h2 className={styles.sectionTitle}>The Gap — the reading that doesn&apos;t close</h2>
           <p className={styles.body}>
             Most tools would try to average the two systems into one tidy answer. AXIS does
-            the opposite. The Synthesis reading finds where both charts agree — the part of
+            the opposite. The Gap reading finds where both charts agree — the part of
             you that is least negotiable — and then names exactly where they pull apart. That
             divergence is not an error to be resolved; it is the most informative thing in the
             chart. The closing movement describes how you live inside that gap, not how the
@@ -62,7 +62,7 @@ export default function GuidesPage() {
           <p className={styles.body}>
             Start with Tropical to meet the familiar self. Move to Sidereal to feel the layer
             underneath — note especially any planet that changed signs between the two. Then
-            read the Synthesis, which assumes you have already read both. The point is never
+            read The Gap, which assumes you have already read both. The point is never
             to decide which chart is &ldquo;true.&rdquo; Both are. The truth you are looking
             for lives in the tension between them.
           </p>

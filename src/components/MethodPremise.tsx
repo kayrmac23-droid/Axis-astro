@@ -37,11 +37,11 @@ const MethodPremise = forwardRef<HTMLElement, {}>((_, ref) => {
         <div className={styles.card}>
           <div className={`${styles.rule} ${styles.ruleSynthesis}`} />
           <p className={`${styles.systemTitle} ${styles.titleSynthesis}`}>
-            <span className={styles.cyanDot} /> AXIS Synthesis
+            <span className={styles.cyanDot} /> The Gap
           </p>
-          <p className={styles.role}>The gap.</p>
+          <p className={styles.role}>The reading that doesn&apos;t close.</p>
           <p className={styles.desc}>
-            AXIS reads where the two systems agree, where they contradict, and what the contradiction asks you to integrate.
+            AXIS reads where the two systems agree, where they contradict, and how you live inside the distance between them.
           </p>
         </div>
       </div>

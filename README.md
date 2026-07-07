@@ -1,6 +1,6 @@
 # AXIS — Dual-System Astrology
 
-> *Tropical maps the psychological architecture of a self. Sidereal maps the incarnational conditions it navigates. The synthesis is where both truths meet.*
+> *Tropical maps the psychological architecture of a self. Sidereal maps the incarnational conditions it navigates. The Gap is the distance between them — AXIS holds it open.*
 
 Live: [axis-astro.vercel.app](https://axis-astro.vercel.app)
 
@@ -8,13 +8,13 @@ Live: [axis-astro.vercel.app](https://axis-astro.vercel.app)
 
 ## What it is
 
-AXIS generates natal chart readings using both the Western Tropical and Vedic Sidereal zodiac systems simultaneously — then synthesises them into a unified interpretive framework.
+AXIS generates natal chart readings using both the Western Tropical and Vedic Sidereal zodiac systems simultaneously — and never merges them. The two systems disagree by the ayanamsa (~23.85°), and that disagreement is the product: AXIS computes both charts in full and holds open the distance between them. Divergence is not noise to be averaged out; it is the most informative part of the chart.
 
-Most astrology apps pick one system. AXIS treats them as complementary maps of different layers of a person:
+Most astrology apps pick one system. AXIS treats them as two maps of different layers of a person that do not resolve into one picture:
 
 - **Tropical** — the symbolic architecture of conscious identity: how the psychological self has been organised through experience, relationships, and self-construction. Ego structure, relational patterns, cognitive style, the shape of a person's defences.
 - **Sidereal** — incarnational patterning: the body, circumstances, and inherited tendencies a person arrived with; karmic emphases, deep instinctive orientations, and the time-conditioned unfolding of a life. Not fate — the specific terrain.
-- **Synthesis** — the only question that matters: how does this particular psychological interior navigate these particular incarnational conditions? Where both systems converge, the insight is load-bearing. Where they diverge, that is the specific terrain of this person's life.
+- **The Gap** — the third reading, and the reason AXIS exists: how does this particular psychological interior navigate these particular incarnational conditions? Where both systems point at the same theme, the insight is load-bearing. Where they diverge, the reading names the gap exactly and lets it stand — the divergence is the specific terrain of this person's life, not an error to be reconciled.
 
 AXIS is written for readers who take astrology seriously — students of the technical literature, therapy-adjacent practitioners, those formed by the contemplative traditions. The interpretive vocabulary assumes a working understanding of both the Tropical and Sidereal frameworks before arriving. The chart is read once at depth rather than re-explained across a daily push notification.
 
@@ -96,6 +96,7 @@ AXIS uses a restrained dark-void palette. Copper is the primary emphasis colour 
 | `--bg` | `#030212` | Page base |
 | `--surface` | `#090820` | Panels and form surfaces |
 | `--surface-2` | `#0F0E2C` | Raised cards |
+| `--reading-surface` | `#061230` | Raised surface behind long-form reading prose only (see DOCTRINE.md) |
 | `--text` | `#EAE8F8` | Primary star-white text |
 | `--text-2` | `#A8A4C8` | Body support text |
 | `--text-3` | `#9490C4` | Labels and metadata |
@@ -132,7 +133,7 @@ src/
 │   ├── ReadingPanel.tsx         — streaming reading display with per-section retry
 │   ├── SynastryReadingPanel.tsx — streaming reading display for synastry sections
 │   ├── SynastryAspectsPanel.tsx — inter-aspect table for two charts
-│   ├── AxisTensionSummary.tsx   — synthesis tension callout panel
+│   ├── AxisTensionSummary.tsx   — central-tension callout panel for The Gap
 │   ├── DossierHeader.tsx        — per-chart dossier header with key placements
 │   ├── SiteHeader.tsx           — top navigation bar
 │   ├── MethodologyStrip.tsx     — compact methodology disclosure strip
@@ -144,7 +145,7 @@ src/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v10.1; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v10.2; SHARED_RULES prompt-cached)
     ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
     ├── reading-quality-gate.ts  — post-generation evaluator + single repair pass for readings
     ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
@@ -174,7 +175,7 @@ Each reading passes through a server-side **quality gate** (`lib/reading-quality
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
-3. **Synthesis** — Concordance, Divergence, Central Tension, Integration. The synthesis context block includes thematic convergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis.
+3. **The Gap** (internal reading-type identifier: `synthesis`, kept for cache-key stability) — Concordance, Divergence, Central Tension, Living the Gap. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
 4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. For the composite-focused sections (`composite_chart`, `integration`), an elite chart block for the composite — dignity labels, chart ruler, and direction — is appended to the prompt context alongside the position table. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
 
 ---
@@ -264,7 +265,7 @@ This section describes what is hardened now and what requires distributed infras
 
 - [ ] Swiss Ephemeris for Pluto (requires dedicated compute layer outside Vercel)
 - [ ] Monetisation gate — free chart generation, paid ongoing access
-- [ ] Guides page — how to read each system, what the synthesis means
+- [ ] Guides page — how to read each system, what The Gap means
 - [ ] Dasha timeline view — visualise active Jyotish planetary periods
-- [ ] Compatibility synthesis — dual-system chart overlay for two people
+- [ ] Compatibility gap reading — dual-system chart overlay for two people
 - [ ] Save / share reading — persistent URL for generated readings

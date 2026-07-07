@@ -13,6 +13,10 @@
   --surface-2: #0F0E2C;
   --surface-3: #16153A;
 
+  /* Raised surface behind long-form reading prose only (DOCTRINE.md:
+     READING SURFACE EXCEPTION) — chrome and the wheel stay on the void. */
+  --reading-surface: #061230;
+
   /* ── Borders ──────────────────────────────────────── */
   --border:        #1A1940;
   --border-2:      #282660;
