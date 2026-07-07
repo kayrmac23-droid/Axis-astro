@@ -67,7 +67,7 @@ function WhyTwoSystems() {
 
             <div className={styles.equalsSign}>=</div>
 
-            {/* AXIS Synthesis */}
+            {/* The AXIS reading — both charts plus the gap, never merged */}
             <div className={`${styles.systemCard} ${styles.synthesisCard}`}>
               <div className={styles.miniWheel}>
                 <svg viewBox="-60 -60 120 120" width="80" height="80">
@@ -82,8 +82,8 @@ function WhyTwoSystems() {
                   <circle cx="0" cy="0" r="6" fill="rgba(184,115,51,0.8)"/>
                 </svg>
               </div>
-              <p className={`${styles.systemCardLabel} ${styles.synthesisLabel}`}>AXIS Synthesis</p>
-              <p className={styles.systemCardSub}>The complete picture<br/>The truth of you</p>
+              <p className={`${styles.systemCardLabel} ${styles.synthesisLabel}`}>The AXIS Reading</p>
+              <p className={styles.systemCardSub}>Both charts, held apart<br/>The distance made legible</p>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@ function SampleReading() {
       <div className={styles.sampleInner}>
         <div className={styles.sampleLeft}>
           <p className={styles.sectionLabel}>Sample Reading</p>
-          <h2 className={styles.sectionHeadline}>Two perspectives.<br/>One synthesis.</h2>
+          <h2 className={styles.sectionHeadline}>Two perspectives.<br/>The gap between.</h2>
           <p className={styles.sectionBody}>
             See how AXIS brings clarity to the parts of your chart that never seemed to make sense—until now.
           </p>
@@ -136,13 +136,13 @@ function SampleReading() {
               <p className={styles.cardDesc}>Your mind seeks variety, but your soul seeks stability. Inner tension creates confusion.</p>
             </div>
             <div className={styles.sampleArrow}>→</div>
-            {/* Card 4 — Synthesis */}
+            {/* Card 4 — The Gap */}
             <div className={`${styles.sampleCard} ${styles.sampleCardSynthesis}`}>
-              <p className={styles.cardTag}>AXIS Synthesis</p>
+              <p className={styles.cardTag}>The Gap</p>
               <p className={styles.cardTagSub}>&nbsp;</p>
               <div className={styles.cardIcon}>✦</div>
-              <p className={styles.cardPlanet}>The Truth</p>
-              <p className={styles.cardDesc}>You&apos;re here to bridge flexibility with consistency—communicate with purpose and build what truly lasts.</p>
+              <p className={styles.cardPlanet}>The Distance</p>
+              <p className={styles.cardDesc}>Your mind&apos;s variety and your soul&apos;s stability never merge into one instruction. AXIS names exactly where they pull apart—and how you live between them.</p>
             </div>
           </div>
         </div>
@@ -160,7 +160,7 @@ function Testimonials() {
       initial: "J",
     },
     {
-      quote: "The synthesis reading was like a mirror. It connected so many dots for me.",
+      quote: "The Gap reading was like a mirror. It connected so many dots for me.",
       name: "Liam, 34",
       initial: "L",
     },
@@ -211,8 +211,8 @@ function HowItWorks() {
     },
     {
       num: '3.',
-      title: 'Receive Your Synthesis',
-      desc: 'Get your dual-perspective reading and discover your truth.',
+      title: 'Read The Gap',
+      desc: 'Get both readings in full—then the third, which names the distance between them.',
       icon: '✦',
     },
   ]
@@ -263,7 +263,7 @@ function SiteFooter() {
 
         {/* CTA */}
         <div className={styles.footerCta}>
-          <p className={styles.footerCtaHeadline}>Ready to see the whole picture?</p>
+          <p className={styles.footerCtaHeadline}>Ready to read the distance?</p>
           <Link href="/#get-reading" className={styles.footerCtaBtn}>Get Your Reading &nbsp;→</Link>
         </div>
 

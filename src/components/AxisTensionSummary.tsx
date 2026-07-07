@@ -21,7 +21,7 @@ export default function AxisTensionSummary({ chartData: _chartData }: AxisTensio
       <div className={styles.pillRow}>
         <span className={`${styles.pill} ${styles.pillConcordance}`}>Concordance</span>
         <span className={`${styles.pill} ${styles.pillDivergence}`}>Divergence</span>
-        <span className={`${styles.pill} ${styles.pillIntegration}`}>Integration</span>
+        <span className={`${styles.pill} ${styles.pillIntegration}`}>Living the Gap</span>
       </div>
     </div>
   )

@@ -147,7 +147,7 @@ export const SYNTHESIS_DESCRIPTORS = {
   agree: {
     title: 'Where the Systems Agree',
     keywords: 'structural convergence · load-bearing truths',
-    description: `Concordance — where both charts point to the same psychological theme — is the most certain, least negotiable part of a person's character. These placements hold regardless of which astrological framework is used. They are the bedrock of the synthesis: the things that cannot be explained away by system differences.`
+    description: `Concordance — where both charts point to the same psychological theme — is the most certain, least negotiable part of a person's character. These placements hold regardless of which astrological framework is used. They are the narrow, fixed ground: the things that cannot be explained away by system differences.`
   },
   diverge: {
     title: 'Where the Systems Diverge',
@@ -160,8 +160,8 @@ export const SYNTHESIS_DESCRIPTORS = {
     description: `The central tension is the single friction that makes this person specifically this person rather than a type. It is not a list of challenges — it is the one thing that runs through everything, visible only when both charts are held together. Neither system shows it fully alone.`
   },
   closing: {
-    title: 'Integration',
-    keywords: 'final precision · what holds across both systems',
-    description: `The integration names the precise causal chain: how the Tropical psychological architecture functions as the specific mechanism through which the Sidereal karmic trajectory is actually lived. The final observation is the sharpest in the reading — something true that has probably been felt but never articulated.`
+    title: 'Living the Gap',
+    keywords: 'final precision · how the distance is inhabited',
+    description: `The closing names how this person actually lives inside the distance between the Tropical psychological architecture and the Sidereal karmic trajectory — a gap that does not close. The final observation is the sharpest in the reading — something true that has probably been felt but never articulated.`
   }
 }

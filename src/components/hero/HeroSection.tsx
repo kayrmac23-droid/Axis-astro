@@ -19,10 +19,10 @@ export default function HeroSection({ onCreateClick, onSampleClick }: HeroSectio
         <div className={styles.heroLeft}>
           <h2 className={styles.headline}>
             TWO SYSTEMS.<br />
-            <span className={styles.headlineAccent}>ONE TRUTH.</span>
+            <span className={styles.headlineAccent}>ONE GAP.</span>
           </h2>
           <p className={styles.body}>
-            AXIS merges Tropical and Sidereal astrology to reveal the full story of who you are—your psyche, your karma, your purpose.
+            AXIS reads Tropical and Sidereal astrology side by side—your psyche, your karma—and holds open the distance between them. The gap is where the reading lives.
           </p>
           <div className={styles.actions}>
             <button className={styles.primaryBtn} onClick={onCreateClick}>
