@@ -32,17 +32,6 @@ export default function HeroSection({ onCreateClick, onSampleClick }: HeroSectio
               See How It Works &nbsp;↓
             </button>
           </div>
-          <div className={styles.socialProof}>
-            <div className={styles.avatarRow} aria-hidden="true">
-              {['J','L','M','A','R'].map((initial, i) => (
-                <div key={i} className={styles.avatar} style={{ zIndex: 5 - i }}>{initial}</div>
-              ))}
-            </div>
-            <p className={styles.socialProofText}>
-              Join 50,000+ seekers<br />
-              <span className={styles.socialProofSub}>exploring their true blueprint</span>
-            </p>
-          </div>
         </div>
 
         {/* Right: chart wheel */}
