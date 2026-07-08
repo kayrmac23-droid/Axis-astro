@@ -139,50 +139,6 @@
   border-color: var(--text-2);
 }
 
-/* ─── Social proof ────────────────────────────────── */
-.socialProof {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.avatarRow {
-  display: flex;
-  flex-direction: row;
-}
-
-.avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--surface-3);
-  border: 1.5px solid var(--border-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 0.5rem;
-  color: var(--copper-light);
-  margin-left: -6px;
-  position: relative;
-}
-
-.avatar:first-child { margin-left: 0; }
-
-.socialProofText {
-  font-family: var(--font-mono);
-  font-size: 0.58rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-2);
-  line-height: 1.5;
-  margin: 0;
-}
-
-.socialProofSub {
-  color: var(--text-3);
-}
-
 /* ─── Right: wheel ────────────────────────────────── */
 .heroRight {
   display: flex;
@@ -281,7 +237,6 @@
   }
   .body { max-width: 100%; }
   .actions { justify-content: center; }
-  .socialProof { justify-content: center; }
   .wheelWrap { max-width: 320px; }
   .wheelLabelSidereal { right: 0; }
 }

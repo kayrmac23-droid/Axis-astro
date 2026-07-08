@@ -151,49 +151,6 @@ function SampleReading() {
   )
 }
 
-/* ─── Testimonials Section ────────────────────────── */
-function Testimonials() {
-  const testimonials = [
-    {
-      quote: "This explained contradictions I've felt in my chart for years. I finally feel seen.",
-      name: "Jessica, 29",
-      initial: "J",
-    },
-    {
-      quote: "The Gap reading was like a mirror. It connected so many dots for me.",
-      name: "Liam, 34",
-      initial: "L",
-    },
-    {
-      quote: "I've tried everything. AXIS is the only reading that felt actually complete.",
-      name: "Maya, 26",
-      initial: "M",
-    },
-  ]
-  return (
-    <section className={styles.testimonialsSection}>
-      <div className={styles.testimonialsInner}>
-        <div className={styles.testimonialsLeft}>
-          <p className={styles.sectionLabel}>Real People. Real Clarity.</p>
-          <h2 className={styles.sectionHeadline}>It finally<br/>makes sense.</h2>
-        </div>
-        <div className={styles.testimonialsRight}>
-          {testimonials.map((t, i) => (
-            <div key={i} className={styles.testimonialCard}>
-              <span className={styles.quoteGlyph}>&ldquo;</span>
-              <p className={styles.testimonialQuote}>{t.quote}&rdquo;</p>
-              <div className={styles.testimonialAuthor}>
-                <div className={styles.testimonialAvatar}>{t.initial}</div>
-                <p className={styles.testimonialName}>{t.name}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
-
 /* ─── How It Works Section ────────────────────────── */
 function HowItWorks() {
   const steps = [
@@ -301,7 +258,6 @@ export default function LandingPage() {
     <>
       <WhyTwoSystems />
       <SampleReading />
-      <Testimonials />
       <HowItWorks />
       <SiteFooter />
     </>
