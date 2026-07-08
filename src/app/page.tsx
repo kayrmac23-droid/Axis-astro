@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import BirthForm from '@/components/BirthForm'
-import ChartWheel from '@/components/ChartWheel'
+import DualChartWheel from '@/components/DualChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
 import HeroSection from '@/components/hero/HeroSection'
@@ -126,23 +126,12 @@ export default function Home() {
           <DossierHeader chartData={chartData} displayLocation={displayLocation} />
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal chart</p>
-            {/* Both wheels always visible (DOCTRINE.md: CO-VISIBILITY).
-                A unified dual-ring wheel (outer Tropical, inner Sidereal,
-                offset by the true ayanamsa) replaces this in a later pass. */}
-            <div className={styles.wheelPair}>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Tropical</p>
-                <ChartWheel chart={chartData.tropical} />
-              </div>
-              <div className={styles.wheelDivider}>
-                <svg width="1" height="240" viewBox="0 0 1 240">
-                  <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                </svg>
-              </div>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Sidereal</p>
-                <ChartWheel chart={chartData.sidereal} />
-              </div>
+            {/* One wheel, both systems co-visible (DOCTRINE.md: CO-VISIBILITY).
+                Outer ring: Tropical. Inner ring: Sidereal. Both plot in one
+                shared frame, so a planet's two positions sit the true ayanamsa
+                apart — tap a planet and the arc renders that distance. */}
+            <div className={styles.wheelSingle}>
+              <DualChartWheel data={chartData} size={420} />
             </div>
           </section>
           {/* 'synthesis' here is the component's dual-display mode identifier,

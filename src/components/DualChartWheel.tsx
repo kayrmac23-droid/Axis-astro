@@ -106,10 +106,9 @@ function fmtDeg(deg: number): string {
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
-type Selection = { planet: PlanetPosition; system: 'tropical' | 'sidereal' } | null
-
 export default function DualChartWheel({ data, size = 360, orient = 'tropical' }: DualChartWheelProps) {
-  const [selected, setSelected] = useState<Selection>(null)
+  // Selection is by planet NAME — one tap lights the planet in BOTH systems.
+  const [selectedName, setSelectedName] = useState<string | null>(null)
 
   const cx = size / 2
   const cy = size / 2
@@ -133,11 +132,21 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
   const tropPlanets = spreadPlanets(data.tropical.planets)
   const sidPlanets  = spreadPlanets(data.sidereal.planets)
 
-  // Ascendant ticks for both systems (they differ by the ayanamsa).
+  // Angle ticks for both systems (they differ by the ayanamsa). The MC is its
+  // own angle — never collapsed into the Whole Sign 10th-house cusp.
   const acTrop = zodiacAngle(data.tropical.ascendant)
   const acSid  = zodiacAngle(data.sidereal.ascendant)
+  const mcTrop = zodiacAngle(data.tropical.midheaven)
+  const mcSid  = zodiacAngle(data.sidereal.midheaven)
 
-  const selectedDignity = selected ? getDignityLabel(selected.planet.name, selected.planet.sign) : ''
+  // The selected planet, resolved in BOTH systems — the pair is the point.
+  const selT = selectedName ? tropPlanets.find(p => p.name === selectedName) ?? null : null
+  const selS = selectedName ? sidPlanets.find(p => p.name === selectedName) ?? null : null
+  // Tropical minus sidereal longitude: the ayanamsa, rendered per planet.
+  const gapDelta = selT && selS ? ((selT.longitude - selS.longitude) + 360) % 360 : 0
+  const signShifted = !!(selT && selS && selT.sign !== selS.sign)
+  const tropDignity = selT ? getDignityLabel(selT.name, selT.sign) : ''
+  const sidDignity  = selS ? getDignityLabel(selS.name, selS.sign) : ''
 
   function renderPlanetRing(
     planets: Array<PlanetPosition & { radialOffset: number; angularNudge: number }>,
@@ -150,24 +159,25 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
       const r      = baseR + planet.radialOffset
       const pos    = polarToCartesian(cx, cy, r, angle)
       const symbol = PLANET_SYMBOLS[planet.name] || planet.name[0]
-      const isSel  = selected?.planet.name === planet.name && selected?.system === system
-      const label  = `${system} ${planet.name} in ${planet.sign} ${fmtDeg(planet.degree)}, house ${planet.house}${planet.retrograde ? ', retrograde' : ''}`
+      const isSel  = selectedName === planet.name
+      const label  = `${system} ${planet.name} in ${planet.sign} ${fmtDeg(planet.degree)}, house ${planet.house}${planet.retrograde ? ', retrograde' : ''}. Selecting highlights this planet in both systems.`
 
       return (
         <g
           key={`${system}-${planet.name}`}
-          style={{ cursor: 'pointer' }}
+          opacity={selectedName && !isSel ? 0.4 : 1}
+          style={{ cursor: 'pointer', transition: 'opacity 160ms ease' }}
           role="button"
           tabIndex={0}
           aria-label={label}
           aria-pressed={isSel}
-          onClick={(e) => { e.stopPropagation(); setSelected({ planet, system }) }}
+          onClick={(e) => { e.stopPropagation(); setSelectedName(isSel ? null : planet.name) }}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault(); e.stopPropagation()
-              setSelected(isSel ? null : { planet, system })
+              setSelectedName(isSel ? null : planet.name)
             }
-            if (e.key === 'Escape') { e.stopPropagation(); setSelected(null) }
+            if (e.key === 'Escape') { e.stopPropagation(); setSelectedName(null) }
           }}
         >
           <circle cx={pos.x} cy={pos.y} r={9 * k} fill="transparent" />
@@ -190,7 +200,7 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: size }} onClick={() => setSelected(null)}>
+    <div style={{ position: 'relative', width: '100%', maxWidth: size }} onClick={() => setSelectedName(null)}>
       <svg
         width="100%"
         viewBox={`0 0 ${size} ${size}`}
@@ -201,7 +211,8 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
         <title id="dualwheel-title">Dual-system natal bi-wheel — Tropical and Sidereal</title>
         <desc id="dualwheel-desc">
           {`Outer ring (Tropical): ${data.tropical.planets.map(p => `${p.name} ${p.sign}`).join(', ')}. ` +
-           `Inner ring (Sidereal): ${data.sidereal.planets.map(p => `${p.name} ${p.sign}`).join(', ')}.`}
+           `Inner ring (Sidereal): ${data.sidereal.planets.map(p => `${p.name} ${p.sign}`).join(', ')}. ` +
+           'Selecting a planet highlights both of its positions; the connecting arc spans the ayanamsa gap between them.'}
         </desc>
 
         <defs>
@@ -275,10 +286,12 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
           )
         })}
 
-        {/* Ascendant ticks — both systems, on the sign band */}
+        {/* Angle ticks — Ascendant and Midheaven for both systems, on the sign band */}
         {[
           { angle: acTrop, color: SYSTEM_COLOR.tropical, label: 'AC' },
           { angle: acSid,  color: SYSTEM_COLOR.sidereal, label: 'ac' },
+          { angle: mcTrop, color: SYSTEM_COLOR.tropical, label: 'MC' },
+          { angle: mcSid,  color: SYSTEM_COLOR.sidereal, label: 'mc' },
         ].map((ac, i) => {
           const tIn  = polarToCartesian(cx, cy, signBandInner - 1, ac.angle)
           const tOut = polarToCartesian(cx, cy, signBandOuter, ac.angle)
@@ -297,6 +310,34 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
         {/* Planet rings: Tropical (outer) + Sidereal (inner) */}
         {renderPlanetRing(tropPlanets, outerPlanetR, 'tropical')}
         {renderPlanetRing(sidPlanets, innerPlanetR, 'sidereal')}
+
+        {/* The selected planet, bridged across both systems — the arc IS the gap. */}
+        {selT && selS && (() => {
+          const aT = zodiacAngle(selT.longitude + selT.angularNudge)
+          const aS = zodiacAngle(selS.longitude + selS.angularNudge)
+          const d  = ((aS - aT + 540) % 360) - 180
+          const aM = aT + d / 2
+          const pT = polarToCartesian(cx, cy, ringDivider, aT)
+          const pS = polarToCartesian(cx, cy, ringDivider, aS)
+          const gT = polarToCartesian(cx, cy, outerPlanetR + selT.radialOffset - 8 * k, aT)
+          const gS = polarToCartesian(cx, cy, innerPlanetR + selS.radialOffset + 8 * k, aS)
+          const lbl = polarToCartesian(cx, cy, ringDivider - 11 * k, aM)
+          const arc = `M ${pT.x} ${pT.y} A ${ringDivider} ${ringDivider} 0 0 ${d > 0 ? 1 : 0} ${pS.x} ${pS.y}`
+          return (
+            <g pointerEvents="none">
+              <line x1={gT.x} y1={gT.y} x2={pT.x} y2={pT.y} stroke={SYSTEM_COLOR.tropical} strokeWidth={0.7} strokeOpacity={0.65} />
+              <line x1={gS.x} y1={gS.y} x2={pS.x} y2={pS.y} stroke={SYSTEM_COLOR.sidereal} strokeWidth={0.7} strokeOpacity={0.65} />
+              <path d={arc} fill="none" stroke="#FFC030" strokeWidth={3 * k} strokeOpacity={0.16} strokeLinecap="round" />
+              <path d={arc} fill="none" stroke="#FFC030" strokeWidth={1.1 * k} strokeOpacity={0.92} strokeLinecap="round" />
+              <circle cx={pT.x} cy={pT.y} r={1.7 * k} fill={SYSTEM_COLOR.tropical} />
+              <circle cx={pS.x} cy={pS.y} r={1.7 * k} fill={SYSTEM_COLOR.sidereal} />
+              <text x={lbl.x} y={lbl.y} textAnchor="middle" dominantBaseline="central"
+                fontSize={6.5 * k} fill="#FFC030" opacity={0.95} fontFamily="Space Mono, monospace" letterSpacing="0.06em">
+                {`Δ ${fmtDeg(gapDelta)}`}
+              </text>
+            </g>
+          )
+        })()}
 
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#dual-coreGlow)" />
@@ -318,39 +359,62 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
           Sidereal · inner
         </span>
       </div>
+      <p style={{
+        textAlign: 'center', margin: '6px 0 0', fontFamily: 'Space Mono, monospace',
+        fontSize: 10, letterSpacing: '0.08em', color: 'rgba(231,227,240,0.45)',
+      }}>
+        tap a planet — the arc is the gap
+      </p>
 
-      {/* Placement tooltip */}
-      {selected && (
+      {/* Placement card — both positions, then the distance between them */}
+      {selT && selS && (
         <div
           onClick={(e) => e.stopPropagation()}
           style={{
-            position: 'absolute', top: 8, right: 8, minWidth: 150,
+            position: 'absolute', top: 8, right: 8, minWidth: 190, maxWidth: 232,
             padding: '10px 12px', borderRadius: 10,
             background: 'rgba(12,12,22,0.94)',
-            border: `1px solid ${SYSTEM_COLOR[selected.system]}55`,
-            color: '#E7E3F0', fontFamily: 'Space Mono, monospace', fontSize: 12, lineHeight: 1.5,
+            border: '1px solid rgba(255,192,48,0.38)',
+            color: '#E7E3F0', fontFamily: 'Space Mono, monospace', fontSize: 12, lineHeight: 1.55,
             boxShadow: '0 8px 24px rgba(0,0,0,0.45)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 16, fontFamily: 'serif', color: SYSTEM_COLOR[selected.system] }}>
-              {PLANET_SYMBOLS[selected.planet.name] || selected.planet.name[0]}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ fontSize: 16, fontFamily: 'serif', color: '#FFC030' }}>
+              {PLANET_SYMBOLS[selT.name] || selT.name[0]}
             </span>
-            <strong>{selected.planet.name}</strong>
-            <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.7, textTransform: 'uppercase', color: SYSTEM_COLOR[selected.system] }}>
-              {selected.system}
-            </span>
+            <strong>{selT.name}</strong>
+            {selT.retrograde && <span style={{ fontSize: 10, opacity: 0.75 }}>℞ retrograde</span>}
           </div>
-          <div>{selected.planet.sign} {fmtDeg(selected.planet.degree)}</div>
-          <div>House {selected.planet.house}</div>
-          {selectedDignity && <div style={{ color: SYSTEM_COLOR[selected.system] }}>{selectedDignity}</div>}
-          <div>{selected.planet.retrograde ? 'Retrograde ℞' : 'Direct'}</div>
-          {selected.planet.nakshatra && (
-            <div>{selected.planet.nakshatra} Pada {selected.planet.nakshatraPada}</div>
+          <div style={{ color: SYSTEM_COLOR.tropical }}>
+            <span style={{ fontSize: 9, opacity: 0.8, letterSpacing: '0.08em' }}>TROPICAL&nbsp;&nbsp;</span>
+            {selT.sign} {fmtDeg(selT.degree)} · H{selT.house}
+          </div>
+          {tropDignity && (
+            <div style={{ fontSize: 10, color: SYSTEM_COLOR.tropical, opacity: 0.75 }}>{tropDignity}</div>
           )}
+          <div style={{ color: SYSTEM_COLOR.sidereal }}>
+            <span style={{ fontSize: 9, opacity: 0.8, letterSpacing: '0.08em' }}>SIDEREAL&nbsp;&nbsp;</span>
+            {selS.sign} {fmtDeg(selS.degree)} · H{selS.house}
+          </div>
+          {sidDignity && (
+            <div style={{ fontSize: 10, color: SYSTEM_COLOR.sidereal, opacity: 0.75 }}>{sidDignity}</div>
+          )}
+          {selS.nakshatra && (
+            <div style={{ fontSize: 10, color: SYSTEM_COLOR.sidereal, opacity: 0.75 }}>
+              {selS.nakshatra} · Pada {selS.nakshatraPada}
+            </div>
+          )}
+          <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid rgba(255,192,48,0.25)', color: '#FFC030' }}>
+            <span style={{ fontSize: 9, opacity: 0.8, letterSpacing: '0.08em' }}>THE GAP&nbsp;&nbsp;</span>
+            Δ {fmtDeg(gapDelta)}
+            <div style={{ fontSize: 10, opacity: 0.85 }}>
+              {signShifted ? `${selT.sign} → ${selS.sign}` : `holds ${selT.sign}`}
+            </div>
+          </div>
           <button
             aria-label="Close planet details"
-            onClick={() => setSelected(null)}
+            onClick={() => setSelectedName(null)}
             style={{
               position: 'absolute', top: 4, right: 6, background: 'none', border: 'none',
               color: '#E7E3F0', opacity: 0.6, cursor: 'pointer', fontSize: 14, lineHeight: 1,
