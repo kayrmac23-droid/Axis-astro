@@ -10,18 +10,18 @@ interface ReadingPanelProps {
 }
 
 // 'synthesis' survives here as the internal reading-type identifier only
-// (cache keys, API contract). Everything rendered says "The Gap". DOCTRINE.md: NAMING.
+// (cache keys, API contract). Everything rendered says "The Divergence". DOCTRINE.md: NAMING.
 const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
   tropical: { title: 'Tropical Reading', subtitle: 'Western · the self you know' },
   sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic · the self beneath' },
-  synthesis: { title: 'The Gap', subtitle: 'concordance · dissonance · the distance between' }
+  synthesis: { title: 'The Divergence', subtitle: 'concordance · dissonance · where the two systems part' }
 }
 
 const SECTION_DISPLAY: Record<string, string> = {
   sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', mercury: 'Mercury',
   venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
-  agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Gap',
+  agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
 
 const SECTION_TIMEOUT_MS = 50_000
@@ -50,9 +50,9 @@ function getDescriptorKey(heading: string, section: string): string | null {
 function getSynthesisKey(heading: string): string | null {
   const h = heading.toLowerCase()
   if (h.includes('agree') || h.includes('negotiable')) return 'agree'
-  if (h.includes('diverge')) return 'diverge'
+  if (h.includes('where they part') || h.includes('diverge')) return 'diverge'
   if (h.includes('central tension')) return 'tension'
-  if (h.includes('living the gap') || h.includes('integration')) return 'closing'
+  if (h.includes('living the') || h.includes('integration')) return 'closing'
   return null
 }
 
@@ -411,7 +411,7 @@ export default function ReadingPanel({ chartData }: ReadingPanelProps) {
   const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
   // Renders one reading section's header, progress, states, and prose blocks.
-  // Tropical and Sidereal render side by side; the gap section renders below both.
+  // Tropical and Sidereal render side by side; the divergence section renders below both.
   const renderSection = (section: SystemSection) => {
     const currentStatus   = tabStatus[section]
     const currentError    = tabErrors[section]
@@ -472,7 +472,7 @@ export default function ReadingPanel({ chartData }: ReadingPanelProps) {
                 {section === 'sidereal'
                   ? 'Sidereal reading begins after Tropical'
                   : section === 'synthesis'
-                    ? 'The Gap is read after and below both'
+                    ? 'The Divergence is read after and below both'
                     : 'Preparing reading'}
               </p>
             </div>
@@ -626,8 +626,8 @@ export default function ReadingPanel({ chartData }: ReadingPanelProps) {
         </section>
       </div>
 
-      {/* The Gap — full width, after and below both systems */}
-      <section className={`${styles.readingColumn} ${styles.gapSection}`} aria-label="The Gap reading">
+      {/* The Divergence — full width, after and below both systems */}
+      <section className={`${styles.readingColumn} ${styles.divergenceSection}`} aria-label="The Divergence reading">
         {renderSection('synthesis')}
       </section>
     </div>

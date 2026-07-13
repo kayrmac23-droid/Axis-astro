@@ -25,7 +25,7 @@ const MAX_TOKENS_PER_SECTION: Record<string, number> = {
   mercury: 1500, venus: 1500, mars: 1500,
   jupiter_saturn: 1800, rahu_ketu: 1500,
   key_aspects: 1200,
-  // Synthesis
+  // The Divergence (legacy 'synthesis' key)
   agree: 2500, diverge: 2500, tension: 1800, closing: 2000,
   // Synastry
   luminaries: 2500, venus_mars: 1800, outer_planets: 1800, composite_chart: 2000, integration: 2000, navigation: 2000,

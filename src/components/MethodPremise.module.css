@@ -35,7 +35,7 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--s-6);
   width: 100%;
   max-width: 1200px;
@@ -44,6 +44,19 @@
 .card {
   background: var(--surface);
   padding: var(--s-8);
+  border: var(--bd-hair) solid var(--border);
+  border-radius: var(--r-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+/* The Divergence — full-width band beneath the two systems, not a sibling column */
+.divergenceBand {
+  width: 100%;
+  max-width: 1200px;
+  margin-top: var(--s-6);
+  padding: var(--s-8);
+  background: var(--surface);
   border: var(--bd-hair) solid var(--border);
   border-radius: var(--r-sm);
   position: relative;
@@ -60,7 +73,7 @@
 
 .ruleTropical { background-color: var(--text); }
 .ruleSidereal { background-color: var(--violet); }
-.ruleSynthesis { background-color: var(--copper); }
+.ruleDivergence { background-color: var(--copper); }
 
 .systemTitle {
   font-family: var(--font-mono);
@@ -72,15 +85,7 @@
 
 .titleTropical { color: var(--text); }
 .titleSidereal { color: var(--text-3); }
-.titleSynthesis { color: var(--copper); display: flex; align-items: center; gap: 6px; }
-
-.cyanDot {
-  width: 4px;
-  height: 4px;
-  background-color: var(--cyan);
-  border-radius: 50%;
-  display: inline-block;
-}
+.titleDivergence { color: var(--copper-bright); }
 
 .role {
   font-family: var(--font-display);

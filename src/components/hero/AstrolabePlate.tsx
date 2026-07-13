@@ -52,15 +52,15 @@ export default function AstrolabePlate() {
 
       {/* Outer band: TROPICAL ZODIAC */}
       <g className={styles.outerBand} aria-hidden="true">
-        <circle cx="0" cy="0" r="160" fill="none" stroke="var(--copper)" strokeWidth="1" />
-        <circle cx="0" cy="0" r="120" fill="none" stroke="var(--copper)" strokeWidth="1" />
+        <circle cx="0" cy="0" r="160" fill="none" stroke="var(--copper-bright)" strokeWidth="1" />
+        <circle cx="0" cy="0" r="120" fill="none" stroke="var(--copper-bright)" strokeWidth="1" />
         {ZODIAC_SIGNS.map((_, i) => {
           const rad = (i * 30 - 90) * Math.PI / 180
           return (
             <line key={`outer-div-${i}`}
                   x1={Math.cos(rad) * 120} y1={Math.sin(rad) * 120}
                   x2={Math.cos(rad) * 160} y2={Math.sin(rad) * 160}
-                  stroke="var(--copper)" strokeWidth="0.5" />
+                  stroke="var(--copper-bright)" strokeWidth="0.5" />
           )
         })}
         {ZODIAC_SIGNS.map((sign, i) => {
@@ -74,7 +74,7 @@ export default function AstrolabePlate() {
                   x={Math.cos(rad) * 140} y={Math.sin(rad) * 140}
                   textAnchor="middle" dominantBaseline="central"
                   fill="var(--copper-light)"
-                  fontFamily="var(--font-display, Cinzel, serif)" fontSize="14">
+                  fontFamily="var(--font-serif, serif)" fontSize="14">
               {sign.glyph}
             </text>
           )
@@ -97,15 +97,15 @@ export default function AstrolabePlate() {
       {/* Inner band: SIDEREAL ZODIAC. Lahiri offset (-23.85°) lives in @keyframes,
           not in a transform attribute here. */}
       <g className={styles.innerBand} aria-hidden="true">
-        <circle cx="0" cy="0" r="110" fill="none" stroke="var(--copper)" strokeWidth="1" />
-        <circle cx="0" cy="0" r="75" fill="none" stroke="var(--copper)" strokeWidth="1" />
+        <circle cx="0" cy="0" r="110" fill="none" stroke="var(--copper-bright)" strokeWidth="1" />
+        <circle cx="0" cy="0" r="75" fill="none" stroke="var(--copper-bright)" strokeWidth="1" />
         {ZODIAC_SIGNS.map((_, i) => {
           const rad = (i * 30 - 90) * Math.PI / 180
           return (
             <line key={`inner-div-${i}`}
                   x1={Math.cos(rad) * 75} y1={Math.sin(rad) * 75}
                   x2={Math.cos(rad) * 110} y2={Math.sin(rad) * 110}
-                  stroke="var(--copper)" strokeWidth="0.4" />
+                  stroke="var(--copper-bright)" strokeWidth="0.4" />
           )
         })}
         {ZODIAC_SIGNS.map((sign, i) => {
@@ -115,7 +115,7 @@ export default function AstrolabePlate() {
                   x={Math.cos(rad) * 92} y={Math.sin(rad) * 92}
                   textAnchor="middle" dominantBaseline="central"
                   fill="var(--copper-light)"
-                  fontFamily="var(--font-display, Cinzel, serif)" fontSize="10"
+                  fontFamily="var(--font-serif, serif)" fontSize="10"
                   opacity="0.9">
               {sign.glyph}
             </text>
@@ -125,8 +125,8 @@ export default function AstrolabePlate() {
 
       {/* Central armature: cross axes + diamond compass star */}
       <g className={styles.armature} aria-hidden="true">
-        <line x1="-65" y1="0" x2="65" y2="0" stroke="var(--copper)" strokeWidth="0.5" />
-        <line x1="0" y1="-65" x2="0" y2="65" stroke="var(--copper)" strokeWidth="0.5" />
+        <line x1="-65" y1="0" x2="65" y2="0" stroke="var(--copper-bright)" strokeWidth="0.5" />
+        <line x1="0" y1="-65" x2="0" y2="65" stroke="var(--copper-bright)" strokeWidth="0.5" />
         <polygon points="0,-30 8,0 0,30 -8,0" fill="none"
                  stroke="var(--copper-light)" strokeWidth="0.9" />
         <polygon points="0,-15 4,0 0,15 -4,0" fill="var(--copper)" opacity="0.55" />

@@ -58,11 +58,11 @@
 }
 
 .tooltipName {
-  font-family: var(--font-display, 'Cinzel', serif);
+  font-family: var(--font-mono, 'Courier New', monospace);
   font-size: 0.56rem;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--copper);
+  color: var(--copper-bright);
 }
 
 .tooltipRow {

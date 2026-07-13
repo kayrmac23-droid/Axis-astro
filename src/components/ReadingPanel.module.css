@@ -2,7 +2,7 @@
 
 /* ─── Layout ──────────────────────────────────────────
    Tropical and Sidereal side by side, hairline divider
-   between them; The Gap full-width below both.
+   between them; The Divergence full-width below both.
    (DOCTRINE.md: CO-VISIBILITY)                          */
 .systemsGrid {
   display: grid;
@@ -28,7 +28,7 @@
   min-width: 0;
 }
 
-.gapSection {
+.divergenceSection {
   width: min(1320px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
@@ -36,7 +36,7 @@
   border-top: 1px solid var(--border);
 }
 
-.gapSection .readingBody { margin-inline: auto; }
+.divergenceSection .readingBody { margin-inline: auto; }
 
 /* ─── Header ──────────────────────────────────────── */
 .metaStrip {
@@ -466,7 +466,7 @@
     width: 100%;
     height: 1px;
   }
-  .gapSection {
+  .divergenceSection {
     width: 100%;
     margin-left: 0;
     transform: none;

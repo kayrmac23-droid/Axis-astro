@@ -102,7 +102,7 @@
   text-align: center;
 }
 
-.synthesisCard {
+.axisCard {
   border-color: var(--copper-border);
   background: rgba(184, 115, 51, 0.06);
 }
@@ -122,7 +122,7 @@
   margin: 0;
 }
 
-.synthesisLabel {
+.axisLabel {
   color: var(--copper-bright);
 }
 
@@ -135,7 +135,7 @@
   text-align: center;
 }
 
-.gapCard {
+.divergenceCard {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -145,22 +145,22 @@
   text-align: center;
 }
 
-.gapStar {
+.divergenceStar {
   font-size: 1.4rem;
   color: var(--copper);
   opacity: 0.6;
 }
 
-.gapLabel {
+.divergenceLabel {
   font-family: var(--font-mono);
   font-size: 0.55rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--copper);
+  color: var(--copper-bright);
   margin: 0;
 }
 
-.gapSub {
+.divergenceSub {
   font-family: var(--font-serif);
   font-size: 0.72rem;
   color: var(--text-3);
@@ -222,7 +222,7 @@
   flex: 1;
 }
 
-.sampleCardSynthesis {
+.sampleCardDivergence {
   border-color: var(--copper-border);
   background: rgba(184, 115, 51, 0.06);
 }
@@ -429,9 +429,11 @@
 }
 
 .footerTagline {
-  font-family: var(--font-serif);
-  font-size: 0.82rem;
-  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 0.5rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-4);
   line-height: 1.6;
   margin: 0.6rem 0 0.8rem;
 }

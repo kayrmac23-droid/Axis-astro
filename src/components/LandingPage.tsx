@@ -39,11 +39,11 @@ function WhyTwoSystems() {
 
             <div className={styles.plusSign}>+</div>
 
-            {/* The Gap */}
-            <div className={styles.gapCard}>
-              <div className={styles.gapStar}>✦</div>
-              <p className={styles.gapLabel}>The Gap</p>
-              <p className={styles.gapSub}>Where the two systems diverge.</p>
+            {/* The Divergence */}
+            <div className={styles.divergenceCard}>
+              <div className={styles.divergenceStar}>✦</div>
+              <p className={styles.divergenceLabel}>The Divergence</p>
+              <p className={styles.divergenceSub}>Where the two systems part.</p>
             </div>
 
             <div className={styles.plusSign}>+</div>
@@ -67,8 +67,8 @@ function WhyTwoSystems() {
 
             <div className={styles.equalsSign}>=</div>
 
-            {/* The AXIS reading — both charts plus the gap, never merged */}
-            <div className={`${styles.systemCard} ${styles.synthesisCard}`}>
+            {/* The AXIS reading — both charts plus the divergence, never resolved into one */}
+            <div className={`${styles.systemCard} ${styles.axisCard}`}>
               <div className={styles.miniWheel}>
                 <svg viewBox="-60 -60 120 120" width="80" height="80">
                   <circle cx="0" cy="0" r="55" fill="none" stroke="rgba(184,115,51,0.5)" strokeWidth="1.2"/>
@@ -82,8 +82,8 @@ function WhyTwoSystems() {
                   <circle cx="0" cy="0" r="6" fill="rgba(184,115,51,0.8)"/>
                 </svg>
               </div>
-              <p className={`${styles.systemCardLabel} ${styles.synthesisLabel}`}>The AXIS Reading</p>
-              <p className={styles.systemCardSub}>Both charts, held apart<br/>The distance made legible</p>
+              <p className={`${styles.systemCardLabel} ${styles.axisLabel}`}>The AXIS Reading</p>
+              <p className={styles.systemCardSub}>Both charts, held apart<br/>The divergence made legible</p>
             </div>
           </div>
         </div>
@@ -99,7 +99,7 @@ function SampleReading() {
       <div className={styles.sampleInner}>
         <div className={styles.sampleLeft}>
           <p className={styles.sectionLabel}>Sample Reading</p>
-          <h2 className={styles.sectionHeadline}>Two perspectives.<br/>The gap between.</h2>
+          <h2 className={styles.sectionHeadline}>Two perspectives.<br/>The divergence between.</h2>
           <p className={styles.sectionBody}>
             See how AXIS brings clarity to the parts of your chart that never seemed to make sense—until now.
           </p>
@@ -136,13 +136,13 @@ function SampleReading() {
               <p className={styles.cardDesc}>Your mind seeks variety, but your soul seeks stability. Inner tension creates confusion.</p>
             </div>
             <div className={styles.sampleArrow}>→</div>
-            {/* Card 4 — The Gap */}
-            <div className={`${styles.sampleCard} ${styles.sampleCardSynthesis}`}>
-              <p className={styles.cardTag}>The Gap</p>
+            {/* Card 4 — The Divergence */}
+            <div className={`${styles.sampleCard} ${styles.sampleCardDivergence}`}>
+              <p className={styles.cardTag}>The Divergence</p>
               <p className={styles.cardTagSub}>&nbsp;</p>
               <div className={styles.cardIcon}>✦</div>
-              <p className={styles.cardPlanet}>The Distance</p>
-              <p className={styles.cardDesc}>Your mind&apos;s variety and your soul&apos;s stability never merge into one instruction. AXIS names exactly where they pull apart—and how you live between them.</p>
+              <p className={styles.cardPlanet}>Where they part</p>
+              <p className={styles.cardDesc}>Your mind&apos;s variety and your soul&apos;s stability never resolve into one instruction. AXIS names exactly where they pull apart—and how you live between them.</p>
             </div>
           </div>
         </div>
@@ -168,8 +168,8 @@ function HowItWorks() {
     },
     {
       num: '3.',
-      title: 'Read The Gap',
-      desc: 'Get both readings in full—then the third, which names the distance between them.',
+      title: 'Read The Divergence',
+      desc: 'Get both readings in full—then the third, which names the divergence between them.',
       icon: '✦',
     },
   ]
@@ -209,7 +209,7 @@ function SiteFooter() {
         <div className={styles.footerBrand}>
           <p className={styles.footerLogo}>AXIS</p>
           <p className={styles.footerLogoSub}>Dual-System Astrology</p>
-          <p className={styles.footerTagline}>Bridging ancient wisdom with modern clarity.</p>
+          <p className={styles.footerTagline}>AXIS · VSOP87B / ELP-2000 · LAHIRI 24°13′</p>
           <div className={styles.footerSocials}>
             <a href="#" className={styles.socialIcon} aria-label="Instagram">IG</a>
             <a href="#" className={styles.socialIcon} aria-label="TikTok">TK</a>
@@ -220,7 +220,7 @@ function SiteFooter() {
 
         {/* CTA */}
         <div className={styles.footerCta}>
-          <p className={styles.footerCtaHeadline}>Ready to read the distance?</p>
+          <p className={styles.footerCtaHeadline}>Ready to read the divergence?</p>
           <Link href="/#get-reading" className={styles.footerCtaBtn}>Get Your Reading &nbsp;→</Link>
         </div>
 
