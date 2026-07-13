@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AXIS — Frame-Shift Wheel · Specimen Nº 001</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Courier+Prime:ital,wght@0,400;0,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#010108;
+    --star:#EAE8F8;
+    --navy:#061230;
+    --copper:#B87333;
+    --copper-b:#D89455;
+    --copper-l:#F0B978;
+    --copper-dim:#5A2F18;
+    --copper-glow:rgba(184,115,51,.18);
+    --hair:rgba(234,232,248,.16);
+    --hair2:rgba(234,232,248,.08);
+    --dim:rgba(234,232,248,.55);
+    --dim2:rgba(234,232,248,.36);
+    --mono:'Courier Prime','Courier New',monospace;
+    --serif:'Cormorant Garamond',serif;
+    --disp:'Cinzel',serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;border-radius:0 !important}
+  html,body{background:var(--void);color:var(--star)}
+  body{font-family:var(--serif);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden;position:relative}
+  button{background:none;border:none;font-family:var(--mono);cursor:pointer;color:var(--dim2)}
+  button:focus-visible{outline:1px solid var(--copper-b);outline-offset:3px}
+
+  /* ---------- chrome ---------- */
+  header{display:flex;justify-content:space-between;align-items:baseline;gap:24px;padding:22px 4vw 14px;border-bottom:1px solid var(--hair2);flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:18px}
+  .ax{font-family:var(--disp);font-size:16px;letter-spacing:7px;color:var(--star)}
+  .brand .sub{font-family:var(--mono);font-size:9px;letter-spacing:2.5px;color:var(--dim2)}
+  header .meta{font-family:var(--mono);font-size:8.5px;letter-spacing:1.8px;color:var(--dim2);text-align:right}
+
+  nav.variants{display:flex;align-items:center;gap:22px;padding:10px 4vw;border-bottom:1px solid var(--hair2)}
+  nav.variants .vlabel{font-family:var(--mono);font-size:8.5px;letter-spacing:2.5px;color:var(--dim2)}
+  nav.variants button{font-size:10px;letter-spacing:2px;padding:4px 2px;border-bottom:1px solid transparent}
+  nav.variants button.on{color:var(--star);border-bottom:1px solid var(--copper-l)}
+
+  main{display:flex;justify-content:center;align-items:flex-start;gap:44px;padding:20px 4vw 34px;flex:1;position:relative;z-index:1}
+  .stage{position:relative;display:flex;flex-direction:column;align-items:center}
+  svg#wheel{width:min(76vh,700px);max-width:100%;display:block}
+
+  .caption{font-family:var(--mono);font-size:10px;letter-spacing:5px;color:var(--dim);margin:10px 0 16px}
+
+  .frame-toggle{position:relative;display:flex;align-items:center;gap:30px;border:1px solid var(--hair2);padding:12px 26px}
+  .tbtn{font-size:12px;letter-spacing:3px;padding:2px 1px;transition:color .5s}
+  .tbtn.on{color:var(--star)}
+  .delta{text-align:center;min-width:150px}
+  #deltaVal{font-family:var(--mono);font-size:13px;letter-spacing:1.5px;color:var(--copper-l)}
+  .dsub{font-family:var(--mono);font-size:7.5px;letter-spacing:1.8px;color:var(--dim2);margin-top:3px}
+  #slider{position:absolute;bottom:-1px;height:1.5px;background:var(--copper-l);transition-property:left,width;transition-timing-function:cubic-bezier(.65,0,.35,1)}
+
+  #status{font-family:var(--mono);font-size:9.5px;letter-spacing:2px;color:var(--dim2);margin-top:12px;min-height:14px}
+
+
+
+  #callout{position:absolute;top:6px;left:6px;border:1px solid var(--hair);padding:10px 14px;font-family:var(--mono);font-size:10px;letter-spacing:1.2px;line-height:1.9;color:var(--dim);background:rgba(1,1,8,.82);max-width:270px}
+  #callout .cname{color:var(--star);letter-spacing:2.5px}
+  #callout .cverdict{color:var(--copper-l)}
+
+  /* ---------- rail ---------- */
+  .rail{width:372px;flex-shrink:0;border-left:1px solid var(--hair2);padding-left:30px;margin-top:4px}
+  .rail h2{font-family:var(--mono);font-size:9px;font-weight:400;letter-spacing:2.5px;color:var(--dim2);padding-bottom:10px;border-bottom:1px solid var(--hair2)}
+  table{width:100%;border-collapse:collapse;margin-top:2px}
+  th{font-family:var(--mono);font-size:8px;font-weight:400;letter-spacing:1.6px;color:var(--dim2);text-align:left;padding:8px 6px 6px;border-bottom:1px solid var(--hair2)}
+  td{font-family:var(--mono);font-size:10.5px;letter-spacing:.6px;padding:5.5px 6px;border-bottom:1px solid var(--hair2);white-space:nowrap}
+  td.bname{color:var(--dim);font-size:9.5px;letter-spacing:1.4px}
+  body.frame-trop td.ct,body.frame-trop th.ct{opacity:.95}
+  body.frame-trop td.cs,body.frame-trop th.cs{opacity:.55}
+  body.frame-sid td.ct,body.frame-sid th.ct{opacity:.55}
+  body.frame-sid td.cs,body.frame-sid th.cs{opacity:.95}
+  td.ct,td.cs,th.ct,th.cs{transition:opacity .9s}
+  td.dsig.flip{color:var(--copper-l)}
+  td.dsig.hold{color:var(--dim2)}
+  tr.flash{animation:rowflash .8s ease-out}
+  @keyframes rowflash{0%{background:rgba(240,185,120,.18)}100%{background:transparent}}
+  tr.sel td{border-bottom-color:rgba(240,185,120,.6)}
+
+  .legend{font-family:var(--mono);font-size:8.5px;letter-spacing:1.4px;line-height:2.1;color:var(--dim2);margin-top:18px;padding-top:14px;border-top:1px solid var(--hair2)}
+  .legend .g{color:var(--copper-l)}
+  .footnote{font-family:var(--serif);font-style:italic;font-size:15.5px;line-height:1.68;color:rgba(234,232,248,.74);max-width:60ch;margin-top:20px;padding-top:16px;border-top:1px solid var(--hair2)}
+
+  footer{font-family:var(--mono);font-size:8.5px;letter-spacing:2.5px;color:var(--dim2);text-align:center;padding:16px 4vw;border-top:1px solid var(--hair2)}
+
+  .corner{position:fixed;z-index:0;pointer-events:none;opacity:.75}
+  #cornerTR{top:70px;right:12px}
+  #cornerBL{bottom:46px;left:10px}
+
+  @media (max-width:1080px){
+    main{flex-direction:column;align-items:center}
+    .rail{width:100%;max-width:640px;border-left:none;padding-left:0;border-top:1px solid var(--hair2);padding-top:18px}
+    svg#wheel{width:min(94vw,600px)}
+    header .meta{text-align:left}
+  }
+</style>
+</head>
+<body class="frame-trop">
+
+<svg id="cornerTR" class="corner" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
+  <g stroke="rgba(234,232,248,.10)" stroke-width=".6" fill="rgba(234,232,248,.14)">
+    <line x1="28" y1="18" x2="66" y2="44"/><line x1="66" y1="44" x2="104" y2="30"/>
+    <line x1="66" y1="44" x2="82" y2="86"/><line x1="82" y1="86" x2="120" y2="72"/><line x1="104" y1="30" x2="120" y2="72"/>
+    <circle cx="28" cy="18" r="1.7"/><circle cx="66" cy="44" r="1.2"/><circle cx="104" cy="30" r="1"/>
+    <circle cx="82" cy="86" r="1.3"/><circle cx="120" cy="72" r="1"/>
+  </g>
+</svg>
+<svg id="cornerBL" class="corner" width="150" height="150" viewBox="0 0 150 150" aria-hidden="true">
+  <g stroke="rgba(234,232,248,.10)" stroke-width=".6" fill="rgba(234,232,248,.14)">
+    <line x1="52" y1="30" x2="66" y2="98"/><line x1="30" y1="72" x2="96" y2="58"/>
+    <circle cx="52" cy="30" r="1.5"/><circle cx="66" cy="98" r="1.2"/><circle cx="30" cy="72" r="1.1"/><circle cx="96" cy="58" r="1.4"/>
+  </g>
+</svg>
+
+<header>
+  <div class="brand"><span class="ax">AXIS</span><span class="sub">FRAME-SHIFT WHEEL · WORKING PROTOTYPE</span></div>
+  <div class="meta">SPECIMEN Nº 001 · ILLUSTRATIVE POSITIONS · WHOLE SIGN · ☊&#xFE0E; TRUE NODE · LAHIRI 23°.85</div>
+</header>
+
+<nav class="variants" aria-label="Plate treatments">
+  <span class="vlabel">TREATMENT</span>
+  <button data-v="A">A · GRATICULE</button>
+  <button data-v="B">B · PLATE</button>
+  <button data-v="C" class="on">C · STELLAR</button>
+</nav>
+
+<main>
+  <section class="stage">
+    <svg id="wheel" viewBox="0 0 900 900" aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"></svg>
+    <div class="caption">ONE SKY · TWO RULERS</div>
+    <div class="frame-toggle" id="ftog">
+      <button id="btnT" class="tbtn on" data-f="trop">TROPICAL</button>
+      <div class="delta">
+        <div id="deltaVal">Δ 0°00′</div>
+        <div class="dsub">LAHIRI OFFSET 23°.85</div>
+      </div>
+      <button id="btnS" class="tbtn" data-f="sid">SIDEREAL</button>
+      <div id="slider"></div>
+    </div>
+    <div id="status">// FRAME: TROPICAL</div>
+    <div id="callout" hidden></div>
+  </section>
+
+  <aside class="rail">
+    <h2>READOUT — BOTH FRAMES, ALWAYS CO-VISIBLE</h2>
+    <table id="tbl">
+      <thead><tr><th>BODY</th><th class="ct">TROPICAL</th><th class="cs">SIDEREAL</th><th>Δ SIGN</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="legend">
+      SOLID HAIRLINE — SQUARE · OPPOSITION&nbsp;&nbsp;·&nbsp;&nbsp;DASHED — TRINE · SEXTILE<br>
+      THE WEB IS DRAWN ONCE. IT DOES NOT ROTATE.<br>
+      ☊&#xFE0E; ☋&#xFE0E; TRUE (OSCULATING) NODE&nbsp;&nbsp;·&nbsp;&nbsp;HOUSES: WHOLE SIGN<br>
+      <span class="g">◆</span> SIGN SHIFTS BETWEEN FRAMES&nbsp;&nbsp;·&nbsp;&nbsp;TAP A PLANET FOR BOTH READINGS
+    </div>
+    <p class="footnote">The planets do not move. Between the tropical and sidereal castings every body keeps its place in the sky and every aspect keeps its angle; what turns is the ring of signs beneath them — 23°51′ of accumulated offset between the seasonal calendar and the stars. Specimen positions are illustrative.</p>
+  </aside>
+</main>
+
+<footer>TWO SYSTEMS. ONE DIVERGENCE. · Δ 23°51′ LAHIRI · SPECIMEN PLATE Nº 001</footer>
+
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   AXIS FRAME-SHIFT WHEEL — one sky, the ruler moves.
+   Fixed layer  : planets, angles, aspect web, fiducials, nakshatras
+   Moving layer : zodiac band + degree graticule (rotates −A)
+   A ∈ [0 … 23.85°]  (Lahiri ayanamsa)
+   ============================================================ */
+const SVGNS='http://www.w3.org/2000/svg';
+const CX=450, CY=450, LREF=221.1, AY=23.85, D2R=Math.PI/180;
+const DUR=2600;
+const REDUCED=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const VS='\uFE0E';
+const SG=['♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓'].map(g=>g+VS);
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const NAKS=['ASHWINI','BHARANI','KRITTIKA','ROHINI','MRIGASHIRA','ARDRA','PUNARVASU','PUSHYA','ASHLESHA','MAGHA','P.PHALGUNI','U.PHALGUNI','HASTA','CHITRA','SWATI','VISHAKHA','ANURADHA','JYESHTHA','MULA','P.ASHADHA','U.ASHADHA','SHRAVANA','DHANISHTA','SHATABHISHA','P.BHADRAPADA','U.BHADRAPADA','REVATI'];
+const SIGNNAMES=['ARIES','TAURUS','GEMINI','CANCER','LEO','VIRGO','LIBRA','SCORPIO','SAGITTARIUS','CAPRICORN','AQUARIUS','PISCES'];
+
+/* Specimen Nº 001 — illustrative. Inner-planet elongations respect physics. */
+const BODIES=[
+  {id:'sun',    n:'SUN',     g:'☉'+VS, lon:69.233,  r:262},
+  {id:'moon',   n:'MOON',    g:'☽'+VS, lon:237.683, r:272},
+  {id:'mercury',n:'MERCURY', g:'☿'+VS, lon:92.967,  r:250},
+  {id:'venus',  n:'VENUS',   g:'♀'+VS, lon:84.5,    r:272},
+  {id:'mars',   n:'MARS',    g:'♂'+VS, lon:153.5,   r:262},
+  {id:'jupiter',n:'JUPITER', g:'♃'+VS, lon:258.733, r:262},
+  {id:'saturn', n:'SATURN',  g:'♄'+VS, lon:328.033, r:262},
+  {id:'uranus', n:'URANUS',  g:'♅'+VS, lon:278.833, r:250},
+  {id:'neptune',n:'NEPTUNE', g:'♆'+VS, lon:300.367, r:262},
+  {id:'pluto',  n:'PLUTO',   g:'♇'+VS, lon:206.25,  r:262},
+  {id:'rahu',   n:'RAHU',    g:'☊'+VS, lon:61.4,    r:246},
+  {id:'ketu',   n:'KETU',    g:'☋'+VS, lon:241.4,   r:238}
+];
+const ANGLES=[
+  {id:'asc',n:'ASC',lon:221.1},
+  {id:'mc', n:'MC', lon:137.467},
+  {id:'dsc',n:'DSC',lon:41.1},
+  {id:'ic', n:'IC', lon:317.467}
+];
+const ASPECTS=[
+  ['moon','rahu','hard'],   /* opposition 3°43′ (☽ ☌ ☋) */
+  ['moon','saturn','hard'], /* square 0°21′ */
+  ['mercury','mars','soft'],/* sextile 0°32′ */
+  ['sun','mars','hard'],    /* square 4°16′ */
+  ['venus','pluto','soft'], /* trine 1°45′ */
+  ['venus','saturn','soft'],/* trine 3°32′ */
+  ['jupiter','mc','soft'],  /* trine 1°16′ */
+  ['uranus','asc','soft'],  /* sextile 2°17′ */
+  ['neptune','pluto','hard']/* square 4°07′ */
+];
+const TROP_ASC_SIGN=7, SID_ASC_SIGN=6; /* Scorpio rising → Libra rising */
+
+/* ---------- helpers ---------- */
+const norm=x=>((x%360)+360)%360;
+function alpha(lon){ return norm(180-(lon-LREF)); }
+function pt(lon,r){ const a=alpha(lon)*D2R; return [CX+r*Math.cos(a), CY+r*Math.sin(a)]; }
+function mk(tag,attrs,parent){ const el=document.createElementNS(SVGNS,tag);
+  for(const k in attrs) el.setAttribute(k,attrs[k]); if(parent) parent.appendChild(el); return el; }
+function dms(v){ v=Math.max(0,v); let d=Math.floor(v), m=Math.round((v-d)*60);
+  if(m===60){d++;m=0} return d+'°'+String(m).padStart(2,'0')+'′'; }
+function lonStr(lon){ const L=norm(lon), s=Math.floor(L/30); return dms(L%30)+' '+SG[s]; }
+/* arc from lon0 to lon1 (increasing longitude = counterclockwise on plate) */
+function arcPath(l0,l1,r){ const [x0,y0]=pt(l0,r),[x1,y1]=pt(l1,r);
+  const span=norm(l1-l0); return 'M '+x0+' '+y0+' A '+r+' '+r+' 0 '+(span>180?1:0)+' 0 '+x1+' '+y1; }
+function revArcPath(l0,l1,r){ const [x0,y0]=pt(l1,r),[x1,y1]=pt(l0,r);
+  const span=norm(l1-l0); return 'M '+x0+' '+y0+' A '+r+' '+r+' 0 '+(span>180?1:0)+' 1 '+x1+' '+y1; }
+function annulusSeg(l0,l1,r0,r1){ const [ax,ay]=pt(l0,r1),[bx,by]=pt(l1,r1),[cx2,cy2]=pt(l1,r0),[dx,dy]=pt(l0,r0);
+  const span=norm(l1-l0), la=span>180?1:0;
+  return 'M '+ax+' '+ay+' A '+r1+' '+r1+' 0 '+la+' 0 '+bx+' '+by+' L '+cx2+' '+cy2+' A '+r0+' '+r0+' 0 '+la+' 1 '+dx+' '+dy+' Z'; }
+let uid=0;
+/* straight-set ring label — curved text is ruled out; rigid line on the
+   tangent, flipped in the lower hemisphere for legibility. */
+function straightLabel(parent, L, Aoff, r, txt, cls, fs, ls, fill, op){
+  const eff=((alpha(L+Aoff)+90)%360+360)%360; /* on-screen tangent, incl. band rotation */
+  const [x,y]=pt(L,r);
+  let rot=alpha(L)+90;                        /* local tangent — group rotation adds the rest */
+  if(eff>90&&eff<270) rot+=180;
+  const t=mk('text',{x:x,y:y,'text-anchor':'middle','dominant-baseline':'central',
+    'font-size':fs,'letter-spacing':ls,fill:fill,opacity:op,'class':cls||'',
+    transform:'rotate('+rot+' '+x+' '+y+')'},parent);
+  t.textContent=txt;
+  return {path:null,text:t};
+}
+
+/* ---------- svg scaffold ---------- */
+const svg=document.getElementById('wheel');
+const gRoot=mk('g',{},svg);
+const gStatic=mk('g',{},gRoot);                    /* rings that never move */
+const gBand=mk('g',{id:'gBand'},gRoot);            /* THE moving part */
+const gNak=mk('g',{},gRoot);                       /* fixed star ring (C) */
+const gGhost=mk('g',{},gRoot);                     /* both rulers' anchors, dashed (B) */
+const gNums=mk('g',{},gRoot);                      /* whole-sign house numerals (B) */
+const gSky=mk('g',{},gRoot);                       /* axes, web, planets */
+const gFid=mk('g',{},gRoot);                       /* fiducials + gap arc (always) */
+const gFx=mk('g',{},gRoot);                        /* pulses */
+
+/* static rings */
+[[408,.20],[396,.20],[336,.18],[218,.12]].forEach(([r,o])=>
+  mk('circle',{cx:CX,cy:CY,r:r,fill:'none',stroke:'rgba(234,232,248,'+o+')','stroke-width':1},gStatic));
+const gRims=mk('g',{},gStatic); /* extra plate rims (B) */
+[[414,.10],[302,.08]].forEach(([r,o])=>
+  mk('circle',{cx:CX,cy:CY,r:r,fill:'none',stroke:'rgba(234,232,248,'+o+')','stroke-width':1},gRims));
+const gStarsIn=mk('g',{},gStatic); /* inner starfield (C) */
+(function(){ let s=1994; const rnd=()=>{s=(s*16807)%2147483647; return s/2147483647;};
+  for(let i=0;i<44;i++){ const a=rnd()*Math.PI*2, rr=Math.sqrt(rnd())*200;
+    mk('circle',{cx:CX+rr*Math.cos(a),cy:CY+rr*Math.sin(a),r:(.5+rnd()*1.1).toFixed(2),
+      fill:'rgba(234,232,248,'+(0.12+rnd()*0.20).toFixed(3)+')'},gStarsIn); }})();
+
+/* ---------- moving band ---------- */
+const glyphEls=[];
+for(let i=0;i<12;i++){
+  if(i%2===0) mk('path',{d:annulusSeg(i*30,(i+1)*30,336,396),fill:'rgba(110,140,255,.045)'},gBand);
+}
+for(let d=0;d<360;d++){
+  if(d%30===0) continue;
+  const len=d%10===0?12:(d%5===0?8.5:5), op=d%10===0?.60:(d%5===0?.42:.24);
+  const [x0,y0]=pt(d,396),[x1,y1]=pt(d,396+len);
+  mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,'+op+')','stroke-width':1},gBand);
+}
+for(let i=0;i<12;i++){
+  const [x0,y0]=pt(i*30,336),[x1,y1]=pt(i*30,408);
+  mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,.55)','stroke-width':1},gBand);
+  const [gx,gy]=pt(i*30+15,367);
+  const t=mk('text',{x:gx,y:gy,'text-anchor':'middle','dominant-baseline':'central',
+    'font-size':19,fill:'#F0B978'},gBand);
+  t.textContent=SG[i];
+  glyphEls.push({el:t,x:gx,y:gy});
+}
+const gNames=mk('g',{},gBand); /* sign names (B) — rebuilt per rest orientation */
+gNames.style.transition='opacity .28s';
+function rebuildNames(){
+  while(gNames.firstChild) gNames.removeChild(gNames.firstChild);
+  for(let i=0;i<12;i++)
+    straightLabel(gNames,i*30+15,A,347,SIGNNAMES[i],'','10','2.2','#F0B978','.72');
+}
+
+/* ---------- fixed star ring (variant C) ---------- */
+for(let n=0;n<27;n++){
+  const L=n*(360/27)+AY;
+  const [x0,y0]=pt(L,313),[x1,y1]=pt(L,335);
+  mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,.24)','stroke-width':1},gNak);
+}
+mk('circle',{cx:CX,cy:CY,r:312,fill:'none',stroke:'rgba(234,232,248,.10)','stroke-width':1},gNak);
+for(let n=0;n<27;n++){
+  const Lc=n*(360/27)+360/27/2+AY;
+  straightLabel(gNak,Lc,0,321,NAKS[n],'','7.4','.7','rgba(234,232,248,.55)','1');
+}
+
+/* ---------- ghost anchors: both rulers, always (variant B) ---------- */
+for(let i=0;i<12;i++){
+  [0,AY].forEach(off=>{
+    const [x0,y0]=pt(i*30+off,397),[x1,y1]=pt(i*30+off,407);
+    mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,.12)','stroke-width':1,'stroke-dasharray':'2 3'},gGhost);
+  });
+}
+
+/* ---------- whole-sign house numerals (crossfade, variant B) ---------- */
+const NUMOP=.38;
+const gNumT=mk('g',{opacity:NUMOP},gNums), gNumS=mk('g',{opacity:0},gNums);
+for(let h=0;h<12;h++){
+  const sT=(TROP_ASC_SIGN+h)%12, sS=(SID_ASC_SIGN+h)%12;
+  const [tx,ty]=pt(sT*30+15,296);
+  const tT=mk('text',{x:tx,y:ty,'text-anchor':'middle','dominant-baseline':'central',
+    'font-family':"'Courier Prime',monospace",'font-size':10,fill:'#EAE8F8'},gNumT); tT.textContent=ROMAN[h];
+  const [sx,sy]=pt(sS*30+15+AY,296);
+  const tS=mk('text',{x:sx,y:sy,'text-anchor':'middle','dominant-baseline':'central',
+    'font-family':"'Courier Prime',monospace",'font-size':10,fill:'#EAE8F8'},gNumS); tS.textContent=ROMAN[h];
+}
+
+/* ---------- sky: axes ---------- */
+ANGLES.slice(0,2).forEach(ax=>{
+  const [x0,y0]=pt(ax.lon,410),[x1,y1]=pt(ax.lon+180,410);
+  mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,.20)','stroke-width':1},gSky);
+});
+/* double tick at ASC end */
+[[219.6,221.1],[221.1,222.6]].forEach(()=>{});
+[[-1.4,0],[0,1.4]].forEach(p=>{
+  const [x0,y0]=pt(221.1+p[0],402),[x1,y1]=pt(221.1+p[1],416);
+  mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,.5)','stroke-width':1},gSky);
+});
+
+/* ---------- sky: aspect web (drawn once — frame-invariant) ---------- */
+const lonOf={}; BODIES.forEach(b=>lonOf[b.id]=b.lon); ANGLES.forEach(a=>lonOf[a.id]=a.lon);
+const aspectEls={};
+ASPECTS.forEach(([a,b,kind])=>{
+  const [x0,y0]=pt(lonOf[a],218),[x1,y1]=pt(lonOf[b],218);
+  const l=mk('line',{x1:x0,y1:y0,x2:x1,y2:y1,stroke:'rgba(234,232,248,'+(kind==='hard'?.40:.26)+')',
+    'stroke-width':1,'stroke-dasharray':kind==='hard'?'none':'3 4'},gSky);
+  (aspectEls[a]=aspectEls[a]||[]).push(l);(aspectEls[b]=aspectEls[b]||[]).push(l);
+});
+Object.keys(lonOf).forEach(id=>{
+  if(id==='dsc'||id==='ic')return;
+  const [x,y]=pt(lonOf[id],218);
+  mk('circle',{cx:x,cy:y,r:2,fill:'rgba(234,232,248,.65)'},gSky);
+});
+/* centre mark */
+mk('line',{x1:CX-7,y1:CY,x2:CX+7,y2:CY,stroke:'rgba(234,232,248,.35)','stroke-width':1},gSky);
+mk('line',{x1:CX,y1:CY-7,x2:CX,y2:CY+7,stroke:'rgba(234,232,248,.35)','stroke-width':1},gSky);
+
+/* ---------- sky: planets ---------- */
+const SWEEP=[];
+BODIES.forEach(b=>{
+  const [px,py]=pt(b.lon,b.r);
+  const [hx0,hy0]=pt(b.lon,336),[hx1,hy1]=pt(b.lon,b.r+18);
+  mk('line',{x1:hx0,y1:hy0,x2:hx1,y2:hy1,stroke:'rgba(234,232,248,.32)','stroke-width':1},gSky);
+  const glyph=mk('text',{x:px,y:py,'text-anchor':'middle','dominant-baseline':'central',
+    'font-size':21,fill:'#EAE8F8',cursor:'pointer'},gSky);
+  glyph.textContent=b.g;
+  const [dx,dy]=pt(b.lon,b.r-24);
+  const deg=mk('text',{x:dx,y:dy,'text-anchor':'middle','dominant-baseline':'central',
+    'font-family':"'Courier Prime',monospace",'font-size':8.8,'letter-spacing':.5,
+    fill:'rgba(234,232,248,.72)'},gSky);
+  const hit=mk('circle',{cx:px,cy:py,r:22,fill:'transparent',cursor:'pointer'},gSky);
+  hit.addEventListener('click',e=>{e.stopPropagation();select(b.id);});
+  glyph.addEventListener('click',e=>{e.stopPropagation();select(b.id);});
+  SWEEP.push({id:b.id,n:b.n,g:b.g,lon:b.lon,px:px,py:py,glyphEl:glyph,degEl:deg,
+    lastS:Math.floor(b.lon/30)});
+});
+
+/* ---------- sky: angle labels ---------- */
+const ANGLE_LBL={
+  asc:{x:14,y:442,anchor:'start'},  dsc:{x:886,y:442,anchor:'end'},
+  mc:{x:398,y:26,anchor:'middle'},  ic:{x:502,y:882,anchor:'middle'}
+};
+ANGLES.forEach(ax=>{
+  const cfg=ANGLE_LBL[ax.id];
+  const t=mk('text',{x:cfg.x,y:cfg.y,'text-anchor':cfg.anchor,
+    'font-family':"'Courier Prime',monospace",'font-size':10,'letter-spacing':2,
+    fill:'rgba(234,232,248,.85)'},gSky);
+  t.textContent=ax.n;
+  const d=mk('text',{x:cfg.x,y:cfg.y+14,'text-anchor':cfg.anchor,
+    'font-family':"'Courier Prime',monospace",'font-size':8.6,'letter-spacing':.5,
+    fill:'rgba(234,232,248,.5)'},gSky);
+  const [px,py]=pt(ax.lon,376);
+  SWEEP.push({id:ax.id,n:ax.n,g:'',lon:ax.lon,px:px,py:py,glyphEl:null,degEl:d,
+    lastS:Math.floor(ax.lon/30)});
+});
+
+/* ---------- fiducials + the offset arc (always visible — the offset at rest) ---------- */
+(function(){
+  const [t0x,t0y]=pt(0,408),[t1x,t1y]=pt(0,436);
+  mk('line',{x1:t0x,y1:t0y,x2:t1x,y2:t1y,stroke:'#F0B978','stroke-width':1,opacity:.9},gFid);
+  const [s0x,s0y]=pt(AY,408),[s1x,s1y]=pt(AY,436);
+  mk('line',{x1:s0x,y1:s0y,x2:s1x,y2:s1y,stroke:'#F0B978','stroke-width':1,opacity:.9,'stroke-dasharray':'3 3'},gFid);
+  mk('path',{d:arcPath(0,AY,426),fill:'none',stroke:'#F0B978','stroke-width':1.2,opacity:.85},gFid);
+  const [mx,my]=pt(AY/2,449);
+  const lbl=mk('text',{x:mx,y:my,'text-anchor':'middle','font-family':"'Courier Prime',monospace",
+    'font-size':11.5,'letter-spacing':1.5,fill:'#F0B978'},gFid);
+  lbl.textContent='Δ 23°51′';
+  const [ax,ayy]=pt(0,452);
+  const l1=mk('text',{x:ax,y:ayy,'text-anchor':'middle','font-family':"'Courier Prime',monospace",
+    'font-size':7.6,'letter-spacing':1,fill:'#F0B978',opacity:.85},gFid);
+  l1.textContent='0°♈︎ TROPICAL';
+  const [bx,by]=pt(AY,452);
+  const l2=mk('text',{x:bx,y:by-14,'text-anchor':'end','font-family':"'Courier Prime',monospace",
+    'font-size':7.6,'letter-spacing':1,fill:'#F0B978',opacity:.85},gFid);
+  l2.textContent='0°♈︎ SIDEREAL';
+})();
+
+/* ---------- readout table ---------- */
+const rows={};
+(function(){
+  const tb=document.querySelector('#tbl tbody');
+  const order=[ANGLES[0],ANGLES[1]].concat(BODIES);
+  order.forEach(b=>{
+    const trop=lonStr(b.lon), sid=lonStr(b.lon-AY);
+    const ts=Math.floor(norm(b.lon)/30), ss=Math.floor(norm(b.lon-AY)/30);
+    const flips=ts!==ss;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td class="bname">'+(b.g?b.g+'&nbsp;':'')+b.n+'</td>'+
+      '<td class="ct">'+trop+'</td><td class="cs">'+sid+'</td>'+
+      '<td class="dsig '+(flips?'flip':'hold')+'">'+(flips?SG[ts]+' → '+SG[ss]:SG[ts]+' · '+SG[ss])+'</td>';
+    tr.addEventListener('click',()=>select(b.id));
+    tb.appendChild(tr); rows[b.id]=tr;
+  });
+})();
+
+/* ---------- fx ---------- */
+let suppressFx=true;
+function pulse(b){
+  if(suppressFx) return;
+  const c=mk('circle',{cx:b.px,cy:b.py,r:5,fill:'none',stroke:'#F0B978','stroke-width':1.4,opacity:.9},gFx);
+  const t0=performance.now();
+  (function anim(now){ const p=Math.min(1,(now-t0)/560);
+    c.setAttribute('r',5+p*27); c.setAttribute('opacity',(1-p)*.9);
+    if(p<1) requestAnimationFrame(anim); else gFx.removeChild(c); })(t0);
+  if(b.glyphEl){ b.glyphEl.setAttribute('fill','#F0B978');
+    setTimeout(()=>b.glyphEl.setAttribute('fill','#EAE8F8'),620); }
+}
+function flashRow(id){ const tr=rows[id]; if(!tr||suppressFx) return;
+  tr.classList.remove('flash'); void tr.offsetWidth; tr.classList.add('flash'); }
+
+/* ---------- the shift ---------- */
+const deltaEl=document.getElementById('deltaVal');
+const statusEl=document.getElementById('status');
+const btnT=document.getElementById('btnT'), btnS=document.getElementById('btnS');
+const slider=document.getElementById('slider'), ftog=document.getElementById('ftog');
+let A=0, animating=false, frame='trop';
+const EASE=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+
+function setA(a){
+  A=a;
+  gBand.setAttribute('transform','rotate('+(-a)+' '+CX+' '+CY+')');
+  glyphEls.forEach(o=>o.el.setAttribute('transform','rotate('+a+' '+o.x+' '+o.y+')'));
+  const q=a/AY;
+  gNumT.setAttribute('opacity',((1-q)*NUMOP).toFixed(3));
+  gNumS.setAttribute('opacity',(q*NUMOP).toFixed(3));
+  deltaEl.textContent='Δ '+dms(a);
+  SWEEP.forEach(b=>{
+    const dl=norm(b.lon-a), s=Math.floor(dl/30);
+    b.degEl.textContent=dms(dl%30)+' '+SG[s];
+    if(s!==b.lastS){ pulse(b); flashRow(b.id); b.lastS=s; }
+  });
+}
+function placeSlider(btn,ms){
+  slider.style.transitionDuration=(ms||0)+'ms';
+  slider.style.left=(btn.offsetLeft)+'px';
+  slider.style.width=(btn.offsetWidth)+'px';
+}
+function shift(to){
+  if(animating||frame===to) return;
+  animating=true;
+  statusEl.textContent='// SHIFTING FRAME…';
+  gNames.style.opacity=0;
+  const target=(to==='sid')?AY:0, from=A;
+  placeSlider(to==='sid'?btnS:btnT, REDUCED?200:DUR);
+  function done(){
+    frame=to; animating=false;
+    document.body.classList.toggle('frame-sid',to==='sid');
+    document.body.classList.toggle('frame-trop',to==='trop');
+    btnT.classList.toggle('on',to==='trop'); btnS.classList.toggle('on',to==='sid');
+    statusEl.textContent='// FRAME: '+(to==='sid'?'SIDEREAL':'TROPICAL');
+    if(document.body.dataset.variant==='B'){ rebuildNames(); }
+    gNames.style.opacity=1;
+    if(selected) select(selected,true);
+  }
+  if(REDUCED){ suppressFx=true; setA(target); suppressFx=false; done(); return; }
+  const t0=performance.now();
+  requestAnimationFrame(function step(now){
+    const p=Math.min(1,(now-t0)/DUR);
+    setA(from+(target-from)*EASE(p));
+    if(p<1) requestAnimationFrame(step); else done();
+  });
+}
+btnT.addEventListener('click',()=>shift('trop'));
+btnS.addEventListener('click',()=>shift('sid'));
+window.addEventListener('keydown',e=>{
+  if(e.key==='t'||e.key==='T') shift('trop');
+  else if(e.key==='s'||e.key==='S') shift('sid');
+  else if(e.key===' '){ e.preventDefault(); shift(frame==='trop'?'sid':'trop'); }
+  else if(e.key==='1') setVariant('A');
+  else if(e.key==='2') setVariant('B');
+  else if(e.key==='3') setVariant('C');
+});
+
+/* ---------- selection ---------- */
+const callout=document.getElementById('callout');
+let selected=null;
+function select(id,keep){
+  if(selected&&!keep){ rows[selected]&&rows[selected].classList.remove('sel'); }
+  if(selected===id&&!keep){ selected=null; callout.hidden=true; dimWeb(null); return; }
+  selected=id;
+  Object.values(rows).forEach(r=>r.classList.remove('sel'));
+  rows[id]&&rows[id].classList.add('sel');
+  const b=SWEEP.find(x=>x.id===id); if(!b) return;
+  const ts=Math.floor(norm(b.lon)/30), ss=Math.floor(norm(b.lon-AY)/30);
+  const flips=ts!==ss, dIn=norm(b.lon)%30;
+  callout.hidden=false;
+  callout.innerHTML='<span class="cname">'+(b.g?b.g+' ':'')+b.n+'</span><br>'+
+    'TROPICAL&nbsp; '+lonStr(b.lon)+'<br>SIDEREAL&nbsp; '+lonStr(b.lon-AY)+'<br>'+
+    '<span class="cverdict">'+(flips?('SHIFTS · '+SG[ts]+' → '+SG[ss]):('HOLDS '+SG[ts]+' · MARGIN '+dms(dIn-AY)))+'</span>';
+  dimWeb(id);
+}
+function dimWeb(id){
+  ASPECTS.forEach(([a,b,kind],i)=>{});
+  Object.keys(aspectEls).length&&Object.entries(aspectEls).forEach(([k,els])=>{});
+  const all=new Set(); Object.values(aspectEls).forEach(els=>els.forEach(l=>all.add(l)));
+  all.forEach(l=>l.setAttribute('opacity',1));
+  if(!id) return;
+  const mine=new Set(aspectEls[id]||[]);
+  all.forEach(l=>{ if(!mine.has(l)) l.setAttribute('opacity',.35);
+    else{ l.setAttribute('opacity',1); } });
+}
+svg.addEventListener('click',()=>{ if(selected){ rows[selected]&&rows[selected].classList.remove('sel'); selected=null; callout.hidden=true; dimWeb(null);} });
+
+/* ---------- variants ---------- */
+function setVariant(v){
+  document.body.dataset.variant=v;
+  gNames.style.display   = v==='B'?'':'none';
+  gNums.style.display    = v==='B'?'':'none';
+  gGhost.style.display   = v==='B'?'':'none';
+  gRims.style.display    = v==='B'?'':'none';
+  gNak.style.display     = v==='C'?'':'none';
+  gStarsIn.style.display = v==='C'?'':'none';
+  if(v==='B') rebuildNames();
+  document.querySelectorAll('nav.variants button').forEach(b=>
+    b.classList.toggle('on',b.dataset.v===v));
+}
+document.querySelectorAll('nav.variants button').forEach(b=>
+  b.addEventListener('click',()=>setVariant(b.dataset.v)));
+
+
+/* ---------- init ---------- */
+setVariant('C');
+setA(0);
+suppressFx=false;
+placeSlider(btnT,0);
+window.addEventListener('resize',()=>placeSlider(frame==='trop'?btnT:btnS,0));
+window.addEventListener('load',()=>placeSlider(frame==='trop'?btnT:btnS,0));
+/* auto-demonstration: one full shift out and back, then hand over the control */
+if(!REDUCED){
+  setTimeout(()=>shift('sid'),1150);
+  setTimeout(()=>shift('trop'),1150+DUR+1500);
+}
+})();
+</script>
+</body>
+</html>
