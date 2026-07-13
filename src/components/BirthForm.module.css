@@ -97,7 +97,7 @@
 .notationBox:focus-within {
   border-color: var(--copper);
   box-shadow: 0 0 0 1px var(--copper-subtle), 0 0 18px var(--copper-subtle) inset;
-  filter: drop-shadow(0 2px 6px rgba(255, 192, 48, 0.12));
+  filter: drop-shadow(0 2px 6px rgba(184, 115, 51, 0.12));
 }
 
 .notationBoxWide {
@@ -285,9 +285,7 @@
   margin: 0;
   padding: 0;
   border: 1px solid var(--copper-border);
-  background: rgba(11, 9, 32, 0.96);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(11, 9, 32, 0.98);
   max-height: 240px;
   overflow-y: auto;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
@@ -400,8 +398,8 @@
   overflow: hidden;
   width: 100%;
   padding: 1.25rem 1rem;
-  background: var(--gold);
-  border: 1px solid var(--gold);
+  background: var(--copper);
+  border: 1px solid var(--copper);
   color: var(--bg);
   font-family: var(--font-mono, 'Space Mono', monospace);
   font-size: 0.75rem;
@@ -431,8 +429,8 @@
 .btnSpinner {
   width: 12px;
   height: 12px;
-  border: 1px solid var(--gold-dim);
-  border-top-color: var(--gold);
+  border: 1px solid var(--copper-dim);
+  border-top-color: var(--copper-bright);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

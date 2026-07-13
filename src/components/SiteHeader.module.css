@@ -4,9 +4,7 @@
   top: 0;
   z-index: 200;
   width: 100%;
-  background: rgba(1, 1, 8, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(1, 1, 8, 0.97);
   border-bottom: 1px solid rgba(184, 115, 51, 0.15);
 }
 

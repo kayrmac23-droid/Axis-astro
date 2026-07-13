@@ -15,6 +15,8 @@ const MethodPremise = forwardRef<HTMLElement, {}>((_, ref) => {
         </p>
       </div>
 
+      {/* Two systems side by side. The Divergence is not a third sibling column —
+          it is what happens between the two, so it sits full-width beneath. */}
       <div className={styles.grid}>
         <div className={styles.card}>
           <div className={`${styles.rule} ${styles.ruleTropical}`} />
@@ -33,17 +35,15 @@ const MethodPremise = forwardRef<HTMLElement, {}>((_, ref) => {
             A recalibrated sky, older terrain, and a second symbolic lens that often shifts the centre of gravity.
           </p>
         </div>
+      </div>
 
-        <div className={styles.card}>
-          <div className={`${styles.rule} ${styles.ruleSynthesis}`} />
-          <p className={`${styles.systemTitle} ${styles.titleSynthesis}`}>
-            <span className={styles.cyanDot} /> The Gap
-          </p>
-          <p className={styles.role}>The reading that doesn&apos;t close.</p>
-          <p className={styles.desc}>
-            AXIS reads where the two systems agree, where they contradict, and how you live inside the distance between them.
-          </p>
-        </div>
+      <div className={styles.divergenceBand}>
+        <div className={`${styles.rule} ${styles.ruleDivergence}`} />
+        <p className={`${styles.systemTitle} ${styles.titleDivergence}`}>The Divergence</p>
+        <p className={styles.role}>The reading that doesn&apos;t close.</p>
+        <p className={styles.desc}>
+          AXIS reads where the two systems agree, where they contradict, and how you live inside the divergence between them.
+        </p>
       </div>
     </section>
   )

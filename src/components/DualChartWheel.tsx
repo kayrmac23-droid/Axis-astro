@@ -42,11 +42,11 @@ const GLYPH_COLORS = [
   '#D9B06A', '#D8CCB8', '#C8D3E0', '#D9DFE8',
 ]
 
-// Per-system accent colours. Tropical = gold (app primary); Sidereal = cyan so
-// the two rings stay legible at a glance. Retrograde is shown with an ℞ tag
-// rather than colour, to avoid clashing with the system palette.
+// Per-system accent colours. Tropical = copper (app primary, ratified July 2026);
+// Sidereal = cyan so the two rings stay legible at a glance. Retrograde is shown
+// with an ℞ tag rather than colour, to avoid clashing with the system palette.
 const SYSTEM_COLOR: Record<'tropical' | 'sidereal', string> = {
-  tropical: '#FFC030',
+  tropical: '#D89455',
   sidereal: '#6FC6D6',
 }
 
@@ -206,12 +206,12 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
 
         <defs>
           <radialGradient id="dual-innerGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FFC030" stopOpacity="0.12" />
-            <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B87333" stopOpacity="0.12" />
+            <stop offset="100%" stopColor="#B87333" stopOpacity="0" />
           </radialGradient>
           <radialGradient id="dual-coreGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FFC030" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#FFC030" stopOpacity="0" />
+            <stop offset="0%" stopColor="#B87333" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#B87333" stopOpacity="0" />
           </radialGradient>
         </defs>
 
@@ -236,7 +236,7 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
         })}
 
         {/* Rings */}
-        <circle cx={cx} cy={cy} r={signBandOuter} fill="none" stroke="#FFC030" strokeWidth={0.7} strokeOpacity={0.58} />
+        <circle cx={cx} cy={cy} r={signBandOuter} fill="none" stroke="#D89455" strokeWidth={0.7} strokeOpacity={0.58} />
         <circle cx={cx} cy={cy} r={signBandInner} fill="none" stroke="#3E3C80" strokeWidth={0.5} strokeOpacity={0.65} />
         <circle cx={cx} cy={cy} r={ringDivider}   fill="none" stroke="#3E3C80" strokeWidth={0.5} strokeOpacity={0.4} strokeDasharray="1.5 4" />
         <circle cx={cx} cy={cy} r={innerR}         fill="none" stroke="#3E3C80" strokeWidth={0.5} strokeOpacity={0.52} />
@@ -269,7 +269,7 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
           const p2 = polarToCartesian(cx, cy, signBandInner - 1, angle)
           return (
             <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-              stroke={isAngle ? '#FFC030' : '#3E3C80'}
+              stroke={isAngle ? '#D89455' : '#3E3C80'}
               strokeWidth={isAngle ? 1 : 0.5}
               strokeOpacity={isAngle ? 0.82 : 0.45} />
           )
@@ -300,8 +300,8 @@ export default function DualChartWheel({ data, size = 360, orient = 'tropical' }
 
         {/* Core */}
         <circle cx={cx} cy={cy} r={coreR} fill="url(#dual-coreGlow)" />
-        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#FFC030" strokeWidth={0.5} strokeOpacity={0.68} />
-        <circle cx={cx} cy={cy} r={1.5 * k} fill="#FFC030" />
+        <circle cx={cx} cy={cy} r={coreR} fill="none" stroke="#D89455" strokeWidth={0.5} strokeOpacity={0.68} />
+        <circle cx={cx} cy={cy} r={1.5 * k} fill="#D89455" />
       </svg>
 
       {/* Legend */}

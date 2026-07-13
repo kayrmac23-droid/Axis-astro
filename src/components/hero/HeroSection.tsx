@@ -17,12 +17,15 @@ export default function HeroSection({ onCreateClick, onSampleClick }: HeroSectio
       <div className={styles.heroContent}>
         {/* Left: copy */}
         <div className={styles.heroLeft}>
-          <h2 className={styles.headline}>
-            TWO SYSTEMS.<br />
-            <span className={styles.headlineAccent}>ONE GAP.</span>
-          </h2>
+          <div className={styles.premise}>
+            <p className={styles.premiseLine}>Tropical maps the psychological architecture of a self.</p>
+            <p className={styles.premiseLine}>Sidereal maps the incarnational conditions it navigates.</p>
+            <p className={styles.premiseLead}>
+              The <span className={styles.premiseAccent}>divergence</span> is where this chart actually lives.
+            </p>
+          </div>
           <p className={styles.body}>
-            AXIS reads Tropical and Sidereal astrology side by side—your psyche, your karma—and holds open the distance between them. The gap is where the reading lives.
+            One birth, charted against two zodiacs — the seasonal and the stellar — separated by 24°13′ of precession. AXIS computes both, holds them open, and reads what lives in the difference.
           </p>
           <div className={styles.actions}>
             <button className={styles.primaryBtn} onClick={onCreateClick}>
@@ -32,6 +35,7 @@ export default function HeroSection({ onCreateClick, onSampleClick }: HeroSectio
               See How It Works &nbsp;↓
             </button>
           </div>
+          <p className={styles.subCta}>VSOP87 EPHEMERIS · LAHIRI AYANAMSA · NO HOROSCOPES</p>
         </div>
 
         {/* Right: chart wheel */}

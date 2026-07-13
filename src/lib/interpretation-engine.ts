@@ -1256,7 +1256,7 @@ function formatSynthesisBlock(chartData: DualChartData): string {
     lines.push('ACTIVE VIMSHOTTARI DASHA:')
     lines.push(`  Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
     lines.push(`  Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
-    lines.push(`  Note: the dasha period sets the karmic timing context for the synthesis — use it to illuminate which planets and themes are currently active, not as a predictive verdict.`)
+    lines.push(`  Note: the dasha period sets the karmic timing context for the divergence — use it to illuminate which planets and themes are currently active, not as a predictive verdict.`)
     lines.push('')
   }
 

@@ -15,7 +15,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // ── Version constant ───────────────────────────────────────────────────────────
 // Bump this whenever prompts are intentionally changed.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
-export const READING_PROMPT_VERSION = 'v10.2'
+export const READING_PROMPT_VERSION = 'v10.3'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

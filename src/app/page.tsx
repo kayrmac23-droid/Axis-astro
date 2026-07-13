@@ -127,7 +127,7 @@ export default function Home() {
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal chart</p>
             {/* Both wheels always visible (DOCTRINE.md: CO-VISIBILITY).
-                A unified dual-ring wheel (outer Tropical, inner Sidereal,
+                A single concentric dual-ring wheel (outer Tropical, inner Sidereal,
                 offset by the true ayanamsa) replaces this in a later pass. */}
             <div className={styles.wheelPair}>
               <div className={styles.wheelItem}>

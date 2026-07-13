@@ -1,6 +1,6 @@
 # AXIS — Dual-System Astrology
 
-> *Tropical maps the psychological architecture of a self. Sidereal maps the incarnational conditions it navigates. The Gap is the distance between them — AXIS holds it open.*
+> *Tropical maps the psychological architecture of a self. Sidereal maps the incarnational conditions it navigates. The divergence is where this chart actually lives — AXIS holds both open.*
 
 Live: [axis-astro.vercel.app](https://axis-astro.vercel.app)
 
@@ -14,7 +14,7 @@ Most astrology apps pick one system. AXIS treats them as two maps of different l
 
 - **Tropical** — the symbolic architecture of conscious identity: how the psychological self has been organised through experience, relationships, and self-construction. Ego structure, relational patterns, cognitive style, the shape of a person's defences.
 - **Sidereal** — incarnational patterning: the body, circumstances, and inherited tendencies a person arrived with; karmic emphases, deep instinctive orientations, and the time-conditioned unfolding of a life. Not fate — the specific terrain.
-- **The Gap** — the third reading, and the reason AXIS exists: how does this particular psychological interior navigate these particular incarnational conditions? Where both systems point at the same theme, the insight is load-bearing. Where they diverge, the reading names the gap exactly and lets it stand — the divergence is the specific terrain of this person's life, not an error to be reconciled.
+- **The Divergence** — the third reading, and the reason AXIS exists: how does this particular psychological interior navigate these particular incarnational conditions? Where both systems point at the same theme, the insight is load-bearing. Where they diverge, the reading names the divergence exactly and lets it stand — it is the specific terrain of this person's life, not an error to be reconciled.
 
 AXIS is written for readers who take astrology seriously — students of the technical literature, therapy-adjacent practitioners, those formed by the contemplative traditions. The interpretive vocabulary assumes a working understanding of both the Tropical and Sidereal frameworks before arriving. The chart is read once at depth rather than re-explained across a daily push notification.
 
@@ -88,7 +88,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 
 ## Design system
 
-AXIS uses a restrained dark-void palette. Copper is the primary emphasis colour — it marks revelation, section rituals, premium actions, chart ticks, and symbolic emphasis. It is not an orange theme; the hue is muted and used sparingly. Cyan signals active computation, selected states, streaming, and focus. Violet marks unresolved tension, dissonance, and liminal states.
+AXIS uses a restrained dark-void palette. **Copper is the primary accent, ratified July 2026** (the copper→gold migration is cancelled; there is no gold token). Cyan signals active computation, selected states, streaming, and focus. Violet marks unresolved tension, dissonance, and liminal states.
 
 | Token | Value | Role |
 |---|---|---|
@@ -100,15 +100,15 @@ AXIS uses a restrained dark-void palette. Copper is the primary emphasis colour 
 | `--text` | `#EAE8F8` | Primary star-white text |
 | `--text-2` | `#A8A4C8` | Body support text |
 | `--text-3` | `#9490C4` | Labels and metadata |
-| `--copper` | `#B87333` | Main accent |
-| `--copper-bright` | `#D89455` | Hover, emphasis, selected action |
-| `--copper-light` | `#F0B978` | Rare highlight or glow edge |
+| `--copper` | `#B87333` | Base identity accent — wordmark, primary CTAs, offset wedge, section rituals, symbolic emphasis |
+| `--copper-bright` | `#D89455` | Fine linework, hairlines, chart ticks, small mono labels on void |
+| `--copper-light` | `#F0B978` | Finest / dimmest-context lines; rare highlight or glow edge |
 | `--copper-dim` | `#5A2F18` | Borders, shadows, subdued rules |
 | `--copper-glow` | `rgba(184, 115, 51, 0.18)` | Soft ambient accent |
 | `--cyan` | `#2CC8C0` | Active computation and focus state |
 | `--violet` | `#7844FF` | Dissonance, contradiction, liminal insight |
 
-All tokens are defined in `src/app/globals.css`. There are no `--gold` references anywhere in the codebase.
+**Two-tier linework rule:** base copper `#B87333` is too dim for 1px lines and tiny type on the void. ALL fine linework, hairlines, chart ticks, and small mono labels use `--copper-bright` (or `--copper-light` for the finest/dimmest contexts). Only identity elements — wordmark, primary CTA fill, the offset wedge, section ritual rules — stay base `--copper`. No gradient blends two accent colours. All tokens are defined in `src/app/globals.css`.
 
 ---
 
@@ -133,7 +133,7 @@ src/
 │   ├── ReadingPanel.tsx         — streaming reading display with per-section retry
 │   ├── SynastryReadingPanel.tsx — streaming reading display for synastry sections
 │   ├── SynastryAspectsPanel.tsx — inter-aspect table for two charts
-│   ├── AxisTensionSummary.tsx   — central-tension callout panel for The Gap
+│   ├── AxisTensionSummary.tsx   — central-tension callout panel for The Divergence
 │   ├── DossierHeader.tsx        — per-chart dossier header with key placements
 │   ├── SiteHeader.tsx           — top navigation bar
 │   ├── MethodologyStrip.tsx     — compact methodology disclosure strip
@@ -145,7 +145,7 @@ src/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v10.2; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v10.3; SHARED_RULES prompt-cached)
     ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
     ├── reading-quality-gate.ts  — post-generation evaluator + single repair pass for readings
     ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
@@ -175,7 +175,7 @@ Each reading passes through a server-side **quality gate** (`lib/reading-quality
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
-3. **The Gap** (internal reading-type identifier: `synthesis`, kept for cache-key stability) — Concordance, Divergence, Central Tension, Living the Gap. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
+3. **The Divergence** (legacy internal reading-type identifier: `synthesis`, kept for cache-key stability) — Concordance, Where They Part, Central Tension, Living the Divergence. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
 4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. For the composite-focused sections (`composite_chart`, `integration`), an elite chart block for the composite — dignity labels, chart ruler, and direction — is appended to the prompt context alongside the position table. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
 
 ---
@@ -265,7 +265,7 @@ This section describes what is hardened now and what requires distributed infras
 
 - [ ] Swiss Ephemeris for Pluto (requires dedicated compute layer outside Vercel)
 - [ ] Monetisation gate — free chart generation, paid ongoing access
-- [ ] Guides page — how to read each system, what The Gap means
+- [ ] Guides page — how to read each system, what The Divergence means
 - [ ] Dasha timeline view — visualise active Jyotish planetary periods
 - [ ] Compatibility gap reading — dual-system chart overlay for two people
 - [ ] Save / share reading — persistent URL for generated readings

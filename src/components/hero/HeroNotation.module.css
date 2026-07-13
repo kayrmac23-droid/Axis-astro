@@ -23,7 +23,7 @@
 }
 
 .label {
-  color: var(--copper);
+  color: var(--copper-bright);
   font-size: 0.55rem;
   margin-top: 0.3rem;
   line-height: 1;
