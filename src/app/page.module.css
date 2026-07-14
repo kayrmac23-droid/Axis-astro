@@ -408,6 +408,17 @@
   animation: fadeIn 0.7s ease;
 }
 
+/* ─── Frame-shift wheel breakout ──────────────────────
+   The wheel (stage + always-co-visible readout rail) needs more than the
+   960px chrome column on wide screens; break out like the reading grid.
+   Clipped by the page's overflow-x hidden. Radius 0, no shadow. */
+.wheelBreakout {
+  width: min(1320px, calc(100vw - 2rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+  padding: 2rem 0 0;
+}
+
 /* ─── Wheel Section ───────────────────────────────── */
 .wheelSection {
   padding: 1.5rem 0 5rem;

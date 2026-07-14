@@ -7,6 +7,11 @@ import { capture } from '@/lib/analytics'
 
 interface ReadingPanelProps {
   chartData: DualChartData
+  // When set, the panel shows a single system's reading, driven by the
+  // frame toggle (DOCTRINE.md amendment July 2026). The Divergence still
+  // renders full-width below, in every frame state. Omit for the legacy
+  // side-by-side layout.
+  frame?: 'tropical' | 'sidereal'
 }
 
 // 'synthesis' survives here as the internal reading-type identifier only
@@ -124,7 +129,7 @@ type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
 type TabStatus = 'pending' | 'loading' | 'done' | 'failed'
 type SystemSection = 'tropical' | 'sidereal' | 'synthesis'
 
-export default function ReadingPanel({ chartData }: ReadingPanelProps) {
+export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
   const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({
     tropical: 'pending',
@@ -613,20 +618,31 @@ export default function ReadingPanel({ chartData }: ReadingPanelProps) {
         </div>
       )}
 
-      {/* Tropical and Sidereal side by side — neither hidden while the other shows.
-          The long-form prose columns take the raised reading surface
-          (DOCTRINE.md: READING SURFACE EXCEPTION); all chrome stays on the void. */}
-      <div className={styles.systemsGrid}>
-        <section className={styles.readingColumn} aria-label="Tropical reading">
-          {renderSection('tropical')}
+      {/* Interpretive prose follows the active frame (single panel); positional
+          data never hides — co-visibility lives in the wheel's readout table and
+          the persistent Δ chip (DOCTRINE.md amendment July 2026). The long-form
+          prose takes the raised reading surface (READING SURFACE EXCEPTION).
+          Without a frame, the legacy side-by-side layout is kept. */}
+      {frame ? (
+        <section
+          className={`${styles.readingColumn} ${styles.singleFrame}`}
+          aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}
+        >
+          {renderSection(frame)}
         </section>
-        <div className={styles.columnDivider} aria-hidden="true" />
-        <section className={styles.readingColumn} aria-label="Sidereal reading">
-          {renderSection('sidereal')}
-        </section>
-      </div>
+      ) : (
+        <div className={styles.systemsGrid}>
+          <section className={styles.readingColumn} aria-label="Tropical reading">
+            {renderSection('tropical')}
+          </section>
+          <div className={styles.columnDivider} aria-hidden="true" />
+          <section className={styles.readingColumn} aria-label="Sidereal reading">
+            {renderSection('sidereal')}
+          </section>
+        </div>
+      )}
 
-      {/* The Divergence — full width, after and below both systems */}
+      {/* The Divergence — full width, after and below both systems, in every frame */}
       <section className={`${styles.readingColumn} ${styles.divergenceSection}`} aria-label="The Divergence reading">
         {renderSection('synthesis')}
       </section>

@@ -102,8 +102,45 @@ line max); motion reads as telemetry (≤400ms, degrades under reduced-motion).
 No invented testimonials, user counts, ratings, or quotes anywhere in the product,
 including placeholders. Proof sections ship empty until real data exists.
 
-## WHEEL DIRECTION (forward-looking — not implemented in this pass)
+## WHEEL DIRECTION (forward-looking — superseded July 2026, see amendment)
 
 The functional chart becomes a single concentric dual-ring wheel: outer ring Tropical,
 inner ring Sidereal, rotated against each other by the true ayanamsa, so the gap is
 visible as geometry. This replaces side-by-side wheels in a later pass.
+
+## AMENDMENT — FRAME-SHIFT WHEEL (ratified July 2026)
+
+This amendment records a ratified product decision and governs the results page. It
+supersedes the two-wheels-side-by-side layout and the two-column reading layout.
+Future runs must not "correct" the single-panel layout back to two columns.
+
+1. **The frame-shift wheel is the reading wheel.** One wheel; a Tropical/Sidereal
+   toggle rotates the zodiac band by the live Lahiri ayanamsa. The rotation IS the
+   divergence, rendered kinetically. The earlier **dual-ring (two concentric rings)**
+   commitment above is **retired**, as is the **two-wheels-side-by-side** layout.
+
+2. **One reading panel, driven by the toggle.** The two-column Tropical/Sidereal
+   reading layout is superseded: a single reading panel shows the active frame's
+   prose (Tropical frame → Tropical sections, Sidereal frame → Sidereal sections).
+
+3. **Co-visibility is redefined.** It is satisfied by (a) the always-rendered readout
+   table — every body with its Tropical column, Sidereal column, and Δ-sign column,
+   shown in *every* toggle state — and (b) the persistent Δ chip / `LAHIRI OFFSET`
+   label in the toggle bar. Interpretive **prose** may follow the active frame;
+   **positional data never hides.** This is the CO-VISIBILITY section applied to the
+   frame-shift wheel: prose can be single-frame precisely because the positional
+   readout is not.
+
+4. **The Divergence is frame-independent.** It renders full-width below the reading
+   panel, always, in every toggle state — it never swaps and never hides, because it
+   presupposes both frames.
+
+5. **Production wheel treatment is locked to Stellar.** The prototype's treatment
+   picker (graticule / plate / stellar) is a prototyping control, not a user feature;
+   it is removed from the UI. The implementations remain behind a `treatment` prop
+   (default `stellar`) so the ruling is reversible without re-porting.
+
+6. **The frame-shift rotation is a ratified exception to the ≤400ms telemetry-motion
+   guideline** (MOOD). The shift is the signature interaction and runs longer so the
+   divergence is legible in motion; under `prefers-reduced-motion` it is instant, with
+   the offset still legible via the static Δ callout arc.

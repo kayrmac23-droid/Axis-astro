@@ -28,6 +28,14 @@
   min-width: 0;
 }
 
+/* Single-frame mode: one reading column follows the frame toggle
+   (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle) */
+.singleFrame {
+  width: min(820px, calc(100vw - 3rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
 .divergenceSection {
   width: min(1320px, calc(100vw - 3rem));
   margin-left: 50%;
