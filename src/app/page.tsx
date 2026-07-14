@@ -1,10 +1,8 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import ChartWheel from '@/components/ChartWheel'
-import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
 import PreviewLanding from '@/components/landing/PreviewLanding'
-import DossierHeader from '@/components/DossierHeader'
+import FrameShiftWheel from '@/components/FrameShiftWheel'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -16,6 +14,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
   const [displayLocation, setDisplayLocation] = useState<string>('')
+  // Frame toggle: one wheel, one reading panel. The shift rotates the zodiac
+  // by the Lahiri ayanamsa and swaps the reading prose; the Divergence and the
+  // readout table stay frame-independent. (DOCTRINE.md amendment July 2026.)
+  const [frame, setFrame] = useState<'tropical' | 'sidereal'>('tropical')
   const readingRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export default function Home() {
     setError(null)
     setChartData(null)
     setReadingReady(false)
+    setFrame('tropical')
     capture('chart_submit')
     try {
       const res = await fetch('/api/calculate', {
@@ -90,41 +93,27 @@ export default function Home() {
         </div>
       )}
 
-      {/* Chart + reading */}
+      {/* Chart + reading — one frame-shift wheel + one reading panel, both
+          driven by the Tropical/Sidereal toggle. The wheel's readout table and
+          Δ chip carry co-visibility; The Divergence stays frame-independent.
+          (DOCTRINE.md amendment July 2026.) */}
       {chartData && (
         <div className={styles.readingLayout} ref={readingRef}>
-          <DossierHeader chartData={chartData} displayLocation={displayLocation} />
-          <section className={styles.wheelSection}>
-            <p className={styles.wheelSectionLabel}>Natal chart</p>
-            {/* Both wheels always visible (DOCTRINE.md: CO-VISIBILITY).
-                A single concentric dual-ring wheel (outer Tropical, inner Sidereal,
-                offset by the true ayanamsa) replaces this in a later pass. */}
-            <div className={styles.wheelPair}>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Tropical</p>
-                <ChartWheel chart={chartData.tropical} />
-              </div>
-              <div className={styles.wheelDivider}>
-                <svg width="1" height="240" viewBox="0 0 1 240">
-                  <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                </svg>
-              </div>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Sidereal</p>
-                <ChartWheel chart={chartData.sidereal} />
-              </div>
-            </div>
+          <section className={styles.wheelBreakout}>
+            <FrameShiftWheel
+              data={chartData}
+              frame={frame}
+              onFrameChange={setFrame}
+              displayLocation={displayLocation}
+            />
           </section>
-          {/* 'synthesis' here is the component's dual-display mode identifier,
-              not a rendered label — it shows both systems' columns at once */}
-          <ChartFactsPanel data={chartData} activeSection="synthesis" />
           {readingReady && (
-            <ReadingPanel chartData={chartData} />
+            <ReadingPanel chartData={chartData} frame={frame} />
           )}
           <div className={styles.resetRow}>
             <button
               className={styles.resetBtn}
-              onClick={() => { capture('new_chart'); setChartData(null); setDisplayLocation(''); setError(null) }}
+              onClick={() => { capture('new_chart'); setChartData(null); setDisplayLocation(''); setError(null); setFrame('tropical') }}
             >
               Cast another chart
             </button>
