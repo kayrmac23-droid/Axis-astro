@@ -1,19 +1,15 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import BirthForm from '@/components/BirthForm'
 import ChartWheel from '@/components/ChartWheel'
 import ChartFactsPanel from '@/components/ChartFactsPanel'
 import ReadingPanel from '@/components/ReadingPanel'
-import HeroSection from '@/components/hero/HeroSection'
+import PreviewLanding from '@/components/landing/PreviewLanding'
 import DossierHeader from '@/components/DossierHeader'
-import LandingPage from '@/components/LandingPage'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
 
 export default function Home() {
-  const router = useRouter()
   const [chartData, setChartData] = useState<DualChartData | null>(null)
   const [readingReady, setReadingReady] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -21,7 +17,6 @@ export default function Home() {
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
   const [displayLocation, setDisplayLocation] = useState<string>('')
   const readingRef = useRef<HTMLDivElement>(null)
-  const formRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!chartData) return
@@ -75,40 +70,15 @@ export default function Home() {
 
   return (
     <main className={styles.main}>
-      {/* Pre-chart flow */}
+      {/* Pre-chart flow — ported AXIS landing (home view of preview.html),
+          with the real BirthForm wired into the live cast flow. */}
       {!chartData && (
-        <>
-          {/* ── Hero ── */}
-          <HeroSection
-            onCreateClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}
-            onSampleClick={() => router.push('/sample')}
-          />
-
-          {/* ── Birth form ── */}
-          <section className={styles.formSection} id="get-reading" ref={formRef}>
-            <div className={styles.formIntro}>
-              <p className={styles.formIntroLabel}>Birth coordinates</p>
-              <h3 className={styles.formIntroTitle}>Enter birth coordinates.</h3>
-              <p className={styles.formIntroDesc}>
-                Date, time, and place anchor the map. Precision matters most for the Ascendant and house structure.
-              </p>
-            </div>
-            <div className={styles.formRight}>
-              <BirthForm onSubmit={handleSubmit} loading={loading} submitLabel="Begin the AXIS reading" />
-              {error && (
-                <div className={styles.calcError}>
-                  <p className={styles.calcErrorMsg}>{error}</p>
-                  <button className={styles.calcRetryBtn} onClick={handleRetry} disabled={loading}>
-                    Try again
-                  </button>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* ── Marketing sections ── */}
-          <LandingPage />
-        </>
+        <PreviewLanding
+          onSubmit={handleSubmit}
+          loading={loading}
+          error={error}
+          onRetry={handleRetry}
+        />
       )}
 
       {/* Loading */}
