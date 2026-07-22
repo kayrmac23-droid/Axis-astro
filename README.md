@@ -118,8 +118,13 @@ AXIS uses a restrained dark-void palette. **Copper is the primary accent, ratifi
 src/
 ├── app/
 │   ├── page.tsx                 — main app shell, form → chart → reading flow
+│   ├── layout.tsx               — root layout
 │   ├── globals.css              — design system tokens
 │   ├── page.module.css          — layout styles
+│   ├── method/                  — methodology page (dual-system rationale)
+│   ├── guides/                  — how-to-read guides page
+│   ├── sample/                  — static sample reading page
+│   ├── synastry/                — two-chart synastry page
 │   └── api/
 │       ├── geocode/             — Nominatim proxy for birth location coordinates
 │       ├── timezone/            — offline IANA timezone lookup (tz-lookup), rate-limited
@@ -129,6 +134,8 @@ src/
 ├── components/
 │   ├── BirthForm.tsx            — date/time/location input with birth-time-unknown toggle
 │   ├── ChartWheel.tsx           — SVG chart wheel (Whole Sign, clickable planets, MC marker)
+│   ├── DualChartWheel.tsx       — side-by-side tropical + sidereal wheels
+│   ├── FrameShiftWheel.tsx      — animated tropical↔sidereal frame-shift wheel
 │   ├── ChartFactsPanel.tsx      — tropical vs sidereal comparison table (hidden in print)
 │   ├── ReadingPanel.tsx         — streaming reading display with per-section retry
 │   ├── SynastryReadingPanel.tsx — streaming reading display for synastry sections
@@ -140,7 +147,8 @@ src/
 │   ├── MethodPremise.tsx        — explanatory premise block (AXIS dual-system rationale)
 │   ├── SampleDossier.tsx        — static sample reading for the landing page
 │   ├── AstrolabeDecor.tsx       — decorative astrolabe SVG element
-│   └── HeroWheel.tsx            — decorative hero SVG (purely presentational)
+│   ├── HeroWheel.tsx            — decorative hero SVG (purely presentational)
+│   └── landing/                 — PreviewLanding landing-page composition
 └── lib/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
@@ -173,7 +181,7 @@ Four reading types, each composed of sequential per-planet streaming requests to
 
 Each reading passes through a server-side **quality gate** (`lib/reading-quality-gate.ts`): the first-pass generation is evaluated, and if it fails the rubric a single repair pass is run before the text reaches the client — within a wall-clock budget so the route stays under its `maxDuration`. Only validated (non-truncated, gate-passing) output is written to the cache.
 
-1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects.
+1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects, Rahu/Ketu.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
 3. **The Divergence** (legacy internal reading-type identifier: `synthesis`, kept for cache-key stability) — Concordance, Where They Part, Central Tension, Living the Divergence. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
 4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. For the composite-focused sections (`composite_chart`, `integration`), an elite chart block for the composite — dignity labels, chart ruler, and direction — is appended to the prompt context alongside the position table. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
@@ -263,9 +271,9 @@ This section describes what is hardened now and what requires distributed infras
 
 ## Roadmap
 
+- [x] Guides page — how to read each system, what The Divergence means
+- [x] Synastry reading — inter-aspects + midpoint composite chart for two people
 - [ ] Swiss Ephemeris for Pluto (requires dedicated compute layer outside Vercel)
 - [ ] Monetisation gate — free chart generation, paid ongoing access
-- [ ] Guides page — how to read each system, what The Divergence means
 - [ ] Dasha timeline view — visualise active Jyotish planetary periods
-- [ ] Compatibility gap reading — dual-system chart overlay for two people
 - [ ] Save / share reading — persistent URL for generated readings
