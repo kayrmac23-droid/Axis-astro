@@ -28,10 +28,6 @@ const SampleDossier = forwardRef<HTMLElement, {}>((_, ref) => {
             <span className={styles.pillText}>Public identity and private instinct operate at different temperatures.</span>
           </div>
         </div>
-
-        <p className={styles.integrationText}>
-          Stop treating contradiction as failure. It is the doorway.
-        </p>
       </div>
     </section>
   )

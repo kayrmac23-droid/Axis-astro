@@ -539,7 +539,7 @@ export default function FrameShiftWheel({
           <svg
             ref={svgRef}
             className={styles.wheel}
-            viewBox="0 0 900 900"
+            viewBox="-50 -50 1000 1000"
             role="img"
             aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
             onClick={() => setSelected(null)}
