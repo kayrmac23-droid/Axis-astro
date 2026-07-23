@@ -277,7 +277,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
 
       <div className={styles.content}>
         {/* ======================= HERO ======================= */}
-        <div className={styles.hero}>
+        <div className={styles.hero} id="axis-hero">
           <div className={styles.heroCopy}>
             <h1 className={styles.wordmark}>AXIS</h1>
             <div className={styles.wmRule}></div>
@@ -394,7 +394,6 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
           <Link href="/method">METHOD</Link>
           <Link href="/sample">SAMPLE</Link>
           <span className={styles.footerDead}>PROTOCOL</span>
-          <Link href="/synastry">SYNASTRY</Link>
           <button type="button" className={styles.footerCta} onClick={scrollToCast}>CAST A CHART →</button>
         </div>
         <div className={styles.col}>

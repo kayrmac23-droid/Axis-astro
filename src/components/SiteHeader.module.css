@@ -4,8 +4,18 @@
   top: 0;
   z-index: 200;
   width: 100%;
-  background: rgba(1, 1, 8, 0.97);
-  border-bottom: 1px solid rgba(184, 115, 51, 0.15);
+  background: var(--void);
+  border-bottom: 1px solid var(--copper-dim);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+
+/* Landing route only: the hero owns the wordmark, so the header stays
+   off-screen at scroll top and slides in once the hero has left the
+   viewport (opacity + translate, no blur — DOCTRINE banned effects). */
+.hidden {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
 }
 
 .inner {

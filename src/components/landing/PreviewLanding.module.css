@@ -42,9 +42,12 @@
 .content { position: relative; z-index: 1; }
 
 /* ---------- hero ---------- */
+/* Height hugs content (wordmark + instrument nearly fill a standard screen).
+   A forced min-height:100vh centred the content and stranded ~a full screen
+   of void below the epoch slider on tall / portrait viewports. */
 .hero {
-  min-height: 100vh; display: grid; grid-template-columns: 44% 56%; align-items: center;
-  padding: 100px 4vw 48px 6vw; position: relative;
+  display: grid; grid-template-columns: 44% 56%; align-items: center;
+  padding: 100px 4vw 96px 6vw; position: relative;
 }
 .heroCopy { max-width: 480px; }
 .wordmark { font-size: 66px; font-weight: 300; letter-spacing: .34em; margin: 0 0 0 -2px; line-height: 1; color: var(--ink); }
@@ -64,7 +67,7 @@
   cursor: pointer; transition: all .3s; white-space: nowrap;
 }
 .btnSolid { background: var(--copper); color: #0A0704; }
-.btnSolid:hover { background: var(--copper-b); box-shadow: 0 0 34px rgba(184,115,51,.35); }
+.btnSolid:hover { background: var(--copper-b); }
 .btnOutline { border-color: rgba(233,231,242,.38); color: var(--ink); }
 .btnOutline:hover { border-color: var(--copper-l); color: var(--copper-l); }
 .heroMicro { margin-top: 28px; font-family: var(--mono); font-size: 10px; letter-spacing: .26em; color: var(--ink-4); }
@@ -76,9 +79,9 @@
 .eLab { font-family: var(--mono); font-size: 10px; letter-spacing: .18em; color: var(--ink-4); white-space: nowrap; }
 .epoch input[type=range] { flex: 1; -webkit-appearance: none; appearance: none; background: transparent; height: 22px; cursor: pointer; }
 .epoch input[type=range]::-webkit-slider-runnable-track { height: 1px; background: rgba(233,231,242,.28); }
-.epoch input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--copper-b); margin-top: -6px; box-shadow: 0 0 12px rgba(216,148,85,.7); }
+.epoch input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 13px; height: 13px; border-radius: 0; background: var(--copper-b); margin-top: -6px; }
 .epoch input[type=range]::-moz-range-track { height: 1px; background: rgba(233,231,242,.28); }
-.epoch input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: none; border-radius: 50%; background: var(--copper-b); box-shadow: 0 0 12px rgba(216,148,85,.7); }
+.epoch input[type=range]::-moz-range-thumb { width: 13px; height: 13px; border: none; border-radius: 0; background: var(--copper-b); }
 .epochRead { margin-top: 12px; font-family: var(--mono); font-size: 10px; letter-spacing: .24em; color: var(--ink-4); text-align: center; }
 .epochRead b { color: var(--ink); font-weight: 400; }
 .epochRead .agree { color: var(--copper-l); }
@@ -91,8 +94,10 @@
 .rv.in { opacity: 1; transform: none; }
 
 .twomaps { display: grid; grid-template-columns: 1fr 76px 1fr; gap: 28px; align-items: start; }
-.mapLabel { font-family: var(--mono); font-size: 11px; letter-spacing: .28em; color: #C98A4B; margin: 0 0 18px; }
-.mapLabel em { font-style: normal; color: var(--ink-3); }
+/* Editorial headlines — Cormorant Garamond italic (Courier is reserved for
+   numerics + mono chrome; these are headings, not chrome). */
+.mapLabel { font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 23px; letter-spacing: .01em; color: var(--copper-b); margin: 0 0 18px; }
+.mapLabel em { font-style: italic; color: var(--ink-3); }
 .twomaps p { font-size: 17.5px; line-height: 1.72; color: #BDBAD4; margin: 0; }
 .neq { font-size: 46px; font-weight: 300; color: var(--copper-b); text-align: center; padding-top: 132px; font-family: var(--serif); }
 .bridge { font-size: 20px; font-style: italic; line-height: 1.65; color: #CFCCDF; max-width: 640px; margin: 48px 0 0; }
@@ -114,15 +119,15 @@
 
 /* ---------- footer ---------- */
 .footer {
-  position: relative; z-index: 1; border-top: 1px solid var(--line-soft); padding: 72px 8vw 92px;
+  position: relative; z-index: 1; border-top: 1px solid var(--line-soft); padding: 40px 8vw 72px;
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 44px; max-width: 1160px; margin: 0 auto;
 }
 .footer .col { font-family: var(--mono); font-size: 10px; letter-spacing: .28em; color: var(--ink-5); line-height: 2.3; }
-.footer a { display: block; color: var(--ink-4); transition: color .3s; }
+.footer a { display: block; color: var(--ink-3); transition: color .3s; }
 .footer a:hover { color: var(--ink); }
 .footer .fbrand { color: var(--copper-b); }
 .footerDead { display: block; color: var(--ink-5); }
-.footerCta { display: block; color: var(--ink-4); background: none; border: none; padding: 0; text-align: left; cursor: pointer; font: inherit; letter-spacing: inherit; transition: color .3s; }
+.footerCta { display: block; color: var(--ink-3); background: none; border: none; padding: 0; text-align: left; cursor: pointer; font: inherit; letter-spacing: inherit; transition: color .3s; }
 .footerCta:hover { color: var(--ink); }
 
 /* ---------- responsive ---------- */
