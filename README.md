@@ -153,7 +153,7 @@ src/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v10.3; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v10.4; SHARED_RULES prompt-cached)
     ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
     ├── reading-quality-gate.ts  — post-generation evaluator + single repair pass for readings
     ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)

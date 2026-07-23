@@ -10,6 +10,38 @@ export interface CuspData {
   description: string
 }
 
+// Zodiac order, used for adjacency lookups when matching a placement to its cusp.
+const ZODIAC_ORDER = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces',
+] as const
+
+// Half-width of a cusp band: a placement within this many degrees of a sign
+// boundary counts as being on the named cusp. Matches the ±3° rule the reading
+// prompt enforces (prompts.ts CUSP RULE).
+export const CUSP_ORB_DEG = 3
+
+// Resolve the named cusp for a placement, given its sign and its degree within
+// that sign (0–30). Returns the matching CuspData when the placement sits within
+// CUSP_ORB_DEG of a sign boundary, or null otherwise. A degree near 0° pairs the
+// sign with the preceding sign; a degree near 30° pairs it with the following one.
+export function getCuspForPlanet(sign: string, degree: number): CuspData | null {
+  const idx = ZODIAC_ORDER.indexOf(sign as (typeof ZODIAC_ORDER)[number])
+  if (idx === -1) return null
+
+  let pair: [string, string] | null = null
+  if (degree < CUSP_ORB_DEG) {
+    // Near the start of the sign — boundary shared with the preceding sign.
+    pair = [ZODIAC_ORDER[(idx + 11) % 12], sign]
+  } else if (degree > 30 - CUSP_ORB_DEG) {
+    // Near the end of the sign — boundary shared with the following sign.
+    pair = [sign, ZODIAC_ORDER[(idx + 1) % 12]]
+  }
+  if (!pair) return null
+
+  return CUSPS.find(c => c.signs[0] === pair![0] && c.signs[1] === pair![1]) ?? null
+}
+
 export const CUSPS: CuspData[] = [
   {
     name: 'Cusp of Rebirth',

@@ -10,6 +10,7 @@
 // The engine functions are data-driven — additions propagate automatically.
 
 import { ChartData, DualChartData, PlanetPosition } from './astro-calc'
+import { getCuspForPlanet, CUSP_ORB_DEG } from './cusps'
 
 // ── PLANET KNOWLEDGE ─────────────────────────────────────────────────────────
 
@@ -748,6 +749,26 @@ function fmtDeg(deg: number): string {
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
+// Emits the CUSP NOTE the reading prompt's CUSP RULE depends on. When a placement
+// sits within orb of a sign boundary, this names the specific cusp, its blended
+// nature and keywords, and its psychological description, then instructs the model
+// to name the cusp in the opening paragraph and let it filter the whole section.
+// Returns '' when the placement is not on a cusp. `label` identifies the placement
+// (e.g. "Sun (Tropical)", "Lagna").
+function formatCuspNote(sign: string, degree: number, label: string): string {
+  const cusp = getCuspForPlanet(sign, degree)
+  if (!cusp) return ''
+  const [a, b] = cusp.signs
+  const fullName = `${a}/${b} ${cusp.name}`
+  return [
+    `⊕ CUSP NOTE — ${label} is on a named cusp:`,
+    `  ${fmtDeg(degree)} ${sign} is within ${CUSP_ORB_DEG}° of the ${a}/${b} boundary → the ${fullName}.`,
+    `  Blended nature: ${a} + ${b} · ${cusp.keywords}`,
+    `  ${cusp.description}`,
+    `  → Name this cusp by its full name ("${fullName}") in the opening paragraph, describe the tension it creates for this placement, then let the blended nature filter every subsequent observation. Do not read this placement as a pure ${sign} expression.`,
+  ].join('\n')
+}
+
 /**
  * Produces the compact, human-readable elite chart block injected at the top of
  * every user message.  Format matches the task specification:
@@ -938,6 +959,12 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde ℞)' : ' (Direct)'}`)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
 
+  const cuspNote = formatCuspNote(planet.sign, planet.degree, `${planet.name} (${vedic ? 'Sidereal' : 'Tropical'})`)
+  if (cuspNote) {
+    lines.push('')
+    lines.push(cuspNote)
+  }
+
   // Evidence-weighted Moon cross-reference for Sun and Mars
   if (planet.name === 'Sun' || planet.name === 'Mars') {
     const moon = chart.planets.find(p => p.name === 'Moon')
@@ -1024,6 +1051,12 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   lines.push(`── ${vedic ? 'LAGNA' : 'ASCENDANT'} ──────────────────────────────`)
   lines.push(`${signName} ${chart.ascendantDegree.toFixed(1)}°`)
   lines.push('')
+
+  const cuspNote = formatCuspNote(signName, chart.ascendantDegree, vedic ? 'Lagna' : 'Ascendant')
+  if (cuspNote) {
+    lines.push(cuspNote)
+    lines.push('')
+  }
 
   if (sData) {
     lines.push(`SIGN CHARACTER: ${sData.element} ${sData.modality} | Core need: ${sData.coreNeed}`)
@@ -1189,27 +1222,22 @@ function formatSynthesisBlock(chartData: DualChartData): string {
       }
     }
 
-    // Cusp detection: flag planets within 3° of a sign boundary in either system
-    const tropNearEnd   = trop.degree > 27
-    const tropNearStart = trop.degree < 3
-    const sidNearEnd    = sid.degree  > 27
-    const sidNearStart  = sid.degree  < 3
-    const tropOnCusp    = tropNearEnd || tropNearStart
-    const sidOnCusp     = sidNearEnd  || sidNearStart
+    // Cusp detection: name the specific cusp when the planet is within orb of a
+    // sign boundary in either system, and read the cross-system resolution.
+    const tropCusp = getCuspForPlanet(trop.sign, trop.degree)
+    const sidCusp  = getCuspForPlanet(sid.sign, sid.degree)
+    const tropOnCusp = tropCusp !== null
+    const sidOnCusp  = sidCusp !== null
 
     if (tropOnCusp || sidOnCusp) {
-      const nextSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 1) % 12]
-      const prevSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 11) % 12]
-      if (tropNearEnd)   lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${trop.sign}/${nextSign(trop.sign)} boundary`)
-      if (tropNearStart) lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${prevSign(trop.sign)}/${trop.sign} boundary`)
-      if (sidNearEnd)    lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${sid.sign}/${nextSign(sid.sign)} boundary`)
-      if (sidNearStart)  lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${prevSign(sid.sign)}/${sid.sign} boundary`)
+      if (tropCusp) lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — the ${tropCusp.signs[0]}/${tropCusp.signs[1]} ${tropCusp.name} (${tropCusp.keywords})`)
+      if (sidCusp)  lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — the ${sidCusp.signs[0]}/${sidCusp.signs[1]} ${sidCusp.name} (${sidCusp.keywords})`)
       if (tropOnCusp && !sidOnCusp) {
         lines.push(`    The Tropical cusp resolves into the body of ${sid.sign} in the Sidereal chart — what reads as boundary ambiguity at the psychological level becomes more settled at the essential level`)
       } else if (!tropOnCusp && sidOnCusp) {
-        lines.push(`    The ayanamsa shift places Sidereal ${pName} near a sign boundary despite a non-cusp Tropical position — boundary ambiguity exists at the essential level but not at the psychological`)
+        lines.push(`    The ayanamsa shift places Sidereal ${pName} on a named cusp despite a non-cusp Tropical position — boundary ambiguity exists at the essential level but not at the psychological`)
       } else {
-        lines.push(`    ${pName} is near a sign boundary in both systems — adjacent-sign qualities blend into its expression at both the psychological and essential levels`)
+        lines.push(`    ${pName} is on a named cusp in both systems — adjacent-sign qualities blend into its expression at both the psychological and essential levels`)
       }
     }
 
