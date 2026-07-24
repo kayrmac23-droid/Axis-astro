@@ -174,7 +174,7 @@
 .errorText {
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  color: #8A2020;
+  color: var(--danger-text);
   letter-spacing: 0.05em;
 }
 
@@ -310,7 +310,7 @@
   font-family: var(--font-serif);
   font-size: 1rem;
   line-height: 1.82;
-  font-weight: 300;
+  font-weight: 400;
   color: var(--fg-2);
   font-style: italic;
 }
@@ -320,7 +320,7 @@
   font-family: var(--font-serif);
   font-size: 1.12rem;
   line-height: 2;
-  font-weight: 300;
+  font-weight: 400;   /* match hero + form; carries a full page on dark */
   color: var(--fg);
   letter-spacing: 0.01em;
   margin-bottom: 1.1rem;
@@ -356,9 +356,9 @@
   font-family: var(--font-mono);
   font-size: 0.66rem;
   letter-spacing: 0.05em;
-  color: #8A6020;
+  color: #D89455;   /* --copper-bright: warnings are copper, not mud */
   line-height: 1.7;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 /* ─── Cursor ──────────────────────────────────────── */
