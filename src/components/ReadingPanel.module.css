@@ -310,7 +310,7 @@
   font-family: var(--font-serif);
   font-size: 1rem;
   line-height: 1.82;
-  font-weight: 300;
+  font-weight: 400;
   color: var(--fg-2);
   font-style: italic;
 }
@@ -320,7 +320,7 @@
   font-family: var(--font-serif);
   font-size: 1.12rem;
   line-height: 2;
-  font-weight: 300;
+  font-weight: 400;   /* match hero + form; carries a full page on dark */
   color: var(--fg);
   letter-spacing: 0.01em;
   margin-bottom: 1.1rem;
