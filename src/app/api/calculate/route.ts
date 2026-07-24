@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
-import { tzNameToOffset } from '@/lib/tz'
+import { tzNameToOffset, birthToUtcMs, isValidCalendarDate } from '@/lib/tz'
 import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
 // Allow up to 30s for this route — needed for the Horizons API call (~300ms typical,
@@ -62,9 +62,8 @@ export async function POST(req: NextRequest) {
     if (isNaN(lat) || lat < -90  || lat > 90)  return NextResponse.json({ error: 'Invalid latitude' }, { status: 400 })
     if (isNaN(lon) || lon < -180 || lon > 180) return NextResponse.json({ error: 'Invalid longitude'}, { status: 400 })
 
-    // Reject impossible calendar dates (e.g. Feb 31, Apr 31)
-    const testDate = new Date(y, mo - 1, d)
-    if (testDate.getFullYear() !== y || testDate.getMonth() !== mo - 1 || testDate.getDate() !== d) {
+    // Reject impossible calendar dates (e.g. Feb 31, Apr 31).
+    if (!isValidCalendarDate(y, mo, d)) {
       return NextResponse.json({ error: 'Invalid date: day out of range for given month/year' }, { status: 400 })
     }
 
@@ -89,8 +88,7 @@ export async function POST(req: NextRequest) {
 
     // Attempt JPL Horizons DE440 lookup for Pluto. Falls back to local Meeus (~0.3°)
     // silently if Horizons is unavailable. The chart is still valid in either case.
-    const utcMs   = Date.UTC(y, mo - 1, d, h, mi, 0) - tzOffset * 3_600_000
-    const utcDate = new Date(utcMs)
+    const utcDate = new Date(birthToUtcMs(y, mo, d, h, mi, tzOffset))
     const horizonsPluto = await getHorizonsEclipticLon('Pluto', utcDate).catch(() => null)
 
     const chartData = calculateDualChart(birthData, {

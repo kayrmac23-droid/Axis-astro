@@ -39,10 +39,10 @@ Planet sections — **tropical**: sun, moon, ascendant, mercury, venus, mars, ju
 - **`lib/reading-quality-gate.ts`**: post-generation evaluator. Scores the first-pass reading against the rubric and, if it fails, runs a single repair pass before the text reaches the client — bounded by a wall-clock budget so the route stays under `maxDuration`.
 - **`lib/route-rate-limiter.ts`**: Redis-backed per-IP fixed-window rate limiter (atomic Lua INCR+EXPIRE via Upstash); falls back to in-memory when Redis env vars are absent.
 - **`lib/reading-cache.ts`**: Upstash Redis KV cache, 30-day TTL. `READING_PROMPT_VERSION = 'v10.3'` — bump to invalidate all prior cached readings.
-- **`lib/cusps.ts`**: `getCuspForPlanet(sign, degree)` — returns `CuspData` when within 3° of sign boundary.
+- **`lib/cusps.ts`**: `CUSPS` — the 12 named sign-boundary cusp descriptions (`CuspData[]`). Reference data, not currently wired into the runtime.
 - **`lib/jpl-horizons.ts`**: fetches Pluto longitude from JPL Horizons REST API. Module-level cache (500 entries, FIFO). Returns `null` on any error.
 - **`lib/zodiac-constants.ts`**: centralised `ZODIAC_SIGNS` array — shared source of truth.
-- **`lib/tz.ts`**: DST-aware UTC offset from an IANA timezone name.
+- **`lib/tz.ts`**: DST-aware UTC offset from an IANA timezone name (`tzNameToOffset`), calendar-date validity (`isValidCalendarDate`), and local-birth→UTC-instant conversion (`birthToUtcMs`). The latter two use `setFullYear`/`setUTCFullYear` so years 1–99 are not remapped to 1900–1999 by the `Date` constructor's legacy two-digit-year rule.
 - **`lib/analytics.ts`**: PostHog thin wrapper (no-op when key absent).
 - **`lib/planet-descriptors.ts`**: `TROPICAL_DESCRIPTORS`, `SIDEREAL_DESCRIPTORS`, `SYNASTRY_DESCRIPTORS`, `SYNTHESIS_DESCRIPTORS` — name/keywords/description per section.
 

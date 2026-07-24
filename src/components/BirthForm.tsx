@@ -91,7 +91,10 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
     try {
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { signal: geocodeAbortRef.current.signal })
       const data = await res.json()
-      setLocationSuggestions(data)
+      // The endpoint returns an array on every path, but guard defensively so a
+      // non-array body (e.g. an intermediary error page) can never crash the
+      // suggestion list's .map() render.
+      setLocationSuggestions(Array.isArray(data) ? data : [])
     } catch (err) {
       if (err instanceof Error && err.name !== 'AbortError') setLocationSuggestions([])
     } finally {
