@@ -122,7 +122,7 @@
   position: relative; z-index: 1; border-top: 1px solid var(--line-soft); padding: 40px 8vw 72px;
   display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 44px; max-width: 1160px; margin: 0 auto;
 }
-.footer .col { font-family: var(--mono); font-size: 10px; letter-spacing: .28em; color: var(--ink-5); line-height: 2.3; }
+.footer .col { font-family: var(--mono); font-size: 11px; letter-spacing: .22em; color: var(--ink-3); line-height: 2.3; }
 .footer a { display: block; color: var(--ink-3); transition: color .3s; }
 .footer a:hover { color: var(--ink); }
 .footer .fbrand { color: var(--copper-b); }
