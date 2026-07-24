@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
 import { buildSynastryData } from '@/lib/synastry-calc'
-import { tzNameToOffset } from '@/lib/tz'
+import { tzNameToOffset, birthToUtcMs, isValidCalendarDate } from '@/lib/tz'
 import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
 
 export const maxDuration = 30
@@ -42,8 +42,7 @@ function parsePerson(raw: RawBirthInput, label: string): { data: BirthData } | {
   if (isNaN(lat) || lat < -90  || lat > 90)  return { error: `${label}: invalid latitude` }
   if (isNaN(lon) || lon < -180 || lon > 180) return { error: `${label}: invalid longitude` }
 
-  const testDate = new Date(y, mo - 1, d)
-  if (testDate.getFullYear() !== y || testDate.getMonth() !== mo - 1 || testDate.getDate() !== d) {
+  if (!isValidCalendarDate(y, mo, d)) {
     return { error: `${label}: day out of range for month/year` }
   }
 
@@ -103,8 +102,8 @@ export async function POST(req: NextRequest) {
     const { data: birthB } = resB
 
     // Fetch Pluto for both charts concurrently
-    const utcA = new Date(Date.UTC(birthA.year, birthA.month - 1, birthA.day, birthA.hour, birthA.minute) - birthA.timezone * 3_600_000)
-    const utcB = new Date(Date.UTC(birthB.year, birthB.month - 1, birthB.day, birthB.hour, birthB.minute) - birthB.timezone * 3_600_000)
+    const utcA = new Date(birthToUtcMs(birthA.year, birthA.month, birthA.day, birthA.hour, birthA.minute, birthA.timezone))
+    const utcB = new Date(birthToUtcMs(birthB.year, birthB.month, birthB.day, birthB.hour, birthB.minute, birthB.timezone))
 
     const [plutoA, plutoB] = await Promise.all([
       getHorizonsEclipticLon('Pluto', utcA).catch(() => null),
