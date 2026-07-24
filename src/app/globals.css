@@ -68,6 +68,7 @@
   /* ── Semantic tokens ──────────────────────────────── */
   --danger:   #DC4040;
   --danger-2: rgba(138, 32, 32, 0.08);
+  --danger-text: #E07070;   /* passes AA on the void; already used in BirthForm */
   --success:  #4AA840;
   --info:     #4A90D4;
 
