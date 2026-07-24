@@ -120,7 +120,7 @@
   border: 1px solid var(--text);
   text-decoration: none;
   padding: 0.6rem 1.1rem;
-  border-radius: 2px;
+  border-radius: var(--r-none); /* matches every other control */
   cursor: pointer;
   transition: all 150ms ease;
   white-space: nowrap;

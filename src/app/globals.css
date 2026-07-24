@@ -72,6 +72,8 @@
   --info:     #4A90D4;
 
   /* ── Type scale ───────────────────────────────────── */
+  /* --t-label-xs is decorative only (tick marks, wheel micro-labels); never use
+     it for body-adjacent labels — it falls below a legible reading size. */
   --t-label-xs: 0.45rem;
   --t-label-sm: 0.54rem;
   --t-label:    0.62rem;

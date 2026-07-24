@@ -538,18 +538,12 @@
 /* ─── Mode toggle ─────────────────────────────────── */
 .modeToggle {
   display: flex;
-  gap: 0;
   border: 1px solid var(--border-2);
-  margin: 0 0 0;
   width: 100%;
   max-width: 960px;
-  padding: 0 2.5rem;
   box-sizing: border-box;
-  padding-left: 0;
-  padding-right: 0;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0 2.5rem 0;
+  margin: 0 auto;
+  padding: 0 var(--s-10);
 }
 
 .modeBtn {
@@ -643,31 +637,11 @@
   margin: 0 auto;
 }
 
-/* Synastry calculate button — mirrors BirthForm.submitBtn */
+/* Synastry calculate button — composes the single source of truth in
+   BirthForm.module.css (copper fill, incl. :hover and :disabled) so the two
+   primary CTAs share one treatment and cannot drift apart. */
 .submitBtn {
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  padding: 1.25rem 1rem;
-  background: var(--copper);
-  border: 1px solid var(--copper);
-  color: var(--bg);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.submitBtn:hover:not(:disabled) {
-  background: var(--copper-light);
-  border-color: var(--copper-light);
-}
-
-.submitBtn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
+  composes: submitBtn from '../components/BirthForm.module.css';
 }
 
 .btnLoading {
