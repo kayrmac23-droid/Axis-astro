@@ -39,6 +39,15 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
     if (built.current) return
     built.current = true
 
+    // The instrument is built imperatively from ~1.5k SVG nodes. Running that
+    // synchronously on mount is a long main-thread task that blocks first paint
+    // and interactivity. Defer it two frames so the hero copy + CTA paint first,
+    // then fill the wheel in — which also matches the "settle" intro beat.
+    let io: IntersectionObserver | null = null
+    let raf1 = 0
+    let raf2 = 0
+
+    const build = () => {
     const NS = 'http://www.w3.org/2000/svg'
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     function el(tag: string, attrs: Record<string, string | number>, parent?: Element) {
@@ -190,7 +199,10 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       if (reduce) { (annot as HTMLElement).style.opacity = '1' }
       else {
         let t0: number | null = null
-        const DUR = 6200
+        // Rotating the whole disc (~1.5k nodes) re-rasterises the instrument every
+        // frame. Keep the settle gesture but shorten its window to cut the amount
+        // of sustained main-thread work right as the user lands.
+        const DUR = 2600
         disc.setAttribute('transform', 'rotate(-14 500 500)')
         const step = (ts: number) => {
           if (t0 === null) t0 = ts
@@ -206,19 +218,23 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       const yearOut = document.getElementById('epochYear')
       const offOut = document.getElementById('epochOff')
       if (slider && yearOut && offOut) {
-        const scrub = () => {
+        let scrubRaf = 0
+        const applyScrub = () => {
+          scrubRaf = 0
           const y = parseInt(slider.value, 10), A = ayan(y)
           setOffset(A)
           yearOut.textContent = y + ' CE'
           if (A < 0.05) { offOut.innerHTML = '<span class="' + styles.agree + '">THE TWO ZODIACS AGREE</span>' }
           else { offOut.textContent = 'OFFSET ' + fmtA(A) + (y === 2026 ? '' : ' · IN 285 CE THE ZODIACS AGREED') }
         }
+        // Coalesce rapid drag events to one DOM update per frame — each setOffset
+        // rewrites a dozen glyph transforms plus the wedge path.
+        const scrub = () => { if (!scrubRaf) scrubRaf = requestAnimationFrame(applyScrub) }
         slider.addEventListener('input', scrub)
       }
     }
 
     /* ---------- scroll reveal ---------- */
-    let io: IntersectionObserver | null = null
     if ('IntersectionObserver' in window && !reduce) {
       io = new IntersectionObserver(function (entries) {
         entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add(styles.in); io!.unobserve(en.target) } })
@@ -229,6 +245,15 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       root.querySelectorAll('.' + styles.rv).forEach(function (n) {
         if (io) io.observe(n); else n.classList.add(styles.in)
       })
+    }
+    }
+
+    raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(build) })
+
+    return () => {
+      cancelAnimationFrame(raf1)
+      cancelAnimationFrame(raf2)
+      io?.disconnect()
     }
   }, [])
 
