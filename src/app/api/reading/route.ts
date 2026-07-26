@@ -74,13 +74,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
-function extractText(message: Anthropic.Message): string {
-  return message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === 'text')
-    .map(b => b.text)
-    .join('')
-}
-
 // Parse and validate a BirthData object from unknown user input.
 // Returns null if any required field is missing or out of range.
 function parseBirthData(raw: unknown): BirthData | null {
@@ -239,46 +232,67 @@ export async function POST(req: NextRequest) {
     }
 
     const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
+    // Cache the per-section-type system prompt too: it is stable across every
+    // request for a given section, so a second cache breakpoint here shaves
+    // time-to-first-token off the streamed first pass.
     const systemBlocks: Anthropic.TextBlockParam[] = [
       SHARED_RULES_BLOCK,
-      { type: 'text', text: systemPrompt },
+      { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
     ]
 
     // ── Quality-gated generation pipeline ──────────────────────────────────────
-    // Wraps first-pass + evaluator + optional repair in a streaming response so
-    // the connection stays warm via 5s whitespace pings, but no text reaches the
-    // client until the validated (or repaired) version is ready. Caching only
-    // happens after the gate passes — failed first drafts are never persisted.
+    // The first pass streams to the client token-by-token, so prose starts
+    // rendering within ~1s instead of after the whole section (plus gate, plus
+    // repair) has finished buffering. The quality gate still runs after the
+    // stream: if the draft passes it is cached as-is; if it fails and there is
+    // wall-clock budget, a repair pass is streamed behind an [AXIS_REPAIRED]
+    // marker and the client swaps the visible draft for it. Only validated
+    // (passing or repaired) text is ever cached.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
         const startedAt = Date.now()
-        let pipelineDone = false
+        // 'streaming' while first-pass tokens are flowing (never inject a ping
+        // mid-stream — it would corrupt the prose). 'gating' during the eval /
+        // repair gap, where a boundary-only keep-alive space is harmless.
+        let phase: 'streaming' | 'gating' | 'done' = 'streaming'
         const keepAlive = setInterval(() => {
-          if (!pipelineDone) {
+          if (phase === 'gating') {
             try { controller.enqueue(encoder.encode(' ')) } catch { /* closed */ }
           }
         }, 5000)
 
         try {
-          // 1. First pass — full non-streaming generation.
-          const firstPass = await anthropic.messages.create({
+          // 1. First pass — streamed live.
+          const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
             temperature: TEMPERATURE,
             system:      systemBlocks,
             messages:    [{ role: 'user', content: userContent }],
           })
-          const firstText = extractText(firstPass)
-          const truncated = firstPass.stop_reason === 'max_tokens'
 
-          // 2. Evaluate. Truncated drafts are never gated — they get returned
-          //    with the truncation marker so the client can surface it.
-          let finalText = firstText
+          let firstText = ''
+          for await (const event of stream) {
+            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+              firstText += event.delta.text
+              try { controller.enqueue(encoder.encode(event.delta.text)) } catch { /* closed */ }
+            }
+          }
+          const firstMessage = await stream.finalMessage()
+          const truncated = firstMessage.stop_reason === 'max_tokens'
+
+          phase = 'gating'
+
+          // 2. Gate + optional repair. Truncated drafts are never gated — they
+          //    ship with the truncation marker so the client can surface it.
+          let cacheText = firstText
           let cacheable = !truncated && firstText.trim().length > 0
 
-          if (!truncated && firstText.trim().length > 0) {
+          if (truncated) {
+            controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
+          } else if (firstText.trim().length > 0) {
             const gate = await evaluateSection({
               generatedText: firstText,
               chartContext:  userContent,
@@ -286,7 +300,6 @@ export async function POST(req: NextRequest) {
               planetSection,
             })
 
-            // 3. Repair once if the gate fails AND we have budget for it.
             const elapsedMs = Date.now() - startedAt
             const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
 
@@ -301,37 +314,33 @@ export async function POST(req: NextRequest) {
                   model:               MODEL,
                 })
                 if (repaired.trim().length > 0) {
-                  finalText = repaired
+                  // Supersede the streamed draft. The client keeps only the text
+                  // after the last [AXIS_REPAIRED] marker as the final section.
+                  controller.enqueue(encoder.encode('\n\n[AXIS_REPAIRED]\n\n' + repaired))
+                  cacheText = repaired
                 }
               } catch (repairErr) {
-                // Repair failed — fall back to the first pass. Log but don't
-                // break the user-facing response.
+                // Repair failed — the streamed first pass still stands, but a
+                // known-failed draft is not cached.
                 console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
-                // First pass still ships, but don't cache a known-failed draft.
                 cacheable = false
               }
             } else if (!gate.pass && gate.critique && !haveBudget) {
-              // Out of budget for a repair — ship the first pass but don't
-              // cache it, so the next request gets a fresh attempt.
+              // Out of budget for a repair — the streamed first pass stands, but
+              // is not cached so the next request gets a fresh attempt.
               cacheable = false
               console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
             }
           }
 
-          // 4. Emit final text (and truncation marker if present), then cache
-          //    only the validated, complete version.
-          pipelineDone = true
-          controller.enqueue(encoder.encode(finalText))
-          if (truncated) {
-            controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
-          }
+          phase = 'done'
           controller.close()
 
-          if (cacheable && finalText.trim().length > 0) {
-            await setCachedReading(cacheKey, finalText)
+          if (cacheable && cacheText.trim().length > 0) {
+            await setCachedReading(cacheKey, cacheText)
           }
         } catch (err) {
-          pipelineDone = true
+          phase = 'done'
           try {
             controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()

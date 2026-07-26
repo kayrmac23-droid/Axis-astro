@@ -87,7 +87,9 @@
 .epochRead .agree { color: var(--copper-l); }
 
 /* ---------- shared sections ---------- */
-.band { max-width: 1160px; margin: 0 auto; padding: 112px 8vw; }
+/* Below-the-fold on load: skip rendering until scrolled near, so the initial
+   paint and scroll aren't taxed by off-screen layout/paint. */
+.band { max-width: 1160px; margin: 0 auto; padding: 112px 8vw; content-visibility: auto; contain-intrinsic-size: auto 640px; }
 .band + .band { border-top: 1px solid var(--line-soft); }
 .kicker { font-family: var(--mono); font-size: 11px; letter-spacing: .32em; color: #C98A4B; margin: 0 0 30px; }
 .rv { opacity: 0; transform: translateY(16px); transition: opacity .9s ease, transform .9s ease; }

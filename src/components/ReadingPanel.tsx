@@ -31,6 +31,17 @@ const SECTION_DISPLAY: Record<string, string> = {
 
 const SECTION_TIMEOUT_MS = 50_000
 
+// The server streams the first-pass draft live. If the quality gate triggers a
+// repair, it appends [AXIS_REPAIRED] followed by the final copy — everything up
+// to and including the last marker is the superseded draft, so we keep only what
+// follows it.
+function stripRepairMarker(text: string): string {
+  const marker = '[AXIS_REPAIRED]'
+  const idx = text.lastIndexOf(marker)
+  if (idx === -1) return text
+  return text.slice(idx + marker.length).replace(/^\s+/, '')
+}
+
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
   // Match nodes before individual planet names so "Rahu and Ketu" / "The Lunar Nodes"
@@ -220,9 +231,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               const { done, value } = await reader.read()
               if (done) break
               chunkText += decoder.decode(value, { stream: true })
-              setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
+              setReadings(prev => ({ ...prev, [sec]: accumulatedText + stripRepairMarker(chunkText) }))
             }
             chunkText += decoder.decode()
+            chunkText = stripRepairMarker(chunkText)
             setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
 
             if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
@@ -374,6 +386,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           fetchedText += decoder.decode(value, { stream: true })
         }
         fetchedText += decoder.decode()
+        fetchedText = stripRepairMarker(fetchedText)
 
         if (fetchedText.includes('[AXIS_STREAM_ERROR:')) {
           if (attempt === 0) continue
