@@ -7,7 +7,7 @@
    ============================================================ */
 
 .root {
-  --floor: #02030A;
+  --floor: #08080B; /* neutral near-black floor — shared with globals --void (was navy #02030A) */
   --ink: #E9E7F2; --ink-2: #B4B1CC; --ink-3: #8F8CAB; --ink-4: #6F6C8E; --ink-5: #565476;
   --copper: #B87333; --copper-b: #D89455; --copper-l: #F0B978; --copper-dim: #5A2F18;
   --line: rgba(233,231,242,.14); --line-soft: rgba(233,231,242,.08);

@@ -6,7 +6,7 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────────────── */
-  --void:      #010108;
+  --void:      #08080B;  /* neutral near-black floor (was navy #010108) */
   --bg:        #030212;
   --deep:      #05041A;
   --surface:   #090820;

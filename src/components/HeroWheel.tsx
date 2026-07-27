@@ -153,7 +153,7 @@ export default function HeroWheel() {
       {/* Static annotations — do not rotate */}
       <div className={styles.annotations} aria-hidden="true">
         <div className={styles.offsetBox}>
-          <span className={styles.offsetValue}>23°.85</span>
+          <span className={styles.offsetValue}>23°51′</span>
           <span className={styles.offsetLabel}>Lahiri offset</span>
         </div>
       </div>
