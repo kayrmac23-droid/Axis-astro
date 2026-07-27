@@ -6,12 +6,17 @@
 
 :root {
   /* ── Surfaces ─────────────────────────────────────── */
-  --void:      #08080B;  /* neutral near-black floor (was navy #010108) */
+  /* --void is the page ground (floor). Doctrinally fixed at #02030A — it reads
+     as black at its luminance and NOTHING derives from it. Lifted surfaces come
+     from the neutral --surface-* base below, never from lightening the floor
+     (which is blue-dominant ~5:1 and lands navy the moment it is lifted). */
+  --void:      #02030A;
   --bg:        #030212;
-  --deep:      #05041A;
-  --surface:   #090820;
-  --surface-2: #0F0E2C;
-  --surface-3: #16153A;
+  --deep:      #0A090C;   /* deep lifted tier — neutral, derived from the base, not the floor */
+  --surface-1: #0C0B0E;   /* neutral base for lifted surfaces */
+  --surface:   var(--surface-1);   /* legacy alias → neutral base */
+  --surface-2: #131114;
+  --surface-3: #1A171B;
 
   /* Raised surface behind long-form reading prose only (DOCTRINE.md:
      READING SURFACE EXCEPTION) — chrome and the wheel stay on the void. */
