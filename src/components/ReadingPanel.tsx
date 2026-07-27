@@ -29,7 +29,11 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
 
-const SECTION_TIMEOUT_MS = 50_000
+// Must exceed the server's maxDuration (60s) so the server — not the client —
+// decides when a section has failed. The /api/reading pipeline runs to 60s
+// (generate → quality gate → single repair pass); aborting earlier would kill
+// a section mid-gate before it can be validated and cached.
+const SECTION_TIMEOUT_MS = 65_000
 
 // The server streams the first-pass draft live. If the quality gate triggers a
 // repair, it appends [AXIS_REPAIRED] followed by the final copy — everything up

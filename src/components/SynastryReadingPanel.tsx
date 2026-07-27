@@ -20,7 +20,11 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
   navigation:     'What Each Requires',
 }
 
-const SECTION_TIMEOUT_MS = 50_000
+// Must exceed the server's maxDuration (60s) so the server — not the client —
+// decides when a section has failed. The /api/reading pipeline runs to 60s
+// (generate → quality gate → single repair pass); aborting earlier would kill
+// a section mid-gate before it can be validated and cached.
+const SECTION_TIMEOUT_MS = 65_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
 
