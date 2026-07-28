@@ -79,10 +79,11 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
         if (x < 0 || x > 1920) continue
         el('circle', { cx: f2(x), cy: f2(y), r: f2(.3 + Math.random() * .9), fill: '#CFD6EC', opacity: f2(.08 + Math.random() * .35) }, g)
       }
+      // Bright accent stars — the decorative crosshair strokes are removed: a
+      // fixed atmosphere layer may hold diffuse points but never a resolvable
+      // crosshair silhouette that reads over body copy on scroll.
       ;[[300, 180], [560, 830], [1210, 240], [1470, 700]].forEach(function (p) {
         el('circle', { cx: p[0], cy: p[1], r: 1.8, fill: '#E4E9F8', opacity: .85 }, g)
-        el('line', { x1: p[0] - 13, y1: p[1], x2: p[0] + 13, y2: p[1], stroke: 'rgba(210,218,240,.4)', 'stroke-width': .6 }, g)
-        el('line', { x1: p[0], y1: p[1] - 13, x2: p[0], y2: p[1] + 13, stroke: 'rgba(210,218,240,.4)', 'stroke-width': .6 }, g)
       })
     })()
 
@@ -275,7 +276,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
           <circle cx="1990" cy="-60" r="780" fill="none" stroke="rgba(150,160,200,.07)" strokeDasharray="1 6" />
           <circle cx="-130" cy="1170" r="540" fill="none" stroke="rgba(233,231,242,.07)" strokeDasharray="1 6" />
           <g id="starsG"></g>
-          <g id="constellations" stroke="rgba(120,132,170,.26)" strokeWidth="1" fill="none">
+          <g id="constellations" stroke="rgba(120,132,170,.26)" strokeWidth="1" fill="none" opacity=".06">
             <polyline points="900,118 962,72 1024,112 1086,66 1148,100" />
             <polyline points="1560,418 1626,378 1706,382 1760,424 1826,458 1878,478" />
             <polyline points="1706,382 1760,424" />
@@ -285,18 +286,14 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             <polyline points="1660,962 1700,1002 1676,1052" />
             <polyline points="1700,1002 1636,1010" />
           </g>
-          <g id="constDots" fill="rgba(165,175,210,.55)">
+          <g id="constDots" fill="rgba(165,175,210,.55)" opacity=".06">
             <circle cx="900" cy="118" r="1.7" /><circle cx="962" cy="72" r="1.9" /><circle cx="1024" cy="112" r="1.6" /><circle cx="1086" cy="66" r="1.9" /><circle cx="1148" cy="100" r="1.5" />
             <circle cx="1560" cy="418" r="1.7" /><circle cx="1626" cy="378" r="1.6" /><circle cx="1706" cy="382" r="1.8" /><circle cx="1760" cy="424" r="1.6" /><circle cx="1826" cy="458" r="1.5" />
             <circle cx="1717" cy="662" r="2.1" /><circle cx="1793" cy="652" r="1.7" /><circle cx="1738" cy="724" r="1.6" /><circle cx="1758" cy="736" r="1.6" /><circle cx="1778" cy="748" r="1.6" /><circle cx="1815" cy="812" r="2" /><circle cx="1745" cy="818" r="1.5" />
             <circle cx="1660" cy="962" r="2.3" /><circle cx="1700" cy="1002" r="1.5" /><circle cx="1636" cy="1010" r="1.4" /><circle cx="1676" cy="1052" r="1.4" />
           </g>
-          <g fontSize="10" letterSpacing="5" fill="rgba(110,118,152,.55)">
-            <text x="1024" y="152" textAnchor="middle">CASSIOPEIA</text>
-            <text x="1690" y="342" textAnchor="middle">URSA MAJOR</text>
-            <text x="1668" y="742" textAnchor="end">ORION</text>
-            <text x="1662" y="936" textAnchor="middle">CANIS MAJOR</text>
-          </g>
+          {/* Constellation name labels removed: a fixed atmosphere layer must not
+              carry resolvable content (labels/silhouettes) that reads over body copy. */}
         </svg>
       </div>
 

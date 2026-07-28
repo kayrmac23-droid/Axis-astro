@@ -156,7 +156,7 @@ export default function AstrolabeDecor() {
           className={styles.ayanamsaCounter} 
           textAnchor="middle"
         >
-          LAHIRI OFFSET: −23.85°
+          LAHIRI OFFSET: −23°51′
         </text>
       </svg>
     </div>

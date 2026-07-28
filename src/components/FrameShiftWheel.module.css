@@ -48,7 +48,7 @@
 
 .status { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--dim2); margin-top: 12px; min-height: 14px; }
 
-.callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--hair); padding: 10px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; line-height: 1.9; color: var(--dim); background: rgba(1, 1, 8, .82); max-width: 270px; z-index: 3; }
+.callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--hair); padding: 10px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; line-height: 1.9; color: var(--dim); background: rgba(12, 11, 14, .82); max-width: 270px; z-index: 3; }
 .cname { color: var(--star); letter-spacing: 2.5px; }
 .cverdict { color: var(--copper-light); }
 .calloutClose { position: absolute; top: 4px; right: 8px; font-size: 12px; line-height: 1; color: var(--dim2); }
