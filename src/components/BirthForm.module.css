@@ -126,7 +126,7 @@
 }
 
 .notationInput::placeholder {
-  color: var(--copper-dim);
+  color: rgba(233, 231, 242, 0.5);
   letter-spacing: 0.15em;
 }
 
