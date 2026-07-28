@@ -9,13 +9,10 @@
   transition: opacity 300ms ease, transform 300ms ease;
 }
 
-/* Landing route only: the hero owns the wordmark, so the header stays
-   off-screen at scroll top and slides in once the hero has left the
-   viewport (opacity + translate, no blur — DOCTRINE banned effects). */
-.hidden {
+.logoHidden {
   opacity: 0;
-  transform: translateY(-100%);
   pointer-events: none;
+  transition: opacity 300ms ease;
 }
 
 .inner {

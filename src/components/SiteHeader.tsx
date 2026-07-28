@@ -37,9 +37,13 @@ export default function SiteHeader() {
   }, [isLanding])
 
   return (
-    <header className={`${styles.header} ${isLanding && !revealed ? styles.hidden : ''}`}>
+    <header className={styles.header}>
       <div className={styles.inner}>
-        <Link href="/" className={styles.logoBlock} aria-label="AXIS — home">
+        <Link
+          href="/"
+          className={`${styles.logoBlock} ${isLanding && !revealed ? styles.logoHidden : ''}`}
+          aria-label="AXIS — home"
+        >
           <span className={styles.logo}>AXIS</span>
           <span className={styles.logoSub}>Dual-System Astrology</span>
         </Link>

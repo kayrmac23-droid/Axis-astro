@@ -45,7 +45,7 @@
   background: var(--surface);
   padding: var(--s-8);
   border: var(--bd-hair) solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-none);
   position: relative;
   overflow: hidden;
 }
@@ -58,7 +58,7 @@
   padding: var(--s-8);
   background: var(--surface);
   border: var(--bd-hair) solid var(--border);
-  border-radius: var(--r-sm);
+  border-radius: var(--r-none);
   position: relative;
   overflow: hidden;
 }
