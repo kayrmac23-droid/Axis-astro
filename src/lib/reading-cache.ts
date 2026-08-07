@@ -24,12 +24,19 @@ const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
 // Lazily initialised so the module is importable in environments that lack the
 // env vars (unit tests, local dev without Redis). Returns null when unconfigured.
 let _redis: Redis | null = null
+let _warnedNoRedis = false
 
 export function getRedis(): Redis | null {
   if (_redis) return _redis
-  const url   = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
-  if (!url || !token) return null
+  const url   = process.env.UPSTASH_REDIS_REST_URL   ?? process.env.KV_REST_API_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN
+  if (!url || !token) {
+    if (!_warnedNoRedis) {
+      _warnedNoRedis = true
+      console.error('[AXIS] REDIS NOT CONFIGURED — cache disabled, rate limiting degraded, budget guard INACTIVE.')
+    }
+    return null
+  }
   _redis = new Redis({ url, token })
   return _redis
 }

@@ -6,7 +6,7 @@ import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
-import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
+import { checkRateLimit, getClientIp, checkGlobalDailyBudget } from '@/lib/route-rate-limiter'
 import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
 
 export const maxDuration = 60
@@ -47,7 +47,7 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
-const READING_RATE_LIMIT = { max: 20, windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
+const READING_RATE_LIMIT = { max: Number(process.env.AXIS_READING_RATE_LIMIT_MAX ?? 20), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
 
 // ── Quality-gate budget ────────────────────────────────────────────────────────
 // Wall-clock budget after first pass + eval beyond which we skip the repair pass
@@ -108,6 +108,15 @@ export async function POST(req: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
+    }
+
+    // ── Kill switch ────────────────────────────────────────────────────────────
+    // Lets readings be disabled without a redeploy by flipping an env var.
+    if (process.env.AXIS_READINGS_ENABLED === 'false') {
+      return NextResponse.json(
+        { error: 'Readings are temporarily unavailable. Please check back shortly.' },
+        { status: 503 }
+      )
     }
 
     // ── Payload size guard ─────────────────────────────────────────────────────
@@ -182,6 +191,18 @@ export async function POST(req: NextRequest) {
       return new Response(cached, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
       })
+    }
+
+    // ── Global daily budget (only uncached AI requests count) ──────────────────
+    // Coarse spend guard: caps total AI-backed reading calls per day across all
+    // clients. Fails open when Redis is unavailable.
+    const budget = await checkGlobalDailyBudget()
+    if (!budget.allowed) {
+      console.error(`[AXIS] Daily reading budget exhausted: used ${budget.used} of cap ${budget.cap}.`)
+      return NextResponse.json(
+        { error: "AXIS has reached today's reading limit. Please try again tomorrow." },
+        { status: 503 }
+      )
     }
 
     // ── Rate limiting (only uncached AI requests reach here) ──────────────────

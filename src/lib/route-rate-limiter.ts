@@ -82,3 +82,26 @@ export function getClientIp(req: NextRequest): string {
            ?? req.headers.get('x-real-ip')
            ?? 'direct'
 }
+
+// ── Global daily spend cap ───────────────────────────────────────────────────
+// Caps the total number of AI-backed reading calls per day across all clients,
+// as a coarse budget guard against runaway spend. Backed by a single Redis
+// counter keyed by environment + Melbourne-local date, with a 48h expiry so the
+// key self-cleans. Fails open: when Redis is unconfigured or errors, the call is
+// allowed — the cap degrades to a no-op rather than blocking all readings.
+const BUDGET_TTL_SECONDS = 48 * 60 * 60  // 48 hours
+
+export async function checkGlobalDailyBudget(): Promise<{ allowed: boolean; used: number; cap: number }> {
+  const cap = Number(process.env.AXIS_DAILY_READING_CALL_CAP ?? 2000)
+  const redis = getRedis()
+  if (!redis) return { allowed: true, used: 0, cap }
+  try {
+    const env  = process.env.VERCEL_ENV ?? 'local'
+    const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
+    const key  = `axis:budget:${env}:${date}`
+    const used = await redis.eval(_RL_SCRIPT, [key], [String(BUDGET_TTL_SECONDS)]) as number
+    return { allowed: used <= cap, used, cap }
+  } catch {
+    return { allowed: true, used: 0, cap }
+  }
+}
