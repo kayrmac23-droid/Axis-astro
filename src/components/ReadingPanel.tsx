@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
+import { buildReadoutRows, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
 
@@ -76,6 +77,29 @@ function getSynthesisKey(heading: string): string | null {
   return null
 }
 
+// Which readout-row id(s) a placement heading describes, so the per-section data
+// block beside the prose shows exactly the bodies that prose discusses. Returns
+// row ids (from buildReadoutRows). Combined sections resolve to BOTH bodies
+// (Jupiter & Saturn → [jupiter, saturn]; Rahu & Ketu / nodes → [rahu, ketu]).
+// Aspects and the Divergence sub-sections resolve to none — they stay prose-only.
+function bodiesForHeading(content: string): string[] {
+  const h = content.toLowerCase()
+  const ids: string[] = []
+  if (h.includes('node') || h.includes('rahu') || h.includes('ketu')) { ids.push('rahu', 'ketu') }
+  if (h.includes('sun')) ids.push('sun')
+  if (h.includes('moon')) ids.push('moon')
+  if (h.includes('mercury')) ids.push('mercury')
+  if (h.includes('venus')) ids.push('venus')
+  if (h.includes('mars')) ids.push('mars')
+  if (h.includes('jupiter')) ids.push('jupiter')
+  if (h.includes('saturn')) ids.push('saturn')
+  if (h.includes('ascendant') || h.includes('lagna') || h.includes('rising')) ids.push('asc')
+  if (h.includes('uranus')) ids.push('uranus')
+  if (h.includes('neptune')) ids.push('neptune')
+  if (h.includes('pluto')) ids.push('pluto')
+  return Array.from(new Set(ids))
+}
+
 type Block =
   | { type: 'heading'; content: string; descriptorKey: string | null }
   | { type: 'subheading'; content: string }
@@ -138,6 +162,67 @@ const PLANET_SECTIONS = {
   tropical: ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
   sidereal: ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
   synthesis: ['agree', 'diverge', 'tension', 'closing']
+}
+
+// A placement = one ## heading and the prose that follows it, until the next
+// heading. Blocks before the first heading (rare) form a lead group with no body.
+type PlacementGroup = { blocks: Block[]; bodyIds: string[] }
+
+function groupPlacements(blocks: Block[]): PlacementGroup[] {
+  const groups: PlacementGroup[] = []
+  let cur: PlacementGroup | null = null
+  for (const b of blocks) {
+    if (b.type === 'heading') {
+      cur = { blocks: [b], bodyIds: bodiesForHeading(b.content) }
+      groups.push(cur)
+    } else {
+      if (!cur) { cur = { blocks: [], bodyIds: [] }; groups.push(cur) }
+      cur.blocks.push(b)
+    }
+  }
+  return groups
+}
+
+// The per-section data block: one body's Tropical and Sidereal positions shown as
+// distinct data with a Δ-sign marker. DOCTRINE.md — THE LAW: both frames are
+// presented side by side and the divergence is marked; nothing is reconciled.
+// Chrome, not prose — mono type, dimmed, copper as the sole accent.
+function ReadoutCard({ row }: { row: ReadoutRow }) {
+  return (
+    <div className={styles.readoutCard}>
+      <p className={styles.readoutName}>
+        {row.glyph && <span className={styles.readoutGlyph}>{row.glyph} </span>}{row.name}
+        {row.retro && <span className={styles.readoutRetro}> ℞</span>}
+      </p>
+      <div className={styles.readoutFrame}>
+        <span className={styles.readoutFrameLabel}>Tropical</span>
+        <span className={styles.readoutVal}>
+          {lonStr(row.tLon)}
+          {row.tHouse != null && <span className={styles.readoutHouse}> · H{row.tHouse}</span>}
+          {row.tDignity && <span className={styles.readoutDignity}> · {row.tDignity}</span>}
+        </span>
+      </div>
+      <div className={styles.readoutFrame}>
+        <span className={styles.readoutFrameLabel}>Sidereal</span>
+        <span className={styles.readoutVal}>
+          {lonStr(row.sLon)}
+          {row.sHouse != null && <span className={styles.readoutHouse}> · H{row.sHouse}</span>}
+          {row.sDignity && <span className={styles.readoutDignity}> · {row.sDignity}</span>}
+        </span>
+        {row.nakshatra && (
+          <span className={styles.readoutNak}>{row.nakshatra}{row.nakPada != null ? ` · pada ${row.nakPada}` : ''}</span>
+        )}
+      </div>
+      <p className={styles.readoutDelta}>
+        <span className={styles.readoutDeltaLabel}>Δ SIGN</span>
+        <span className={row.flip ? styles.readoutFlip : styles.readoutHold}>
+          {row.flip
+            ? `${ZODIAC_GLYPHS[row.tSign]} → ${ZODIAC_GLYPHS[row.sSign]}`
+            : `${ZODIAC_GLYPHS[row.tSign]} · ${ZODIAC_GLYPHS[row.sSign]}`}
+        </span>
+      </p>
+    </div>
+  )
 }
 
 type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
@@ -432,9 +517,18 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const sunS  = chartData.sidereal.planets.find(p => p.name === 'Sun')
   const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
 
+  // Per-section readout data, from the SAME source as the wheel table
+  // (lib/readout). Indexed by row id so each placement can pin its body's data.
+  const readoutRows = useMemo(() => buildReadoutRows(chartData), [chartData])
+  const rowById = useMemo(
+    () => Object.fromEntries(readoutRows.map(r => [r.id, r])) as Record<string, ReadoutRow>,
+    [readoutRows]
+  )
+
   // Renders one reading section's header, progress, states, and prose blocks.
   // Tropical and Sidereal render side by side; the divergence section renders below both.
-  const renderSection = (section: SystemSection) => {
+  // withData=true (single-frame) pins each placement's readout data beside its prose.
+  const renderSection = (section: SystemSection, withData = false) => {
     const currentStatus   = tabStatus[section]
     const currentError    = tabErrors[section]
     const currentText     = readings[section] || ''
@@ -443,6 +537,75 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     const blocks          = currentText ? parseReading(currentText, section) : []
     const descriptors     = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
     const currentSections = PLANET_SECTIONS[section]
+
+    // One parsed block → its element. Shared by the flat layout (side-by-side /
+    // Divergence) and the grouped layout (single-frame, with data blocks).
+    const renderBlock = (block: Block, key: string | number, animIndex: number) => {
+      if (block.type === 'sectionFailed') {
+        const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
+          || 'This section could not be generated.'
+        return (
+          <div key={key} className={styles.sectionErrorBlock}>
+            <p className={styles.sectionErrorLabel}>Section Unavailable</p>
+            <p className={styles.sectionErrorMsg}>
+              {errMsg} Check your connection and retry.
+            </p>
+            <button
+              className={styles.retrySectionBtn}
+              onClick={() => retryPlanetSection(section, block.planetSection)}
+            >
+              Retry
+            </button>
+          </div>
+        )
+      }
+
+      if (block.type === 'sectionLoading') {
+        return (
+          <div key={key} className={styles.sectionLoadingBlock}>
+            <div className={styles.generatingOrbit} />
+          </div>
+        )
+      }
+
+      if (block.type === 'subheading') {
+        return <h4 key={key} className={styles.planetSubheading}>{block.content}</h4>
+      }
+
+      if (block.type === 'heading') {
+        const descriptor = block.descriptorKey
+          ? section === 'synthesis'
+            ? SYNTHESIS_DESCRIPTORS[block.descriptorKey as keyof typeof SYNTHESIS_DESCRIPTORS]
+            : (descriptors as Record<string, { name: string; keywords: string; description: string }>)[block.descriptorKey]
+          : null
+
+        return (
+          <div key={key} className={styles.sectionBlock}>
+            <h3 className={styles.planetHeading}>{block.content}</h3>
+            {descriptor && (
+              <div className={styles.infoBox}>
+                <p className={styles.infoKeywords}>
+                  {'keywords' in descriptor ? descriptor.keywords : ''}
+                </p>
+                {'description' in descriptor && (
+                  <p className={styles.infoText}>{descriptor.description}</p>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      }
+
+      return (
+        <p
+          key={key}
+          className={styles.paragraph}
+          style={{ animationDelay: `${Math.min(animIndex * 0.02, 0.4)}s` }}
+        >
+          {block.content}
+        </p>
+      )
+    }
 
     return (
       <>
@@ -512,77 +675,41 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             </div>
           )}
 
-          {/* Content blocks */}
+          {/* Content blocks. Single-frame (withData): each placement's prose sits
+              beside its body's readout data, aligned to the section it belongs to;
+              on mobile the grid collapses and the data reflows below the prose.
+              Side-by-side and the Divergence keep the flat prose flow. */}
           {blocks.length > 0 && (
-            <div className={styles.readingText}>
-              {blocks.map((block, i) => {
-                if (block.type === 'sectionFailed') {
-                  const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
-                    || 'This section could not be generated.'
+            withData ? (
+              <div className={styles.readingText}>
+                {groupPlacements(blocks).map((group, gi) => {
+                  const bodies = group.bodyIds
+                    .map(id => rowById[id])
+                    .filter((r): r is ReadoutRow => Boolean(r))
                   return (
-                    <div key={i} className={styles.sectionErrorBlock}>
-                      <p className={styles.sectionErrorLabel}>Section Unavailable</p>
-                      <p className={styles.sectionErrorMsg}>
-                        {errMsg} Check your connection and retry.
-                      </p>
-                      <button
-                        className={styles.retrySectionBtn}
-                        onClick={() => retryPlanetSection(section, block.planetSection)}
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  )
-                }
-
-                if (block.type === 'sectionLoading') {
-                  return (
-                    <div key={i} className={styles.sectionLoadingBlock}>
-                      <div className={styles.generatingOrbit} />
-                    </div>
-                  )
-                }
-
-                if (block.type === 'subheading') {
-                  return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
-                }
-
-                if (block.type === 'heading') {
-                  const descriptor = block.descriptorKey
-                    ? section === 'synthesis'
-                      ? SYNTHESIS_DESCRIPTORS[block.descriptorKey as keyof typeof SYNTHESIS_DESCRIPTORS]
-                      : (descriptors as Record<string, { name: string; keywords: string; description: string }>)[block.descriptorKey]
-                    : null
-
-                  return (
-                    <div key={i} className={styles.sectionBlock}>
-                      <h3 className={styles.planetHeading}>{block.content}</h3>
-                      {descriptor && (
-                        <div className={styles.infoBox}>
-                          <p className={styles.infoKeywords}>
-                            {'keywords' in descriptor ? descriptor.keywords : ''}
-                          </p>
-                          {'description' in descriptor && (
-                            <p className={styles.infoText}>{descriptor.description}</p>
-                          )}
-                        </div>
+                    <div
+                      key={gi}
+                      className={bodies.length > 0 ? styles.placement : styles.placementSolo}
+                    >
+                      <div className={styles.placementProse}>
+                        {group.blocks.map((b, bi) => renderBlock(b, `${gi}-${bi}`, bi))}
+                      </div>
+                      {bodies.length > 0 && (
+                        <aside className={styles.placementData} aria-label="Placement positions — both frames">
+                          {bodies.map(row => <ReadoutCard key={row.id} row={row} />)}
+                        </aside>
                       )}
                     </div>
                   )
-                }
-
-                return (
-                  <p
-                    key={i}
-                    className={styles.paragraph}
-                    style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}
-                  >
-                    {block.content}
-                  </p>
-                )
-              })}
-              {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
-            </div>
+                })}
+                {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
+              </div>
+            ) : (
+              <div className={styles.readingText}>
+                {blocks.map((block, i) => renderBlock(block, i, i))}
+                {isStreaming && currentStatus === 'loading' && <span className={styles.cursor} />}
+              </div>
+            )
           )}
         </div>
       </>
@@ -645,7 +772,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           className={`${styles.readingColumn} ${styles.singleFrame}`}
           aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}
         >
-          {renderSection(frame)}
+          {renderSection(frame, true)}
         </section>
       ) : (
         <div className={styles.systemsGrid}>
