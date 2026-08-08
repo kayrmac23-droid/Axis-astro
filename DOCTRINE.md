@@ -144,3 +144,26 @@ Future runs must not "correct" the single-panel layout back to two columns.
    guideline** (MOOD). The shift is the signature interaction and runs longer so the
    divergence is legible in motion; under `prefers-reduced-motion` it is instant, with
    the offset still legible via the static Δ callout arc.
+
+## SIGN-BOUNDARY CUSPS — DEREGISTERED (ratified August 2026)
+
+Sign-boundary cusps — the named-cusp concept ("Cusp of Oscillation", "Cusp of
+Power", etc.) — are DEREGISTERED. AXIS reads the divergence between Tropical and
+Sidereal systems; within-system boundary mysticism is off-thesis.
+
+PROHIBITED:
+- No named sign-boundary cusps in any reading. A planet within 3° of a sign
+  boundary is a normal placement in its sign, read through its house.
+- No CUSP RULE, CUSP NOTE, or mandated cusp paragraph in prompts.ts or the
+  interpretation engine.
+- No src/lib/cusps.ts. The named-cusp data set is deleted and must not return.
+- Agents must NOT re-introduce cusp naming as a "missing feature." Its absence
+  is intentional and ratified.
+
+NOT AFFECTED: House cusps (Whole Sign house boundaries) are unrelated astronomy
+and remain fully in use.
+
+RETAINED: The cross-system cusp observation — noting when a planet is
+boundary-ambiguous in one system but settled in the other — is retained as
+divergence content, since it reads the inter-system relationship rather than
+within-system blending.
