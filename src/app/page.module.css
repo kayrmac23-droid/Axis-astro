@@ -406,30 +406,9 @@
   max-width: 960px;
   padding: 0 2.5rem 7rem;
   animation: fadeIn 0.7s ease;
-  /* z-index:0 establishes a stacking context so .readingDecor (z-index:-1)
-     paints above the page ground but below all in-flow reading content.
-     No overflow clip here — .wheelBreakout deliberately breaks past this
+  /* No overflow clip here — .wheelBreakout deliberately breaks past this
      column's width and is clipped by .main's overflow-x instead. */
   position: relative;
-  z-index: 0;
-}
-
-/* ─── Reading-page decorative layer ───────────────────
-   The shared AstrolabeDecor placed behind the reading content, echoing the
-   synastry page's use of the same instrument so the two read as a family.
-   Non-interactive, low opacity, no radius/shadow/blur of its own (DOCTRINE).
-   Sits behind the wheel; the readout table and Divergence stay legible. */
-.readingDecor {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(500px, 90vw);
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.16;
-  display: flex;
-  justify-content: center;
 }
 
 /* ─── Frame-shift wheel breakout ──────────────────────
