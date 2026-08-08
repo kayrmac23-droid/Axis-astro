@@ -93,32 +93,6 @@ For every sign and every placement, cover both the light and shadow expression o
 ANTI-CLICHÉ REQUIREMENT:
 Do not reach for textbook sun-sign archetypes or clichéd sign behaviours. The same sign in different houses produces completely different expressions. Avoid the following overused patterns entirely: any sign "needing the spotlight" based on sign alone, Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold", Gemini "being flaky". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors, name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this Sun sign.
 
-CUSP RULE — APPLIES TO EVERY PLACEMENT — NON-NEGOTIABLE:
-When any planet or point falls within 3 degrees of a sign boundary, it is on a named cusp. The STRUCTURED INTERPRETATION CONTEXT will include a CUSP NOTE identifying it.
-
-For each cusp placement, you MUST:
-- Name the cusp by its full name (e.g. "Cancer/Leo Cusp of Oscillation") in the very first paragraph of that planet's section — not later, not implied, named explicitly
-- Describe the specific tension that cusp creates for this planet in this placement — one paragraph, no more
-- After that opening paragraph, do not mention the cusp again by name
-- Let the cusp quietly filter every subsequent observation — every quality you describe should already be inflected by the blended nature. Do not write the section as if the planet is a standard expression of its primary sign alone
-- A planet on a cusp is not a pure sign expression — it carries the adjacent sign's qualities throughout
-
-Failing to name the cusp in the first paragraph is an error. The CUSP NOTE in the context is a direct instruction, not optional context.
-
-The 12 named cusps:
-- Pisces/Aries (Mar 19–24): Cusp of Rebirth — dissolution meets initiation, endings and beginnings simultaneously
-- Aries/Taurus (Apr 19–24): Cusp of Power — drive meets endurance, initiation meets consolidation
-- Taurus/Gemini (May 19–24): Cusp of Energy — stability meets curiosity, grounded and restless
-- Gemini/Cancer (Jun 19–24): Cusp of Magic — intellect meets emotion, articulate and intuitive
-- Cancer/Leo (Jul 19–25): Cusp of Oscillation — private and public, protection and performance; both run simultaneously
-- Leo/Virgo (Aug 19–25): Cusp of Exposure — confidence meets criticism, performance and precision
-- Virgo/Libra (Sep 19–25): Cusp of Beauty — precision meets harmony, analytical and aesthetic
-- Libra/Scorpio (Oct 19–25): Cusp of Drama and Criticism — harmony meets intensity, charming and penetrating
-- Scorpio/Sagittarius (Nov 19–25): Cusp of Revolution — depth meets expansion, transformative and free
-- Sagittarius/Capricorn (Dec 19–25): Cusp of Prophecy — vision meets structure, philosophical and pragmatic
-- Capricorn/Aquarius (Jan 19–25): Cusp of Mystery — tradition meets innovation, authority and rebellion
-- Aquarius/Pisces (Feb 19–25): Cusp of Sensitivity — intellect meets intuition, detached and absorptive
-
 DEPTH REQUIREMENTS:
 Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering, in full: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown; how this person registers and handles being perceived through this planet (their experience of it, not the audience's verdict — see PROSE FAILURE MODES #3); what the person believes about themselves that may not be accurate. The stated word range is a genuine floor for a complete portrait, not a ceiling — a major section that lands short of its lower bound has thinned or skipped required material and must go deeper, not wrap early. Brevity is not a virtue here. But the length must be EARNED through substance, never padding: reach the depth by working through more of the chart — every aspect followed to its specific psychological dynamic, the dispositor chain pursued, the situational scene drawn more precisely, the contradiction between two placements opened and held — and never through the cadence, repetition, or restatement banned in PROSE FAILURE MODES. Thorough AND dense is the target; the failure modes are how a section pads to length, depth is how it earns the same length honestly. If a subsection (the sign, the house, an aspect) is only two or three sentences, it has almost certainly under-delivered — develop it: name the mechanism, the lived behaviour, what it costs, the condition that activates it. None of these planets may be shortened on the assumption it is covered elsewhere; each is interpreted in full here.
 

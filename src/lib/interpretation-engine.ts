@@ -1189,21 +1189,12 @@ function formatSynthesisBlock(chartData: DualChartData): string {
       }
     }
 
-    // Cusp detection: flag planets within 3° of a sign boundary in either system
-    const tropNearEnd   = trop.degree > 27
-    const tropNearStart = trop.degree < 3
-    const sidNearEnd    = sid.degree  > 27
-    const sidNearStart  = sid.degree  < 3
-    const tropOnCusp    = tropNearEnd || tropNearStart
-    const sidOnCusp     = sidNearEnd  || sidNearStart
+    // Cross-system cusp observation: read the divergence when a planet sits near a
+    // sign boundary in one system but settles into the body of its sign in the other
+    const tropOnCusp = trop.degree > 27 || trop.degree < 3
+    const sidOnCusp  = sid.degree  > 27 || sid.degree  < 3
 
     if (tropOnCusp || sidOnCusp) {
-      const nextSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 1) % 12]
-      const prevSign = (s: string) => SIGNS_ORDERED[(SIGNS_ORDERED.indexOf(s) + 11) % 12]
-      if (tropNearEnd)   lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${trop.sign}/${nextSign(trop.sign)} boundary`)
-      if (tropNearStart) lines.push(`  ⊕ CUSP (Tropical): ${fmtDeg(trop.degree)} ${trop.sign} — within 3° of the ${prevSign(trop.sign)}/${trop.sign} boundary`)
-      if (sidNearEnd)    lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${sid.sign}/${nextSign(sid.sign)} boundary`)
-      if (sidNearStart)  lines.push(`  ⊕ CUSP (Sidereal): ${fmtDeg(sid.degree)} ${sid.sign} — within 3° of the ${prevSign(sid.sign)}/${sid.sign} boundary`)
       if (tropOnCusp && !sidOnCusp) {
         lines.push(`    The Tropical cusp resolves into the body of ${sid.sign} in the Sidereal chart — what reads as boundary ambiguity at the psychological level becomes more settled at the essential level`)
       } else if (!tropOnCusp && sidOnCusp) {
