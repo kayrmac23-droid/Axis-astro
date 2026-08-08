@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from 'react'
 import ReadingPanel from '@/components/ReadingPanel'
 import PreviewLanding from '@/components/landing/PreviewLanding'
 import FrameShiftWheel from '@/components/FrameShiftWheel'
-import AstrolabeDecor from '@/components/AstrolabeDecor'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -100,13 +99,6 @@ export default function Home() {
           (DOCTRINE.md amendment July 2026.) */}
       {chartData && (
         <div className={styles.readingLayout} ref={readingRef}>
-          {/* Decorative furniture — the shared astrolabe (same as synastry),
-              set behind the reading content as a non-interactive layer so the
-              page carries the family's structural density. Not a starfield;
-              the chart wheel remains the only foreground image. */}
-          <div className={styles.readingDecor} aria-hidden="true">
-            <AstrolabeDecor />
-          </div>
           <section className={styles.wheelBreakout}>
             <FrameShiftWheel
               data={chartData}
