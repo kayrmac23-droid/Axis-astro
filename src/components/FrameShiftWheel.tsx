@@ -23,52 +23,15 @@
    ============================================================ */
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
+import {
+  VS, ZODIAC_GLYPHS as SG, PLANET_GLYPH, PLANET_ORDER,
+  norm, dms, lonStr, buildReadoutRows, type ReadoutRow,
+} from '@/lib/readout'
 import styles from './FrameShiftWheel.module.css'
 
-const VS = '︎'
-const SG = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map(g => g + VS)
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
 const NAKS = ['ASHWINI', 'BHARANI', 'KRITTIKA', 'ROHINI', 'MRIGASHIRA', 'ARDRA', 'PUNARVASU', 'PUSHYA', 'ASHLESHA', 'MAGHA', 'P.PHALGUNI', 'U.PHALGUNI', 'HASTA', 'CHITRA', 'SWATI', 'VISHAKHA', 'ANURADHA', 'JYESHTHA', 'MULA', 'P.ASHADHA', 'U.ASHADHA', 'SHRAVANA', 'DHANISHTA', 'SHATABHISHA', 'P.BHADRAPADA', 'U.BHADRAPADA', 'REVATI']
 const SIGN_NAMES = ['ARIES', 'TAURUS', 'GEMINI', 'CANCER', 'LEO', 'VIRGO', 'LIBRA', 'SCORPIO', 'SAGITTARIUS', 'CAPRICORN', 'AQUARIUS', 'PISCES']
-
-const PLANET_GLYPH: Record<string, string> = {
-  Sun: '☉' + VS, Moon: '☽' + VS, Mercury: '☿' + VS, Venus: '♀' + VS, Mars: '♂' + VS,
-  Jupiter: '♃' + VS, Saturn: '♄' + VS, Uranus: '♅' + VS, Neptune: '♆' + VS,
-  Pluto: '♇' + VS, Rahu: '☊' + VS, Ketu: '☋' + VS,
-}
-const PLANET_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu']
-
-const DIGNITIES: Record<string, { domicile: string[]; exaltation: string; detriment: string[]; fall: string }> = {
-  Sun: { domicile: ['Leo'], exaltation: 'Aries', detriment: ['Aquarius'], fall: 'Libra' },
-  Moon: { domicile: ['Cancer'], exaltation: 'Taurus', detriment: ['Capricorn'], fall: 'Scorpio' },
-  Mercury: { domicile: ['Gemini', 'Virgo'], exaltation: 'Virgo', detriment: ['Sagittarius', 'Pisces'], fall: 'Pisces' },
-  Venus: { domicile: ['Taurus', 'Libra'], exaltation: 'Pisces', detriment: ['Aries', 'Scorpio'], fall: 'Virgo' },
-  Mars: { domicile: ['Aries', 'Scorpio'], exaltation: 'Capricorn', detriment: ['Taurus', 'Libra'], fall: 'Cancer' },
-  Jupiter: { domicile: ['Sagittarius', 'Pisces'], exaltation: 'Cancer', detriment: ['Gemini', 'Virgo'], fall: 'Capricorn' },
-  Saturn: { domicile: ['Capricorn', 'Aquarius'], exaltation: 'Libra', detriment: ['Cancer', 'Leo'], fall: 'Aries' },
-}
-function dignityOf(planet: string, sign: string): string {
-  const d = DIGNITIES[planet]
-  if (!d) return ''
-  if (d.domicile.includes(sign)) return 'domicile'
-  if (d.exaltation === sign) return 'exaltation'
-  if (d.detriment.includes(sign)) return 'detriment'
-  if (d.fall === sign) return 'fall'
-  return ''
-}
-
-const norm = (x: number) => ((x % 360) + 360) % 360
-function dms(v: number): string {
-  v = Math.max(0, v)
-  let d = Math.floor(v)
-  let m = Math.round((v - d) * 60)
-  if (m === 60) { d++; m = 0 }
-  return d + '°' + String(m).padStart(2, '0') + '′'
-}
-function lonStr(lon: number): string {
-  const L = norm(lon), s = Math.floor(L / 30)
-  return dms(L % 30) + ' ' + SG[s]
-}
 
 // Major aspects, frame-invariant (both systems shift by the same ayanamsa).
 const ASPECT_DEFS: [number, number, 'hard' | 'soft'][] = [
@@ -97,25 +60,6 @@ interface FrameShiftWheelProps {
   onFrameChange: (frame: 'tropical' | 'sidereal') => void
   displayLocation?: string
   treatment?: 'graticule' | 'plate' | 'stellar'
-}
-
-interface ReadoutRow {
-  id: string
-  glyph: string
-  name: string
-  tLon: number
-  sLon: number
-  tSign: number
-  sSign: number
-  flip: boolean
-  tHouse: number | null
-  sHouse: number | null
-  retro: boolean
-  tDignity: string
-  sDignity: string
-  nakshatra: string
-  nakPada: number | null
-  isAngle: boolean
 }
 
 export default function FrameShiftWheel({
@@ -150,43 +94,8 @@ export default function FrameShiftWheel({
     return `${loc} · ${dateStr} · ${timeStr}`
   }, [data.birthData, displayLocation])
 
-  // ── readout rows (both frames, always) ──────────────────────
-  const rows = useMemo<ReadoutRow[]>(() => {
-    const tMap = Object.fromEntries(tropical.planets.map(p => [p.name, p]))
-    const sMap = Object.fromEntries(sidereal.planets.map(p => [p.name, p]))
-    const out: ReadoutRow[] = [
-      {
-        id: 'asc', glyph: '', name: 'ASC', tLon: tropical.ascendant, sLon: sidereal.ascendant,
-        tSign: Math.floor(norm(tropical.ascendant) / 30), sSign: Math.floor(norm(sidereal.ascendant) / 30),
-        flip: false, tHouse: null, sHouse: null, retro: false, tDignity: '', sDignity: '', nakshatra: '', nakPada: null, isAngle: true,
-      },
-      {
-        id: 'mc', glyph: '', name: 'MC', tLon: tropical.midheaven, sLon: sidereal.midheaven,
-        tSign: Math.floor(norm(tropical.midheaven) / 30), sSign: Math.floor(norm(sidereal.midheaven) / 30),
-        flip: false, tHouse: null, sHouse: null, retro: false, tDignity: '', sDignity: '', nakshatra: '', nakPada: null, isAngle: true,
-      },
-    ]
-    out.forEach(r => { r.flip = r.tSign !== r.sSign })
-    for (const name of PLANET_ORDER) {
-      const t = tMap[name], s = sMap[name]
-      if (!t && !s) continue
-      const tp = t ?? s!   // tropical-or-fallback (guard guarantees one exists)
-      const sp = s ?? t!   // sidereal-or-fallback
-      const tSign = Math.floor(norm(tp.longitude) / 30)
-      const sSign = Math.floor(norm(sp.longitude) / 30)
-      out.push({
-        id: name.toLowerCase(), glyph: PLANET_GLYPH[name] ?? '', name: name.toUpperCase(),
-        tLon: tp.longitude, sLon: sp.longitude,
-        tSign, sSign, flip: tSign !== sSign,
-        tHouse: t ? t.house : null, sHouse: s ? s.house : null,
-        retro: tp.retrograde,
-        tDignity: t ? dignityOf(name, t.sign) : '', sDignity: s ? dignityOf(name, s.sign) : '',
-        nakshatra: s?.nakshatra ?? '', nakPada: s?.nakshatraPada ?? null,
-        isAngle: false,
-      })
-    }
-    return out
-  }, [tropical, sidereal])
+  // ── readout rows (both frames, always) — shared source (lib/readout) ──
+  const rows = useMemo<ReadoutRow[]>(() => buildReadoutRows(data), [data])
 
   // ── build the wheel once (imperative, mirrors the prototype) ──
   useEffect(() => {

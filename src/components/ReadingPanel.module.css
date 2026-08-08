@@ -28,12 +28,20 @@
 }
 
 /* Single-frame mode: one reading column follows the frame toggle
-   (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle) */
+   (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle).
+   Widened from the old 820px so each placement's prose (~65ch) and its
+   readout data block sit side by side; the block fills the space that used
+   to sit empty to the right of the prose. */
 .singleFrame {
-  width: min(820px, calc(100vw - 3rem));
+  width: min(1080px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
 }
+
+/* In single-frame the body is the full column width; each placement controls
+   its own measure (prose stays ~65ch). The Divergence and side-by-side keep
+   the 65ch-centred body defined above. */
+.singleFrame .readingBody { max-width: none; }
 
 .divergenceSection {
   width: min(1320px, calc(100vw - 3rem));
@@ -258,6 +266,117 @@
 
 .sectionBlock { margin-top: 0; }
 
+/* ─── Single-frame: placement prose + pinned readout data ──
+   Prose keeps the ~65ch measure (READING SURFACE EXCEPTION); the body's
+   Tropical + Sidereal data is pinned to its right, aligned to the section it
+   describes. DOCTRINE.md — THE LAW: both frames are shown as distinct data and
+   the Δ marks the divergence; nothing is reconciled. The block is chrome —
+   mono, dimmed, copper the sole accent, zero radius, no blur. */
+.placement {
+  display: grid;
+  grid-template-columns: minmax(0, 65ch) minmax(0, 1fr);
+  gap: 3rem;
+  align-items: start;
+}
+.placementProse { min-width: 0; }
+.placementSolo { max-width: 65ch; }
+
+/* Divider between placements; the heading's own top rule is suppressed so the
+   two don't double up. First placement carries neither. */
+.placement,
+.placementSolo {
+  margin-top: 5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid rgba(184, 115, 51, 0.24);
+}
+.placement:first-child,
+.placementSolo:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.placement .planetHeading,
+.placementSolo .planetHeading {
+  margin: 0 0 2.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* Sticky so the data stays beside its section while the long prose scrolls. */
+.placementData {
+  position: sticky;
+  top: 1.5rem;
+  align-self: start;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.readoutCard {
+  border-left: 1px solid var(--copper-border);
+  padding: 0.15rem 0 0.15rem 1.1rem;
+}
+.readoutName {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  margin-bottom: 0.75rem;
+}
+.readoutGlyph { color: var(--copper); }
+.readoutRetro { color: var(--copper-bright); }
+
+.readoutFrame {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  margin-bottom: 0.65rem;
+}
+.readoutFrameLabel {
+  font-family: var(--font-display);
+  font-size: 0.44rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+.readoutVal {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.02em;
+  color: var(--fg-2);
+  line-height: 1.5;
+}
+.readoutHouse { color: var(--fg-4); }
+.readoutDignity { color: var(--copper-bright); }
+.readoutNak {
+  display: block;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-4);
+  margin-top: 0.15rem;
+}
+
+.readoutDelta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  margin-top: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+}
+.readoutDeltaLabel {
+  font-family: var(--font-display);
+  font-size: 0.44rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--fg-4);
+}
+.readoutFlip { color: var(--copper); }
+.readoutHold { color: var(--fg-3); }
+
 /* ─── Headings ─────────────────────────────────────────
    Two levels the reader can tell apart. PLACEMENT (##)
    opens a new placement — Cinzel, copper, divided from the
@@ -474,6 +593,22 @@
   color: rgba(180, 60, 60, 0.8);
   letter-spacing: 0.04em;
   line-height: 1.6;
+}
+
+/* ─── Single-frame placement: collapse to one column ──
+   Below this width the prose + data grid can't hold both comfortably, so the
+   data block reflows directly BELOW the prose it belongs to (never hidden,
+   never pushed off-screen). Prose keeps its ~65ch measure, centred. */
+@media (max-width: 1024px) {
+  .placement { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .placementProse { max-width: 65ch; margin-inline: auto; }
+  .placementData {
+    position: static;
+    max-width: 65ch;
+    margin: 2rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
 }
 
 /* ─── Stacked columns ─────────────────────────────── */
