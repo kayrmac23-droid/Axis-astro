@@ -33,7 +33,12 @@ export function tzNameToOffset(
   hour: number, minute: number,
 ): number | null {
   try {
-    const isoStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
+    // Pad the year to 4 digits: `new Date('50-06-15T…')` is not valid ISO 8601 and
+    // parses to Invalid Date, which would make formatToParts throw and this function
+    // silently return null for every year before 1000 CE — despite the API accepting
+    // years 1–9999. Padding keeps early-CE births DST/LMT-accurate (the IANA database
+    // returns the historical local-mean-time offset for pre-standard-time dates).
+    const isoStr = `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
     const date = new Date(isoStr)
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: tzName,
