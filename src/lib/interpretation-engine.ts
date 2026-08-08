@@ -10,6 +10,7 @@
 // The engine functions are data-driven — additions propagate automatically.
 
 import { ChartData, DualChartData, PlanetPosition } from './astro-calc'
+import { birthToUtcMs } from './tz'
 
 // ── PLANET KNOWLEDGE ─────────────────────────────────────────────────────────
 
@@ -357,13 +358,11 @@ export function computeVimshottariDasha(chartData: DualChartData): DashaInfo | n
   const MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
   const bd = chartData.birthData
 
-  // Birth time in UTC milliseconds
-  const totalLocalMinutes = bd.hour * 60 + bd.minute - Math.round(bd.timezone * 60)
-  const birthMS = Date.UTC(
-    bd.year, bd.month - 1, bd.day,
-    Math.floor(totalLocalMinutes / 60),
-    ((totalLocalMinutes % 60) + 60) % 60
-  )
+  // Birth time in UTC milliseconds. Uses birthToUtcMs (setUTCFullYear-based) rather
+  // than Date.UTC(bd.year, …), which remaps years 0–99 to 1900–1999 and would place
+  // the dasha timeline ~1900 years off for any early-CE birth the API's 1–9999 range
+  // permits.
+  const birthMS = birthToUtcMs(bd.year, bd.month, bd.day, bd.hour, bd.minute, bd.timezone)
 
   // When the starting dasha actually began (before birth by elapsedYears)
   const firstDashaStartMS = birthMS - elapsedYears * MS_PER_YEAR

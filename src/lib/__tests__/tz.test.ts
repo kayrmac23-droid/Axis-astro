@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isValidCalendarDate, birthToUtcMs } from '../tz'
+import { isValidCalendarDate, birthToUtcMs, tzNameToOffset } from '../tz'
 
 describe('isValidCalendarDate', () => {
   it('accepts ordinary modern dates', () => {
@@ -52,5 +52,35 @@ describe('birthToUtcMs', () => {
   it('honours the true year for years 1–99', () => {
     const ms = birthToUtcMs(50, 6, 15, 0, 0, 0)
     expect(new Date(ms).getUTCFullYear()).toBe(50)
+  })
+})
+
+describe('tzNameToOffset', () => {
+  it('resolves DST-aware offsets for a northern-hemisphere zone', () => {
+    // America/New_York: EDT (-4) in July, EST (-5) in January.
+    expect(tzNameToOffset('America/New_York', 2000, 7, 15, 12, 0)).toBe(-4)
+    expect(tzNameToOffset('America/New_York', 2000, 1, 15, 12, 0)).toBe(-5)
+  })
+
+  it('handles half-hour offsets', () => {
+    expect(tzNameToOffset('Asia/Kolkata', 2000, 1, 1, 12, 0)).toBe(5.5)
+  })
+
+  it('returns 0 for UTC', () => {
+    expect(tzNameToOffset('UTC', 2000, 1, 1, 0, 0)).toBe(0)
+  })
+
+  it('returns null for an unrecognised timezone identifier', () => {
+    expect(tzNameToOffset('Not/AZone', 2000, 1, 1, 0, 0)).toBeNull()
+  })
+
+  // Regression: an unpadded year (e.g. '50-06-15…') is not valid ISO 8601, parses
+  // to Invalid Date, and made this function throw → silently return null for every
+  // year before 1000 CE. Padding restores the IANA historical (LMT) offset.
+  it('resolves an offset for early-CE years instead of failing', () => {
+    const off = tzNameToOffset('Asia/Kolkata', 800, 1, 1, 12, 0)
+    expect(off).not.toBeNull()
+    expect(off).toBeGreaterThan(5)
+    expect(off).toBeLessThan(6)
   })
 })

@@ -107,7 +107,10 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
       // Create a UTC-based Date that represents the wall-clock time in the target timezone.
       // We use a UTC timestamp matching the calendar values; Intl then maps it to the
       // correct UTC offset for that timezone at that calendar date (DST-aware).
-      const isoStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00Z`
+      // Pad the year to 4 digits — otherwise an early-CE year (e.g. 50) yields a
+      // non-ISO string that parses to Invalid Date, and this lookup silently falls
+      // back to the rough longitude-based offset instead of the real DST/LMT offset.
+      const isoStr = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00Z`
       const date = new Date(isoStr)
       const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: tzName,
