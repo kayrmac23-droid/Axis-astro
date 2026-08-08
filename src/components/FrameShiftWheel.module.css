@@ -56,7 +56,10 @@
 /* ---------- rail / readout ---------- */
 .rail { width: 372px; flex-shrink: 0; border-left: 1px solid var(--hair2); padding-left: 30px; margin-top: 4px; }
 .railH2 { font-family: var(--mono); font-size: 9px; font-weight: 400; letter-spacing: 2.5px; color: var(--dim2); padding-bottom: 10px; border-bottom: 1px solid var(--hair2); }
-.tableScroll { overflow-x: auto; }
+/* No nested scroll region: the table grows to fit its content and the page
+   itself scrolls. Width fits the rail because .dignity / .nak sub-labels wrap
+   (below) instead of forcing the column wider than the 372px rail. */
+.tableScroll {}
 .table { width: 100%; border-collapse: collapse; margin-top: 2px; }
 .table th { font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 1.6px; color: var(--dim2); text-align: left; padding: 8px 6px 6px; border-bottom: 1px solid var(--hair2); white-space: nowrap; }
 .table td { font-family: var(--mono); font-size: 10.5px; letter-spacing: .6px; padding: 5.5px 6px; border-bottom: 1px solid var(--hair2); white-space: nowrap; vertical-align: top; }
@@ -64,8 +67,8 @@
 .bglyph { color: var(--star); }
 .retro { color: var(--copper-light); margin-left: 3px; }
 .house { color: var(--dim2); margin-left: 6px; }
-.dignity { display: block; font-size: 8px; letter-spacing: 1px; color: var(--copper-bright); margin-top: 2px; }
-.nak { display: block; font-size: 8px; letter-spacing: .8px; color: var(--dim2); margin-top: 2px; }
+.dignity { display: block; font-size: 8px; letter-spacing: 1px; color: var(--copper-bright); margin-top: 2px; white-space: normal; }
+.nak { display: block; font-size: 8px; letter-spacing: .8px; color: var(--dim2); margin-top: 2px; white-space: normal; }
 .dsig.flip { color: var(--copper-light); }
 .dsig.hold { color: var(--dim2); }
 
