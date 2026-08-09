@@ -210,6 +210,34 @@ describe('calculateDualChart — JPL Pluto override', () => {
     expect(pluto.longitude).toBeCloseTo(240.5, 1)
   })
 
+  it('exposes the canonical Pluto longitude at the top level, matching the override', () => {
+    // The reading pipeline threads chartData.plutoLongitude back to /api/reading,
+    // which re-applies it as an override. That round-trip only works if the top-level
+    // plutoLongitude equals the tropical Pluto the override actually set.
+    const d = calculateDualChart(BASE_BIRTH, {
+      plutoLongitude: 240.5,
+      plutoSource: 'jpl-horizons-de440',
+    })
+    expect(d.plutoLongitude).toBeCloseTo(240.5, 6)
+    const pluto = d.tropical.planets.find(p => p.name === 'Pluto')!
+    expect(d.plutoLongitude).toBeCloseTo(pluto.longitude, 6)
+
+    // Feeding the exposed value straight back in as the override reproduces it.
+    const roundTrip = calculateDualChart(BASE_BIRTH, {
+      plutoLongitude: d.plutoLongitude,
+      plutoSource: d.plutoSource,
+    })
+    expect(roundTrip.tropical.planets.find(p => p.name === 'Pluto')!.longitude).toBeCloseTo(240.5, 6)
+  })
+
+  it('falls back to Meeus (never throws) when no override longitude is supplied', () => {
+    const d = calculateDualChart(BASE_BIRTH, { plutoSource: 'local-meeus' })
+    expect(d.plutoSource).toBe('local-meeus')
+    expect(Number.isFinite(d.plutoLongitude)).toBe(true)
+    expect(d.plutoLongitude).toBeGreaterThanOrEqual(0)
+    expect(d.plutoLongitude).toBeLessThan(360)
+  })
+
   it('uses local Meeus when no override provided', () => {
     const d1 = calculateDualChart(BASE_BIRTH, { plutoSource: 'local-meeus' })
     const d2 = calculateDualChart(BASE_BIRTH, { plutoSource: 'local-meeus' })

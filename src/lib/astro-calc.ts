@@ -48,6 +48,7 @@ export interface DualChartData {
   tropical: ChartData
   sidereal: ChartData
   birthData: BirthData
+  plutoLongitude: number  // canonical tropical (geocentric) Pluto longitude — the value applied as the override
   plutoSource: string  // 'jpl-horizons-de440' | 'jpl-horizons-de441' | 'local-meeus'
   ayanamsa: number     // Lahiri ayanamsa in degrees at the birth instant (Tropical → Sidereal offset)
 }
@@ -439,6 +440,7 @@ export function calculateDualChart(birth: BirthData, overrides?: ChartOverrides)
       system:         'sidereal',
     },
     birthData:   birth,  // includes birthTimeUnknown flag when set
+    plutoLongitude: rawPlanets.find(p => p.name === 'Pluto')?.longitude ?? 0,
     plutoSource: overrides?.plutoSource ?? 'local-meeus',
     ayanamsa,            // live Lahiri value — the Δ the frame-shift wheel rotates by
   }
