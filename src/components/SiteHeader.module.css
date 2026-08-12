@@ -82,43 +82,25 @@
   flex-shrink: 0;
 }
 
-.loginBtn {
-  font-family: var(--font-mono);
-  font-size: 0.6rem;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--text-2);
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 120ms ease;
-  background: none;
-  border: none;
-  padding: 0;
-}
-
-.loginBtn:hover {
-  color: var(--text);
-}
-
 .ctaBtn {
   font-family: var(--font-mono);
   font-size: 0.58rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--void);
-  background: var(--text);
-  border: 1px solid var(--text);
+  background: var(--copper);
+  border: 1px solid var(--copper);
   text-decoration: none;
   padding: 0.6rem 1.1rem;
-  border-radius: 2px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 150ms ease;
   white-space: nowrap;
 }
 
 .ctaBtn:hover {
-  background: var(--copper-light);
-  border-color: var(--copper-light);
+  background: var(--copper-bright);
+  border-color: var(--copper-bright);
   color: var(--void);
 }
 

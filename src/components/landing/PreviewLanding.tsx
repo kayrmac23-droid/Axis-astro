@@ -3,8 +3,9 @@
    PreviewLanding — the AXIS home view, ported from
    public/preview.html (doctrine-audited source of truth).
 
-   Markup and CSS values are preserved verbatim; the inline
-   <script> behaviour (starfield, dual-zodiac instrument, epoch
+   The doctrine-audited structure is retained, with focused hierarchy
+   and accessibility refinements. The inline <script> behaviour
+   (starfield, dual-zodiac instrument, epoch
    scrubber, scroll-reveal) is ported into a single guarded
    useEffect that builds the SVG imperatively exactly as the
    source did. The placeholder calibration form is replaced by
@@ -279,14 +280,26 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
         {/* ======================= HERO ======================= */}
         <div className={styles.hero}>
           <div className={styles.heroCopy}>
+            <div className={styles.heroStatus} aria-label="Instrument status">
+              <span>Instrument 01</span>
+              <span className={styles.statusLive}><i aria-hidden="true" />Lahiri offset live</span>
+            </div>
             <h1 className={styles.wordmark}>AXIS</h1>
             <div className={styles.wmRule}></div>
             <div className={styles.wmLabel}>DUAL-SYSTEM ASTROLOGY</div>
             <div className={styles.heroDoctwrap}>
-              <p className={styles.heroDoct}>Tropical maps the psychological architecture of a self.</p>
-              <div className={styles.heroHair}></div>
-              <p className={styles.heroDoct}>Sidereal maps the incarnational conditions it navigates.</p>
-              <p className={styles.heroClose}>The <span className={styles.dvg}>divergence</span> is where this chart actually lives.</p>
+              <div className={styles.movement}>
+                <span className={styles.movementLabel}>Tropical · seasonal frame</span>
+                <p className={styles.heroDoct}>Maps the psychological architecture of a self.</p>
+              </div>
+              <div className={styles.movement}>
+                <span className={styles.movementLabel}>Sidereal · stellar frame</span>
+                <p className={styles.heroDoct}>Maps the incarnational conditions it navigates.</p>
+              </div>
+              <div className={`${styles.movement} ${styles.movementDivergence}`}>
+                <span className={styles.movementLabel}>The Divergence · reading layer</span>
+                <p className={styles.heroClose}>Where this chart actually <span className={styles.dvg}>lives.</span></p>
+              </div>
             </div>
             <p className={styles.heroLede}>One birth, charted against two zodiacs — the seasonal and the stellar — separated by <span className={styles.num}>24°13′</span> of precession. AXIS computes both and reads what lives in the difference.</p>
             <div className={styles.ctas}>
@@ -296,6 +309,10 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             <div className={styles.heroMicro}>VSOP87 EPHEMERIS · LAHIRI AYANAMSA · NO HOROSCOPES</div>
           </div>
           <div className={styles.heroRight}>
+            <div className={styles.instrumentHeader} aria-hidden="true">
+              <span>Dual-zodiac instrument</span>
+              <span>Lahiri model active</span>
+            </div>
             <div className={styles.wheelbox}>
               <svg id="instrument" viewBox="0 0 1000 1000" role="img" aria-label="Live dual-zodiac instrument: tropical ring outside, sidereal ring inside, offset by the Lahiri ayanamsa">
                 <defs>
@@ -339,12 +356,18 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
                 </g>
               </svg>
             </div>
-            <div className={styles.epoch}>
-              <span className={styles.eLab}>285 CE</span>
-              <input type="range" id="epochSlider" min="285" max="2100" defaultValue="2026" step="1" aria-label="Epoch year" />
-              <span className={styles.eLab}>2100 CE</span>
+            <div className={styles.epochPanel}>
+              <div className={styles.epochHeader}>
+                <span>Epoch calibration</span>
+                <output id="epochYear" htmlFor="epochSlider">2026 CE</output>
+              </div>
+              <div className={styles.epoch}>
+                <span className={styles.eLab}>285 CE</span>
+                <input type="range" id="epochSlider" min="285" max="2100" defaultValue="2026" step="1" aria-label="Epoch year" aria-describedby="epochHint" />
+                <span className={styles.eLab}>2100 CE</span>
+              </div>
+              <div className={styles.epochRead} id="epochHint">SCRUB THE EPOCH · <span id="epochOff" aria-live="polite">OFFSET 24°13′</span></div>
             </div>
-            <div className={styles.epochRead}><b id="epochYear">2026 CE</b> — SCRUB THE EPOCH · <span id="epochOff">OFFSET 24°13′</span></div>
           </div>
         </div>
 
@@ -358,7 +381,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             </div>
             <div className={styles.neq}>≠</div>
             <div>
-              <p className={styles.mapLabel}>SIDEREAL <em>— THE SELF BENEATH</em></p>
+              <p className={styles.mapLabel}>SIDEREAL <em>— THE CONDITIONS YOU INHABIT</em></p>
               <p>Anchored to the stars as the sky actually stands. The sidereal chart maps incarnational patterning: the body this person arrived in, the circumstances and inherited tendencies they entered with, the karmic emphases and deep instinctive orientations that pre-date the constructed identity. Not fate — the specific terrain a life is walked across.</p>
             </div>
           </div>
@@ -381,7 +404,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
               </div>
             )}
           </div>
-          <p className={styles.calibMeta}>Tropical reveals the self you know. Sidereal reveals the self underneath it. That divergence is AXIS.</p>
+          <p className={styles.calibMeta}>Tropical maps the self you recognise. Sidereal maps the conditions you inhabit. The divergence between them is AXIS.</p>
         </section>
       </div>
 

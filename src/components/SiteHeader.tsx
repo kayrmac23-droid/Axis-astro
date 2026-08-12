@@ -7,8 +7,6 @@ import styles from './SiteHeader.module.css'
 const NAV = [
   { href: '/method', label: 'How It Works' },
   { href: '/sample', label: 'Sample Reading' },
-  { href: '/pricing', label: 'Pricing' },
-  { href: '/about', label: 'About' },
 ]
 
 export default function SiteHeader() {
@@ -39,7 +37,6 @@ export default function SiteHeader() {
         </nav>
 
         <div className={styles.navActions}>
-          <Link href="/login" className={styles.loginBtn}>Log In</Link>
           <Link href="/#get-reading" className={styles.ctaBtn}>Get Your Reading</Link>
         </div>
 
@@ -68,7 +65,6 @@ export default function SiteHeader() {
             </Link>
           ))}
           <div className={styles.mobileActions}>
-            <Link href="/login" className={styles.loginBtn} onClick={() => setMenuOpen(false)}>Log In</Link>
             <Link href="/#get-reading" className={styles.ctaBtn} onClick={() => setMenuOpen(false)}>Get Your Reading</Link>
           </div>
         </div>

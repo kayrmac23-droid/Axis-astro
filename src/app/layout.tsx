@@ -30,7 +30,7 @@ const courierPrime = Courier_Prime({
 
 export const metadata: Metadata = {
   title: 'AXIS — Precision Dual-System Astrology',
-  description: 'Tropical reveals the self you know. Sidereal reveals the self underneath it. That gap is AXIS.',
+  description: 'One birth, measured against Tropical and Sidereal zodiacs. AXIS reads the divergence without resolving it.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
