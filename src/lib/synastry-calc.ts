@@ -10,6 +10,18 @@ export interface SynastryAspect {
   aspect: AspectType
   angle: number   // exact: 0, 60, 90, 120, 180
   orb: number     // deviation from exact, always positive
+  // ── Sidereal-divergence overlay (Model 3, criterion a — SIGN-SHIFT) ──
+  // Populated by annotateSiderealDivergence() as a SEPARATE pass over the
+  // tropical aspect list; the tropical math above is never touched. A contact
+  // is `divergent` when either participating planet occupies a different sign
+  // in that person's sidereal chart than in their tropical chart — that shift
+  // changes what the contact means. This is NOT a re-run of the aspect grid on
+  // sidereal longitudes; the aspect geometry stays tropical.
+  tropicalSignA?: string
+  siderealSignA?: string
+  tropicalSignB?: string
+  siderealSignB?: string
+  divergent?: boolean
 }
 
 export interface SynastryData {
@@ -158,13 +170,50 @@ export function calculateComposite(a: ChartData, b: ChartData): ChartData {
   } as ChartData & { _skippedPlanets?: string[] }
 }
 
+// ── Sidereal-divergence annotation (Model 3, criterion a — sign-shift) ─────────
+
+function signOf(chart: ChartData, planetName: string): string | undefined {
+  return chart.planets.find(p => p.name === planetName)?.sign
+}
+
+// Separate pass: annotate each tropical inter-aspect with the sidereal sign each
+// participating planet occupies in its own chart, and flag `divergent` when
+// either planet shifts sign between the two systems. The tropical aspect list is
+// mapped, not mutated in place; the geometry, orbs, and ordering are untouched.
+export function annotateSiderealDivergence(
+  aspects: SynastryAspect[],
+  personA: DualChartData,
+  personB: DualChartData,
+): SynastryAspect[] {
+  return aspects.map(a => {
+    const tropicalSignA = signOf(personA.tropical, a.planetA)
+    const siderealSignA = signOf(personA.sidereal, a.planetA)
+    const tropicalSignB = signOf(personB.tropical, a.planetB)
+    const siderealSignB = signOf(personB.sidereal, a.planetB)
+    const shiftA = tropicalSignA !== undefined && siderealSignA !== undefined && tropicalSignA !== siderealSignA
+    const shiftB = tropicalSignB !== undefined && siderealSignB !== undefined && tropicalSignB !== siderealSignB
+    return {
+      ...a,
+      tropicalSignA, siderealSignA,
+      tropicalSignB, siderealSignB,
+      divergent: shiftA || shiftB,
+    }
+  })
+}
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 export function buildSynastryData(personA: DualChartData, personB: DualChartData): SynastryData {
   return {
     personA,
     personB,
-    interAspects: calculateInterAspects(personA.tropical, personB.tropical),
+    // Tropical spine (unchanged), then the sidereal sign-shift overlay is layered
+    // on as a separate annotation pass. Composite stays tropical-only by ruling
+    // (see DOCTRINE.md — a sidereal composite is an undefined object, excluded).
+    interAspects: annotateSiderealDivergence(
+      calculateInterAspects(personA.tropical, personB.tropical),
+      personA, personB,
+    ),
     composite: calculateComposite(personA.tropical, personB.tropical),
   }
 }
@@ -213,6 +262,23 @@ export function formatSynastryBlock(data: SynastryData, planetSection: string): 
     `  ${a.planetA.padEnd(10)} ${ASPECT_SYMBOLS[a.aspect]} ${a.planetB.padEnd(10)} ${a.aspect.padEnd(12)} orb ${a.orb.toFixed(1)}°`
   ).join('\n')
 
+  // ── Sidereal-divergence overlay (criterion a — sign-shift) ──────────────────
+  // For this section, list ONLY the contacts flagged `divergent`, naming for each
+  // the planet(s) whose sign shifts and their tropical→sidereal signs. This is an
+  // overlay on the tropical spine above, not a second sidereal synastry: no full
+  // sidereal charts, only the sign shifts that change what a tropical contact means.
+  const divergentAspects = sectionAspects.filter(a => a.divergent)
+  const divergenceLines = divergentAspects.map(a => {
+    const shifts: string[] = []
+    if (a.tropicalSignA && a.siderealSignA && a.tropicalSignA !== a.siderealSignA) {
+      shifts.push(`Person A ${a.planetA} ${a.tropicalSignA} → ${a.siderealSignA}`)
+    }
+    if (a.tropicalSignB && a.siderealSignB && a.tropicalSignB !== a.siderealSignB) {
+      shifts.push(`Person B ${a.planetB} ${a.tropicalSignB} → ${a.siderealSignB}`)
+    }
+    return `  ${a.planetA} (A) ${ASPECT_SYMBOLS[a.aspect]} ${a.planetB} (B) — ${shifts.join('; ')}`
+  }).join('\n')
+
   const compLines = chartLines(composite)
   const skipped = (composite as ChartData & { _skippedPlanets?: string[] })._skippedPlanets
   const skippedNote = skipped && skipped.length > 0
@@ -228,7 +294,10 @@ ${chartLines(personB.tropical)}
 SYNASTRY INTER-ASPECTS (Person A → Person B, section: ${planetSection})
 ${aspectLines || '  (no aspects within orb for this section)'}
 
-COMPOSITE CHART (midpoint method, Whole Sign houses)
+SIDEREAL DIVERGENCE OVERLAY (sign-shift contacts, section: ${planetSection})
+${divergenceLines || '  (no sidereal sign-shifts among this section\'s contacts)'}
+
+COMPOSITE CHART (midpoint method, Whole Sign houses) — TROPICAL ONLY
 ${compLines}${skippedNote}`
 }
 
