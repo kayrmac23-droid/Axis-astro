@@ -111,6 +111,10 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
               body: JSON.stringify({
                 birthA: synastryData.personA.birthData,
                 birthB: synastryData.personB.birthData,
+                plutoLongitudeA: synastryData.personA.plutoLongitude,
+                plutoSourceA: synastryData.personA.plutoSource,
+                plutoLongitudeB: synastryData.personB.plutoLongitude,
+                plutoSourceB: synastryData.personB.plutoSource,
                 section: 'synastry',
                 planetSection: sec,
               }),

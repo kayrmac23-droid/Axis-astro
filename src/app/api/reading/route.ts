@@ -1,7 +1,7 @@
 // app/api/reading/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import { calculateDualChart, BirthData } from '@/lib/astro-calc'
+import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
@@ -104,6 +104,23 @@ function parseBirthData(raw: unknown): BirthData | null {
   }
 }
 
+// Build a validated Pluto override from client-supplied hints. The reading route
+// stays authoritative: the client may supply the canonical Pluto longitude (the one
+// value the server does not recompute in this hot path, to avoid a JPL call), but it
+// is range- and enum-validated here before use. If either field fails validation,
+// BOTH are dropped and the caller falls through to the local Meeus fallback — we never
+// throw and never coerce. Everything else in the chart is computed server-side.
+const PLUTO_SOURCE_RE = /^(jpl-horizons-de44[01]|local-meeus)$/
+function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | undefined {
+  const validLon =
+    typeof lon === 'number' && Number.isFinite(lon) && lon >= 0 && lon < 360 ? lon : undefined
+  const validSource =
+    typeof source === 'string' && PLUTO_SOURCE_RE.test(source) ? source : undefined
+  return validLon !== undefined && validSource
+    ? { plutoLongitude: validLon, plutoSource: validSource }
+    : undefined
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -133,6 +150,14 @@ export async function POST(req: NextRequest) {
       birthData?: unknown
       birthA?: unknown
       birthB?: unknown
+      // Client-supplied canonical Pluto hints (validated below, never trusted wholesale).
+      // Natal sections use plutoLongitude/plutoSource; synastry uses the A/B pairs.
+      plutoLongitude?: unknown
+      plutoSource?: unknown
+      plutoLongitudeA?: unknown
+      plutoSourceA?: unknown
+      plutoLongitudeB?: unknown
+      plutoSourceB?: unknown
       section?: string
       planetSection?: string
     }
@@ -177,6 +202,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Canonical Pluto override (validated client hint) ───────────────────────
+    // For natal sections a single override applies; for synastry it splits into
+    // per-person overrideA / overrideB. Invalid or absent hints yield undefined,
+    // so the chart silently falls back to local Meeus.
+    const plutoOverride = buildPlutoOverride(body.plutoLongitude, body.plutoSource)
+    const overrideA     = buildPlutoOverride(body.plutoLongitudeA, body.plutoSourceA)
+    const overrideB     = buildPlutoOverride(body.plutoLongitudeB, body.plutoSourceB)
+
     const systemPrompt      = SYSTEM_PROMPT_MAP[section]
     const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
     if (!systemPrompt || !sectionInstruction) {
@@ -216,12 +249,15 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Recalculate chart server-side ──────────────────────────────────────────
-    // Uses local Meeus for Pluto (no outbound JPL call in this hot path).
-    // Planet positions in the prompt are authoritative — not client-supplied.
+    // Pluto: the canonical JPL longitude is consumed from the caller when present
+    // and validated (see buildPlutoOverride) so the reading interprets the exact
+    // Pluto the user sees; otherwise it falls back to local Meeus (no outbound JPL
+    // call in this hot path). Every other planet position, plus angles and houses,
+    // is computed server-side from birthData and is never client-supplied.
     let userContent: string
     if (section === 'synastry') {
-      const dualA      = calculateDualChart(birthA!)
-      const dualB      = calculateDualChart(birthB!)
+      const dualA      = calculateDualChart(birthA!, overrideA)
+      const dualB      = calculateDualChart(birthB!, overrideB)
       const synData    = buildSynastryData(dualA, dualB)
       const synBlock   = formatSynastryBlock(synData, planetSection)
       // For composite-focused sections, append an elite chart block for the
@@ -234,18 +270,18 @@ export async function POST(req: NextRequest) {
         userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
       }
     } else if (section === 'tropical') {
-      const dual       = calculateDualChart(birthData!)
+      const dual       = calculateDualChart(birthData!, plutoOverride)
       const ctxBlock   = buildInterpretationContext(dual, 'tropical', planetSection)
       const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
       userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     } else if (section === 'sidereal') {
-      const dual       = calculateDualChart(birthData!)
+      const dual       = calculateDualChart(birthData!, plutoOverride)
       const ctxBlock   = buildInterpretationContext(dual, 'sidereal', planetSection)
       const chartBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
       userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
     } else {
       // synthesis — needs both chart systems
-      const dual          = calculateDualChart(birthData!)
+      const dual          = calculateDualChart(birthData!, plutoOverride)
       const ctxBlock      = buildInterpretationContext(dual, 'synthesis', planetSection)
       const tropicalBlock = formatEliteChartBlock(dual.tropical, 'tropical')
       const siderealBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
