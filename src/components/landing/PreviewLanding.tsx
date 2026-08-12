@@ -16,7 +16,7 @@
    and its placeholder-form / synastry-mini script blocks are
    intentionally dropped.
    ============================================================ */
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import BirthForm from '@/components/BirthForm'
 import styles from './PreviewLanding.module.css'
@@ -28,10 +28,14 @@ interface PreviewLandingProps {
   onRetry: () => void
 }
 
+const HERO_OFFSET = 24.2167
+
 export default function PreviewLanding({ onSubmit, loading, error, onRetry }: PreviewLandingProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const calibRef = useRef<HTMLElement>(null)
   const built = useRef(false)
+  const setHeroOffset = useRef<(angle: number) => void>(() => undefined)
+  const [heroFrame, setHeroFrame] = useState<'tropical' | 'sidereal'>('sidereal')
 
   const scrollToCast = () =>
     calibRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -82,8 +86,6 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
     const LINE = 'rgba(233,231,242,.30)', LINE2 = 'rgba(233,231,242,.5)', NUM = '#9B98BC'
     const GLYPH_OUT = '#DCA05F', GLYPH_IN = '#C08A50'
     const innerGlyphs: Element[] = []
-    const A0 = 24.2167
-    function ayan(y: number) { const t = y - 285, a = 0.013860 * t + 2.87e-8 * t * t; return a < 0 ? 0 : a }
     function fmtA(a: number) { let d = Math.floor(a), m = Math.round((a - d) * 60); if (m === 60) { d++; m = 0 } return d + '°' + (m < 10 ? '0' : '') + m + '′' }
 
     function ringSet(parent: Element, rIn: number, rOut: number, glyphR: number, glyphS: number, color: string, store: Element[] | null) {
@@ -185,7 +187,8 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
         const mid = pt(Math.max(A, 3) / 2, 444)
         leader!.setAttribute('d', 'M238,168 L330,168 L' + f2(mid[0]) + ',' + f2(mid[1]))
       }
-      setOffset(A0)
+      setHeroOffset.current = setOffset
+      setOffset(HERO_OFFSET)
 
       /* settle animation */
       if (reduce) { (annot as HTMLElement).style.opacity = '1' }
@@ -202,20 +205,6 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
         requestAnimationFrame(step)
       }
 
-      /* epoch scrubber */
-      const slider = document.getElementById('epochSlider') as HTMLInputElement | null
-      const yearOut = document.getElementById('epochYear')
-      const offOut = document.getElementById('epochOff')
-      if (slider && yearOut && offOut) {
-        const scrub = () => {
-          const y = parseInt(slider.value, 10), A = ayan(y)
-          setOffset(A)
-          yearOut.textContent = y + ' CE'
-          if (A < 0.05) { offOut.innerHTML = '<span class="' + styles.agree + '">THE TWO ZODIACS AGREE</span>' }
-          else { offOut.textContent = 'OFFSET ' + fmtA(A) + (y === 2026 ? '' : ' · IN 285 CE THE ZODIACS AGREED') }
-        }
-        slider.addEventListener('input', scrub)
-      }
     }
 
     /* ---------- scroll reveal ---------- */
@@ -232,6 +221,11 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       })
     }
   }, [])
+
+  const selectHeroFrame = (nextFrame: 'tropical' | 'sidereal') => {
+    setHeroFrame(nextFrame)
+    setHeroOffset.current(nextFrame === 'tropical' ? 0 : HERO_OFFSET)
+  }
 
   return (
     <div className={styles.root} ref={rootRef}>
@@ -279,39 +273,27 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       <div className={styles.content}>
         {/* ======================= HERO ======================= */}
         <div className={styles.hero}>
+          <div className={styles.heroMast}>
+            <span>AXIS / FIELD INSTRUMENT 01</span>
+            <span>J2000 · LAHIRI · 2026 CE</span>
+            <span className={styles.mastLive}>DUAL FRAME ONLINE</span>
+          </div>
+
           <div className={styles.heroCopy}>
-            <div className={styles.heroStatus} aria-label="Instrument status">
-              <span>Instrument 01</span>
-              <span className={styles.statusLive}><i aria-hidden="true" />Lahiri offset live</span>
-            </div>
             <h1 className={styles.wordmark}>AXIS</h1>
-            <div className={styles.wmRule}></div>
-            <div className={styles.wmLabel}>DUAL-SYSTEM ASTROLOGY</div>
-            <div className={styles.heroDoctwrap}>
-              <div className={styles.movement}>
-                <span className={styles.movementLabel}>Tropical · seasonal frame</span>
-                <p className={styles.heroDoct}>Maps the psychological architecture of a self.</p>
-              </div>
-              <div className={styles.movement}>
-                <span className={styles.movementLabel}>Sidereal · stellar frame</span>
-                <p className={styles.heroDoct}>Maps the incarnational conditions it navigates.</p>
-              </div>
-              <div className={`${styles.movement} ${styles.movementDivergence}`}>
-                <span className={styles.movementLabel}>The Divergence · reading layer</span>
-                <p className={styles.heroClose}>Where this chart actually <span className={styles.dvg}>lives.</span></p>
-              </div>
-            </div>
-            <p className={styles.heroLede}>One birth, charted against two zodiacs — the seasonal and the stellar — separated by <span className={styles.num}>24°13′</span> of precession. AXIS computes both and reads what lives in the difference.</p>
+            <p className={styles.wmLabel}>DUAL-SYSTEM ASTROLOGY</p>
+            <p className={styles.heroClaim}>Two maps.<br /><span>No common answer.</span></p>
+            <p className={styles.heroLede}>One birth is measured in two coordinate systems. AXIS keeps their <span className={styles.dvg}>24°13′ divergence</span> open—and reads the life shaped across it.</p>
             <div className={styles.ctas}>
-              <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={scrollToCast}>CAST YOUR DUAL CHART</button>
-              <Link className={`${styles.btn} ${styles.btnOutline}`} href="/sample">SAMPLE DOSSIER</Link>
+              <button type="button" className={`${styles.btn} ${styles.btnSolid}`} onClick={scrollToCast}>CAST THE INSTRUMENT</button>
+              <Link className={`${styles.btn} ${styles.btnOutline}`} href="/sample">READ A DOSSIER</Link>
             </div>
-            <div className={styles.heroMicro}>VSOP87 EPHEMERIS · LAHIRI AYANAMSA · NO HOROSCOPES</div>
+            <div className={styles.heroMicro}>NOT A HOROSCOPE · NOT A BLENDED CHART · NO RESOLUTION</div>
           </div>
           <div className={styles.heroRight}>
             <div className={styles.instrumentHeader} aria-hidden="true">
-              <span>Dual-zodiac instrument</span>
-              <span>Lahiri model active</span>
+              <span>Live frame shift</span>
+              <span>Δ PERSISTS IN BOTH FRAMES</span>
             </div>
             <div className={styles.wheelbox}>
               <svg id="instrument" viewBox="0 0 1000 1000" role="img" aria-label="Live dual-zodiac instrument: tropical ring outside, sidereal ring inside, offset by the Lahiri ayanamsa">
@@ -356,18 +338,29 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
                 </g>
               </svg>
             </div>
-            <div className={styles.epochPanel}>
-              <div className={styles.epochHeader}>
-                <span>Epoch calibration</span>
-                <output id="epochYear" htmlFor="epochSlider">2026 CE</output>
-              </div>
-              <div className={styles.epoch}>
-                <span className={styles.eLab}>285 CE</span>
-                <input type="range" id="epochSlider" min="285" max="2100" defaultValue="2026" step="1" aria-label="Epoch year" aria-describedby="epochHint" />
-                <span className={styles.eLab}>2100 CE</span>
-              </div>
-              <div className={styles.epochRead} id="epochHint">SCRUB THE EPOCH · <span id="epochOff" aria-live="polite">OFFSET 24°13′</span></div>
+          </div>
+
+          <aside className={styles.frameConsole} aria-label="Reference frame control">
+            <div className={styles.consoleHead}>
+              <span>Reference frame</span>
+              <strong>Δ 24°13′</strong>
             </div>
+            <div className={styles.frameSwitch} role="group" aria-label="Choose zodiac reference frame">
+              <button type="button" className={heroFrame === 'tropical' ? styles.frameActive : ''} aria-pressed={heroFrame === 'tropical'} onClick={() => selectHeroFrame('tropical')}>Tropical</button>
+              <button type="button" className={heroFrame === 'sidereal' ? styles.frameActive : ''} aria-pressed={heroFrame === 'sidereal'} onClick={() => selectHeroFrame('sidereal')}>Sidereal</button>
+            </div>
+            <dl className={styles.frameData} aria-live="polite">
+              <div><dt>Anchor</dt><dd>{heroFrame === 'tropical' ? 'March equinox' : 'Stellar longitude'}</dd></div>
+              <div><dt>Band rotation</dt><dd>{heroFrame === 'tropical' ? '000°00′' : '−024°13′'}</dd></div>
+              <div><dt>Reading plane</dt><dd>{heroFrame === 'tropical' ? 'Psychological' : 'Incarnational'}</dd></div>
+            </dl>
+            <p className={styles.consoleNote}>Switch frames. The chart moves; the divergence does not.</p>
+          </aside>
+
+          <div className={styles.divergenceRail} aria-hidden="true">
+            <span>TROPICAL / SEASONAL ZERO</span>
+            <b>≠</b>
+            <span>SIDEREAL / STELLAR ZERO</span>
           </div>
         </div>
 
