@@ -7,6 +7,7 @@ import styles from './SiteHeader.module.css'
 const NAV = [
   { href: '/method', label: 'How It Works' },
   { href: '/sample', label: 'Sample Reading' },
+  { href: '/synastry', label: 'Compatibility' },
 ]
 
 export default function SiteHeader() {
