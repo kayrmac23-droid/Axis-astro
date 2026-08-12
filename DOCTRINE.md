@@ -167,3 +167,33 @@ RETAINED: The cross-system cusp observation — noting when a planet is
 boundary-ambiguous in one system but settled in the other — is retained as
 divergence content, since it reads the inter-system relationship rather than
 within-system blending.
+
+## COMPATIBILITY (SYNASTRY) — DUAL-SYSTEM BY SIGN-SHIFT OVERLAY (ratified August 2026)
+
+Compatibility (internally "synastry") is dual-system. It was tropical-only; that
+assumption is DELETED. It is now read on a TROPICAL SPINE with a SIDEREAL
+SIGN-SHIFT DIVERGENCE OVERLAY (Model 3, criterion a).
+
+THE RULING:
+- The tropical inter-aspects and composite are the PRIMARY reading and are
+  unchanged. Sidereal enters ONLY as an overlay that names where the sidereal
+  picture diverges from the tropical one. It is NOT a second parallel synastry.
+- Divergence is defined by SIGN-SHIFT and nothing else: a tropical inter-aspect
+  contact is flagged divergent when either participating planet occupies a
+  different sign in that person's sidereal chart than in their tropical chart.
+  The overlay names that shift and what it does to the contact's meaning. The
+  tropical reading stands; the two framings are left unreconciled (THE LAW).
+- The aspect grid is NOT recomputed on sidereal longitudes. Aspect
+  presence/absence divergence between systems (criterion b) is a NAMED FUTURE
+  EXTENSION and is deliberately NOT shipped in this version.
+
+COMPOSITE — TROPICAL ONLY BY RULING:
+- The composite (midpoint) chart is tropical-only. A midpoint composite in the
+  sidereal zodiac is an UNDEFINED astrological object and is EXCLUDED until it is
+  explicitly defined. No sidereal composite is computed.
+
+PRECEDENT (general): A sidereal analogue of a tropical-native construct requires
+an explicit meaning ruling BEFORE it is computed. Absent that ruling, the
+analogue is EXCLUDED, not improvised. Exclusion by ruling is a deliberate state,
+not a missing feature; agents must not "complete" it by inventing the undefined
+object.

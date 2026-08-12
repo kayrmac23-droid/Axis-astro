@@ -476,6 +476,22 @@
   flex-shrink: 0;
 }
 
+/* Synastry: two frame-shift wheels (Person A / Person B) stacked, each with
+   the app's built-in tropical/sidereal toggle. Same 1px divider treatment as
+   .wheelDivider, oriented horizontally. No cards, no radius, no shadow. */
+.synastryWheelStack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3.5rem;
+  width: 100%;
+}
+
+.synastryWheelRule {
+  opacity: 0.2;
+  flex-shrink: 0;
+}
+
 /* ─── Actions ─────────────────────────────────────── */
 .resetRow {
   display: flex;

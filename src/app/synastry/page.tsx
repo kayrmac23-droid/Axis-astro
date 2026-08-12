@@ -1,7 +1,7 @@
 'use client'
 import { useState, useRef } from 'react'
 import BirthForm from '@/components/BirthForm'
-import ChartWheel from '@/components/ChartWheel'
+import FrameShiftWheel from '@/components/FrameShiftWheel'
 import AstrolabeDecor from '@/components/AstrolabeDecor'
 import SynastryAspectsPanel from '@/components/SynastryAspectsPanel'
 import SynastryReadingPanel from '@/components/SynastryReadingPanel'
@@ -14,6 +14,10 @@ export default function SynastryPage() {
   const [personBData, setPersonBData] = useState<Record<string, string> | null>(null)
   const [synastryLoading, setSynastryLoading] = useState(false)
   const [synastryError, setSynastryError] = useState<string | null>(null)
+  // Same tropical/sidereal frame mechanism the main app uses (see page.tsx);
+  // one frame per person so each chart can be shifted independently.
+  const [frameA, setFrameA] = useState<'tropical' | 'sidereal'>('tropical')
+  const [frameB, setFrameB] = useState<'tropical' | 'sidereal'>('tropical')
   const readingRef = useRef<HTMLDivElement>(null)
 
   const handleCalculateSynastry = async () => {
@@ -138,20 +142,30 @@ export default function SynastryPage() {
       {synastryData && (
         <div className={styles.readingLayout} ref={readingRef}>
           <section className={styles.wheelSection}>
-            <p className={styles.wheelSectionLabel}>Natal charts</p>
-            <div className={styles.wheelPair}>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Person A — Tropical</p>
-                <ChartWheel chart={synastryData.personA.tropical} />
-              </div>
-              <div className={styles.wheelDivider}>
-                <svg width="1" height="240" viewBox="0 0 1 240">
-                  <line x1="0.5" y1="0" x2="0.5" y2="240" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                </svg>
-              </div>
-              <div className={styles.wheelItem}>
-                <p className={styles.wheelLabel}>Person B — Tropical</p>
-                <ChartWheel chart={synastryData.personB.tropical} />
+            <p className={styles.wheelSectionLabel}>Natal charts — both frames</p>
+            <div className={styles.wheelBreakout}>
+              <div className={styles.synastryWheelStack}>
+                <div className={styles.wheelItem}>
+                  <p className={styles.wheelLabel}>Person A</p>
+                  <FrameShiftWheel
+                    data={synastryData.personA}
+                    frame={frameA}
+                    onFrameChange={setFrameA}
+                  />
+                </div>
+                <div className={styles.synastryWheelRule}>
+                  <svg width="240" height="1" viewBox="0 0 240 1">
+                    <line x1="0" y1="0.5" x2="240" y2="0.5" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
+                  </svg>
+                </div>
+                <div className={styles.wheelItem}>
+                  <p className={styles.wheelLabel}>Person B</p>
+                  <FrameShiftWheel
+                    data={synastryData.personB}
+                    frame={frameB}
+                    onFrameChange={setFrameB}
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -168,6 +182,7 @@ export default function SynastryPage() {
               onClick={() => {
                 setSynastryData(null); setPersonAData(null)
                 setPersonBData(null); setSynastryError(null)
+                setFrameA('tropical'); setFrameB('tropical')
               }}
             >
               New synastry
