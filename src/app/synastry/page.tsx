@@ -143,7 +143,7 @@ export default function SynastryPage() {
         <div className={styles.readingLayout} ref={readingRef}>
           <section className={styles.wheelSection}>
             <p className={styles.wheelSectionLabel}>Natal charts — both frames</p>
-            <div className={styles.wheelBreakout}>
+            <div className={styles.synastryWheelBreakout}>
               <div className={styles.synastryWheelStack}>
                 <div className={styles.wheelItem}>
                   <p className={styles.wheelLabel}>Person A</p>
@@ -152,11 +152,6 @@ export default function SynastryPage() {
                     frame={frameA}
                     onFrameChange={setFrameA}
                   />
-                </div>
-                <div className={styles.synastryWheelRule}>
-                  <svg width="240" height="1" viewBox="0 0 240 1">
-                    <line x1="0" y1="0.5" x2="240" y2="0.5" stroke="rgba(26,20,32,0.18)" strokeWidth="1" />
-                  </svg>
                 </div>
                 <div className={styles.wheelItem}>
                   <p className={styles.wheelLabel}>Person B</p>

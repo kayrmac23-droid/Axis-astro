@@ -422,6 +422,14 @@
   padding: 2rem 0 0;
 }
 
+/* Synastry breaks out wider — it holds TWO frame-shift wheels side by side. */
+.synastryWheelBreakout {
+  width: min(1600px, calc(100vw - 2rem));
+  margin-left: 50%;
+  transform: translateX(-50%);
+  padding: 2rem 0 0;
+}
+
 /* ─── Wheel Section ───────────────────────────────── */
 .wheelSection {
   padding: 1.5rem 0 5rem;
@@ -476,20 +484,47 @@
   flex-shrink: 0;
 }
 
-/* Synastry: two frame-shift wheels (Person A / Person B) stacked, each with
-   the app's built-in tropical/sidereal toggle. Same 1px divider treatment as
-   .wheelDivider, oriented horizontally. No cards, no radius, no shadow. */
+/* Synastry: two frame-shift wheels (Person A / Person B), each with the app's
+   built-in tropical/sidereal toggle. Side by side on desktop, stacked on
+   narrower screens. A 1px divider (same var(--border) token) sits between the
+   two — vertical when side by side, horizontal when stacked. Each wheel
+   collapses its own wheel/rail via the FrameShiftWheel container query, so a
+   half-width column stays legible. No cards, no radius, no shadow. */
 .synastryWheelStack {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3.5rem;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3rem;
   width: 100%;
 }
 
-.synastryWheelRule {
-  opacity: 0.2;
-  flex-shrink: 0;
+.synastryWheelStack > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.synastryWheelStack > * + * {
+  border-left: 1px solid var(--border);
+  padding-left: 3rem;
+}
+
+@media (max-width: 1080px) {
+  .synastryWheelStack {
+    flex-direction: column;
+    align-items: center;
+    gap: 3.5rem;
+  }
+  .synastryWheelStack > * {
+    flex: none;
+    width: 100%;
+  }
+  .synastryWheelStack > * + * {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 3.5rem;
+  }
 }
 
 /* ─── Actions ─────────────────────────────────────── */

@@ -19,6 +19,10 @@
   color: var(--star);
   font-family: var(--serif);
   width: 100%;
+  /* Establish an inline-size query container so the wheel/rail can collapse
+     based on THIS component's own width (e.g. a half-width synastry column),
+     not just the viewport. The viewport @media rules below are retained. */
+  container: fsw / inline-size;
 }
 .root * { border-radius: 0 !important; }
 .root button { background: none; border: none; font-family: var(--mono); cursor: pointer; color: var(--dim2); }
@@ -95,6 +99,21 @@
   .meta { text-align: left; }
 }
 @media (max-width: 460px) {
+  .frameToggle { gap: 16px; padding: 12px 14px; }
+  .delta { min-width: 96px; }
+  .header { gap: 12px; }
+}
+
+/* Container-query mirrors of the responsive rules above: fire when the
+   component's own inline size is constrained (e.g. two wheels side by side in
+   a synastry column) even though the viewport is wide. */
+@container fsw (max-width: 1080px) {
+  .main { flex-direction: column; align-items: center; }
+  .rail { width: 100%; max-width: 640px; border-left: none; padding-left: 0; border-top: 1px solid var(--hair2); padding-top: 18px; }
+  .wheel { width: 100%; max-width: 560px; }
+  .meta { text-align: left; }
+}
+@container fsw (max-width: 460px) {
   .frameToggle { gap: 16px; padding: 12px 14px; }
   .delta { min-width: 96px; }
   .header { gap: 12px; }
