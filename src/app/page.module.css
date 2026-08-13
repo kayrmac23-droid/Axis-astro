@@ -525,6 +525,19 @@
     border-top: 1px solid var(--border);
     padding-top: 3.5rem;
   }
+
+  /* At/below the stack breakpoint the two wheels sit vertically and each caps at
+     its own max-width, so the full-bleed breakout reclaims no usable width — it
+     only introduces risk. Its margin-left:50% + translateX(-50%) interacts badly
+     with .wheelSection's flex `align-items: center` at narrow widths, pushing the
+     element off the left edge on mobile. Neutralise it so the wheels stay inside
+     the normal, centred, padded reading column. */
+  .wheelBreakout,
+  .synastryWheelBreakout {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
 }
 
 /* ─── Actions ─────────────────────────────────────── */
