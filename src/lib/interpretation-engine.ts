@@ -527,7 +527,7 @@ function computeDignity(planetName: string, signName: string): { status: string;
     return { status: 'DETRIMENT', description: `${planetName} in detriment — in the sign opposite its domicile; the natural function is frustrated, redirected, or expressed in complicated ways; must work against the grain of the sign to assert itself` }
   }
   if (d.fall === signName) {
-    return { status: 'FALL', description: `${planetName} in fall — opposite exaltation; at its most challenged; must work hardest for results others achieve more naturally; can produce significant difficulty or, through that effort, uncommon depth and resilience` }
+    return { status: 'FALL', description: `${planetName} in fall — opposite exaltation; at its most challenged; must work hardest for results others achieve more naturally, and often at real cost. State the difficulty as a difficulty; do NOT rescue it into depth, resilience, or rarity in the same breath (see UNCOMPENSATED CONSTRAINT)` }
   }
   return { status: 'peregrine', description: 'no special dignity or debility — neutral placement' }
 }
@@ -621,7 +621,7 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
     conflicts.push(`${planet.name} is in DETRIMENT in ${planet.sign}: its core drive (${pData.drives}) runs against the grain of ${planet.sign}'s need (${sData.coreNeed}). Direct expression is complicated; the energy is present but frustrated or redirected`)
   }
   if (dignity.status === 'FALL') {
-    conflicts.push(`${planet.name} is in FALL in ${planet.sign}: the deepest dignity challenge — both the planet's function and the sign's character resist easy alignment; this placement requires significant effort and often produces either chronic difficulty or, through that struggle, unusual psychological depth`)
+    conflicts.push(`${planet.name} is in FALL in ${planet.sign}: the deepest dignity challenge — both the planet's function and the sign's character resist easy alignment; this placement requires significant effort and often carries a real, standing cost. Name that cost and the situation in which it surfaces; do NOT convert it into depth or resilience in the sentence that raises it (see UNCOMPENSATED CONSTRAINT)`)
   }
 
   aspects

@@ -7,6 +7,7 @@ import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpr
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, checkGlobalDailyBudget } from '@/lib/route-rate-limiter'
+import { isValidCalendarDate } from '@/lib/tz'
 import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
 
 export const maxDuration = 60
@@ -96,6 +97,9 @@ function parseBirthData(raw: unknown): BirthData | null {
   if (isNaN(mi)  || mi  < 0    || mi  > 59)   return null
   if (isNaN(lat) || lat < -90  || lat > 90)   return null
   if (isNaN(lon) || lon < -180 || lon > 180)  return null
+  // Reject impossible calendar dates (e.g. Feb 31), matching /api/calculate and
+  // /api/synastry — a direct POST here must not recompute a chart on a bogus date.
+  if (!isValidCalendarDate(y, mo, dy))        return null
   return {
     year: y, month: mo, day: dy, hour: h, minute: mi,
     latitude: lat, longitude: lon, timezone: tz,
@@ -227,7 +231,22 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // ── Global daily budget guard (only uncached AI requests reach here) ──────
+    // ── Rate limiting (only uncached AI requests reach here) ──────────────────
+    // MUST run before the global daily budget guard below. The budget counter
+    // increments on every request that reaches it, so counting before the per-IP
+    // limit would let a single IP exhaust the global daily cap with cheap requests
+    // that are themselves rate-limited away from ever reaching the model — a
+    // denial-of-service that trips the spend kill switch for every user.
+    const ip = getClientIp(req)
+    const { allowed, retryAfter } = await checkRateLimit(ip, READING_RATE_LIMIT)
+    if (!allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please wait before generating another reading.' },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
+
+    // ── Global daily budget guard (only uncached, non-rate-limited requests reach here) ──
     // Hard cap on AI-backed reading calls per day across all instances/IPs.
     const budget = await checkGlobalDailyBudget()
     if (!budget.allowed) {
@@ -235,16 +254,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "AXIS has reached today's reading limit. Please try again tomorrow." },
         { status: 503 }
-      )
-    }
-
-    // ── Rate limiting (only uncached AI requests reach here) ──────────────────
-    const ip = getClientIp(req)
-    const { allowed, retryAfter } = await checkRateLimit(ip, READING_RATE_LIMIT)
-    if (!allowed) {
-      return NextResponse.json(
-        { error: 'Too many requests. Please wait before generating another reading.' },
-        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
       )
     }
 
