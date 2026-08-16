@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata,Viewport } from 'next'
 import { Cinzel, Cormorant_Garamond, Courier_Prime } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -31,6 +31,11 @@ const courierPrime = Courier_Prime({
 export const metadata: Metadata = {
   title: 'AXIS — Precision Dual-System Astrology',
   description: 'Tropical reveals the self you know. Sidereal reveals the self underneath it. That gap is AXIS.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
