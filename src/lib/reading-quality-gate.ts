@@ -16,10 +16,12 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 
-// Haiku 4.5 is fast enough (~3s for short JSON output) that it adds little
-// latency to the request, while still capable of the discriminating judgment
-// the gate requires.
-const EVAL_MODEL = 'claude-haiku-4-5-20251001'
+// The semantic doctrine check needs the discriminating judgment that only the
+// stronger model reliably delivers: Haiku is fast but too lenient on the subtle
+// failure modes the gate exists to catch (pseudo-synthesis, compensatory
+// reframes, under-grounded prose). Sonnet's slower, sharper read is worth the
+// added latency because the gate is the last line before caching.
+const EVAL_MODEL = 'claude-sonnet-4-6'
 const EVAL_MAX_TOKENS = 600
 const EVAL_TEMPERATURE = 0
 
