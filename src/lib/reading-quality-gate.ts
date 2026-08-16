@@ -110,7 +110,8 @@ function extractText(message: Anthropic.Message): string {
 
 // Strip optional ```json fences and leading whitespace so JSON.parse succeeds
 // even when the model adds a markdown wrapper despite instructions.
-function stripJsonFence(raw: string): string {
+// Exported for unit testing — pure, no behaviour change.
+export function stripJsonFence(raw: string): string {
   let s = raw.trim()
   if (s.startsWith('```')) {
     s = s.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
@@ -118,7 +119,8 @@ function stripJsonFence(raw: string): string {
   return s
 }
 
-function validateScores(obj: unknown): GateScores | null {
+// Exported for unit testing — pure, no behaviour change.
+export function validateScores(obj: unknown): GateScores | null {
   if (!obj || typeof obj !== 'object') return null
   const o = obj as Record<string, unknown>
   const result = {} as GateScores
@@ -130,7 +132,8 @@ function validateScores(obj: unknown): GateScores | null {
   return result
 }
 
-function computePassFromScores(scores: GateScores): boolean {
+// Exported for unit testing — pure, no behaviour change.
+export function computePassFromScores(scores: GateScores): boolean {
   const values = CRITERIA.map(k => scores[k])
   const min    = Math.min(...values)
   const avg    = values.reduce((a, b) => a + b, 0) / values.length
