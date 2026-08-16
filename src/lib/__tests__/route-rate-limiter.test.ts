@@ -83,8 +83,16 @@ describe('checkRateLimit (in-memory fallback)', () => {
 })
 
 describe('checkGlobalDailyBudget (fail-open without Redis)', () => {
-  afterEach(() => {
+  // Snapshot and clear the cap override before each test so a value already
+  // present in the runner/shell can't make the default-cap assertion flaky;
+  // restore the original afterwards.
+  const savedCap = process.env.AXIS_DAILY_READING_CALL_CAP
+  beforeEach(() => {
     delete process.env.AXIS_DAILY_READING_CALL_CAP
+  })
+  afterEach(() => {
+    if (savedCap === undefined) delete process.env.AXIS_DAILY_READING_CALL_CAP
+    else process.env.AXIS_DAILY_READING_CALL_CAP = savedCap
   })
 
   it('allows and reports the default cap when Redis is unconfigured', async () => {
