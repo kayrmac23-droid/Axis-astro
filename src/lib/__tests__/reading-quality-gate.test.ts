@@ -6,7 +6,7 @@ import {
   GateScores,
 } from '../reading-quality-gate'
 
-// A full set of scores, all equal to `v`. The gate has 8 criteria.
+// A full set of scores, all equal to `v`. The gate has 9 criteria.
 function allScores(v: number): GateScores {
   return {
     chart_evidence:         v,
@@ -14,6 +14,7 @@ function allScores(v: number): GateScores {
     synthesis:              v,
     contradiction_handling: v,
     anti_cliche:            v,
+    falsifiability:         v,
     psychological_depth:    v,
     practical_usefulness:   v,
     voice_quality:          v,
@@ -33,30 +34,36 @@ describe('computePassFromScores', () => {
 
   it('fails when a single criterion is below 3 despite a high average', () => {
     const scores = allScores(5)
-    scores.voice_quality = 2 // avg = (7*5 + 2)/8 = 4.625, but min < 3
+    scores.voice_quality = 2 // avg = (8*5 + 2)/9 ≈ 4.67, but min < 3
     expect(computePassFromScores(scores)).toBe(false)
   })
 
-  it('passes at the exact 3.75 average boundary with min ≥ 3', () => {
-    // Six 4s and two 3s → (24 + 6)/8 = 3.75, min 3.
-    const scores = allScores(4)
-    scores.specificity = 3
-    scores.anti_cliche = 3
-    expect(computePassFromScores(scores)).toBe(true)
+  it('passes at the exact 3.75 average boundary (inclusive) with min ≥ 3', () => {
+    // Nine integer criteria cannot sum to exactly 3.75 average, so exercise the
+    // inclusive `>=` boundary directly: every criterion at 3.75 → avg 3.75, min 3.75.
+    expect(computePassFromScores(allScores(3.75))).toBe(true)
   })
 
   it('fails just below the 3.75 boundary', () => {
-    // Five 4s and three 3s → (20 + 9)/8 = 3.625, min 3.
+    // Six 4s and three 3s → (24 + 9)/9 = 3.666…, min 3.
     const scores = allScores(4)
     scores.specificity = 3
     scores.anti_cliche = 3
     scores.synthesis = 3
     expect(computePassFromScores(scores)).toBe(false)
   })
+
+  it('passes just above the 3.75 boundary', () => {
+    // Seven 4s and two 3s → (28 + 6)/9 = 3.777…, min 3.
+    const scores = allScores(4)
+    scores.specificity = 3
+    scores.anti_cliche = 3
+    expect(computePassFromScores(scores)).toBe(true)
+  })
 })
 
 describe('validateScores', () => {
-  it('returns the scores object when all eight criteria are valid', () => {
+  it('returns the scores object when all nine criteria are valid', () => {
     const valid = allScores(4)
     expect(validateScores(valid)).toEqual(valid)
   })

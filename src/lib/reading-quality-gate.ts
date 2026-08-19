@@ -33,6 +33,7 @@ const CRITERIA = [
   'synthesis',
   'contradiction_handling',
   'anti_cliche',
+  'falsifiability',
   'psychological_depth',
   'practical_usefulness',
   'voice_quality',
@@ -46,6 +47,7 @@ export interface GateScores {
   synthesis:              number
   contradiction_handling: number
   anti_cliche:            number
+  falsifiability:         number
   psychological_depth:    number
   practical_usefulness:   number
   voice_quality:          number
@@ -74,12 +76,13 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes?
 4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault.
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
-6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
-7. practical_usefulness — Will the reader leave with clearer self-understanding (a recognisable scene, a named pattern they can now see) rather than just aesthetic prose?
-8. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions? Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence.
+6. falsifiability — Does every central psychological claim exclude someone? Apply the inversion test: if you reversed the claim, would the opposite sound roughly as plausible to almost any reader regardless of their chart? A claim that survives only because it is vague enough to be near-universally true is a Barnum statement doing comfort work, not astrological work — and comfort dressed as insight is sycophancy. Score LOW when the section leans on universally-endorsable claims that are not anchored to a specific named chart factor — e.g. "you feel things deeply", "you need both connection and independence", "you want to be understood", "you feel most like yourself when things are in proportion, when the exchange is mutual". A claim earns its place only if a DIFFERENT chart could falsify it: "Libra Venus in the 7th makes a lopsided exchange physically intolerable in a way a Scorpio Venus would not register" can be wrong and is therefore worth making; "you need mutuality" cannot be wrong and is not. The pass condition is precision anchored to a placement that would make the claim wrong for a neighbouring chart; vague universality is the fault. (Distinct from anti_cliche, which catches textbook sign-archetype phrasing; a claim can be cliché-free and still be an un-anchored Barnum statement.)
+7. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
+8. practical_usefulness — Will the reader leave with clearer self-understanding (a recognisable scene, a named pattern they can now see) rather than just aesthetic prose?
+9. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions? Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence.
 
 DECISION RULES:
-- pass = true ONLY IF the average of all 8 scores is ≥ 3.75 AND no individual score is below 3.
+- pass = true ONLY IF the average of all 9 scores is ≥ 3.75 AND no individual score is below 3.
 - If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee.
 - If pass = true, critique should be an empty string.
 
@@ -91,6 +94,7 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
     "synthesis": <1-5>,
     "contradiction_handling": <1-5>,
     "anti_cliche": <1-5>,
+    "falsifiability": <1-5>,
     "psychological_depth": <1-5>,
     "practical_usefulness": <1-5>,
     "voice_quality": <1-5>
@@ -160,7 +164,7 @@ ${chartContext}
 ──────────── GENERATED SECTION TO EVALUATE ────────────
 ${generatedText}
 
-Score the generated section against the eight criteria and return the JSON object specified in the system prompt.`
+Score the generated section against the nine criteria and return the JSON object specified in the system prompt.`
 
   try {
     const msg = await getAnthropic().messages.create({
