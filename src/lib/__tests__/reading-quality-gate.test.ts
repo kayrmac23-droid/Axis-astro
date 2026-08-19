@@ -8,13 +8,14 @@ import {
   countWords,
   scoreLength,
   isTruncated,
+  countAspectsInContext,
   evaluateSection,
   TRUNCATION_SENTINEL,
   FALSIFIABILITY_DIVERGENCE_EXAMPLE,
   GateScores,
   LlmScores,
 } from '../reading-quality-gate'
-import { BANNED_BARNUM_PHRASINGS, BANNED_BARNUM_LIST, SHARED_RULES, wordBandFor } from '../prompts'
+import { BANNED_BARNUM_PHRASINGS, BANNED_BARNUM_LIST, SHARED_RULES, wordBandFor, scaleBand } from '../prompts'
 
 // The nine model-scored criteria, all equal to `v`.
 function allLlm(v: number): LlmScores {
@@ -195,22 +196,94 @@ describe('scoreLength — deterministic length criterion', () => {
   it('full marks inside the band', () => {
     expect(scoreLength(650, band)).toBe(5)
   })
-  it('partial in the tolerated margins', () => {
-    expect(scoreLength(520, band)).toBe(3) // 500–550
-    expect(scoreLength(780, band)).toBe(3) // 750–800
+  it('partial when a bit short, or over the band but not yet runaway', () => {
+    expect(scoreLength(520, band)).toBe(3) // 500–550, a bit short
+    expect(scoreLength(780, band)).toBe(3) // just over the 750 full max
+    expect(scoreLength(1000, band)).toBe(3) // over the 800 cap but within the runaway margin
   })
-  it('fails below the hard floor and above the hard cap', () => {
-    expect(scoreLength(480, band)).toBe(1)
-    expect(scoreLength(900, band)).toBe(1)
+  it('hard-fails only genuine under-delivery or runaway length', () => {
+    expect(scoreLength(480, band)).toBe(1)  // below the 500 hard floor
+    expect(scoreLength(1100, band)).toBe(1) // beyond 800 cap + 250 runaway margin
   })
 
-  it('an 1800-word Sun section fails the aggregate on length alone', () => {
-    // The verification case: a section elite on every prose axis but far over
-    // the hard cap must still fail the gate.
+  it('an 1800-word Sun section fails the aggregate as runaway', () => {
+    // Elite on every prose axis but far past even the runaway margin ⇒ length 1.
     const scores = allScores(5)
     scores.length = scoreLength(1800, band)
     expect(scores.length).toBe(1)
     expect(computePassFromScores(scores)).toBe(false)
+  })
+})
+
+describe('countAspectsInContext', () => {
+  const ctx = [
+    'SUN',
+    'DISPOSITOR / RULERSHIP CHAIN:',
+    'Sun in Leo → ruled by Sun',
+    '',
+    'ASPECTS (tightest first):',
+    '• Opposition Neptune (2.8°, applying, polarizing) | Neptune H11',
+    '• Square Jupiter (3°, applying, tense) | Jupiter H2',
+    '• Trine Moon (5.1°, separating, flowing) | Moon H9',
+    '',
+    'SITUATIONAL FRAME (when/where this shows up):',
+    '• Arena: House 5',
+    '• Trigger — Opposition Neptune',
+  ].join('\n')
+
+  it('counts only the ASPECTS block bullets, not other bulleted blocks', () => {
+    expect(countAspectsInContext(ctx)).toBe(3)
+  })
+
+  it('sums multiple ASPECTS blocks (e.g. Jupiter + Saturn)', () => {
+    const two = ctx + '\n\nASPECTS (tightest first):\n• Conjunction Saturn (1°, applying, tense) | Saturn H2\n'
+    expect(countAspectsInContext(two)).toBe(4)
+  })
+
+  it('returns 0 when there is no ASPECTS block', () => {
+    expect(countAspectsInContext('no aspects here')).toBe(0)
+  })
+})
+
+describe('scaleBand — earned depth on densely aspected charts', () => {
+  it('leaves the band unchanged at or below the baseline aspect count', () => {
+    const base = wordBandFor('tropical', 'sun') // baseline 3, allowance 80
+    expect(scaleBand(base, 3)).toEqual(base)
+    expect(scaleBand(base, 2)).toEqual(base)
+  })
+
+  it('widens the ceiling and floor for aspect counts above the baseline', () => {
+    const base = wordBandFor('tropical', 'sun')
+    const scaled = scaleBand(base, 6) // extra 3 × 80 = +240 ceiling, +120 floor
+    expect(scaled.fullMax).toBe(base.fullMax + 240)
+    expect(scaled.hardMax).toBe(base.hardMax + 240)
+    expect(scaled.fullMin).toBe(base.fullMin + 120)
+    expect(scaled.hardMin).toBe(base.hardMin) // hard floor unchanged
+  })
+
+  it('does not scale a band with no aspect allowance (comparative section)', () => {
+    const diverge = wordBandFor('synthesis', 'diverge')
+    expect(scaleBand(diverge, 8)).toEqual(diverge)
+    expect(wordBandFor('synthesis', 'diverge', 8)).toEqual(diverge)
+  })
+
+  it('gives a 944-word Sun full length marks on a 6-aspect chart', () => {
+    // Earned depth on a densely aspected chart lands inside the scaled band.
+    expect(scoreLength(944, wordBandFor('tropical', 'sun', 6))).toBe(5)
+  })
+
+  it('the runaway threshold itself scales with aspect count', () => {
+    // Same 1250 words: tolerated on a 6-aspect chart (earned depth), but runaway
+    // on a 3-aspect chart where it can only be padding.
+    const dense  = wordBandFor('tropical', 'sun', 6)
+    const sparse = wordBandFor('tropical', 'sun', 3)
+    expect(scoreLength(1250, dense)).toBe(3)
+    expect(scoreLength(1250, sparse)).toBe(1)
+
+    const denseScores  = allScores(5); denseScores.length  = scoreLength(1250, dense)
+    const sparseScores = allScores(5); sparseScores.length = scoreLength(1250, sparse)
+    expect(computePassFromScores(denseScores)).toBe(true)
+    expect(computePassFromScores(sparseScores)).toBe(false)
   })
 })
 
