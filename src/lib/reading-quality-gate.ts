@@ -25,7 +25,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
-import { BANNED_BARNUM_LIST } from '@/lib/prompts'
+import { BANNED_BARNUM_LIST, wordBandFor, WordBand } from '@/lib/prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
 // stronger model reliably delivers: Haiku is fast but too lenient on the subtle
@@ -53,7 +53,9 @@ const REPAIR_TEMPERATURE = 0.2
 export const FALSIFIABILITY_DIVERGENCE_EXAMPLE =
   'In the middle of an argument you care about, part of you keeps quietly restating your own position — not to win, but because being understood lands as more urgent than being agreed with.'
 
-const CRITERIA = [
+// The criteria the LLM evaluator scores from the section prose. These nine are
+// what the eval prompt requests and what validateScores parses back.
+const LLM_CRITERIA = [
   'chart_evidence',
   'specificity',
   'synthesis',
@@ -65,18 +67,19 @@ const CRITERIA = [
   'falsifiability',
 ] as const
 
-type CriterionKey = typeof CRITERIA[number]
+// The full rubric the pass/fail decision runs over: the nine LLM criteria plus
+// `length`, which is scored deterministically in code (word count vs the
+// section's typed band) rather than asked of the model. It feeds MIN_INDIVIDUAL
+// and MIN_PASS_AVERAGE exactly like every other criterion.
+const CRITERIA = [...LLM_CRITERIA, 'length'] as const
 
-export interface GateScores {
-  chart_evidence:         number
-  specificity:            number
-  synthesis:              number
-  contradiction_handling: number
-  anti_cliche:            number
-  psychological_depth:    number
-  practical_usefulness:   number
-  voice_quality:          number
-  falsifiability:         number
+// The nine model-scored criteria.
+export type LlmScores = Record<typeof LLM_CRITERIA[number], number>
+
+// The full score set the verdict is computed from: the nine LLM scores plus the
+// deterministic length score.
+export interface GateScores extends LlmScores {
+  length: number
 }
 
 export interface GateResult {
@@ -86,10 +89,49 @@ export interface GateResult {
   // Internal — true when the evaluator itself errored and we defaulted to a pass.
   // We never block the user on evaluator failure; we cache the first pass.
   evaluatorErrored: boolean
+  // True when the section was truncated (truncation sentinel present, or the
+  // prose ends mid-sentence). A truncated section hard-fails before scoring and
+  // must never be cached or shown as final.
+  truncated: boolean
 }
 
 const MIN_PASS_AVERAGE = 3.75
 const MIN_INDIVIDUAL   = 3
+
+// The marker the /api/reading route appends when the model stopped on
+// max_tokens. Its presence means the section is incomplete.
+export const TRUNCATION_SENTINEL = '[AXIS_TRUNCATED]'
+
+// Count words the same way the length band is expressed: whitespace-separated
+// tokens of the whole section (the handful of ## headers are negligible).
+// Exported for unit testing — pure, no behaviour change.
+export function countWords(text: string): number {
+  const t = text.trim()
+  return t.length === 0 ? 0 : t.split(/\s+/).length
+}
+
+// Score the section's length against its typed band: 5 inside the full band,
+// 3 in the tolerated margin out to the hard edges, 1 (a hard fail) beyond them.
+// Exported for unit testing — pure, no behaviour change.
+export function scoreLength(words: number, band: WordBand): number {
+  if (words >= band.fullMin && words <= band.fullMax) return 5
+  if (words >= band.hardMin && words <= band.hardMax) return 3
+  return 1
+}
+
+// A section is truncated if it carries the truncation sentinel or its prose ends
+// mid-sentence — the final non-whitespace character is not terminal punctuation.
+// Truncated sections hard-fail the gate and must never be cached.
+// Exported for unit testing — pure, no behaviour change.
+export function isTruncated(text: string): boolean {
+  if (text.includes(TRUNCATION_SENTINEL)) return true
+  const trimmed = text.replace(/\s+$/, '')
+  if (trimmed.length === 0) return true
+  const last = trimmed[trimmed.length - 1]
+  // Terminal punctuation that legitimately ends a section of prose, including
+  // closing quotes/brackets and the ellipsis character.
+  return !/[.!?…"'”’)\]]/.test(last)
+}
 
 const EVAL_SYSTEM_PROMPT = `You are the AXIS reading quality evaluator.
 
@@ -108,7 +150,7 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 9. falsifiability — Apply the INVERSION TEST to each major psychological claim, and ONLY the inversion test. Negate the claim: if the negation would ALSO sound broadly, plausibly true of almost any reader, then the claim excludes no one — it is a Barnum statement doing comfort work, not astrological work — and you deduct. A claim earns its place only if a neighbouring chart could plausibly falsify it. Universal-endorsement phrasings such as ${BANNED_BARNUM_LIST} are the paradigm failures — mirror this list; a section that trades in them scores 2 or below. Do NOT re-score chart-anchoring here — whether a claim is tied to a named placement is criterion 1 (chart_evidence); this criterion asks only whether the claim, however anchored, could be false for someone. SCENE-CRAFT DOES NOT EXEMPT A CLAIM: a statement can be vivid, interior, and behaviourally concrete — scoring well on specificity (criterion 2) — and still be universally endorsable. The two axes are orthogonal. Worked example: "${FALSIFIABILITY_DIVERGENCE_EXAMPLE}" reads as a specific interior scene (it PASSES specificity) yet its negation is equally endorsable and it collapses to the banned "you want to be understood" line (it FAILS falsifiability). Score LOW when major claims survive only because they are too universal to be false.
 
 DECISION RULES:
-- pass = true ONLY IF the average of all 9 scores is ≥ 3.75 AND no individual score is below 3.
+- Score all nine criteria above. The final pass/fail is computed outside this prompt: your nine scores are combined with a tenth, deterministic length score (word count vs the section's target band), and pass = true ONLY IF the average of all ten is ≥ 3.75 AND no individual score is below 3. Do NOT score or mention length yourself — just score the nine.
 - If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee. Keep it concise: cover ONLY the criteria that scored below 4, do NOT write a paragraph for every criterion, and stay under roughly 150 words.
 - AUDITABILITY: if falsifiability scores below 3, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is your evidence for the deduction, not a bare integer. When falsifiability is 3 or above, set "falsifiability_inversion" to an empty string.
 - If pass = true, critique should be an empty string.
@@ -153,15 +195,17 @@ export function stripJsonFence(raw: string): string {
   return s
 }
 
+// Validate the nine model-scored criteria from the evaluator's JSON. `length`
+// is not among them — it is computed in code and merged in evaluateSection.
 // Exported for unit testing — pure, no behaviour change.
-export function validateScores(obj: unknown): GateScores | null {
+export function validateScores(obj: unknown): LlmScores | null {
   if (!obj || typeof obj !== 'object') return null
   const o = obj as Record<string, unknown>
-  const result = {} as GateScores
-  for (const key of CRITERIA) {
+  const result = {} as LlmScores
+  for (const key of LLM_CRITERIA) {
     const v = o[key]
     if (typeof v !== 'number' || !Number.isFinite(v) || v < 1 || v > 5) return null
-    result[key as CriterionKey] = v
+    result[key] = v
   }
   return result
 }
@@ -172,7 +216,7 @@ export function validateScores(obj: unknown): GateScores | null {
 // to the first closing brace recovers it even when the rest of the payload is
 // unterminated. Returns null when no complete, valid scores object is present.
 // Exported for unit testing — pure, no behaviour change.
-export function extractScoresFromRaw(raw: string): GateScores | null {
+export function extractScoresFromRaw(raw: string): LlmScores | null {
   const s = stripJsonFence(raw)
   const m = s.match(/"scores"\s*:\s*(\{[^{}]*\})/)
   if (!m) return null
@@ -210,6 +254,19 @@ export interface EvaluateInput {
 export async function evaluateSection({
   generatedText, chartContext, section, planetSection,
 }: EvaluateInput): Promise<GateResult> {
+  // Truncation is a hard, pre-scoring failure: a section that carries the
+  // truncation sentinel or ends mid-sentence is incomplete and must never be
+  // scored, repaired-in-place, or cached. Caught before spending an eval call.
+  if (isTruncated(generatedText)) {
+    return {
+      pass:     false,
+      scores:   null,
+      critique: 'Section is truncated — it carries the truncation sentinel or ends mid-sentence. It must be regenerated in full; truncated output must never be cached or shown as final.',
+      evaluatorErrored: false,
+      truncated: true,
+    }
+  }
+
   const evalUserContent = `SECTION TYPE: ${section} → ${planetSection}
 
 ──────────── CHART CONTEXT THE SECTION WAS GENERATED FROM ────────────
@@ -218,7 +275,7 @@ ${chartContext}
 ──────────── GENERATED SECTION TO EVALUATE ────────────
 ${generatedText}
 
-Score the generated section against the eight criteria and return the JSON object specified in the system prompt.`
+Score the generated section against the criteria and return the JSON object specified in the system prompt.`
 
   try {
     const msg = await getAnthropic().messages.create({
@@ -249,11 +306,18 @@ Score the generated section against the eight criteria and return the JSON objec
     // and emitted first, so recover it directly when the trailing critique
     // truncated the JSON. Failing open here would ship exactly the Barnum-
     // saturated sections the gate exists to catch.
-    const scores = (parsed && validateScores(parsed.scores)) || extractScoresFromRaw(raw)
-    if (!scores) {
+    const llmScores = (parsed && validateScores(parsed.scores)) || extractScoresFromRaw(raw)
+    if (!llmScores) {
       console.error('Reading quality gate: invalid scores object in evaluator output')
-      return { pass: true, scores: null, critique: '', evaluatorErrored: true }
+      return { pass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
     }
+
+    // Merge the deterministic length score against this section's typed band, so
+    // an over-long (or thin) section is caught even when the prose is otherwise
+    // strong. Length feeds MIN_INDIVIDUAL / MIN_PASS_AVERAGE like any criterion.
+    const band       = wordBandFor(section, planetSection)
+    const words      = countWords(generatedText)
+    const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
 
     // Trust the scores over the model's pass field — recompute deterministically.
     const pass = computePassFromScores(scores)
@@ -263,6 +327,14 @@ Score the generated section against the eight criteria and return the JSON objec
     // repair pass still has direction.
     if (!pass && !critique) {
       critique = buildFallbackCritique(scores)
+    }
+
+    // When length is the (or a) failing criterion, make the target explicit in
+    // the critique so the repair pass rewrites to the band rather than guessing.
+    if (!pass && scores.length < MIN_INDIVIDUAL) {
+      const over = words > band.hardMax
+      console.warn(`Reading quality gate: length=${scores.length} — ${words} words for ${section}/${planetSection} (band ${band.fullMin}–${band.fullMax}, hard cap ${band.hardMax})`)
+      critique = `LENGTH FAILURE — the section is ${words} words, ${over ? `over the ${band.hardMax}-word hard cap` : `under the ${band.hardMin}-word floor`} for this section type (target ${band.target}, full band ${band.fullMin}–${band.fullMax}). ${over ? 'Cut padding, repetition, and the cadence tics (PROSE FAILURE MODES) to bring it within band without losing substance.' : 'Develop the required material — more chart worked through — to reach the band.'}\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater
@@ -283,13 +355,14 @@ Score the generated section against the eight criteria and return the JSON objec
       scores,
       critique: pass ? '' : critique,
       evaluatorErrored: false,
+      truncated: false,
     }
   } catch (err) {
     // Never block a user on evaluator failure — fall through to caching the
     // first pass. The prompt's own constraints remain in force; the gate is
     // an additional safety net, not a single point of failure.
     console.error('Reading quality gate evaluator error:', err instanceof Error ? err.message : err)
-    return { pass: true, scores: null, critique: '', evaluatorErrored: true }
+    return { pass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
   }
 }
 
