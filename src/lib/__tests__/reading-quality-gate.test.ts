@@ -9,13 +9,24 @@ import {
   scoreLength,
   isTruncated,
   countAspectsInContext,
+  detectRescuePhrasings,
   evaluateSection,
   TRUNCATION_SENTINEL,
   FALSIFIABILITY_DIVERGENCE_EXAMPLE,
   GateScores,
   LlmScores,
 } from '../reading-quality-gate'
-import { BANNED_BARNUM_PHRASINGS, BANNED_BARNUM_LIST, SHARED_RULES, wordBandFor, scaleBand } from '../prompts'
+import {
+  BANNED_BARNUM_PHRASINGS,
+  BANNED_BARNUM_LIST,
+  BANNED_RESCUE_PHRASINGS,
+  BANNED_RESCUE_LIST,
+  BANNED_HIERARCHY_PHRASINGS,
+  BANNED_HIERARCHY_LIST,
+  SHARED_RULES,
+  wordBandFor,
+  scaleBand,
+} from '../prompts'
 
 // The nine model-scored criteria, all equal to `v`.
 function allLlm(v: number): LlmScores {
@@ -330,6 +341,70 @@ describe('evaluateSection — truncation is a pre-scoring hard failure', () => {
     expect(r.truncated).toBe(true)
     expect(r.pass).toBe(false)
     expect(r.scores).toBeNull()
+  })
+})
+
+describe('detectRescuePhrasings — rescue-clause backstop (ease → hidden strength)', () => {
+  it('flags a curated reassurance frame appended to a strength', () => {
+    const text = 'Venus in Taurus in the 5th gives a sure eye for pleasure, which is a genuine gift.'
+    expect(detectRescuePhrasings(text)).toContain('a genuine gift')
+  })
+
+  it('is case-insensitive', () => {
+    expect(detectRescuePhrasings('This is No Small Thing.')).toContain('no small thing')
+  })
+
+  it('returns every distinct phrase present, in list order', () => {
+    const text = 'A real resource, and tends to be underestimated, no small thing at all.'
+    expect(detectRescuePhrasings(text)).toEqual([
+      'a real resource',
+      'tends to be underestimated',
+      'no small thing',
+    ])
+  })
+
+  it('does not flag a clean, plainly-named strength', () => {
+    const text = 'The Moon trine is what keeps the identity from fragmenting under the Neptune pressure.'
+    expect(detectRescuePhrasings(text)).toEqual([])
+  })
+
+  it('does not flag a bare "goes unnoticed" describing a trine (deliberately omitted)', () => {
+    // The list is curated for precision: a legitimate mechanism description of a
+    // trine's ease must not spuriously hard-fail. The LLM criterion handles the
+    // softer context-dependent case.
+    const text = 'The trine works so easily that it goes unnoticed and stays underdeveloped.'
+    expect(detectRescuePhrasings(text)).toEqual([])
+  })
+})
+
+describe('rescue-clause detection forces a contradiction_handling hard fail', () => {
+  it('a detected phrase drives the aggregate below the pass bar', () => {
+    // Simulate the evaluateSection wiring: any rescue hit clamps
+    // contradiction_handling to MIN_INDIVIDUAL - 1 (= 2), which fails min ≥ 3.
+    const scores = allScores(5)
+    const hits = detectRescuePhrasings('…the Pluto trine, which is rarer than it sounds.')
+    expect(hits.length).toBeGreaterThan(0)
+    scores.contradiction_handling = Math.min(scores.contradiction_handling, 2)
+    expect(computePassFromScores(scores)).toBe(false)
+  })
+})
+
+describe('banned rescue / hierarchy phrasings — shared consts', () => {
+  it('renders the rescue list from the phrasing array', () => {
+    for (const phrase of BANNED_RESCUE_PHRASINGS) {
+      expect(BANNED_RESCUE_LIST).toContain(phrase)
+    }
+  })
+
+  it('renders the hierarchy list from the phrasing array', () => {
+    for (const phrase of BANNED_HIERARCHY_PHRASINGS) {
+      expect(BANNED_HIERARCHY_LIST).toContain(phrase)
+    }
+  })
+
+  it('keeps the rescue and hierarchy bans live in the shared prompt rules', () => {
+    expect(SHARED_RULES).toContain(BANNED_RESCUE_LIST)
+    expect(SHARED_RULES).toContain(BANNED_HIERARCHY_LIST)
   })
 })
 

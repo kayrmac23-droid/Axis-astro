@@ -22,10 +22,26 @@
 // test ONLY (negate each major claim; if the negation is also broadly
 // endorsable, it is Barnum) — it does not re-score chart-anchoring, which stays
 // in `chart_evidence`, so the two are never double-counted.
+//
+// Two of AXIS's three banned rescue moves are enforced here in addition to the
+// prompt: resolution-by-hierarchy (divergence -> depth-ranked systems) is folded
+// into `synthesis`, and the rescue clause (ease -> hidden strength) into
+// `contradiction_handling`, which also owns the compensatory reframe (difficulty
+// -> gift). The rescue clause additionally has a deterministic backstop
+// (`detectRescuePhrasings`): a literal match on a curated reassurance frame forces
+// `contradiction_handling` below the pass bar so the flattery is repaired even
+// when the evaluator's own read missed it.
 
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
-import { BANNED_BARNUM_LIST, wordBandFor, WordBand } from '@/lib/prompts'
+import {
+  BANNED_BARNUM_LIST,
+  BANNED_RESCUE_LIST,
+  BANNED_RESCUE_PHRASINGS,
+  BANNED_HIERARCHY_LIST,
+  wordBandFor,
+  WordBand,
+} from '@/lib/prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
 // stronger model reliably delivers: Haiku is fast but too lenient on the subtle
@@ -151,6 +167,24 @@ export function countAspectsInContext(chartContext: string): number {
   return count
 }
 
+// Deterministic backstop for the rescue-clause move (ease → hidden strength):
+// a trailing value-assertion appended to a placement description that adds no
+// astrological information, only reassurance about the strength's worth. Scans
+// the generated prose for the curated high-precision BANNED_RESCUE_PHRASINGS —
+// every one is a reassurance frame that is almost never a load-bearing mechanism,
+// so a literal (case-insensitive) match is a reliable flag. Returns the matched
+// phrases (deduped, in list order). The LLM `contradiction_handling` criterion
+// catches the softer, context-dependent cases this list deliberately omits.
+// Exported for unit testing — pure, no behaviour change.
+export function detectRescuePhrasings(text: string): string[] {
+  const hay = text.toLowerCase()
+  const hits: string[] = []
+  for (const phrase of BANNED_RESCUE_PHRASINGS) {
+    if (hay.includes(phrase.toLowerCase())) hits.push(phrase)
+  }
+  return hits
+}
+
 // A section is truncated if it carries the truncation sentinel or its prose ends
 // mid-sentence — the final non-whitespace character is not terminal punctuation.
 // Truncated sections hard-fail the gate and must never be cached.
@@ -173,8 +207,8 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context? Generic claims with no chart anchor score low.
 2. specificity — Does the section describe recognisable lived patterns (concrete scenes, behavioural moments) from INSIDE the native's experience, rather than abstract trait labels? Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
-3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes?
-4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault.
+3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes? Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension.
+4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault. Score LOW too for the MIRROR move — the RESCUE CLAUSE on a strength (ease → hidden strength): a plain placement or soft aspect described accurately, then followed by a trailing value-assertion that adds no astrological information, only reassurance about how valuable, rare, or underrated it is. Apply the DELETION TEST: if removing the clause leaves the astrological claim fully intact, the clause is flattery and must be flagged. Phrasings such as ${BANNED_RESCUE_LIST} are paradigm failures. A strength is legitimate ONLY as plain function ("the Pluto trine gives access to transformative experience without a hard aspect's destabilisation") or as a load-bearing mechanism against a named difficulty ("the Moon trine is what keeps the identity from fragmenting under the Neptune pressure") — never as an appended reassurance about its worth.
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
 7. practical_usefulness — Will the reader leave with clearer self-understanding (a recognisable scene, a named pattern they can now see) rather than just aesthetic prose?
@@ -355,6 +389,15 @@ Score the generated section against the criteria and return the JSON object spec
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
 
+    // Deterministic rescue-clause backstop (ease → hidden strength). A literal
+    // match on a curated reassurance frame forces contradiction_handling below
+    // the pass bar, so the section is repaired even when the evaluator's own
+    // read of criterion 4 missed the appended flattery.
+    const rescueHits = detectRescuePhrasings(generatedText)
+    if (rescueHits.length > 0) {
+      scores.contradiction_handling = Math.min(scores.contradiction_handling, MIN_INDIVIDUAL - 1)
+    }
+
     // Trust the scores over the model's pass field — recompute deterministically.
     const pass = computePassFromScores(scores)
     let critique = (parsed && typeof parsed.critique === 'string') ? parsed.critique.trim() : ''
@@ -371,6 +414,14 @@ Score the generated section against the criteria and return the JSON object spec
       const runaway = words > band.hardMax
       console.warn(`Reading quality gate: length=${scores.length} — ${words} words for ${section}/${planetSection} (band ${band.fullMin}–${band.fullMax}, hard cap ${band.hardMax})`)
       critique = `LENGTH FAILURE — the section is ${words} words, ${runaway ? `runaway length far past the ~${band.hardMax}-word ceiling for a chart of this complexity` : `under the ${band.hardMin}-word floor`} (target ${band.target}, full band ${band.fullMin}–${band.fullMax}). ${runaway ? 'This is beyond what even a densely aspected chart earns — cut padding, repetition, and cadence tics (PROSE FAILURE MODES) hard, keeping only substance.' : 'Develop the required material — more chart worked through — to reach the band.'}\n\n${critique}`.trim()
+    }
+
+    // When the rescue-clause backstop fired, name the exact phrasing(s) and the
+    // deletion test in the critique so the repair pass cuts the flattery rather
+    // than guessing which sentence tripped the deduction.
+    if (!pass && rescueHits.length > 0) {
+      console.warn(`Reading quality gate: rescue-clause phrasing(s) detected for ${section}/${planetSection}: ${rescueHits.join('; ')}`)
+      critique = `RESCUE-CLAUSE FAILURE — the section appends value-asserting reassurance to a strength instead of naming it plainly. The following phrasing(s) add no astrological information: ${rescueHits.map(p => `"${p}"`).join(', ')}. Apply the deletion test: if removing the clause leaves the astrological claim intact, cut it. Replace each with either the strength's plain function or the load-bearing mechanism it performs against a named difficulty — never reassurance about how rare, valuable, or underrated it is.\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater
