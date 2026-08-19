@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.9
+// AXIS Production System Prompts v10.10
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -17,6 +17,22 @@
 //   Ephemeris:     VSOP87 (planets) + ELP2000 (Moon) — professional-grade accuracy
 
 // ── SHARED VOICE + KNOWLEDGE BASE ─────────────────────────────────────────────
+
+// Barnum / universal-endorsement phrasings the FALSIFIABILITY rule bans. These
+// land on almost every reader regardless of chart, so they do comfort work, not
+// astrological work. Single source of truth: the prompt below interpolates this
+// list into its banned-as-written line, and the reading quality gate's
+// `falsifiability` criterion imports the same list so the two can never drift.
+export const BANNED_BARNUM_PHRASINGS = [
+  'you feel most like yourself when things are in proportion, when the exchange is mutual',
+  'the sense of self can go with it when the relational field is unclear',
+  'you need both connection and independence',
+  'you feel things deeply',
+  'you want to be understood',
+] as const
+
+// The banned phrasings rendered as a quoted, semicolon-joined inline list.
+export const BANNED_BARNUM_LIST = BANNED_BARNUM_PHRASINGS.map(p => `"${p}"`).join('; ')
 
 export const SHARED_RULES = `
 AXIS METHODOLOGY (apply these facts consistently):
@@ -94,7 +110,7 @@ A constraint is not a wound waiting to be redeemed. The reading must be able to 
 
 FALSIFIABILITY — NO BARNUM CLAIMS — NON-NEGOTIABLE:
 Every psychological claim must be capable of being false for some people. A statement almost any reader would quietly endorse regardless of their chart does no astrological work — only comfort work — and comfort dressed as insight is sycophancy. Test each claim with the inversion: if you reversed it, would the opposite also sound plausibly true of the reader? If the claim excludes no one, it is a Barnum statement and must be cut or anchored.
-- Banned as written: "you feel most like yourself when things are in proportion, when the exchange is mutual"; "the sense of self can go with it when the relational field is unclear"; "you need both connection and independence"; "you feel things deeply"; "you want to be understood". These land on everyone, so they land as flattery, not observation.
+- Banned as written: ${BANNED_BARNUM_LIST}. These land on everyone, so they land as flattery, not observation.
 - The repair is anchoring, not softening: tie the claim to the specific placement that makes it true of THIS chart and would make it wrong for a neighbouring one, and state it sharply enough that a different chart would falsify it. "You need mutuality" is Barnum; "Libra Venus in the 7th makes a lopsided exchange physically intolerable in a way a Scorpio Venus would not register" is a claim that can be wrong — and therefore worth making. If a sentence cannot be anchored to a named chart factor and cannot be false, it is not carrying the reading; remove it.
 - A claim that survives only because it is vague enough to be universally true is the affective equivalent of a horoscope. Precision is what makes an observation falsifiable, and falsifiability is what separates being seen from being soothed.
 
