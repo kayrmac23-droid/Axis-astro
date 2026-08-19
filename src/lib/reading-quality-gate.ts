@@ -110,13 +110,45 @@ export function countWords(text: string): number {
   return t.length === 0 ? 0 : t.split(/\s+/).length
 }
 
-// Score the section's length against its typed band: 5 inside the full band,
-// 3 in the tolerated margin out to the hard edges, 1 (a hard fail) beyond them.
+// Words past the (aspect-scaled) hard ceiling before length ALONE hard-fails a
+// section. Being somewhat over the band costs only partial marks — genuine
+// depth on a densely aspected chart is high-variance and lands here, and true
+// padding is caught by the prose criteria (cadence, repetition), not the word
+// count. Only runaway length beyond this margin is a length hard-fail.
+const LENGTH_RUNAWAY_MARGIN = 250
+
+// Score the section's length against its typed band. The gate hard-fails length
+// only for genuine under-delivery (below the hard floor) or runaway output
+// (far past the ceiling); being a bit outside the band is a partial deduction,
+// because padding — not raw length — is what the prose criteria exist to catch.
+//   5  inside the full band
+//   3  a bit short, or over the band but not yet runaway
+//   1  below the hard floor (thinned/skipped material), or runaway length
 // Exported for unit testing — pure, no behaviour change.
 export function scoreLength(words: number, band: WordBand): number {
   if (words >= band.fullMin && words <= band.fullMax) return 5
-  if (words >= band.hardMin && words <= band.hardMax) return 3
-  return 1
+  if (words < band.hardMin) return 1
+  if (words > band.hardMax + LENGTH_RUNAWAY_MARGIN) return 1
+  return 3
+}
+
+// Count the major aspects the section was built to work through, by reading the
+// "ASPECTS (tightest first):" block the interpretation engine emits into the
+// chart context (bullet lines, terminated by a blank/non-bullet line). Multiple
+// blocks — e.g. Jupiter + Saturn — are summed. Used to scale the length band so
+// a densely aspected chart is allowed the earned length a sparse one is not.
+// Returns 0 when no such block is present (→ base band, unchanged behaviour).
+// Exported for unit testing — pure, no behaviour change.
+export function countAspectsInContext(chartContext: string): number {
+  let count = 0
+  let inBlock = false
+  for (const line of chartContext.split('\n')) {
+    if (line.startsWith('ASPECTS (tightest first):')) { inBlock = true; continue }
+    if (!inBlock) continue
+    if (line.trimStart().startsWith('•')) count++
+    else inBlock = false // blank line or a new header ends the block
+  }
+  return count
 }
 
 // A section is truncated if it carries the truncation sentinel or its prose ends
@@ -315,7 +347,11 @@ Score the generated section against the criteria and return the JSON object spec
     // Merge the deterministic length score against this section's typed band, so
     // an over-long (or thin) section is caught even when the prose is otherwise
     // strong. Length feeds MIN_INDIVIDUAL / MIN_PASS_AVERAGE like any criterion.
-    const band       = wordBandFor(section, planetSection)
+    // The band is scaled to how many major aspects this chart actually gives the
+    // section, so earned depth on a densely aspected chart is not failed as if
+    // it were padding — padding is still caught by the prose criteria and by the
+    // (scaled) ceiling a sparse chart would not get.
+    const band       = wordBandFor(section, planetSection, countAspectsInContext(chartContext))
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
 
@@ -332,9 +368,9 @@ Score the generated section against the criteria and return the JSON object spec
     // When length is the (or a) failing criterion, make the target explicit in
     // the critique so the repair pass rewrites to the band rather than guessing.
     if (!pass && scores.length < MIN_INDIVIDUAL) {
-      const over = words > band.hardMax
+      const runaway = words > band.hardMax
       console.warn(`Reading quality gate: length=${scores.length} — ${words} words for ${section}/${planetSection} (band ${band.fullMin}–${band.fullMax}, hard cap ${band.hardMax})`)
-      critique = `LENGTH FAILURE — the section is ${words} words, ${over ? `over the ${band.hardMax}-word hard cap` : `under the ${band.hardMin}-word floor`} for this section type (target ${band.target}, full band ${band.fullMin}–${band.fullMax}). ${over ? 'Cut padding, repetition, and the cadence tics (PROSE FAILURE MODES) to bring it within band without losing substance.' : 'Develop the required material — more chart worked through — to reach the band.'}\n\n${critique}`.trim()
+      critique = `LENGTH FAILURE — the section is ${words} words, ${runaway ? `runaway length far past the ~${band.hardMax}-word ceiling for a chart of this complexity` : `under the ${band.hardMin}-word floor`} (target ${band.target}, full band ${band.fullMin}–${band.fullMax}). ${runaway ? 'This is beyond what even a densely aspected chart earns — cut padding, repetition, and cadence tics (PROSE FAILURE MODES) hard, keeping only substance.' : 'Develop the required material — more chart worked through — to reach the band.'}\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater

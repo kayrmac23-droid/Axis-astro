@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.11
+// AXIS Production System Prompts v10.12
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -52,13 +52,19 @@ export interface WordBand {
   fullMax: number   // full-marks band upper edge
   hardMin: number   // below this = hard fail (thinned/skipped material)
   hardMax: number   // above this = hard fail (padding/repetition/cadence)
+  // Optional aspect scaling. When set, the band widens with how many major
+  // aspects the section must actually work through, so a densely aspected chart
+  // is allowed the earned length a sparse one is not. Absent on sections whose
+  // length is not aspect-driven (comparative, synastry, closing).
+  aspectBaseline?:  number  // aspect count the base band assumes
+  aspectAllowance?: number  // words added to the ceiling per aspect beyond baseline
 }
 
-const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 } // Mercury, Venus, Mars, Jup/Sat
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400 }
+const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700, aspectBaseline: 2, aspectAllowance: 60 } // Ascendant
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700, aspectBaseline: 2, aspectAllowance: 60 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500, aspectBaseline: 2, aspectAllowance: 60 } // Mercury, Venus, Mars, Jup/Sat
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
 const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
 const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150 } // comparative — larger by design
@@ -85,16 +91,41 @@ export const SECTION_WORD_BANDS: Record<string, WordBand> = {
   'synastry:composite_chart': BAND_SYN_LARGE, 'synastry:integration': BAND_SYN_SMALL, 'synastry:navigation': BAND_SYN_LARGE,
 }
 
+// Widen a band by the section's actual major-aspect count. Each aspect beyond
+// the baseline adds `aspectAllowance` words to the ceiling (and half that to the
+// full-marks floor, since more aspects also means more required material). This
+// is what lets a densely aspected chart run long as EARNED depth while a sparse
+// chart at the same length still reads as padding. A band without aspect scaling
+// (comparative/synastry) is returned unchanged.
+export function scaleBand(band: WordBand, aspectCount: number): WordBand {
+  if (band.aspectAllowance == null || band.aspectBaseline == null) return band
+  const extra = Math.max(0, aspectCount - band.aspectBaseline)
+  if (extra === 0) return band
+  const add = band.aspectAllowance * extra
+  return {
+    ...band,
+    fullMin: band.fullMin + Math.round(add / 2),
+    fullMax: band.fullMax + add,
+    hardMax: band.hardMax + add,
+  }
+}
+
 // Look up the word band for a section, falling back to the permissive default.
-export function wordBandFor(section: string, planetSection: string): WordBand {
-  return SECTION_WORD_BANDS[`${section}:${planetSection}`] ?? DEFAULT_WORD_BAND
+// When aspectCount is given, an aspect-driven section's band is scaled to it.
+export function wordBandFor(section: string, planetSection: string, aspectCount?: number): WordBand {
+  const base = SECTION_WORD_BANDS[`${section}:${planetSection}`] ?? DEFAULT_WORD_BAND
+  return aspectCount == null ? base : scaleBand(base, aspectCount)
 }
 
 // The standard length instruction appended to a section prompt, rendered from
 // the section's band so the prose the model reads and the numbers the gate
 // enforces can never drift apart.
 function lengthClause(band: WordBand): string {
-  return `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}; hard cap ${band.hardMax} words — the ceiling is as real as the floor. Below ${band.fullMin} means required material was thinned or skipped, so go deeper; above ${band.fullMax} means padding, repetition, or cadence has crept in (see PROSE FAILURE MODES), so cut back. A section under ${band.hardMin} or over ${band.hardMax} words fails the quality gate on length outright. Reach the target through substance, never padding.`
+  let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}. Below ${band.hardMin} means required material was thinned or skipped — that fails the quality gate on length, so go deeper. Above ${band.fullMax} costs marks and risks the padding checks (PROSE FAILURE MODES: cadence, repetition), so stay tight; but earned depth is not a length failure — only runaway length far past the range is. Reach the target through substance, never padding.`
+  if (band.aspectAllowance != null) {
+    s += ` These numbers are for a baseline chart of about ${band.aspectBaseline} major aspects; a densely aspected placement legitimately needs more room. The quality gate scales the range UP by how many major aspects this planet actually has, so depth EARNED by working each aspect once — never repetition or padding — will not fail on length even when it runs well past the baseline range. Work every aspect the chart gives you and let the length follow the chart, not a fixed number; length only fails when it is too thin or truly runaway.`
+  }
+  return s
 }
 
 export const SHARED_RULES = `
