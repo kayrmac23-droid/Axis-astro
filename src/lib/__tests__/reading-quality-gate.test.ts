@@ -3,6 +3,8 @@ import {
   computePassFromScores,
   validateScores,
   stripJsonFence,
+  extractScoresFromRaw,
+  buildFallbackCritique,
   FALSIFIABILITY_DIVERGENCE_EXAMPLE,
   GateScores,
 } from '../reading-quality-gate'
@@ -120,6 +122,49 @@ describe('stripJsonFence', () => {
   it('produces JSON.parse-able output for a fenced payload', () => {
     const raw = '```json\n{"scores":{},"pass":true,"critique":""}\n```'
     expect(() => JSON.parse(stripJsonFence(raw))).not.toThrow()
+  })
+})
+
+describe('extractScoresFromRaw — verdict integrity on truncated output', () => {
+  const scoresJson = JSON.stringify(allScores(1))
+
+  it('recovers scores when a long critique truncated the JSON mid-string', () => {
+    // Simulates stop_reason: max_tokens — a complete scores object followed by
+    // an unterminated critique string. JSON.parse on the whole thing throws,
+    // but the scores must still be recoverable so the verdict does not fail open.
+    const truncated = `{"scores": ${scoresJson}, "pass": false, "critique": "1. CHART EVIDENCE: not a single placement is used and the section keeps going`
+    expect(() => JSON.parse(stripJsonFence(truncated))).toThrow()
+    expect(extractScoresFromRaw(truncated)).toEqual(allScores(1))
+  })
+
+  it('recovers scores from a fenced, truncated payload', () => {
+    const truncated = '```json\n{"scores": ' + scoresJson + ', "critique": "unterminated…'
+    expect(extractScoresFromRaw(truncated)).toEqual(allScores(1))
+  })
+
+  it('returns null when no scores object is present', () => {
+    expect(extractScoresFromRaw('{"pass": false, "critique": "no scores here"}')).toBeNull()
+  })
+
+  it('returns null when the recovered scores object is invalid', () => {
+    const bad = '{"scores": {"chart_evidence": 9}, "critique": "…'
+    expect(extractScoresFromRaw(bad)).toBeNull()
+  })
+})
+
+describe('buildFallbackCritique — direction when the critique was lost', () => {
+  it('returns an empty string when every criterion is at or above the pass bar', () => {
+    expect(buildFallbackCritique(allScores(4))).toBe('')
+  })
+
+  it('names each sub-4 criterion with its score', () => {
+    const scores = allScores(4)
+    scores.falsifiability = 1
+    scores.chart_evidence = 2
+    const critique = buildFallbackCritique(scores)
+    expect(critique).toContain('falsifiability (scored 1)')
+    expect(critique).toContain('chart_evidence (scored 2)')
+    expect(critique).not.toContain('specificity')
   })
 })
 

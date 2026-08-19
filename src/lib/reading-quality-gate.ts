@@ -33,7 +33,13 @@ import { BANNED_BARNUM_LIST } from '@/lib/prompts'
 // reframes, under-grounded prose). Sonnet's slower, sharper read is worth the
 // added latency because the gate is the last line before caching.
 const EVAL_MODEL = 'claude-sonnet-4-6'
-const EVAL_MAX_TOKENS = 700
+// Failure-path output is the sizing constraint, not the pass path: a failing
+// section emits scores + a repair critique + the falsifiability_inversion
+// evidence field. The critique is kept concise and failing-criteria-only (see
+// the system prompt), which keeps this comfortably in budget; extractScoresFromRaw
+// is the backstop if a critique still truncates the JSON, so the verdict never
+// fails open regardless.
+const EVAL_MAX_TOKENS = 1200
 const EVAL_TEMPERATURE = 0
 
 const REPAIR_TEMPERATURE = 0.2
@@ -103,7 +109,7 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 
 DECISION RULES:
 - pass = true ONLY IF the average of all 9 scores is ≥ 3.75 AND no individual score is below 3.
-- If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee.
+- If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee. Keep it concise: cover ONLY the criteria that scored below 4, do NOT write a paragraph for every criterion, and stay under roughly 150 words.
 - AUDITABILITY: if falsifiability scores below 3, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is your evidence for the deduction, not a bare integer. When falsifiability is 3 or above, set "falsifiability_inversion" to an empty string.
 - If pass = true, critique should be an empty string.
 
@@ -160,6 +166,32 @@ export function validateScores(obj: unknown): GateScores | null {
   return result
 }
 
+// Salvage the scores object from a raw evaluator response whose trailing
+// critique truncated the JSON (stop_reason: max_tokens). The scores object is
+// small, has no nested objects, and is emitted first, so a non-greedy match up
+// to the first closing brace recovers it even when the rest of the payload is
+// unterminated. Returns null when no complete, valid scores object is present.
+// Exported for unit testing — pure, no behaviour change.
+export function extractScoresFromRaw(raw: string): GateScores | null {
+  const s = stripJsonFence(raw)
+  const m = s.match(/"scores"\s*:\s*(\{[^{}]*\})/)
+  if (!m) return null
+  try {
+    return validateScores(JSON.parse(m[1]))
+  } catch {
+    return null
+  }
+}
+
+// Deterministic critique used only when the model's own critique was lost to
+// truncation. Names the criteria that scored below the pass bar so the repair
+// pass still has direction. Exported for unit testing — pure, no behaviour change.
+export function buildFallbackCritique(scores: GateScores): string {
+  const weak = CRITERIA.filter(k => scores[k] < 4).map(k => `${k} (scored ${scores[k]})`)
+  if (weak.length === 0) return ''
+  return `The section fell short on: ${weak.join(', ')}. Rewrite to raise every one of these: anchor each major claim to a specific chart factor, name the contradictions the section averaged away, cut clichés and universally-endorsable (Barnum) statements, and deepen the psychological and situational detail.`
+}
+
 // Exported for unit testing — pure, no behaviour change.
 export function computePassFromScores(scores: GateScores): boolean {
   const values = CRITERIA.map(k => scores[k])
@@ -198,14 +230,26 @@ Score the generated section against the eight criteria and return the JSON objec
     })
 
     const raw = extractText(msg)
-    const parsed = JSON.parse(stripJsonFence(raw)) as {
+
+    let parsed: {
       scores?:                   unknown
       pass?:                     unknown
       critique?:                 unknown
       falsifiability_inversion?: unknown
+    } | null
+    try {
+      parsed = JSON.parse(stripJsonFence(raw))
+    } catch {
+      // A long critique can hit max_tokens and truncate the JSON mid-string.
+      // Don't fail open on that — the scores are recoverable (see below).
+      parsed = null
     }
 
-    const scores = validateScores(parsed.scores)
+    // Verdict integrity over critique completeness. The scores object is small
+    // and emitted first, so recover it directly when the trailing critique
+    // truncated the JSON. Failing open here would ship exactly the Barnum-
+    // saturated sections the gate exists to catch.
+    const scores = (parsed && validateScores(parsed.scores)) || extractScoresFromRaw(raw)
     if (!scores) {
       console.error('Reading quality gate: invalid scores object in evaluator output')
       return { pass: true, scores: null, critique: '', evaluatorErrored: true }
@@ -213,14 +257,20 @@ Score the generated section against the eight criteria and return the JSON objec
 
     // Trust the scores over the model's pass field — recompute deterministically.
     const pass = computePassFromScores(scores)
-    let critique = typeof parsed.critique === 'string' ? parsed.critique.trim() : ''
+    let critique = (parsed && typeof parsed.critique === 'string') ? parsed.critique.trim() : ''
+    // If the JSON truncated before the critique was captured, synthesise an
+    // actionable one from the criteria that scored below the pass bar so the
+    // repair pass still has direction.
+    if (!pass && !critique) {
+      critique = buildFallbackCritique(scores)
+    }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater
     // must have emitted the constructed claim + negation it deducted on. Surface
     // that reasoning — log it, and prepend it to the critique so the repair pass
     // sees exactly which universally-endorsable claim to anchor or cut, rather
     // than a bare integer.
-    const inversion = typeof parsed.falsifiability_inversion === 'string'
+    const inversion = (parsed && typeof parsed.falsifiability_inversion === 'string')
       ? parsed.falsifiability_inversion.trim()
       : ''
     if (!pass && scores.falsifiability < MIN_INDIVIDUAL && inversion) {
