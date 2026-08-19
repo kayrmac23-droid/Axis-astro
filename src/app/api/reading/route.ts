@@ -9,6 +9,7 @@ import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, checkGlobalDailyBudget } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
 import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
+import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
 export const maxDuration = 60
 
@@ -72,7 +73,7 @@ const SHARED_RULES_BLOCK: Anthropic.TextBlockParam = {
 }
 
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
+  apiKey: getAnthropicKey() ?? undefined
 })
 
 // Parse and validate a BirthData object from unknown user input.
@@ -127,7 +128,7 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
 
 export async function POST(req: NextRequest) {
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!isAnthropicKeyConfigured()) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
     }
 
