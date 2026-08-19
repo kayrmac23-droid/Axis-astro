@@ -8,7 +8,7 @@ import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading 
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, checkGlobalDailyBudget } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
-import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
+import { evaluateSection, repairSection, isTruncated } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
 export const maxDuration = 60
@@ -367,43 +367,52 @@ export async function POST(req: NextRequest) {
               planetSection,
             })
 
-            const elapsedMs = Date.now() - startedAt
-            const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
-
-            if (!gate.pass && gate.critique && haveBudget) {
-              try {
-                const repaired = await repairSection({
-                  originalUserContent: userContent,
-                  systemBlocks,
-                  failedDraft:         firstText,
-                  critique:            gate.critique,
-                  maxTokens,
-                  model:               MODEL,
-                })
-                if (repaired.trim().length > 0) {
-                  // Supersede the streamed draft. The client keeps only the text
-                  // after the last [AXIS_REPAIRED] marker as the final section.
-                  controller.enqueue(encoder.encode('\n\n[AXIS_REPAIRED]\n\n' + repaired))
-                  cacheText = repaired
-                }
-              } catch (repairErr) {
-                // Repair failed — the streamed first pass still stands, but a
-                // known-failed draft is not cached.
-                console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
-                cacheable = false
-              }
-            } else if (!gate.pass && gate.critique && !haveBudget) {
-              // Out of budget for a repair — the streamed first pass stands, but
-              // is not cached so the next request gets a fresh attempt.
+            if (gate.truncated) {
+              // Defence in depth: the model stopped mid-section without a
+              // max_tokens stop_reason. Surface it and never cache it.
+              controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
               cacheable = false
-              console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
+            } else {
+              const elapsedMs = Date.now() - startedAt
+              const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
+
+              if (!gate.pass && gate.critique && haveBudget) {
+                try {
+                  const repaired = await repairSection({
+                    originalUserContent: userContent,
+                    systemBlocks,
+                    failedDraft:         firstText,
+                    critique:            gate.critique,
+                    maxTokens,
+                    model:               MODEL,
+                  })
+                  if (repaired.trim().length > 0) {
+                    // Supersede the streamed draft. The client keeps only the text
+                    // after the last [AXIS_REPAIRED] marker as the final section.
+                    controller.enqueue(encoder.encode('\n\n[AXIS_REPAIRED]\n\n' + repaired))
+                    cacheText = repaired
+                  }
+                } catch (repairErr) {
+                  // Repair failed — the streamed first pass still stands, but a
+                  // known-failed draft is not cached.
+                  console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
+                  cacheable = false
+                }
+              } else if (!gate.pass && gate.critique && !haveBudget) {
+                // Out of budget for a repair — the streamed first pass stands, but
+                // is not cached so the next request gets a fresh attempt.
+                cacheable = false
+                console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
+              }
             }
           }
 
           phase = 'done'
           controller.close()
 
-          if (cacheable && cacheText.trim().length > 0) {
+          // Final guard: never cache truncated text — including a repair pass
+          // that itself hit max_tokens and was superseded into cacheText.
+          if (cacheable && cacheText.trim().length > 0 && !isTruncated(cacheText)) {
             await setCachedReading(cacheKey, cacheText)
           }
         } catch (err) {

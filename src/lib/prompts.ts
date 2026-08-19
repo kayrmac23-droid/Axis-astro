@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.10
+// AXIS Production System Prompts v10.11
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -33,6 +33,69 @@ export const BANNED_BARNUM_PHRASINGS = [
 
 // The banned phrasings rendered as a quoted, semicolon-joined inline list.
 export const BANNED_BARNUM_LIST = BANNED_BARNUM_PHRASINGS.map(p => `"${p}"`).join('; ')
+
+// ── PER-SECTION WORD BUDGETS ──────────────────────────────────────────────────
+// Single source of truth for how long each section should run, shared by the
+// section prompts (which state the band to the model) and the reading quality
+// gate's `length` criterion (which scores the finished section against it).
+//
+// Budgets are TYPED PER SECTION CLASS, not global. A comparative section like
+// The Divergence gets its own, larger budget instead of inheriting a
+// single-placement number — the one-global-target mismatch is what made the Sun
+// over-run while the Divergence truncated. Each band is a floor AND a ceiling:
+// `full` scores full marks, the margin out to `hard` is tolerated-but-penalised,
+// and anything past `hard` fails the gate on length. Keep the prompt wording and
+// these numbers in lockstep; CLAUDE.md documents the table.
+export interface WordBand {
+  target:  number   // the number to aim for
+  fullMin: number   // full-marks band lower edge
+  fullMax: number   // full-marks band upper edge
+  hardMin: number   // below this = hard fail (thinned/skipped material)
+  hardMax: number   // above this = hard fail (padding/repetition/cadence)
+}
+
+const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 } // Mercury, Venus, Mars, Jup/Sat
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
+const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
+const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150 } // comparative — larger by design
+const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 350, fullMin: 280, fullMax:  450, hardMin: 230, hardMax:  550 }
+const BAND_CLOSING:            WordBand = { target: 220, fullMin: 160, fullMax:  320, hardMin: 130, hardMax:  400 }
+const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
+const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
+const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
+
+// Fallback for any section not explicitly typed — permissive so it never
+// spuriously fails on length while still catching gross runaway.
+export const DEFAULT_WORD_BAND: WordBand = { target: 400, fullMin: 250, fullMax: 900, hardMin: 150, hardMax: 1200 }
+
+export const SECTION_WORD_BANDS: Record<string, WordBand> = {
+  'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
+  'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
+  'tropical:jupiter_saturn': BAND_SECONDARY, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
+  'sidereal:lagna': BAND_SIDEREAL_PRIMARY, 'sidereal:sun': BAND_SIDEREAL_PRIMARY, 'sidereal:moon': BAND_SIDEREAL_PRIMARY,
+  'sidereal:mercury': BAND_SIDEREAL_SECONDARY, 'sidereal:venus': BAND_SIDEREAL_SECONDARY, 'sidereal:mars': BAND_SIDEREAL_SECONDARY,
+  'sidereal:jupiter_saturn': BAND_SIDEREAL_SECONDARY, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
+  'synthesis:agree': BAND_CONCORDANCE, 'synthesis:diverge': BAND_DIVERGENCE, 'synthesis:tension': BAND_CENTRAL_TENSION, 'synthesis:closing': BAND_CLOSING,
+  'synastry:luminaries': BAND_SYN_LARGE, 'synastry:venus_mars': BAND_SYN_MED, 'synastry:outer_planets': BAND_SYN_MED,
+  'synastry:composite_chart': BAND_SYN_LARGE, 'synastry:integration': BAND_SYN_SMALL, 'synastry:navigation': BAND_SYN_LARGE,
+}
+
+// Look up the word band for a section, falling back to the permissive default.
+export function wordBandFor(section: string, planetSection: string): WordBand {
+  return SECTION_WORD_BANDS[`${section}:${planetSection}`] ?? DEFAULT_WORD_BAND
+}
+
+// The standard length instruction appended to a section prompt, rendered from
+// the section's band so the prose the model reads and the numbers the gate
+// enforces can never drift apart.
+function lengthClause(band: WordBand): string {
+  return `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}; hard cap ${band.hardMax} words — the ceiling is as real as the floor. Below ${band.fullMin} means required material was thinned or skipped, so go deeper; above ${band.fullMax} means padding, repetition, or cadence has crept in (see PROSE FAILURE MODES), so cut back. A section under ${band.hardMin} or over ${band.hardMax} words fails the quality gate on length outright. Reach the target through substance, never padding.`
+}
 
 export const SHARED_RULES = `
 AXIS METHODOLOGY (apply these facts consistently):
@@ -123,7 +186,7 @@ ANTI-CLICHÉ REQUIREMENT:
 Do not reach for textbook sun-sign archetypes or clichéd sign behaviours. The same sign in different houses produces completely different expressions. Avoid the following overused patterns entirely: any sign "needing the spotlight" based on sign alone, Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold", Gemini "being flaky". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors, name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this Sun sign.
 
 DEPTH REQUIREMENTS:
-Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering, in full: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown; how this person registers and handles being perceived through this planet (their experience of it, not the audience's verdict — see PROSE FAILURE MODES #3); what the person believes about themselves that may not be accurate. The stated word range is a genuine floor for a complete portrait, not a ceiling — a major section that lands short of its lower bound has thinned or skipped required material and must go deeper, not wrap early. Brevity is not a virtue here. But the length must be EARNED through substance, never padding: reach the depth by working through more of the chart — every aspect followed to its specific psychological dynamic, the dispositor chain pursued, the situational scene drawn more precisely, the contradiction between two placements opened and held — and never through the cadence, repetition, or restatement banned in PROSE FAILURE MODES. Thorough AND dense is the target; the failure modes are how a section pads to length, depth is how it earns the same length honestly. If a subsection (the sign, the house, an aspect) is only two or three sentences, it has almost certainly under-delivered — develop it: name the mechanism, the lived behaviour, what it costs, the condition that activates it. None of these planets may be shortened on the assumption it is covered elsewhere; each is interpreted in full here.
+Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering, in full: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown; how this person registers and handles being perceived through this planet (their experience of it, not the audience's verdict — see PROSE FAILURE MODES #3); what the person believes about themselves that may not be accurate. The stated word range is a BAND with a real floor AND a real ceiling — a major section short of its lower bound has thinned or skipped required material and must go deeper, but a section past its upper bound has almost always padded, repeated, or slipped into cadence (see PROSE FAILURE MODES) and must be cut back, not indulged. Brevity for its own sake is not a virtue here, but neither is length: the target is the most complete portrait that fits the band, and the quality gate now scores length and fails a section that runs past its hard cap. But the length must be EARNED through substance, never padding: reach the depth by working through more of the chart — every aspect followed to its specific psychological dynamic, the dispositor chain pursued, the situational scene drawn more precisely, the contradiction between two placements opened and held — and never through the cadence, repetition, or restatement banned in PROSE FAILURE MODES. Thorough AND dense is the target; the failure modes are how a section pads to length, depth is how it earns the same length honestly. If a subsection (the sign, the house, an aspect) is only two or three sentences, it has almost certainly under-delivered — develop it: name the mechanism, the lived behaviour, what it costs, the condition that activates it. None of these planets may be shortened on the assumption it is covered elsewhere; each is interpreted in full here.
 
 Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn, Rahu/Ketu): sufficient to cover sign, house, key aspects, and the specific dynamic this creates — not padded, not abbreviated. Depth comes from specificity, not length. An accurate observation in four sentences is worth more than a generic paragraph.
 
@@ -290,7 +353,7 @@ Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [
 
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement — name the Sun impulse and the Moon's override or confirmation explicitly, reasoning from that evidence rather than pointing to any other section.
 
-This is a full primary portrait. Target 550–750 words and treat the lower bound as a real floor: a Sun section that lands short of ~550 words has thinned or skipped required material — go deeper rather than wrapping early. Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated — a consequence, a cost, or a capacity the preceding paragraphs set up — which may be a real strength this person undervalues, just as readily as something they misread about themselves. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising.`,
+This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated — a consequence, a cost, or a capacity the preceding paragraphs set up — which may be a real strength this person undervalues, just as readily as something they misread about themselves. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
@@ -300,7 +363,7 @@ This is the emotional architecture. Cover: the sign's emotional operating mode a
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-Target 550–750 words and treat the lower bound as a real floor: a Moon section short of ~550 words has thinned or skipped required material — develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated — an emotional gift they overlook in themselves, or something they misread about their own emotional nature — named through the kind of situation in which it actually shows up. Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
+${lengthClause(BAND_MAJOR)} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated — an emotional gift they overlook in themselves, or something they misread about their own emotional nature — named through the kind of situation in which it actually shows up. Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -308,7 +371,7 @@ Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Asce
 
 Cover: what this rising sign produces as outward manner — the first impression this person reliably makes; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign.
 
-This is a full primary portrait. Target 450–650 words and treat the lower bound as a real floor: an Ascendant section short of ~450 words has thinned or skipped required material — develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. The Ascendant is the one section where perception is legitimately the subject — but keep it routed through the native's experience of the gap between how they are read and how they actually feel from the inside (PROSE FAILURE MODES #3), shown through a concrete moment where that gap becomes visible. Do NOT end on a struck aphoristic fragment.`,
+This is a full primary portrait. ${lengthClause(BAND_PRIMARY)} Develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. The Ascendant is the one section where perception is legitimately the subject — but keep it routed through the native's experience of the gap between how they are read and how they actually feel from the inside (PROSE FAILURE MODES #3), shown through a concrete moment where that gap becomes visible. Do NOT end on a struck aphoristic fragment.`,
 
     mercury: `Interpret Mercury.
 
@@ -370,7 +433,7 @@ The Lagna is the body and the incarnational circumstances — the lens through w
 
 If a Pancha Mahapurusha or other significant yoga is listed in the STRUCTURED INTERPRETATION CONTEXT, name it and interpret its meaning. Reference the active dasha period where it speaks to the current chapter of life circumstances.
 
-400+ words.`,
+${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
     sun: `Interpret the Sun in the Sidereal chart.
 
@@ -380,7 +443,7 @@ If the sign shifted from Tropical, open the first paragraph with the shift and w
 
 Name the Nakshatra and the specific psychological quality it adds that the sign alone does not show — use the nakshatra's ruler, deity, and theme from the STRUCTURED INTERPRETATION CONTEXT. Cover dignity status and house placement. Reference the active dasha where it illuminates the current Sun chapter.
 
-400+ words.`,
+${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
     moon: `Interpret the Moon in the Sidereal chart.
 
@@ -390,7 +453,7 @@ Name the Nakshatra, its ruling planet or deity, and the specific psychological q
 
 Cover: the sign's essential emotional orientation; the house as the domain where the soul's instinctive life operates most intensely; the nakshatra's precision; dignity status. Name what this Moon produces in terms of instinctive trust — does it extend benefit of the doubt or guard? — and name what that costs. Reference the dasha where it speaks to the current emotional chapter.
 
-400+ words.`,
+${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
     mercury: `Interpret Mercury in the Sidereal chart.
 
@@ -446,9 +509,19 @@ Write with certainty and weight. These are not approximations. This section must
 
 Start with: ## Where They Part
 
-This is the main event of The Divergence reading, not a midpoint between two readings. Work through the significant sign shifts planet by planet. Use the STRUCTURED INTERPRETATION CONTEXT concordance/divergence map as your starting point. For each major shift: name the specific Tropical placement and what it produces as a psychological pattern; name the specific Sidereal placement and what it produces at the essential level; then name precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside.
+This is the main event of The Divergence reading, not a midpoint between two readings. Do NOT walk every planet in depth — that overruns the section and buries the load-bearing shifts among trivial ones. First RANK the divergences, then treat only the heaviest in depth.
 
-Do not resolve the divergence and do not average the two readings into a compromise — name each divergence exactly and let it stand open. Do not speak in abstractions — name planets, signs, and houses from both systems throughout.`,
+Rank each divergence by two factors, highest weight first:
+(a) Interpretive weight of the body — the luminaries (Sun, Moon) and the angles (Ascendant/Lagna, MC) outrank the personal planets (Mercury, Venus, Mars), which outrank the outer planets (Jupiter, Saturn, Uranus, Neptune, Pluto).
+(b) Structural size of the shift — a divergence that crosses a SIGN boundary or moves a planet into a different HOUSE is load-bearing; one that stays within the same sign is not, however large the raw degree gap. Rank by whether the shift changes the interpretation, never by degrees alone.
+
+Cover the TOP 3–4 divergences by that ranking IN DEPTH: for each, name the specific Tropical placement and what it produces as a psychological pattern; name the specific Sidereal placement and what it produces at the essential level; then name precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside.
+
+Then name the REMAINING divergences in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each pulling the essential picture further from the constructed one." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve.
+
+Do not resolve the divergence and do not average the two readings into a compromise — name each divergence exactly and let it stand open. Do not speak in abstractions — name planets, signs, and houses from both systems throughout.
+
+${lengthClause(BAND_DIVERGENCE)} Depth on the top 3–4 plus one compressed clause for the rest is what keeps the section inside this budget; trying to walk every divergence in depth is what makes it overrun and truncate.`,
 
     tension: `Write the CENTRAL TENSION section of The Divergence reading.
 
