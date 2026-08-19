@@ -13,9 +13,19 @@
 // Threshold: average score ≥ 3.75 / 5 AND no individual criterion below 3.
 // A single weak criterion fails the section regardless of average. Caching
 // only happens after a pass.
+//
+// The rubric has nine criteria. The ninth — `falsifiability` — enforces the
+// prompt's NON-NEGOTIABLE no-Barnum doctrine, which nothing else in the gate
+// scored: a section can be interior-framed and behaviourally concrete (strong
+// `specificity`) and still be saturated with universally-endorsable claims that
+// do comfort work, not astrological work. `falsifiability` scores the inversion
+// test ONLY (negate each major claim; if the negation is also broadly
+// endorsable, it is Barnum) — it does not re-score chart-anchoring, which stays
+// in `chart_evidence`, so the two are never double-counted.
 
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
+import { BANNED_BARNUM_LIST } from '@/lib/prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
 // stronger model reliably delivers: Haiku is fast but too lenient on the subtle
@@ -23,10 +33,19 @@ import { getAnthropicKey } from '@/lib/env'
 // reframes, under-grounded prose). Sonnet's slower, sharper read is worth the
 // added latency because the gate is the last line before caching.
 const EVAL_MODEL = 'claude-sonnet-4-6'
-const EVAL_MAX_TOKENS = 600
+const EVAL_MAX_TOKENS = 700
 const EVAL_TEMPERATURE = 0
 
 const REPAIR_TEMPERATURE = 0.2
+
+// The worked example the falsifiability criterion is calibrated against, and a
+// permanent regression fixture (see reading-quality-gate.test.ts). This claim
+// passes `specificity` — it is a concrete interior scene — yet fails
+// `falsifiability`: its negation is equally endorsable and it collapses to the
+// banned "you want to be understood" line. It exists to prove the two axes are
+// orthogonal, so criterion 9 can never be quietly folded back into specificity.
+export const FALSIFIABILITY_DIVERGENCE_EXAMPLE =
+  'In the middle of an argument you care about, part of you keeps quietly restating your own position — not to win, but because being understood lands as more urgent than being agreed with.'
 
 const CRITERIA = [
   'chart_evidence',
@@ -37,6 +56,7 @@ const CRITERIA = [
   'psychological_depth',
   'practical_usefulness',
   'voice_quality',
+  'falsifiability',
 ] as const
 
 type CriterionKey = typeof CRITERIA[number]
@@ -50,6 +70,7 @@ export interface GateScores {
   psychological_depth:    number
   practical_usefulness:   number
   voice_quality:          number
+  falsifiability:         number
 }
 
 export interface GateResult {
@@ -78,10 +99,12 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
 7. practical_usefulness — Will the reader leave with clearer self-understanding (a recognisable scene, a named pattern they can now see) rather than just aesthetic prose?
 8. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions? Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence.
+9. falsifiability — Apply the INVERSION TEST to each major psychological claim, and ONLY the inversion test. Negate the claim: if the negation would ALSO sound broadly, plausibly true of almost any reader, then the claim excludes no one — it is a Barnum statement doing comfort work, not astrological work — and you deduct. A claim earns its place only if a neighbouring chart could plausibly falsify it. Universal-endorsement phrasings such as ${BANNED_BARNUM_LIST} are the paradigm failures — mirror this list; a section that trades in them scores 2 or below. Do NOT re-score chart-anchoring here — whether a claim is tied to a named placement is criterion 1 (chart_evidence); this criterion asks only whether the claim, however anchored, could be false for someone. SCENE-CRAFT DOES NOT EXEMPT A CLAIM: a statement can be vivid, interior, and behaviourally concrete — scoring well on specificity (criterion 2) — and still be universally endorsable. The two axes are orthogonal. Worked example: "${FALSIFIABILITY_DIVERGENCE_EXAMPLE}" reads as a specific interior scene (it PASSES specificity) yet its negation is equally endorsable and it collapses to the banned "you want to be understood" line (it FAILS falsifiability). Score LOW when major claims survive only because they are too universal to be false.
 
 DECISION RULES:
-- pass = true ONLY IF the average of all 8 scores is ≥ 3.75 AND no individual score is below 3.
+- pass = true ONLY IF the average of all 9 scores is ≥ 3.75 AND no individual score is below 3.
 - If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee.
+- AUDITABILITY: if falsifiability scores below 3, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is your evidence for the deduction, not a bare integer. When falsifiability is 3 or above, set "falsifiability_inversion" to an empty string.
 - If pass = true, critique should be an empty string.
 
 OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
@@ -94,10 +117,12 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
     "anti_cliche": <1-5>,
     "psychological_depth": <1-5>,
     "practical_usefulness": <1-5>,
-    "voice_quality": <1-5>
+    "voice_quality": <1-5>,
+    "falsifiability": <1-5>
   },
   "pass": <true|false>,
-  "critique": "<repair instructions or empty string>"
+  "critique": "<repair instructions or empty string>",
+  "falsifiability_inversion": "<constructed claim + negation when falsifiability < 3, else empty string>"
 }`
 
 function getAnthropic(): Anthropic {
@@ -174,9 +199,10 @@ Score the generated section against the eight criteria and return the JSON objec
 
     const raw = extractText(msg)
     const parsed = JSON.parse(stripJsonFence(raw)) as {
-      scores?:   unknown
-      pass?:     unknown
-      critique?: unknown
+      scores?:                   unknown
+      pass?:                     unknown
+      critique?:                 unknown
+      falsifiability_inversion?: unknown
     }
 
     const scores = validateScores(parsed.scores)
@@ -187,7 +213,20 @@ Score the generated section against the eight criteria and return the JSON objec
 
     // Trust the scores over the model's pass field — recompute deterministically.
     const pass = computePassFromScores(scores)
-    const critique = typeof parsed.critique === 'string' ? parsed.critique.trim() : ''
+    let critique = typeof parsed.critique === 'string' ? parsed.critique.trim() : ''
+
+    // Auditability for the Barnum axis: when falsifiability failed, the rater
+    // must have emitted the constructed claim + negation it deducted on. Surface
+    // that reasoning — log it, and prepend it to the critique so the repair pass
+    // sees exactly which universally-endorsable claim to anchor or cut, rather
+    // than a bare integer.
+    const inversion = typeof parsed.falsifiability_inversion === 'string'
+      ? parsed.falsifiability_inversion.trim()
+      : ''
+    if (!pass && scores.falsifiability < MIN_INDIVIDUAL && inversion) {
+      console.warn(`Reading quality gate: falsifiability=${scores.falsifiability} — Barnum inversion: ${inversion}`)
+      critique = `BARNUM / FALSIFIABILITY FAILURE — the following claim is universally endorsable (its negation reads as equally true) and must be anchored to a named chart factor or cut:\n${inversion}\n\n${critique}`.trim()
+    }
 
     return {
       pass,
