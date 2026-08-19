@@ -6,7 +6,7 @@ import {
   GateScores,
 } from '../reading-quality-gate'
 
-// A full set of scores, all equal to `v`. The gate has 8 criteria.
+// A full set of scores, all equal to `v`. The gate has 9 criteria.
 function allScores(v: number): GateScores {
   return {
     chart_evidence:         v,
@@ -17,6 +17,7 @@ function allScores(v: number): GateScores {
     psychological_depth:    v,
     practical_usefulness:   v,
     voice_quality:          v,
+    falsifiability:         v,
   }
 }
 
@@ -33,20 +34,31 @@ describe('computePassFromScores', () => {
 
   it('fails when a single criterion is below 3 despite a high average', () => {
     const scores = allScores(5)
-    scores.voice_quality = 2 // avg = (7*5 + 2)/8 = 4.625, but min < 3
+    scores.voice_quality = 2 // avg = (8*5 + 2)/9 = 4.667, but min < 3
     expect(computePassFromScores(scores)).toBe(false)
   })
 
-  it('passes at the exact 3.75 average boundary with min ≥ 3', () => {
-    // Six 4s and two 3s → (24 + 6)/8 = 3.75, min 3.
+  it('fails a Barnum-only section — polished everywhere but falsifiability < 3 trips the floor', () => {
+    // Every other axis elite (5), only falsifiability weak (2). avg = (8*5 + 2)/9 = 4.667,
+    // yet min < 3 fails it. This is the whole point of the dedicated axis: a smoothly-
+    // written section built on universally-endorsable claims cannot buy its way past
+    // the falsifiability floor with polish elsewhere.
+    const scores = allScores(5)
+    scores.falsifiability = 2
+    expect(computePassFromScores(scores)).toBe(false)
+  })
+
+  it('passes just above the 3.75 average with min ≥ 3', () => {
+    // 3.75 is unreachable exactly on 9 integer axes (33.75/9); the first passing sum is
+    // 34. Seven 4s and two 3s → (28 + 6)/9 = 3.778, min 3.
     const scores = allScores(4)
     scores.specificity = 3
     scores.anti_cliche = 3
     expect(computePassFromScores(scores)).toBe(true)
   })
 
-  it('fails just below the 3.75 boundary', () => {
-    // Five 4s and three 3s → (20 + 9)/8 = 3.625, min 3.
+  it('fails just below the 3.75 average', () => {
+    // Six 4s and three 3s → (24 + 9)/9 = 3.667, min 3.
     const scores = allScores(4)
     scores.specificity = 3
     scores.anti_cliche = 3
@@ -56,7 +68,7 @@ describe('computePassFromScores', () => {
 })
 
 describe('validateScores', () => {
-  it('returns the scores object when all eight criteria are valid', () => {
+  it('returns the scores object when all nine criteria are valid', () => {
     const valid = allScores(4)
     expect(validateScores(valid)).toEqual(valid)
   })

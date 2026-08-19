@@ -15,6 +15,7 @@
 // only happens after a pass.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { BANNED_BARNUM_PHRASINGS_INLINE } from './prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
 // stronger model reliably delivers: Haiku is fast but too lenient on the subtle
@@ -36,6 +37,7 @@ const CRITERIA = [
   'psychological_depth',
   'practical_usefulness',
   'voice_quality',
+  'falsifiability',
 ] as const
 
 type CriterionKey = typeof CRITERIA[number]
@@ -49,6 +51,7 @@ export interface GateScores {
   psychological_depth:    number
   practical_usefulness:   number
   voice_quality:          number
+  falsifiability:         number
 }
 
 export interface GateResult {
@@ -77,9 +80,10 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
 7. practical_usefulness — Will the reader leave with clearer self-understanding (a recognisable scene, a named pattern they can now see) rather than just aesthetic prose?
 8. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions? Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence.
+9. falsifiability — Is each major claim capable of being FALSE for some readers, or is it a Barnum statement that excludes no one? Apply the INVERSION TEST to every major claim: construct the claim's negation and ask whether that negation would ALSO be broadly endorsable by most readers. If both the claim and its opposite sound plausibly true of almost anyone, the claim excludes no one — it is Barnum and scores LOW. SCENE-CRAFT DOES NOT EXEMPT A CLAIM: a universally-endorsable claim delivered as a vivid, correctly interior first-person scene still fails here — specificity of FRAMING is a different axis from falsifiability of CONTENT, and a Barnum claim dressed as a concrete inner moment is the exact failure this criterion exists to catch. Worked example (the canonical "passes specificity, fails falsifiability" split): "In the middle of an argument you care about, part of you keeps quietly restating your own position — not to win, but because being understood matters more to you than being agreed with." This is correctly framed from inside the native's experience (it would score WELL on specificity), yet its underlying claim — being understood matters more than being agreed with — excludes no one, and its negation is equally endorsable, so it must score LOW here despite reading as a specific interior scene. Banned universal-endorsement phrasings, which score 1–2 wherever their substance appears regardless of dressing: ${BANNED_BARNUM_PHRASINGS_INLINE}. SCOPE — score ONLY endorsability under inversion. Do NOT deduct here for a claim being under-anchored to chart factors: whether a present anchor is adequate belongs to chart_evidence (criterion 1), not to this axis. A claim can be perfectly well-anchored to a placement and STILL fail the inversion test, and that inversion failure is the only fault this criterion scores.
 
 DECISION RULES:
-- pass = true ONLY IF the average of all 8 scores is ≥ 3.75 AND no individual score is below 3.
+- pass = true ONLY IF the average of all 9 scores is ≥ 3.75 AND no individual score is below 3.
 - If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee.
 - If pass = true, critique should be an empty string.
 
@@ -93,7 +97,8 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
     "anti_cliche": <1-5>,
     "psychological_depth": <1-5>,
     "practical_usefulness": <1-5>,
-    "voice_quality": <1-5>
+    "voice_quality": <1-5>,
+    "falsifiability": <1-5>
   },
   "pass": <true|false>,
   "critique": "<repair instructions or empty string>"
