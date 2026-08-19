@@ -15,6 +15,7 @@
 // only happens after a pass.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { getAnthropicKey } from '@/lib/env'
 
 // The semantic doctrine check needs the discriminating judgment that only the
 // stronger model reliably delivers: Haiku is fast but too lenient on the subtle
@@ -100,7 +101,7 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
 }`
 
 function getAnthropic(): Anthropic {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return new Anthropic({ apiKey: getAnthropicKey() ?? undefined })
 }
 
 function extractText(message: Anthropic.Message): string {
