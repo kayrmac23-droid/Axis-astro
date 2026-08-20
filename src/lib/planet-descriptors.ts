@@ -131,7 +131,7 @@ export const SYNASTRY_DESCRIPTORS = {
     keywords: 'the relationship as its own entity · what you create together',
     description: `The composite chart is not the sum of two people — it is a third entity with its own character, drives, and challenges. Its Sun, Moon, and Ascendant describe the identity, emotional life, and outward presentation of the relationship itself. The composite reveals what this pairing naturally moves toward, what it tends to produce in the world, and where its central psychological tension lives.`
   },
-  integration: {
+  central_dynamic: {
     title: 'The Central Dynamic',
     keywords: 'the defining feature · what makes this pairing itself',
     description: `The integration names the single most defining feature of this combination — the observation that makes everything else cohere. It may be a dominant inter-aspect, a pattern repeated across multiple contacts, or a tension between the composite chart and the individual charts. The final observation names what this relationship structurally requires each person to carry or confront.`

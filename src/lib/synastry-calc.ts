@@ -310,7 +310,7 @@ const SECTION_PLANET_GROUPS: Record<string, string[]> = {
   venus_mars:     ['Venus', 'Mars'],
   outer_planets:  ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Mercury', 'Rahu', 'Ketu'],
   composite_chart: [],  // composite section — show all aspects
-  integration:    [],   // show all aspects
+  central_dynamic: [],   // show all aspects
 }
 
 function filterAspectsForSection(aspects: SynastryAspect[], section: string): SynastryAspect[] {

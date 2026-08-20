@@ -197,3 +197,5 @@ an explicit meaning ruling BEFORE it is computed. Absent that ruling, the
 analogue is EXCLUDED, not improvised. Exclusion by ruling is a deliberate state,
 not a missing feature; agents must not "complete" it by inventing the undefined
 object.
+
+VOCABULARY: Synastry closing section identifier is `central_dynamic` (renamed from `integration`, Aug 2026) to comply with the inter-system vocabulary ban.
