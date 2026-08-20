@@ -138,7 +138,7 @@ export const SECTION_WORD_BANDS: Record<string, WordBand> = {
   'sidereal:jupiter_saturn': BAND_SIDEREAL_SECONDARY, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
   'synthesis:agree': BAND_CONCORDANCE, 'synthesis:diverge': BAND_DIVERGENCE, 'synthesis:tension': BAND_CENTRAL_TENSION, 'synthesis:closing': BAND_CLOSING,
   'synastry:luminaries': BAND_SYN_LARGE, 'synastry:venus_mars': BAND_SYN_MED, 'synastry:outer_planets': BAND_SYN_MED,
-  'synastry:composite_chart': BAND_SYN_LARGE, 'synastry:integration': BAND_SYN_SMALL, 'synastry:navigation': BAND_SYN_LARGE,
+  'synastry:composite_chart': BAND_SYN_LARGE, 'synastry:central_dynamic': BAND_SYN_SMALL, 'synastry:navigation': BAND_SYN_LARGE,
 }
 
 // Widen a band by the section's actual major-aspect count. Each aspect beyond
@@ -669,7 +669,7 @@ Name specific composite placements throughout. Do not interpret composite positi
 
 300–400 words.`,
 
-    integration: `Write the closing integration section for this synastry reading.
+    central_dynamic: `Write the closing central-dynamic section for this synastry reading.
 
 Start with: ## The Central Dynamic
 
