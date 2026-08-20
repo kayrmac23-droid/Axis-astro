@@ -494,6 +494,15 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           break
         }
 
+        // Mirror the main streaming loop: convert the truncation sentinel into a
+        // reader-facing note rather than splicing the raw [AXIS_TRUNCATED] marker
+        // into the visible reading.
+        if (fetchedText.includes('[AXIS_TRUNCATED]')) {
+          fetchedText = fetchedText.replace('[AXIS_TRUNCATED]', '').trimEnd()
+          fetchedText += '\n\n[This section reached its generation limit and may be incomplete.]'
+          capture('reading_truncated', { section: sec, planet_section: planetSec })
+        }
+
         success = true
         break
       } catch {
@@ -506,7 +515,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         const text = prev[sec] || ''
         return {
           ...prev,
-          [sec]: text.replace(`[AXIS_LOADING:${planetSec}]`, fetchedText)
+          // Function replacer: fetchedText is model output and may contain `$`
+          // sequences ($&, $1, $$…) that String.replace would otherwise interpret
+          // as replacement patterns and corrupt the inserted prose.
+          [sec]: text.replace(`[AXIS_LOADING:${planetSec}]`, () => fetchedText)
         }
       })
     } else {
