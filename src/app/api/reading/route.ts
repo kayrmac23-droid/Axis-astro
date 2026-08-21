@@ -6,7 +6,7 @@ import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
-import { checkRateLimit, getClientIp, checkGlobalDailyBudget } from '@/lib/route-rate-limiter'
+import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
 import { evaluateSection, repairSection, isTruncated } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
@@ -249,7 +249,7 @@ export async function POST(req: NextRequest) {
 
     // ── Global daily budget guard (only uncached, non-rate-limited requests reach here) ──
     // Hard cap on AI-backed reading calls per day across all instances/IPs.
-    const budget = await checkGlobalDailyBudget()
+    const budget = await readGlobalDailyBudget()
     if (!budget.allowed) {
       console.error(`[AXIS] Daily reading call cap reached: used ${budget.used} of ${budget.cap}`)
       return NextResponse.json(
@@ -324,6 +324,10 @@ export async function POST(req: NextRequest) {
         // mid-stream — it would corrupt the prose). 'gating' during the eval /
         // repair gap, where a boundary-only keep-alive space is harmless.
         let phase: 'streaming' | 'gating' | 'done' = 'streaming'
+        // Count the Sonnet calls this request actually makes so the global daily
+        // budget records real model spend, not one-per-request. Recorded once in
+        // the finally path regardless of pass/fail/repair outcome.
+        let modelCalls = 0
         const keepAlive = setInterval(() => {
           if (phase === 'gating') {
             try { controller.enqueue(encoder.encode(' ')) } catch { /* closed */ }
@@ -348,6 +352,7 @@ export async function POST(req: NextRequest) {
             }
           }
           const firstMessage = await stream.finalMessage()
+          modelCalls = 1  // first-pass generation completed
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
           phase = 'gating'
@@ -366,6 +371,7 @@ export async function POST(req: NextRequest) {
               section,
               planetSection,
             })
+            modelCalls += 1  // evaluateSection made a gate call
 
             if (gate.truncated) {
               // Defence in depth: the model stopped mid-section without a
@@ -377,6 +383,7 @@ export async function POST(req: NextRequest) {
               const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
 
               if (!gate.pass && gate.critique && haveBudget) {
+                modelCalls += 1  // a repair call is issued (counted even if it throws)
                 try {
                   const repaired = await repairSection({
                     originalUserContent: userContent,
@@ -424,6 +431,12 @@ export async function POST(req: NextRequest) {
           console.error('Reading generation error:', err instanceof Error ? err.message : err)
         } finally {
           clearInterval(keepAlive)
+          // Record the true model-call count for this request against the global
+          // daily budget. Best-effort: recordModelCalls never throws, but guard
+          // anyway so a rejection can never surface to the client.
+          try {
+            await recordModelCalls(modelCalls)
+          } catch { /* spend recording is best-effort */ }
         }
       }
     })

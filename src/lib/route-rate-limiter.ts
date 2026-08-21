@@ -91,19 +91,54 @@ export function getClientIp(req: NextRequest): string {
 const DEFAULT_DAILY_CAP = 2000
 const BUDGET_TTL_SECS    = 48 * 60 * 60  // 48h — comfortably outlives one day
 
-export async function checkGlobalDailyBudget(): Promise<{ allowed: boolean; used: number; cap: number }> {
+// Atomic INCRBY + ensure-TTL Lua script for the daily budget key. Mirrors the
+// TTL-repair guard in _RL_SCRIPT but adds an explicit amount (ARGV[1]) so a
+// single request can record the true number of model calls it made.
+const _BUDGET_INCRBY_SCRIPT = `
+local count = redis.call('INCRBY', KEYS[1], ARGV[1])
+if redis.call('TTL', KEYS[1]) == -1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[2])
+end
+return count
+`
+
+function budgetKey(): string {
+  const env  = process.env.VERCEL_ENV ?? 'local'
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
+  return `axis:budget:${env}:${date}`
+}
+
+// Read-only preflight: reports the current daily count without incrementing.
+// `allowed` uses `used < cap` (strict) because the caller is about to add calls;
+// fails open exactly like the recorder — a Redis outage never takes readings
+// down globally.
+export async function readGlobalDailyBudget(): Promise<{ allowed: boolean; used: number; cap: number }> {
   const cap = Number(process.env.AXIS_DAILY_READING_CALL_CAP ?? DEFAULT_DAILY_CAP)
 
   const redis = getRedis()
   if (!redis) return { allowed: true, used: 0, cap }
 
   try {
-    const env  = process.env.VERCEL_ENV ?? 'local'
-    const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
-    const key  = `axis:budget:${env}:${date}`
-    const used = await redis.eval(_RL_SCRIPT, [key], [String(BUDGET_TTL_SECS)]) as number
-    return { allowed: used <= cap, used, cap }
+    const raw  = await redis.get<string | number | null>(budgetKey())
+    const used = Number(raw ?? 0)
+    return { allowed: used < cap, used, cap }
   } catch {
     return { allowed: true, used: 0, cap }
+  }
+}
+
+// Explicit recorder: increments the daily budget key by the actual number of
+// model calls a request made. Fails silently — a spend-recording failure must
+// never break a reading, so no error surfaces into the request path.
+export async function recordModelCalls(n: number): Promise<void> {
+  if (!Number.isFinite(n) || n <= 0) return
+
+  const redis = getRedis()
+  if (!redis) return
+
+  try {
+    await redis.eval(_BUDGET_INCRBY_SCRIPT, [budgetKey()], [String(n), String(BUDGET_TTL_SECS)])
+  } catch {
+    // Spend recording is best-effort; never throw into the request path.
   }
 }
