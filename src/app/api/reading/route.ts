@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, BANNED_HIERARCHY_PHRASINGS, BANNED_RESCUE_PHRASINGS } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
@@ -119,6 +119,20 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
   return validLon !== undefined && validSource
     ? { plutoLongitude: validLon, plutoSource: validSource }
     : undefined
+}
+
+// Deterministic doctrine scan. NOT a semantic gate - it only catches the
+// high-precision, unambiguous banned phrasings that have no legitimate use
+// in a reading. Returns every phrase found (lowercased substring match).
+// The semantic gate (soft synthesis, THE LAW claim-level test) is the
+// separate async redesign; this is the deterministic bridge only.
+function detectBannedPhrasings(text: string): string[] {
+  const hay = text.toLowerCase()
+  const hits: string[] = []
+  for (const phrase of [...BANNED_HIERARCHY_PHRASINGS, ...BANNED_RESCUE_PHRASINGS]) {
+    if (hay.includes(phrase.toLowerCase())) hits.push(phrase)
+  }
+  return hits
 }
 
 export async function POST(req: NextRequest) {
@@ -366,7 +380,18 @@ export async function POST(req: NextRequest) {
           controller.close()
 
           // Final guard: never cache empty or truncated text.
-          if (cacheable && cacheText.trim().length > 0 && !isTruncated(cacheText)) {
+          const bannedHits = detectBannedPhrasings(cacheText)
+          if (bannedHits.length > 0) {
+            console.warn(
+              `[AXIS_DOCTRINE_UNCACHED] section=${planetSection} hits=${bannedHits.join('|')}`
+            )
+          }
+          if (
+            cacheable &&
+            cacheText.trim().length > 0 &&
+            !isTruncated(cacheText) &&
+            bannedHits.length === 0
+          ) {
             await setCachedReading(cacheKey, cacheText)
           }
         } catch (err) {
