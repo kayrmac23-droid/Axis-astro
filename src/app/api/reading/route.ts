@@ -8,7 +8,7 @@ import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading 
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
-import { evaluateSection, repairSection, isTruncated } from '@/lib/reading-quality-gate'
+import { isTruncated } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
 export const maxDuration = 60
@@ -50,11 +50,6 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
 const READING_RATE_LIMIT = { max: Number(process.env.AXIS_READING_RATE_LIMIT_MAX ?? 20), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
-
-// ── Quality-gate budget ────────────────────────────────────────────────────────
-// Wall-clock budget after first pass + eval beyond which we skip the repair pass
-// to stay under maxDuration. Tunable; conservative for the 60s ceiling.
-const REPAIR_SKIP_THRESHOLD_MS = 42_000
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -307,26 +302,28 @@ export async function POST(req: NextRequest) {
       { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
     ]
 
-    // ── Quality-gated generation pipeline ──────────────────────────────────────
+    // ── First-pass generation pipeline ─────────────────────────────────────────
     // The first pass streams to the client token-by-token, so prose starts
-    // rendering within ~1s instead of after the whole section (plus gate, plus
-    // repair) has finished buffering. The quality gate still runs after the
-    // stream: if the draft passes it is cached as-is; if it fails and there is
-    // wall-clock budget, a repair pass is streamed behind an [AXIS_REPAIRED]
-    // marker and the client swaps the visible draft for it. Only validated
-    // (passing or repaired) text is ever cached.
+    // rendering within ~1s. The stream now flows straight to close as soon as
+    // first-pass generation finishes: the eval + repair passes have been taken
+    // OFF the synchronous request path (each was a full Sonnet call, and
+    // generation + eval alone breached the 60s ceiling on heavy sections). The
+    // gate/repair machinery is retained in reading-quality-gate.ts for a later
+    // async/sampled redesign. Non-truncated first-pass text is cached directly;
+    // truncated text ships with the marker and is never cached.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
-        const startedAt = Date.now()
         // 'streaming' while first-pass tokens are flowing (never inject a ping
-        // mid-stream — it would corrupt the prose). 'gating' during the eval /
-        // repair gap, where a boundary-only keep-alive space is harmless.
+        // mid-stream — it would corrupt the prose). The 'gating' phase is no
+        // longer entered: the stream now closes as soon as first-pass generation
+        // finishes, so the keep-alive branch below is unreachable. The interval
+        // is left in place (harmless) rather than removed.
         let phase: 'streaming' | 'gating' | 'done' = 'streaming'
-        // Count the Sonnet calls this request actually makes so the global daily
-        // budget records real model spend, not one-per-request. Recorded once in
-        // the finally path regardless of pass/fail/repair outcome.
+        // The eval + repair passes are off the request path, so an uncached
+        // section now makes exactly one Sonnet call (first-pass generation).
+        // Recorded once in the finally path regardless of outcome.
         let modelCalls = 0
         const keepAlive = setInterval(() => {
           if (phase === 'gating') {
@@ -335,7 +332,7 @@ export async function POST(req: NextRequest) {
         }, 5000)
 
         try {
-          // 1. First pass — streamed live.
+          // First pass — streamed live. This is the only model call on this path.
           const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
@@ -352,73 +349,23 @@ export async function POST(req: NextRequest) {
             }
           }
           const firstMessage = await stream.finalMessage()
-          modelCalls = 1  // first-pass generation completed
+          modelCalls = 1  // first-pass generation completed — the only model call
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
-          phase = 'gating'
-
-          // 2. Gate + optional repair. Truncated drafts are never gated — they
-          //    ship with the truncation marker so the client can surface it.
-          let cacheText = firstText
-          let cacheable = !truncated && firstText.trim().length > 0
+          // No gate, no repair on the request path. Truncated drafts ship with
+          // the truncation marker and are never cached; a non-empty, non-truncated
+          // first pass is cached directly and the stream closes.
+          const cacheText = firstText
+          const cacheable = !truncated && firstText.trim().length > 0
 
           if (truncated) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
-          } else if (firstText.trim().length > 0) {
-            const gate = await evaluateSection({
-              generatedText: firstText,
-              chartContext:  userContent,
-              section,
-              planetSection,
-            })
-            modelCalls += 1  // evaluateSection made a gate call
-
-            if (gate.truncated) {
-              // Defence in depth: the model stopped mid-section without a
-              // max_tokens stop_reason. Surface it and never cache it.
-              controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
-              cacheable = false
-            } else {
-              const elapsedMs = Date.now() - startedAt
-              const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
-
-              if (!gate.pass && gate.critique && haveBudget) {
-                modelCalls += 1  // a repair call is issued (counted even if it throws)
-                try {
-                  const repaired = await repairSection({
-                    originalUserContent: userContent,
-                    systemBlocks,
-                    failedDraft:         firstText,
-                    critique:            gate.critique,
-                    maxTokens,
-                    model:               MODEL,
-                  })
-                  if (repaired.trim().length > 0) {
-                    // Supersede the streamed draft. The client keeps only the text
-                    // after the last [AXIS_REPAIRED] marker as the final section.
-                    controller.enqueue(encoder.encode('\n\n[AXIS_REPAIRED]\n\n' + repaired))
-                    cacheText = repaired
-                  }
-                } catch (repairErr) {
-                  // Repair failed — the streamed first pass still stands, but a
-                  // known-failed draft is not cached.
-                  console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
-                  cacheable = false
-                }
-              } else if (!gate.pass && gate.critique && !haveBudget) {
-                // Out of budget for a repair — the streamed first pass stands, but
-                // is not cached so the next request gets a fresh attempt.
-                cacheable = false
-                console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
-              }
-            }
           }
 
           phase = 'done'
           controller.close()
 
-          // Final guard: never cache truncated text — including a repair pass
-          // that itself hit max_tokens and was superseded into cacheText.
+          // Final guard: never cache empty or truncated text.
           if (cacheable && cacheText.trim().length > 0 && !isTruncated(cacheText)) {
             await setCachedReading(cacheKey, cacheText)
           }
