@@ -77,6 +77,16 @@ export async function checkRateLimit(
   }
 }
 
+// Resolve the client IP for per-IP rate limiting.
+//
+// SECURITY ASSUMPTION: this trusts the first `x-forwarded-for` entry, which is
+// only safe when the app runs behind a trusted proxy that SETS this header and
+// strips any client-supplied value — which is the case on Vercel (the production
+// target). If AXIS is ever deployed behind a proxy that forwards a client-supplied
+// XFF, an attacker could spoof it to get a fresh rate-limit bucket per request and
+// defeat the limiter. Revisit this (e.g. use the platform's connecting-IP header)
+// before any such deployment. The `'direct'` fallback buckets header-less requests
+// together, which is acceptable.
 export function getClientIp(req: NextRequest): string {
   return req.headers.get('x-forwarded-for')?.split(',')[0].trim()
            ?? req.headers.get('x-real-ip')

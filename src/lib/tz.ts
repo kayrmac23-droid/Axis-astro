@@ -23,27 +23,14 @@ export function birthToUtcMs(
   return d.getTime() - tzOffsetHours * 3_600_000
 }
 
-// Derive the UTC offset (hours) for an IANA timezone name at a specific
-// wall-clock moment. The calendar values are treated as local time in the
-// target timezone; the returned offset is what was active at that moment
-// (DST-aware). Returns null for unrecognised timezone identifiers.
-export function tzNameToOffset(
-  tzName: string,
-  year: number, month: number, day: number,
-  hour: number, minute: number,
-): number | null {
+// The UTC offset (hours) an IANA timezone had at a specific UTC instant.
+// Returns null for unrecognised timezone identifiers.
+function offsetAtInstant(tzName: string, utcMs: number): number | null {
   try {
-    // Pad the year to 4 digits: `new Date('50-06-15T…')` is not valid ISO 8601 and
-    // parses to Invalid Date, which would make formatToParts throw and this function
-    // silently return null for every year before 1000 CE — despite the API accepting
-    // years 1–9999. Padding keeps early-CE births DST/LMT-accurate (the IANA database
-    // returns the historical local-mean-time offset for pre-standard-time dates).
-    const isoStr = `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}:00Z`
-    const date = new Date(isoStr)
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: tzName,
       timeZoneName: 'longOffset',
-    }).formatToParts(date)
+    }).formatToParts(new Date(utcMs))
     const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value ?? ''
     if (offsetStr === 'GMT') return 0
     const m = offsetStr.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/)
@@ -55,4 +42,43 @@ export function tzNameToOffset(
     }
   } catch { /* unknown timezone identifier */ }
   return null
+}
+
+// Derive the UTC offset (hours) for an IANA timezone name at a specific
+// wall-clock moment. The calendar values are treated as local time in the
+// target timezone; the returned offset is what was active at that moment
+// (DST-aware). Returns null for unrecognised timezone identifiers.
+export function tzNameToOffset(
+  tzName: string,
+  year: number, month: number, day: number,
+  hour: number, minute: number,
+): number | null {
+  // The wall-clock values are LOCAL time, but we only have UTC-based APIs. Treat
+  // the wall clock as if it were UTC to get a first-guess instant, look up the
+  // offset there, then refine: the true instant is (wall − offset), and querying
+  // the zone at that refined instant returns the offset actually in force. Without
+  // this refinement a birth in the hours just after a DST spring-forward gets the
+  // pre-transition offset (off by an hour), which shifts the Ascendant ~15°.
+  //
+  // Pad the year to 4 digits: `Date.UTC` is fine for the ms math, but building the
+  // instant via setUTCFullYear avoids the legacy two-digit-year remap so early-CE
+  // births (the API permits years 1–9999) stay DST/LMT-accurate — the IANA database
+  // returns the historical local-mean-time offset for pre-standard-time dates.
+  const base = new Date(0)
+  base.setUTCFullYear(year, month - 1, day)
+  base.setUTCHours(hour, minute, 0, 0)
+  const wallAsUtcMs = base.getTime()
+
+  // First guess: offset at the wall clock read as UTC.
+  let offset = offsetAtInstant(tzName, wallAsUtcMs)
+  if (offset === null) return null
+  // Two refinement passes converge for all standard DST rules (a single hop can
+  // land on the wrong side of a same-day transition; the second settles it).
+  for (let i = 0; i < 2; i++) {
+    const refined = offsetAtInstant(tzName, wallAsUtcMs - offset * 3_600_000)
+    if (refined === null) return offset
+    if (refined === offset) break
+    offset = refined
+  }
+  return offset
 }

@@ -1,9 +1,19 @@
 // Reading Quality Gate
 //
-// Second-pass evaluator that runs every generated section against AXIS's
-// elite-reading criteria BEFORE the result is cached or returned to the user.
-// If the section fails, it is regenerated once with the evaluator's critique
-// included as repair instructions. The repaired text is what gets cached.
+// ⚠ NOT ON THE REQUEST PATH. As of the streaming redesign, /api/reading does NOT
+// call evaluateSection / repairSection: each was a full Sonnet call, and
+// generation + eval breached the 60s route ceiling on heavy sections, so the
+// eval + repair passes were taken off the synchronous path. The route imports
+// only isTruncated from this module; the live cache-write guards are isTruncated
+// plus the deterministic banned-phrase scan in the route itself. This full
+// evaluator is RETAINED for a future async/sampled redesign (evaluate-and-recache
+// after the response ships) and is exercised only by its unit tests today. Do not
+// assume readings users see have passed the rubric below.
+//
+// When it IS run: a second-pass evaluator that scores a generated section against
+// AXIS's elite-reading criteria and, on failure, regenerates it once with the
+// evaluator's critique as repair instructions; the repaired text is what gets
+// cached.
 //
 // This is the load-bearing check the prompt alone cannot enforce: model output
 // is non-deterministic, and a strong prompt can still occasionally produce a

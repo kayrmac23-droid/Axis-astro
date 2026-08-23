@@ -83,4 +83,25 @@ describe('tzNameToOffset', () => {
     expect(off).toBeGreaterThan(5)
     expect(off).toBeLessThan(6)
   })
+
+  // Regression: the wall clock is LOCAL time, not UTC. The old implementation read
+  // it as UTC and queried the zone at that instant, so a birth in the hours just
+  // after a DST spring-forward got the PRE-transition offset (off by an hour),
+  // shifting the Ascendant ~15°. The offset must be resolved at the true instant.
+  describe('DST-transition edge (America/New_York, 2023-03-12 02:00→03:00)', () => {
+    it('returns EST (-5) just before the spring-forward', () => {
+      expect(tzNameToOffset('America/New_York', 2023, 3, 12, 1, 30)).toBe(-5)
+    })
+
+    it('returns EDT (-4) just after the spring-forward', () => {
+      // 03:30 and 05:30 local are both EDT; the old code returned -5 for both.
+      expect(tzNameToOffset('America/New_York', 2023, 3, 12, 3, 30)).toBe(-4)
+      expect(tzNameToOffset('America/New_York', 2023, 3, 12, 5, 30)).toBe(-4)
+    })
+
+    it('returns EST (-5) just before the autumn fall-back', () => {
+      // 2023-11-05 02:00 EDT → 01:00 EST. 00:30 local is still EDT (-4).
+      expect(tzNameToOffset('America/New_York', 2023, 11, 5, 0, 30)).toBe(-4)
+    })
+  })
 })
