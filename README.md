@@ -153,9 +153,9 @@ src/
     ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
     ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
     ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v10.3; SHARED_RULES prompt-cached)
+    ├── prompts.ts               — system prompts (v10.15; SHARED_RULES prompt-cached)
     ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
-    ├── reading-quality-gate.ts  — post-generation evaluator + single repair pass for readings
+    ├── reading-quality-gate.ts  — post-generation evaluator (retained off the request path; exports isTruncated to the live route)
     ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
     ├── cusps.ts                 — astrological cusp data and detection
     ├── jpl-horizons.ts          — JPL Horizons DE440 Pluto fetch with module-level cache
@@ -179,12 +179,12 @@ The evidence-weighted approach (rather than categorical rules) means Claude rece
 
 Four reading types, each composed of sequential per-planet streaming requests to the Claude API. Per-section retry (2 attempts) prevents a single failed request from blocking the rest of the reading. Failed sections produce a visible placeholder so the readable portions remain intact.
 
-Each reading passes through a server-side **quality gate** (`lib/reading-quality-gate.ts`): the first-pass generation is evaluated, and if it fails the rubric a single repair pass is run before the text reaches the client — within a wall-clock budget so the route stays under its `maxDuration`. Only validated (non-truncated, gate-passing) output is written to the cache.
+The LLM **quality gate** (`lib/reading-quality-gate.ts`) is **not on the request path.** The evaluate + repair passes were taken off the synchronous `/api/reading` route to stay under the 60 s `maxDuration` ceiling; the module is retained (and exercised by its unit tests) for a future async/sampled redesign. On the live route, `/api/reading` imports only `isTruncated` from it, and caching is guarded deterministically: output is written to the cache only when it is non-empty, non-truncated (`isTruncated`), and free of banned phrasings (`detectBannedPhrasings`). Truncated text never reaches the cache or ships as final.
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects, Rahu/Ketu.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
-3. **The Divergence** (legacy internal reading-type identifier: `synthesis`, kept for cache-key stability) — Concordance, Where They Part, Central Tension, Living the Divergence. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
-4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. For the composite-focused sections (`composite_chart`, `integration`), an elite chart block for the composite — dignity labels, chart ruler, and direction — is appended to the prompt context alongside the position table. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
+3. **The Divergence** (legacy internal reading-type identifier: `synthesis`, kept for cache-key stability) — Where the Systems Agree, Where They Part, The Central Tension, Living the Divergence. Its context block includes thematic concordance/divergence analysis: element continuity, dignity direction concordance, dispositor chain convergence, and house domain analysis. The reading names where the systems agree and where they pull apart; it never averages the two charts into one answer.
+4. **Synastry** — inter-chart compatibility reading for two people. `synastry-calc.ts` computes inter-aspects (orb-limited, 5 major aspects) and a midpoint composite chart from both natal charts. For the composite-focused sections (`composite_chart`, `central_dynamic`), an elite chart block for the composite — dignity labels, chart ruler, and direction — is appended to the prompt context alongside the position table. The `/api/synastry` route handles calculation; `SynastryReadingPanel` streams the interpretation.
 
 ---
 
