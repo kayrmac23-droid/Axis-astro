@@ -13,7 +13,33 @@ a rescue job.
 
 ---
 
-## Summary of findings
+## Resolution status
+
+**All findings addressed** in the follow-up commit(s) on this branch. After the fixes:
+**148 unit tests pass (+19), ESLint clean, `npm run build` green on Next 16.3.2,
+`npm audit` reports 0 vulnerabilities.** Each row below carries its status; the
+detailed sections are the original assessment and remain as the rationale.
+
+| # | Severity | Area | Finding | Status |
+|---|----------|------|---------|--------|
+| 1 | **High** | Dependencies | Known-vulnerable deps (Next.js, postcss, sharp, nanoid) — 6 high advisories | ✅ Fixed — `npm audit fix`, next→16.3.2, 0 vulns |
+| 2 | **Medium** | Correctness | DST-edge timezone offset is wrong by 1h for births just after a transition | ✅ Fixed — iterative offset resolution + regression tests |
+| 3 | **Medium** | Architecture / Docs | Reading quality gate is dead code at runtime, but docs claim it runs | ✅ Docs corrected — CLAUDE.md + both module headers now state it's off the request path. Product decision (re-enable / async / retire) left to the team (see note) |
+| 4 | **Low** | Correctness | Julian Day uses proleptic Gregorian for all dates (wrong pre-1582) | ✅ Fixed — Julian-calendar branch for pre-1582 + tests |
+| 5 | **Low** | Docs | Synastry section-name drift: docs say `integration`, code uses `central_dynamic` | ✅ Fixed — CLAUDE.md corrected |
+| 6 | **Low** | Code quality | Dead keep-alive / `gating` scaffolding in the reading route | ✅ Fixed — removed |
+| 7 | **Low** | Housekeeping | `attached_assets/` — 18 stale bootstrap duplicate files committed | ✅ Fixed — directory deleted |
+| 8 | **Low** | Tests | No DST regression test; no route-level validation tests | ✅ Fixed — DST + Julian regression tests, route-validation test file added |
+| 9 | **Info** | Security | `getClientIp` trusts `x-forwarded-for` (fine on Vercel; document the assumption) | ✅ Fixed — trusted-proxy assumption documented in code |
+| 10 | **Info** | Security | No auth/CSRF on the paid `/api/reading`; cost control rests on rate-limit + daily cap | ◻︎ Acknowledged — accepted design for a public tool; no change (see note) |
+
+> **Note on #3 and #10 (deliberately not changed):** Re-enabling the quality gate on
+> the request path was intentionally removed for latency (it breached the 60s ceiling),
+> so this pass corrected the *documentation* rather than re-adding it — whether to run
+> it async/sampled or formally retire it is a product call. #10 is an accepted design
+> tradeoff (rate-limit + daily cap + kill switch); no code change was warranted.
+
+## Summary of findings (original assessment)
 
 | # | Severity | Area | Finding |
 |---|----------|------|---------|

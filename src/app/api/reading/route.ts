@@ -329,21 +329,11 @@ export async function POST(req: NextRequest) {
 
     const readable = new ReadableStream({
       async start(controller) {
-        // 'streaming' while first-pass tokens are flowing (never inject a ping
-        // mid-stream — it would corrupt the prose). The 'gating' phase is no
-        // longer entered: the stream now closes as soon as first-pass generation
-        // finishes, so the keep-alive branch below is unreachable. The interval
-        // is left in place (harmless) rather than removed.
-        let phase: 'streaming' | 'gating' | 'done' = 'streaming'
         // The eval + repair passes are off the request path, so an uncached
-        // section now makes exactly one Sonnet call (first-pass generation).
-        // Recorded once in the finally path regardless of outcome.
+        // section now makes exactly one Sonnet call (first-pass generation), which
+        // streams straight through to close. Recorded once in the finally path
+        // regardless of outcome.
         let modelCalls = 0
-        const keepAlive = setInterval(() => {
-          if (phase === 'gating') {
-            try { controller.enqueue(encoder.encode(' ')) } catch { /* closed */ }
-          }
-        }, 5000)
 
         try {
           // First pass — streamed live. This is the only model call on this path.
@@ -376,7 +366,6 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
 
-          phase = 'done'
           controller.close()
 
           // Final guard: never cache empty or truncated text.
@@ -395,14 +384,12 @@ export async function POST(req: NextRequest) {
             await setCachedReading(cacheKey, cacheText)
           }
         } catch (err) {
-          phase = 'done'
           try {
             controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()
           } catch { /* already closed */ }
           console.error('Reading generation error:', err instanceof Error ? err.message : err)
         } finally {
-          clearInterval(keepAlive)
           // Record the true model-call count for this request against the global
           // daily budget. Best-effort: recordModelCalls never throws, but guard
           // anyway so a rejection can never surface to the client.

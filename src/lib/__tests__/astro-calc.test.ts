@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { calculateDualChart, BirthData, DualChartData } from '../astro-calc'
+import { calculateDualChart, toJulianDay, BirthData, DualChartData } from '../astro-calc'
 
 // A well-known birth date used across most tests.
 // 1990-06-15 12:00 UTC, London (lat 51.5, lon -0.12)
@@ -27,6 +27,11 @@ describe('calculateDualChart — output shape', () => {
   it('both charts identify their system', () => {
     expect(data.tropical.system).toBe('tropical')
     expect(data.sidereal.system).toBe('sidereal')
+  })
+
+  it('is deterministic (Ascendant reproducible for a fixed birth)', () => {
+    const again = calculateDualChart(BASE_BIRTH, { plutoSource: 'local-meeus' })
+    expect(again.tropical.ascendant).toBeCloseTo(data.tropical.ascendant, 6)
   })
 
   it('includes birthData on the result', () => {
@@ -354,5 +359,36 @@ describe('calculateDualChart — midnight handling', () => {
     expect(sun.sign).toBe('Capricorn')
     expect(sun.degree).toBeGreaterThan(9.5)
     expect(sun.degree).toBeLessThan(10.5)
+  })
+})
+
+// ── Julian Day + calendar boundary ──────────────────────────────────────────────
+
+describe('toJulianDay', () => {
+  it('matches the Meeus reference for a modern Gregorian date', () => {
+    // 2000-01-01 12:00 UT → JD 2451545.0 (the J2000.0 epoch)
+    expect(toJulianDay(2000, 1, 1, 12, 0, 0)).toBeCloseTo(2451545.0, 6)
+  })
+
+  it('applies the timezone offset when converting to UT', () => {
+    // 2000-01-01 17:00 at UTC+5 is 12:00 UT → JD 2451545.0
+    expect(toJulianDay(2000, 1, 1, 17, 0, 5)).toBeCloseTo(2451545.0, 6)
+  })
+
+  // Regression: the Gregorian correction B used to be applied unconditionally, so
+  // pre-1582 dates were computed in the proleptic Gregorian calendar (~10 days off)
+  // instead of the Julian calendar convention for those dates.
+  it('uses the Julian calendar for pre-1582 dates (Meeus example)', () => {
+    // 333-01-27 12:00 UT (Julian calendar) → JD 1842713.0 (Meeus Ch.7)
+    expect(toJulianDay(333, 1, 27, 12, 0, 0)).toBeCloseTo(1842713.0, 6)
+  })
+
+  it('is continuous across the 1582 Julian→Gregorian cutover', () => {
+    // 1582-10-04 (last Julian day) was immediately followed by 1582-10-15 (first
+    // Gregorian day); their Julian Days must differ by exactly 1.
+    const lastJulian    = toJulianDay(1582, 10, 4,  0, 0, 0)
+    const firstGregorian = toJulianDay(1582, 10, 15, 0, 0, 0)
+    expect(firstGregorian - lastJulian).toBeCloseTo(1.0, 9)
+    expect(firstGregorian).toBeCloseTo(2299160.5, 6)
   })
 })

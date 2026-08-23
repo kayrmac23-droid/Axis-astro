@@ -139,8 +139,9 @@ function getNakshatra(longitude: number): { nakshatra: string; pada: number } {
 
 // ── JULIAN DAY ────────────────────────────────────────────────────────────────
 
-// Convert calendar date/time (UTC) to Julian Day Number (JDE ≈ JD for our purposes)
-function toJulianDay(
+// Convert calendar date/time (UTC) to Julian Day Number (JDE ≈ JD for our purposes).
+// Exported for unit testing — pure, no behaviour change.
+export function toJulianDay(
   year: number, month: number, day: number,
   hour: number, minute: number, tzOffset: number
 ): number {
@@ -148,8 +149,16 @@ function toJulianDay(
   let y = year
   let m = month
   if (m <= 2) { y -= 1; m += 12 }
+  // Calendar selection (Meeus Ch.7): dates from 1582-10-15 onward use the
+  // Gregorian correction B; earlier dates use the Julian calendar (B = 0), which
+  // the IANA/ephemeris convention applies for pre-cutover dates. Decided from the
+  // ORIGINAL date, not the month-shifted (y, m) working values. Without this,
+  // pre-1582 charts drift by ~10+ days — inconsistent with the app's 1–9999 range.
+  const isGregorian =
+    year > 1582 ||
+    (year === 1582 && (month > 10 || (month === 10 && day >= 15)))
   const A = Math.floor(y / 100)
-  const B = 2 - A + Math.floor(A / 4)
+  const B = isGregorian ? 2 - A + Math.floor(A / 4) : 0
   return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + utHour / 24 + B - 1524.5
 }
 
