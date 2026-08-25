@@ -38,11 +38,11 @@
 
 @keyframes hwSpinSidereal {
   from {
-    transform: rotate(23.85deg);
+    transform: rotate(24.213deg);
   }
 
   to {
-    transform: rotate(383.85deg);
+    transform: rotate(384.213deg);
   }
 }
 

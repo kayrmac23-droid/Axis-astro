@@ -7,7 +7,9 @@ const SIGN_GLYPHS = [
   '\u264E', '\u264F', '\u2650', '\u2651', '\u2652', '\u2653',
 ].map(g => g + VS)
 
-const LAHIRI = 23.85
+// Mirrors getLahiriAyanamsa(jd) in astro-calc.ts. Hero is decorative;
+// pinned to the current epoch (2026 ≈ 24°13′), not per-visitor live.
+const LAHIRI = 23.85 + ((2451545.0 + 26 * 365.25) - 2451545.0)/365.25 * (50.2564/3600)
 
 function polar(r: number, angleDeg: number) {
   const rad = (angleDeg - 90) * Math.PI / 180
@@ -153,7 +155,7 @@ export default function HeroWheel() {
       {/* Static annotations — do not rotate */}
       <div className={styles.annotations} aria-hidden="true">
         <div className={styles.offsetBox}>
-          <span className={styles.offsetValue}>23°51′</span>
+          <span className={styles.offsetValue}>24°13′</span>
           <span className={styles.offsetLabel}>Lahiri offset</span>
         </div>
       </div>
