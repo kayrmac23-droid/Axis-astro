@@ -21,24 +21,13 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
 }
 
 // Must exceed the server's maxDuration (60s) so the server — not the client —
-// decides when a section has failed. The /api/reading pipeline runs to 60s
-// (generate → quality gate → single repair pass); aborting earlier would kill
-// a section mid-gate before it can be validated and cached.
+// decides when a section has failed. /api/reading streams a single first-pass
+// generation straight through to close (the eval/repair passes were taken off
+// the request path); aborting earlier would kill a section mid-generation before
+// the server can cache it.
 const SECTION_TIMEOUT_MS = 65_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
-
-// The server streams the first-pass draft live. If the quality gate triggers a
-// repair, it appends [AXIS_REPAIRED] followed by the final copy — everything up
-// to and including the last marker is the superseded draft, so we keep only what
-// follows it. (Synastry sections go through the same gate/repair pipeline as
-// natal sections, so this marker can appear here too.)
-function stripRepairMarker(text: string): string {
-  const marker = '[AXIS_REPAIRED]'
-  const idx = text.lastIndexOf(marker)
-  if (idx === -1) return text
-  return text.slice(idx + marker.length).replace(/^\s+/, '')
-}
 
 function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | null {
   const h = heading.toLowerCase()
@@ -150,10 +139,9 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
               const { done, value } = await reader.read()
               if (done) break
               chunk += decoder.decode(value, { stream: true })
-              setText(accumulated + stripRepairMarker(chunk))
+              setText(accumulated + chunk)
             }
             chunk += decoder.decode()
-            chunk = stripRepairMarker(chunk)
             setText(accumulated + chunk)
 
             if (chunk.includes('[AXIS_STREAM_ERROR:')) {
