@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.15
+// AXIS Production System Prompts v10.16
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -467,11 +467,15 @@ This is a full primary portrait. ${lengthClause(BAND_PRIMARY)} Develop every sub
 
     mercury: `Interpret Mercury.
 
+Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+
 Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
 End with ### Putting It Together: 1–2 paragraphs distilling the most specific and honest observation about this cognitive style. 300–400 words total.`,
 
     venus: `Interpret Venus.
+
+Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 Cover sign, house, dignity, the condition of Venus's sign ruler, and every key aspect. Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person needs from intimacy versus what they think they need, and where the relational pattern creates problems.
 
@@ -481,6 +485,8 @@ End with ### Putting It Together: the relational pattern most likely to repeat. 
 
     mars: `Interpret Mars.
 
+Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+
 Cover sign, house, dignity, the condition of Mars's sign ruler, and every key aspect. Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
@@ -488,6 +494,8 @@ Cross-reference the Moon explicitly: state the Mars impulse and then state wheth
 End with ### Putting It Together: the most honest observation about how this drive actually operates in practice. 300–400 words total.`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
+
+Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → ### Saturn in [Sign], House [N] → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — name it first with its orb and applying/separating status and what it produces as an ongoing internal condition. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
