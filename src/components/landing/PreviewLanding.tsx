@@ -380,8 +380,8 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             </div>
             <div className={styles.neq}>≠</div>
             <div>
-              <p className={styles.mapLabel}>SIDEREAL <em>— THE SELF BENEATH</em></p>
-              <p>Anchored to the stars as the sky actually stands. The sidereal chart maps incarnational patterning: the body this person arrived in, the circumstances and inherited tendencies they entered with, the karmic emphases and deep instinctive orientations that pre-date the constructed identity. Not fate — the specific terrain a life is walked across.</p>
+              <p className={styles.mapLabel}>SIDEREAL <em>— THE TERRAIN YOU ARRIVED IN</em></p>
+              <p>Anchored to the stars as the sky actually stands. The sidereal chart maps incarnational patterning: the body this person arrived in, the circumstances and inherited tendencies they entered with, the karmic emphases and deep instinctive orientations that run alongside the constructed identity. Not fate — the specific terrain a life is walked across.</p>
             </div>
           </div>
           <p className={styles.bridge}>These are not inner versus outer. They are two different layers of a single life — and AXIS never averages them into a blur.</p>
@@ -403,7 +403,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
               </div>
             )}
           </div>
-          <p className={styles.calibMeta}>Tropical reveals the self you know. Sidereal reveals the self underneath it. That divergence is AXIS.</p>
+          <p className={styles.calibMeta}>Tropical reveals the self you know. Sidereal reveals the terrain it moves through. That divergence is AXIS.</p>
         </section>
       </div>
 

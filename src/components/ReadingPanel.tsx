@@ -19,7 +19,7 @@ interface ReadingPanelProps {
 // (cache keys, API contract). Everything rendered says "The Divergence". DOCTRINE.md: NAMING.
 const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
   tropical: { title: 'Tropical Reading', subtitle: 'Western · the self you know' },
-  sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic · the self beneath' },
+  sidereal: { title: 'Sidereal Reading', subtitle: 'Vedic · the terrain you were born into' },
   synthesis: { title: 'The Divergence', subtitle: 'concordance · dissonance · where the two systems part' }
 }
 

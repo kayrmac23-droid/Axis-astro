@@ -11,7 +11,7 @@ const MethodPremise = forwardRef<HTMLElement, {}>((_, ref) => {
         <p className={styles.label}>Two maps. One pressure point.</p>
         <h3 className={styles.headline}>The Method</h3>
         <p className={styles.body}>
-          Most astrology tools flatten you into one system. AXIS does not. It compares two maps: the psychological architecture of the self and the deeper sidereal terrain underneath it.
+          Most astrology tools flatten you into one system. AXIS does not. It compares two maps, held side by side: the psychological architecture of the self, and the sidereal terrain it moves through.
         </p>
       </div>
 
@@ -30,9 +30,9 @@ const MethodPremise = forwardRef<HTMLElement, {}>((_, ref) => {
         <div className={styles.card}>
           <div className={`${styles.rule} ${styles.ruleSidereal}`} />
           <p className={`${styles.systemTitle} ${styles.titleSidereal}`}>Sidereal</p>
-          <p className={styles.role}>The self beneath.</p>
+          <p className={styles.role}>The terrain you were born into.</p>
           <p className={styles.desc}>
-            A recalibrated sky, older terrain, and a second symbolic lens that often shifts the centre of gravity.
+            A recalibrated sky, a parallel terrain, and a second symbolic lens that often shifts the centre of gravity.
           </p>
         </div>
       </div>

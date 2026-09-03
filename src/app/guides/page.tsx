@@ -31,13 +31,13 @@ export default function GuidesPage() {
         </section>
 
         <section className={styles.section}>
-          <p className={styles.kicker}>The deeper layer</p>
-          <h2 className={styles.sectionTitle}>Sidereal — the self beneath</h2>
+          <p className={styles.kicker}>The other layer</p>
+          <h2 className={styles.sectionTitle}>Sidereal — the terrain you were born into</h2>
           <p className={styles.body}>
             The Sidereal chart is calculated against the actual observed positions of the
             constellations, and it often shifts planets into different signs. It describes
             the terrain you arrived with rather than the identity you built: inherited
-            tendencies, instinctive orientations, the patterning underneath the constructed
+            tendencies, instinctive orientations, the patterning that runs alongside the constructed
             self. Where the Tropical chart shows what you made, the Sidereal shows what you
             were handed.
           </p>
@@ -60,8 +60,8 @@ export default function GuidesPage() {
           <p className={styles.kicker}>How to use it</p>
           <h2 className={styles.sectionTitle}>Reading in order</h2>
           <p className={styles.body}>
-            Start with Tropical to meet the familiar self. Move to Sidereal to feel the layer
-            underneath — note especially any planet that changed signs between the two. Then
+            Start with Tropical to meet the familiar self. Move to Sidereal to feel the parallel
+            layer — note especially any planet that changed signs between the two. Then
             read The Divergence, which assumes you have already read both. The point is never
             to decide which chart is &ldquo;true.&rdquo; Both are. The truth you are looking
             for lives in the tension between them.

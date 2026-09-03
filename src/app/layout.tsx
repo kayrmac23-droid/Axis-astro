@@ -30,7 +30,7 @@ const courierPrime = Courier_Prime({
 
 export const metadata: Metadata = {
   title: 'AXIS — Precision Dual-System Astrology',
-  description: 'Tropical reveals the self you know. Sidereal reveals the self underneath it. That gap is AXIS.',
+  description: 'Tropical reveals the self you know. Sidereal reveals the terrain it moves through. That gap is AXIS.',
 }
 
 export const viewport: Viewport = {

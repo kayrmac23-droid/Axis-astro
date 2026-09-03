@@ -75,8 +75,8 @@ export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
   },
   Sun: {
     name: 'The Sun',
-    keywords: 'atma · soul-level identity · consciousness before conditioning',
-    description: `In Jyotish, the Sun represents the atma — the seat of consciousness beneath the constructed identity. Where the Tropical Sun maps how identity is organized through experience, the Sidereal Sun maps what was structurally present before conditioning began. The Sun's Nakshatra placement adds psychological precision the sign alone cannot provide, specifying the quality and character of the inner light rather than simply its direction.`
+    keywords: 'atma · soul-level identity · consciousness held alongside conditioning',
+    description: `In Jyotish, the Sun represents the atma — the seat of consciousness, read as a parallel layer alongside the constructed identity. Where the Tropical Sun maps how identity is organized through experience, the Sidereal Sun maps the structural conditions that layer operates within. The Sun's Nakshatra placement adds psychological precision the sign alone cannot provide, specifying the quality and character of the inner light rather than simply its direction.`
   },
   Moon: {
     name: 'The Moon',
