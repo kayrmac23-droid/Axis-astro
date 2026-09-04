@@ -22,9 +22,17 @@ function dms(v: number) {
   return d + '°' + String(m).padStart(2, '0') + '′'
 }
 
+// Round to a fixed precision: this is SSR'd (unlike FrameShiftWheel's
+// client-only imperative build), and Math.cos/sin can differ by a ULP
+// between Node's V8 and the browser's V8, which otherwise surfaces as a
+// React hydration mismatch on every coordinate in the tree.
+function r2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
 function pt(L: number, r: number): [number, number] {
   const a = (-90 - L) * Math.PI / 180
-  return [500 + r * Math.cos(a), 500 + r * Math.sin(a)]
+  return [r2(500 + r * Math.cos(a)), r2(500 + r * Math.sin(a))]
 }
 
 export default function HeroWheel({ offset }: { offset: number }) {
