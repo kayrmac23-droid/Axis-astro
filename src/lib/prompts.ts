@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.16
+// AXIS Production System Prompts v10.17
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -178,6 +178,47 @@ function lengthClause(band: WordBand): string {
   return s
 }
 
+// SHADOW COVERAGE — the anti-quota counterpart to the rescue-move bans.
+//
+// UNCOMPENSATED CONSTRAINT and NOTHING MAY BE MADE MORE PALATABLE guard one
+// direction: a difficulty must not be laundered into a virtue, an ease must not
+// be padded with reassurance. This block guards the other: a strength must not
+// be presented as if it had no stress-state — AND a shadow must not be
+// manufactured to make a paragraph look balanced. Both failures are the same
+// dishonesty pointed opposite ways.
+//
+// It REPLACES the former blanket line in CONTRADICTIONS AND BOTH SIDES ("For
+// every sign and every placement, cover both the light and shadow expression
+// ... Never present only the positive or only the negative"), which was a
+// coverage QUOTA and therefore an active instruction to invent the shadow this
+// block bans. The two cannot both ship; shipping them together would have told
+// the model to manufacture and not to manufacture in the same prompt.
+//
+// Single source of truth: SHARED_RULES interpolates it, the quality gate's
+// contradiction_handling criterion mirrors the manufacture ban, so prompt and
+// gate cannot drift.
+export const SHADOW_RULES = `
+SHADOW COVERAGE — applies to every quality you describe:
+
+Shadow is not a quota. Never invent a flaw, tension, or weakness to satisfy this
+rule. A manufactured shadow is a worse failure than an absent one.
+
+A quality's shadow is that SAME quality under stress or unconscious expression —
+not a separate trait bolted on. Leo warmth hardening into needing to be central is
+coverage. "Leo warmth, but also secretly anxious" is manufacture — the anxiety
+isn't the warmth, it's an unrelated claim smuggled in to look balanced. Only the
+first is permitted.
+
+The rule you must satisfy: do not present any quality as if it has NO shadow — do
+not flatter. This is a ban on one-sided praise, not a requirement to append darkness.
+If a placement's distorted expression is genuinely mild, say so plainly and briefly;
+do not inflate it. Silence on a shadow that isn't there beats inventing one.
+
+Where a quality's shadow is real (most are — every trait has a stress-state), write
+it INLINE: roughly one distortion clause riding on the quality, in the same breath,
+never accumulated into a dark block.
+`.trim()
+
 export const SHARED_RULES = `
 AXIS METHODOLOGY (apply these facts consistently):
 - House system: Whole Sign — all planet house assignments, house lines, and interpretations use Whole Sign throughout. The Midheaven (MC) is shown as a separate angle and does NOT equal the 10th-house cusp.
@@ -272,7 +313,9 @@ Every psychological claim must be capable of being false for some people. A stat
 CONTRADICTIONS AND BOTH SIDES:
 Never state any placement — a behavioural expression, a difficulty, OR a gift — as definitive fact without first checking whether another major placement contradicts, qualifies, or amplifies it. This cross-referencing is the core of an elite reading: every sign and planet is read against the rest of the chart, never in isolation. Where two placements produce opposing tendencies — Mars wanting to exit versus Moon unable to detach, Sun needing privacy versus Ascendant projecting confidence, Venus idealising versus Saturn restricting, a Jupiter-given generosity versus a 2nd-house Saturn's scarcity reflex — name both sides and describe the lived experience of carrying that contradiction. A strength the chart undercuts elsewhere, and a struggle the chart resolves elsewhere, are both more accurate stated as the cross-reference than either stated alone.
 
-For every sign and every placement, cover both the light and shadow expression of each core quality — not as separate lists, but as the same trait operating under different conditions. Never present only the positive or only the negative. Do not soften the shadow side; present it as a structural feature of how this energy operates.
+${SHADOW_RULES}
+- Vary how the distortion clause is built. If every quality in the section arrives with the same trailing stress-state tacked on after a dash, the shadow rule has produced the predictable rhythm PROSE FAILURE MODES #1 bans. Sometimes the distortion leads, sometimes it is the middle of the sentence, sometimes it is the condition under which the quality goes quiet. Coverage is a requirement; one construction is not.
+- Do not soften a shadow that IS real. Present it as a structural feature of how this energy operates — not a moral verdict, and not a difficulty on its way to being redeemed (UNCOMPENSATED CONSTRAINT still applies).
 
 ANTI-CLICHÉ REQUIREMENT:
 Do not reach for textbook sun-sign archetypes or clichéd sign behaviours. The same sign in different houses produces completely different expressions. Avoid the following overused patterns entirely: any sign "needing the spotlight" based on sign alone, Scorpio "being secretive or manipulative", Virgo "being critical", Capricorn "being cold", Gemini "being flaky". If a withdrawal or avoidance pattern is genuinely supported by multiple chart factors, name it — but ground it in the actual placements, not the archetype. Every interpretation must feel like it was written for this specific chart, not this Sun sign.

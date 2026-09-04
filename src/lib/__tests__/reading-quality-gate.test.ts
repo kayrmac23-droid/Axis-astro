@@ -13,6 +13,7 @@ import {
   evaluateSection,
   TRUNCATION_SENTINEL,
   FALSIFIABILITY_DIVERGENCE_EXAMPLE,
+  EVAL_SYSTEM_PROMPT,
   GateScores,
   LlmScores,
 } from '../reading-quality-gate'
@@ -24,6 +25,7 @@ import {
   BANNED_HIERARCHY_PHRASINGS,
   BANNED_HIERARCHY_LIST,
   SHARED_RULES,
+  SHADOW_RULES,
   wordBandFor,
   scaleBand,
 } from '../prompts'
@@ -405,6 +407,29 @@ describe('banned rescue / hierarchy phrasings — shared consts', () => {
   it('keeps the rescue and hierarchy bans live in the shared prompt rules', () => {
     expect(SHARED_RULES).toContain(BANNED_RESCUE_LIST)
     expect(SHARED_RULES).toContain(BANNED_HIERARCHY_LIST)
+  })
+})
+
+describe('shadow coverage — anti-quota doctrine', () => {
+  it('keeps the shadow rules live in the shared prompt rules', () => {
+    expect(SHARED_RULES).toContain(SHADOW_RULES)
+  })
+
+  it('bans manufactured shadow rather than mandating blanket coverage', () => {
+    expect(SHADOW_RULES).toContain('Shadow is not a quota')
+    expect(SHADOW_RULES).toContain('Never invent a flaw')
+  })
+
+  it('drops the former blanket coverage quota it replaces', () => {
+    // The old line ordered the model to cover both sides of EVERY quality,
+    // which is the manufacture SHADOW_RULES bans. Shipping both would put two
+    // contradictory instructions in one prompt.
+    expect(SHARED_RULES).not.toContain('For every sign and every placement, cover both')
+    expect(SHARED_RULES).not.toContain('Never present only the positive or only the negative')
+  })
+
+  it('mirrors the manufacture ban in the gate so prompt and gate cannot drift', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain('MANUFACTURED SHADOW')
   })
 })
 
