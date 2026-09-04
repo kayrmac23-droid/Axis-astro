@@ -204,7 +204,8 @@
 }
 
 .premiseRuleAxis {
-  background: linear-gradient(to right, var(--copper), var(--cyan));
+  /* The Divergence rule is copper (identity), not cyan — cyan is live-only. */
+  background: linear-gradient(to right, var(--copper), var(--violet));
 }
 
 .premiseSystem {

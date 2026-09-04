@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import ReadingPanel from '@/components/ReadingPanel'
 import PreviewLanding from '@/components/landing/PreviewLanding'
 import FrameShiftWheel from '@/components/FrameShiftWheel'
+import ComputationInterstitial from '@/components/ComputationInterstitial'
 import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
@@ -71,6 +72,27 @@ export default function Home() {
     if (lastFormData) handleSubmit(lastFormData)
   }
 
+  // Cast line for the computation interstitial: PLACE · D MON YYYY · time · tz.
+  const castLine = (() => {
+    const f = lastFormData
+    if (!f) return 'CASTING'
+    const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+    const mi = Math.min(11, Math.max(0, (parseInt(f.month, 10) || 1) - 1))
+    const place = (displayLocation || f.location || '').toUpperCase()
+    const unknown = f.birthTimeUnknown === 'true'
+    let time = 'TIME UNKNOWN · NOON ASSUMED'
+    if (!unknown) {
+      const h24 = parseInt(f.hour, 10)
+      if (!isNaN(h24)) {
+        const isPM = h24 >= 12
+        const h = h24 % 12 || 12
+        time = `${String(h).padStart(2, '0')}:${String(f.minute || '00').padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
+      }
+    }
+    return [place, `${parseInt(f.day, 10) || 1} ${MON[mi]} ${f.year}`, time, f.tzName]
+      .filter(Boolean).join(' · ')
+  })()
+
   return (
     <main className={styles.main}>
       {/* Pre-chart flow — ported AXIS landing (home view of preview.html),
@@ -84,13 +106,9 @@ export default function Home() {
         />
       )}
 
-      {/* Loading */}
+      {/* Computation interstitial — orb + five staged cells (redesign) */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.loadingOrb} />
-          <p className={styles.loadingText}>Aligning dual map</p>
-          <p className={styles.loadingSubText}>Resolving coordinates · calculating houses · preparing both charts</p>
-        </div>
+        <ComputationInterstitial line={castLine} ayanamsa="24°13′" />
       )}
 
       {/* Chart + reading — one frame-shift wheel + one reading panel, both

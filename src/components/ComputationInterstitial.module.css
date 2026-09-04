@@ -1,0 +1,96 @@
+.wrap {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 62px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--page-pad);
+  font-family: var(--font-mono);
+}
+
+.grid {
+  max-width: 1000px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 40px;
+  align-items: center;
+  animation: axRise 0.6s both;
+}
+
+/* ── Orb ───────────────────────────────────────────── */
+.orb {
+  position: relative;
+  width: 88px;
+  height: 88px;
+}
+.ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--hairline-strong);
+}
+.dashed {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 1px dashed var(--copper-bright);
+  animation: axSpin 9s linear infinite;
+}
+.hand {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1px;
+  height: 14px;
+  background: var(--cyan);
+  transform-origin: 0 44px;
+  animation: axSpin 2.6s linear infinite;
+}
+.core {
+  position: absolute;
+  inset: 40px;
+  border-radius: 50%;
+  background: var(--copper-emphasis);
+}
+
+/* ── Stages ────────────────────────────────────────── */
+.kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--copper-kicker);
+  margin-bottom: 24px;
+}
+
+.stages {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+}
+
+.stage {
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline-strong);
+}
+
+.n { font-size: 10px; letter-spacing: 0.14em; }
+.label { font-size: 12px; letter-spacing: 0.08em; margin-top: 6px; }
+.sub { font-size: 11px; margin-top: 4px; }
+
+.done { border-top-color: var(--copper); }
+.done .n, .done .label { color: var(--text); }
+.done .sub { color: var(--copper-kicker); }
+
+.live { border-top-color: var(--cyan); }
+.live .n, .live .label { color: var(--cyan); }
+.live .sub { color: var(--cyan); animation: axPulse 1.4s ease-in-out infinite; }
+
+.pending { border-top-color: var(--hairline-strong); }
+.pending .n, .pending .label { color: var(--text-4); }
+
+@media (max-width: 760px) {
+  .grid { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .stages { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+}

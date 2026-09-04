@@ -476,7 +476,9 @@ export default function FrameShiftWheel({
             <div ref={sliderRef} className={styles.slider} />
           </div>
           <div className={styles.status} role="status" aria-live="polite">
-            {`// FRAME: ${frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}`}
+            {'// FRAME: '}
+            <span className={styles.frameLive}>{frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}</span>
+            {frame === 'sidereal' ? ` · BAND ROTATED −${dms(ayanamsa)} · PLANETS FIXED` : ' · BAND AT 0° · PLANETS FIXED'}
           </div>
 
           {selRow && (

@@ -46,4 +46,6 @@
 
 .pillConcordance { color: var(--copper-light); border-color: var(--copper-dim); }
 .pillDivergence { color: var(--violet-light); border-color: var(--violet-dim); }
-.pillIntegration { color: var(--cyan); border-color: var(--cyan-dim); }
+/* "Living the divergence" is neutral chrome, not a live/selected state —
+   cyan is reserved for now/selected only (color-scheme doctrine). */
+.pillIntegration { color: var(--text-3); border-color: var(--border-2); }
