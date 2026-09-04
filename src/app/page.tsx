@@ -7,6 +7,17 @@ import { DualChartData } from '@/lib/astro-calc'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
 
+// The calibration ritual stages (DESIGN.md: Loading state). The real calculation
+// is a single request, so the stages advance on a timer to read as telemetry;
+// the final stage stays live until the dossier is ready.
+const LOAD_STAGES: { label: string; done: string; live: string }[] = [
+  { label: 'Resolving coordinates', done: 'DONE', live: 'GEOCODE · IANA TZ' },
+  { label: 'Calculating houses', done: 'DONE', live: 'WHOLE SIGN' },
+  { label: 'Aligning dual map', done: 'DONE', live: 'Δ LAHIRI' },
+  { label: 'Preparing both frames', done: 'DONE', live: 'TROPICAL · SIDEREAL' },
+  { label: 'Opening dossier', done: 'DONE', live: 'STREAMING' },
+]
+
 export default function Home() {
   const [chartData, setChartData] = useState<DualChartData | null>(null)
   const [readingReady, setReadingReady] = useState(false)
@@ -18,7 +29,20 @@ export default function Home() {
   // by the Lahiri ayanamsa and swaps the reading prose; the Divergence and the
   // readout table stay frame-independent. (DOCTRINE.md amendment July 2026.)
   const [frame, setFrame] = useState<'tropical' | 'sidereal'>('tropical')
+  const [loadStage, setLoadStage] = useState(0)
   const readingRef = useRef<HTMLDivElement>(null)
+
+  // Advance the calibration ritual while the chart is computing. Holds on the
+  // last stage until loading resolves; the stage is reset to 0 in handleSubmit
+  // when a new calculation starts (kept out of the effect body so the effect
+  // only owns the timer).
+  useEffect(() => {
+    if (!loading) return
+    const id = setInterval(() => {
+      setLoadStage(s => (s < LOAD_STAGES.length - 1 ? s + 1 : s))
+    }, 620)
+    return () => clearInterval(id)
+  }, [loading])
 
   useEffect(() => {
     if (!chartData) return
@@ -29,6 +53,7 @@ export default function Home() {
   const handleSubmit = async (formData: Record<string, string>) => {
     setLastFormData(formData)
     setDisplayLocation(formData.location || '')
+    setLoadStage(0)
     setLoading(true)
     setError(null)
     setChartData(null)
@@ -84,12 +109,31 @@ export default function Home() {
         />
       )}
 
-      {/* Loading */}
+      {/* Loading — the calibration ritual (DESIGN.md: staged, not a spinner) */}
       {loading && (
-        <div className={styles.loadingState}>
-          <div className={styles.loadingOrb} />
-          <p className={styles.loadingText}>Aligning dual map</p>
-          <p className={styles.loadingSubText}>Resolving coordinates · calculating houses · preparing both charts</p>
+        <div className={styles.loadingState} role="status" aria-live="polite">
+          <div className={styles.ritual}>
+            <div className={styles.ritualLabel}>{'// CALIBRATION'}</div>
+            <div className={styles.ritualOrb} aria-hidden="true">
+              <span className={styles.ritualHand} />
+              <span className={styles.ritualCore} />
+            </div>
+            <div className={styles.ritualList}>
+              {LOAD_STAGES.map((stage, i) => {
+                const state = i < loadStage ? 'done' : i === loadStage ? 'live' : 'pending'
+                const cls = state === 'done' ? styles.stageDone : state === 'live' ? styles.stageLive : ''
+                return (
+                  <div key={stage.label} className={`${styles.stageRow} ${cls}`}>
+                    <span className={styles.stageNum}>{String(i + 1).padStart(2, '0')}</span>
+                    <span className={styles.stageLabel}>{stage.label}</span>
+                    <span className={styles.stageState}>
+                      {state === 'done' ? stage.done : state === 'live' ? stage.live : ''}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       )}
 

@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import styles from './SiteHeader.module.css'
 
+// DESIGN.md: Method · Sample · Synastry — mono labels, not marketing phrases.
 const NAV = [
-  { href: '/method', label: 'How It Works' },
-  { href: '/sample', label: 'Sample Reading' },
-  { href: '/synastry', label: 'Compatibility' },
+  { href: '/method', label: 'Method' },
+  { href: '/sample', label: 'Sample' },
+  { href: '/synastry', label: 'Synastry' },
 ]
 
 export default function SiteHeader() {
@@ -65,7 +66,8 @@ export default function SiteHeader() {
         </nav>
 
         <div className={styles.navActions}>
-          <Link href="/#get-reading" className={styles.ctaBtn}>Get Your Reading</Link>
+          <span className={styles.deltaChip}>Δ 24°13′ · LAHIRI</span>
+          <Link href="/#get-reading" className={styles.ctaBtn}>Cast a Chart</Link>
         </div>
 
         <button

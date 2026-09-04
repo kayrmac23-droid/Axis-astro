@@ -74,25 +74,30 @@ export default function FrameShiftWheel({
   const aRef = useRef(0)
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
   const aspectElsRef = useRef<Record<string, SVGElement[]>>({})
+  const glyphByIdRef = useRef<Record<string, SVGElement>>({})
   const onSelectRef = useRef<(id: string) => void>(() => {})
 
   const [selected, setSelected] = useState<string | null>(null)
 
   const { tropical, sidereal, ayanamsa } = data
 
-  // ── casting header line (real) ──────────────────────────────
-  const castingLine = useMemo(() => {
+  // ── dossier identity (real) — chart title, location, time ──────
+  const dossier = useMemo(() => {
     const b = data.birthData
     const loc = displayLocation || (b.tzName ? b.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown location')
-    const dateStr = new Date(b.year, b.month - 1, b.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()
+    const dateLong = new Date(b.year, b.month - 1, b.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
     let timeStr = 'TIME UNKNOWN'
     if (!b.birthTimeUnknown) {
       const isPM = b.hour >= 12
       const h = b.hour % 12 || 12
       timeStr = `${h}:${String(b.minute).padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
     }
-    return `${loc} · ${dateStr} · ${timeStr}`
+    return { loc, dateLong, timeStr }
   }, [data.birthData, displayLocation])
+
+  const plutoLabel = data.plutoSource
+    ? (data.plutoSource === 'local-meeus' ? 'MEEUS (LOCAL)' : `JPL ${data.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`)
+    : 'JPL DE440'
 
   // ── readout rows (both frames, always) — shared source (lib/readout) ──
   const rows = useMemo<ReadoutRow[]>(() => buildReadoutRows(data), [data])
@@ -292,6 +297,7 @@ export default function FrameShiftWheel({
       mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
       const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer' }, gSky)
       glyph.textContent = b.g
+      glyphByIdRef.current[b.id] = glyph
       const [dx, dy] = pt(b.lon, b.r - 24)
       const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 8.8, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)' }, gSky)
       const hit = mk('circle', { cx: px, cy: py, r: 22, fill: 'transparent', cursor: 'pointer' }, gSky)
@@ -427,6 +433,12 @@ export default function FrameShiftWheel({
       const mine = new Set(map[selected] || [])
       all.forEach(l => { if (!mine.has(l)) l.setAttribute('opacity', '.28') })
     }
+    // The selected body is a LIVE measurement — cyan (DESIGN.md). Reset the
+    // rest to star-white so only one body carries the accent at a time.
+    const glyphs = glyphByIdRef.current
+    for (const id in glyphs) {
+      glyphs[id].setAttribute('fill', id === selected ? '#2CC8C0' : '#EAE8F8')
+    }
   }, [selected])
 
   const selRow = selected ? rows.find(r => r.id === selected) ?? null : null
@@ -434,26 +446,22 @@ export default function FrameShiftWheel({
   return (
     <div className={styles.root}>
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <span className={styles.ax}>AXIS</span>
-          <span className={styles.sub}>FRAME-SHIFT WHEEL</span>
+        <div className={styles.dossierId}>
+          <div className={styles.kicker}>{'// DOSSIER'}</div>
+          <h2 className={styles.dossierTitle}>Chart of {dossier.dateLong}</h2>
+          <div className={styles.dossierMeta}>{dossier.loc} · {dossier.timeStr}</div>
         </div>
-        <div className={styles.meta}>
-          {castingLine} · WHOLE SIGN · {'☊' + VS} TRUE NODE · LAHIRI {dms(ayanamsa)}
+        <div className={styles.provenance}>
+          <span className={styles.provItem}><b>WHOLE SIGN</b></span>
+          <span className={styles.provItem}>{'☊' + VS} <b>TRUE NODE</b></span>
+          <span className={styles.provItem}>VSOP87 · ELP2000</span>
+          <span className={styles.provItem}>PLUTO <b>{plutoLabel}</b></span>
+          <span className={`${styles.provItem} ${styles.ayan}`}>LAHIRI <b>Δ {dms(ayanamsa)}</b></span>
         </div>
       </header>
 
       <div className={styles.main}>
         <section className={styles.stage}>
-          <svg
-            ref={svgRef}
-            className={styles.wheel}
-            viewBox="-50 -50 1000 1000"
-            role="img"
-            aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
-            onClick={() => setSelected(null)}
-          />
-          <div className={styles.caption}>ONE SKY · TWO RULERS</div>
           <div className={styles.frameToggle}>
             <button
               ref={btnTRef}
@@ -476,22 +484,32 @@ export default function FrameShiftWheel({
             <div ref={sliderRef} className={styles.slider} />
           </div>
           <div className={styles.status} role="status" aria-live="polite">
-            {`// FRAME: ${frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}`}
+            {'// FRAME: '}<b>{frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}</b>{' · PLANETS FIXED · BAND ROTATED'}
           </div>
 
-          {selRow && (
-            <div className={styles.callout}>
-              <button className={styles.calloutClose} aria-label="Close" onClick={() => setSelected(null)}>×</button>
-              <span className={styles.cname}>{selRow.glyph ? selRow.glyph + ' ' : ''}{selRow.name}</span><br />
-              TROPICAL&nbsp; {lonStr(selRow.tLon)}<br />
-              SIDEREAL&nbsp; {lonStr(selRow.sLon)}<br />
-              <span className={styles.cverdict}>
-                {selRow.flip
-                  ? `SHIFTS · ${SG[selRow.tSign]} → ${SG[selRow.sSign]}`
-                  : `HOLDS ${SG[selRow.tSign]} · MARGIN ${dms(Math.abs((norm(selRow.tLon) % 30) - ayanamsa))}`}
-              </span>
-            </div>
-          )}
+          <div className={styles.wheelWrap}>
+            <svg
+              ref={svgRef}
+              className={styles.wheel}
+              viewBox="-50 -50 1000 1000"
+              role="img"
+              aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
+              onClick={() => setSelected(null)}
+            />
+            {selRow && (
+              <div className={styles.callout}>
+                <button className={styles.calloutClose} aria-label="Close" onClick={() => setSelected(null)}>×</button>
+                <span className={styles.cname}>{selRow.glyph ? selRow.glyph + ' ' : ''}{selRow.name}</span><br />
+                TROPICAL&nbsp; {lonStr(selRow.tLon)}<br />
+                SIDEREAL&nbsp; {lonStr(selRow.sLon)}<br />
+                <span className={styles.cverdict}>
+                  {selRow.flip
+                    ? `SHIFTS · ${SG[selRow.tSign]} → ${SG[selRow.sSign]}`
+                    : `HOLDS ${SG[selRow.tSign]} · MARGIN ${dms(Math.abs((norm(selRow.tLon) % 30) - ayanamsa))}`}
+                </span>
+              </div>
+            )}
+          </div>
         </section>
 
         <aside className={styles.rail}>
@@ -539,10 +557,10 @@ export default function FrameShiftWheel({
             </table>
           </div>
           <div className={styles.legend}>
-            SOLID HAIRLINE — SQUARE · OPPOSITION&nbsp;&nbsp;·&nbsp;&nbsp;DASHED — TRINE · SEXTILE<br />
-            THE WEB IS DRAWN ONCE. IT DOES NOT ROTATE.<br />
-            {'☊' + VS} {'☋' + VS} TRUE (OSCULATING) NODE&nbsp;&nbsp;·&nbsp;&nbsp;HOUSES: WHOLE SIGN<br />
-            <span className={styles.g}>◆</span> SIGN SHIFTS BETWEEN FRAMES&nbsp;&nbsp;·&nbsp;&nbsp;TAP A BODY FOR BOTH READINGS
+            <span className={styles.legendItem}><span className={styles.legendSolid} aria-hidden="true" />SQUARE · OPPOSITION</span>
+            <span className={styles.legendItem}><span className={styles.legendDash} aria-hidden="true" />TRINE · SEXTILE</span>
+            <span className={styles.legendItem}><span className={styles.legendSel} aria-hidden="true" />SELECTED</span>
+            <span className={styles.legendItem}><span className={styles.g}>◆</span>SIGN SHIFTS BETWEEN FRAMES</span>
           </div>
           <p className={styles.footnote}>
             The planets do not move. Between the tropical and sidereal castings every body keeps its place in the sky and every aspect keeps its angle; what turns is the ring of signs beneath them — {dms(ayanamsa)} of offset between the seasonal calendar and the stars.

@@ -31,11 +31,17 @@
    (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle).
    Widened from the old 820px so each placement's prose (~65ch) and its
    readout data block sit side by side; the block fills the space that used
-   to sit empty to the right of the prose. */
+   to sit empty to the right of the prose.
+   The long-form prose takes the raised reading surface — the one sanctioned
+   lift off the void (DESIGN.md: READING SURFACE EXCEPTION, #061230). */
 .singleFrame {
   width: min(1080px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
+  background: var(--reading-surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 3.25rem 3rem 4rem;
 }
 
 /* In single-frame the body is the full column width; each placement controls
@@ -43,12 +49,119 @@
    the 65ch-centred body defined above. */
 .singleFrame .readingBody { max-width: none; }
 
+/* ─── The Divergence — the culmination of the dossier ────
+   Not another section header. A copper ritual rule, the one
+   sanctioned Cinzel label, a "where they part" evidence table
+   with a violet signal, then the prose on the reading surface
+   (DESIGN.md: The Divergence panel).                          */
 .divergenceSection {
   width: min(1320px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
-  margin-top: 4rem;
+  margin-top: 5.5rem;
+}
+
+.divergenceRitualRule {
+  height: 1.5px;
+  background: var(--copper);
+  width: 100%;
+}
+
+.divergenceMasthead {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.9rem 0 2.4rem;
+}
+
+/* Cinzel — a sanctioned trace use (wordmark + THE DIVERGENCE only) */
+.divergenceCinzel {
+  font-family: var(--font-wordmark);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+.divergenceKicker {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+/* Where they part — an evidence table of sign-flips, violet signal */
+.wtp {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-mono);
+  margin-bottom: 0.5rem;
+}
+.wtpHead,
+.wtpRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  gap: 0.5rem;
+  align-items: center;
+}
+.wtpHead {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  padding-bottom: 0.7rem;
+  border-bottom: 1px solid var(--border-2);
+}
+.wtpRow {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+}
+.wtpGlyph { color: var(--copper-bright); margin-right: 0.45rem; }
+.wtpSignal {
+  text-align: right;
+  color: var(--violet-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+.wtpDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--violet);
+  display: inline-block;
+  flex-shrink: 0;
+}
+.wtpNote {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  margin-top: 1rem;
+}
+.wtpConcord {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  color: var(--fg-2);
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Divergence prose takes the raised reading surface, like the frame reading */
+.divergenceProse {
+  background: var(--reading-surface);
   border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 3.25rem 3rem 4rem;
+  margin-top: 2.6rem;
 }
 
 .divergenceSection .readingBody { margin-inline: auto; }
@@ -83,23 +196,23 @@
 }
 
 .readingSubtitle {
-  font-family: var(--font-display);
-  font-size: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
   font-weight: 400;
-  letter-spacing: 0.32em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--fg-3);
-  margin-top: 0.3rem;
+  margin-top: 0.5rem;
 }
 
 .summaryGroup { display: flex; flex-direction: column; gap: 0.15rem; }
 
 .summarySystem {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.25em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
 
 .summaryPlacements {
@@ -162,9 +275,9 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .generatingText {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.38em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--fg-3);
 }
@@ -186,9 +299,10 @@
 }
 
 .retryBtn {
-  font-family: var(--font-display);
-  font-size: 0.56rem;
-  letter-spacing: 0.24em;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--fg-3);
   background: none;
@@ -212,12 +326,12 @@
 }
 
 .sectionErrorLabel {
-  font-family: var(--font-wordmark);
-  font-size: var(--t-label-sm, 0.54rem);
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3em;
-  color: var(--danger);
+  letter-spacing: 0.18em;
+  color: var(--danger-text);
 }
 
 .sectionErrorMsg {
@@ -230,11 +344,11 @@
 }
 
 .retrySectionBtn {
-  font-family: var(--font-wordmark);
-  font-size: 0.56rem;
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.14em;
   color: var(--fg-3);
   background: none;
   border: 1px solid var(--border-2);
@@ -335,11 +449,11 @@
   margin-bottom: 0.65rem;
 }
 .readoutFrameLabel {
-  font-family: var(--font-display);
-  font-size: 0.44rem;
-  letter-spacing: 0.28em;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
 .readoutVal {
   font-family: var(--font-mono);
@@ -352,10 +466,10 @@
 .readoutDignity { color: var(--copper-bright); }
 .readoutNak {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.66rem;
   letter-spacing: 0.04em;
-  color: var(--fg-4);
-  margin-top: 0.15rem;
+  color: var(--fg-3);
+  margin-top: 0.2rem;
 }
 
 .readoutDelta {
@@ -368,48 +482,51 @@
   letter-spacing: 0.04em;
 }
 .readoutDeltaLabel {
-  font-family: var(--font-display);
-  font-size: 0.44rem;
-  letter-spacing: 0.28em;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--fg-3);
 }
-.readoutFlip { color: var(--copper); }
+.readoutFlip { color: var(--copper-light); }
 .readoutHold { color: var(--fg-3); }
 
 /* ─── Headings ─────────────────────────────────────────
    Two levels the reader can tell apart. PLACEMENT (##)
-   opens a new placement — Cinzel, copper, divided from the
-   text above by a rule that sits ABOVE it. SUBSECTION (###)
-   is a label inside a placement — smaller Courier, dimmed
-   copper, no rule. Differentiation is by value + typeface
-   only; copper stays the sole accent (DOCTRINE.md).       */
+   opens a new placement — editorial (Cormorant) title,
+   star-white, divided from the text above by a copper rule
+   that sits ABOVE it. SUBSECTION (###) is a mono label
+   inside a placement. Cinzel is a trace element (wordmark +
+   THE DIVERGENCE only) and no longer appears here
+   (DESIGN.md: trace identity only).                        */
 
-/* Child: a label inside a placement */
+/* Child: a mono label inside a placement */
 .planetSubheading {
-  font-family: var(--font-courier);
-  font-size: 0.6875rem;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--copper-muted);
+  color: var(--copper-bright);
   margin: 3rem 0 1rem;
   border: none;
   animation: fadeIn 0.5s ease both;
 }
 
-/* Parent: opens a new placement. The rule divides above,
-   so the first placement in a reading carries neither the
-   top border nor the top margin. */
+/* Parent: opens a new placement — editorial title. The rule
+   divides above, so the first placement in a reading carries
+   neither the top border nor the top margin. A small mono
+   copper eyebrow above it identifies the body. */
 .planetHeading {
-  font-family: var(--font-cinzel);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--copper);
+  font-family: var(--font-editorial);
+  font-size: 1.9rem;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--fg);
+  line-height: 1.15;
   margin: 7rem 0 2.5rem;
-  padding-top: 2rem;
-  border-top: 1px solid rgba(184, 115, 51, 0.24);
+  padding-top: 2.2rem;
+  border-top: 1px solid var(--copper);
   animation: fadeIn 0.5s ease both;
 }
 
@@ -430,12 +547,12 @@
 }
 
 .infoKeywords {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--copper);
-  opacity: 0.75;
+  color: var(--copper-bright);
   margin-bottom: 0.55rem;
 }
 
@@ -451,12 +568,12 @@
 /* ─── Paragraph ───────────────────────────────────── */
 .paragraph {
   font-family: var(--font-serif);
-  font-size: 1.12rem;
-  line-height: 2;
-  font-weight: 400;   /* match hero + form; carries a full page on dark */
+  font-size: 1.125rem;   /* 18px — reading measure (DESIGN.md) */
+  line-height: 1.9;
+  font-weight: 400;      /* carries a full page on the reading surface */
   color: var(--fg);
   letter-spacing: 0.01em;
-  margin-bottom: 1.1rem;
+  margin-bottom: 1.3rem;
   animation: fadeIn 0.45s ease both;
 }
 
@@ -494,20 +611,22 @@
   opacity: 0.9;
 }
 
-/* ─── Cursor ──────────────────────────────────────── */
+/* ─── Cursor ──────────────────────────────────────────
+   The streaming cursor is a LIVE signal — cyan owns it
+   (DESIGN.md: cyan = live/streaming). */
 .cursor {
   display: inline-block;
   width: 1.5px;
   height: 1.05em;
-  background: var(--copper);
-  opacity: 0.7;
+  background: var(--cyan);
+  opacity: 0.9;
   margin-left: 2px;
   vertical-align: text-bottom;
   animation: blink 1.1s step-end infinite;
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 0.7; }
+  0%, 100% { opacity: 0.9; }
   50% { opacity: 0; }
 }
 
@@ -535,11 +654,12 @@
 }
 
 .sectionChip {
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  letter-spacing: 0.18em;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  padding: 0.3rem 0.65rem;
+  padding: 0.32rem 0.7rem;
   border: 1px solid var(--border);
   transition: all 0.2s ease;
 }
@@ -547,12 +667,13 @@
 .chip_pending {
   color: var(--fg-4);
   border-color: var(--border);
-  opacity: 0.45;
+  opacity: 0.55;
 }
 
+/* The actively-streaming section is LIVE — cyan (DESIGN.md). */
 .chip_loading {
-  color: var(--copper);
-  border-color: rgba(200, 169, 107, 0.4);
+  color: var(--cyan);
+  border-color: rgba(44, 200, 192, 0.5);
   animation: chipPulse 1.4s ease-in-out infinite;
 }
 
@@ -567,8 +688,8 @@
   border-color: rgba(138, 32, 32, 0.3);
 }
 
-.chipCheck { color: var(--fg-4); }
-.chipFail  { color: rgba(180, 60, 60, 0.7); }
+.chipCheck { color: var(--copper); }
+.chipFail  { color: var(--danger-text); }
 
 @keyframes chipPulse {
   0%, 100% { opacity: 1; }

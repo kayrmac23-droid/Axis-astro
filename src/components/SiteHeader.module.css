@@ -63,7 +63,8 @@
 
 .navLink {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--text-2);
@@ -107,16 +108,31 @@
   color: var(--text);
 }
 
+/* Live Lahiri offset chip — copper geometry, pill (a true status chip is the
+   one sanctioned rounded shape). Never a toggle (DESIGN.md). */
+.deltaChip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--copper-bright);
+  border: 1px solid var(--copper-dim);
+  border-radius: var(--r-pill);
+  padding: 0.32rem 0.75rem;
+  white-space: nowrap;
+}
+
+/* Primary action — copper fill (DESIGN.md: primary button). */
 .ctaBtn {
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.7rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--void);
-  background: var(--text);
-  border: 1px solid var(--text);
+  background: var(--copper);
+  border: 1px solid var(--copper);
   text-decoration: none;
-  padding: 0.6rem 1.1rem;
+  padding: 0.62rem 1.2rem;
   border-radius: var(--r-none); /* matches every other control */
   cursor: pointer;
   transition: all 150ms ease;

@@ -30,6 +30,9 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
 
+// Title-case sign names, index 0 = Aries — for the Divergence evidence table.
+const SIGN_NAMES = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
+
 // Must exceed the server's maxDuration (60s) so the server — not the client —
 // decides when a section has failed. /api/reading streams a single first-pass
 // generation straight through to close (the eval/repair passes were taken off
@@ -537,10 +540,17 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     [readoutRows]
   )
 
+  // The bodies whose sign changes between frames — the evidence for The
+  // Divergence's "where they part" table. Angles (ASC/MC) are excluded.
+  const divergenceFlips = useMemo(
+    () => readoutRows.filter(r => r.flip && !r.isAngle),
+    [readoutRows]
+  )
+
   // Renders one reading section's header, progress, states, and prose blocks.
   // Tropical and Sidereal render side by side; the divergence section renders below both.
   // withData=true (single-frame) pins each placement's readout data beside its prose.
-  const renderSection = (section: SystemSection, withData = false) => {
+  const renderSection = (section: SystemSection, withData = false, hideHeader = false) => {
     const currentStatus   = tabStatus[section]
     const currentError    = tabErrors[section]
     const currentText     = readings[section] || ''
@@ -621,10 +631,12 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
     return (
       <>
-        <div className={styles.columnHeader}>
-          <h2 className={styles.readingTitle}>{label.title}</h2>
-          <p className={styles.readingSubtitle}>{label.subtitle}</p>
-        </div>
+        {!hideHeader && (
+          <div className={styles.columnHeader}>
+            <h2 className={styles.readingTitle}>{label.title}</h2>
+            <p className={styles.readingSubtitle}>{label.subtitle}</p>
+          </div>
+        )}
 
         {/* Planet-section progress bar — visible while this section is actively streaming */}
         {isStreaming && currentStatus === 'loading' && (
@@ -798,9 +810,51 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         </div>
       )}
 
-      {/* The Divergence — full width, after and below both systems, in every frame */}
-      <section className={`${styles.readingColumn} ${styles.divergenceSection}`} aria-label="The Divergence reading">
-        {renderSection('synthesis')}
+      {/* The Divergence — the culmination of the dossier. Full width, after and
+          below both systems, in every frame. A copper ritual rule, the one
+          sanctioned Cinzel label, an evidence table of the sign-flips with a
+          violet signal, then the prose on the reading surface. Never a tab,
+          never "solved" (DESIGN.md: The Divergence panel). */}
+      <section className={styles.divergenceSection} aria-label="The Divergence reading">
+        <div className={styles.divergenceRitualRule} aria-hidden="true" />
+        <div className={styles.divergenceMasthead}>
+          <div className={styles.divergenceCinzel}>The Divergence</div>
+          <div className={styles.divergenceKicker}>Frame-independent · read after both · never toggles off</div>
+        </div>
+
+        {divergenceFlips.length > 0 ? (
+          <div className={styles.wtp} aria-label="Where the two frames part">
+            <div className={styles.wtpHead}>
+              <span>Where they part</span>
+              <span>Tropical</span>
+              <span>Sidereal</span>
+              <span className={styles.wtpSignal}>Signal</span>
+            </div>
+            {divergenceFlips.map(r => (
+              <div key={r.id} className={styles.wtpRow}>
+                <span>
+                  {r.glyph && <span className={styles.wtpGlyph}>{r.glyph}</span>}
+                  {r.name.charAt(0) + r.name.slice(1).toLowerCase()}
+                </span>
+                <span>{SIGN_NAMES[r.tSign]}{r.tHouse != null ? ` · H${r.tHouse}` : ''}</span>
+                <span>{SIGN_NAMES[r.sSign]}{r.sHouse != null ? ` · H${r.sHouse}` : ''}</span>
+                <span className={styles.wtpSignal}>
+                  <span className={styles.wtpDot} aria-hidden="true" />
+                  {r.tHouse != null && r.sHouse != null && r.tHouse !== r.sHouse ? 'Sign + House' : 'Sign'}
+                </span>
+              </div>
+            ))}
+            <p className={styles.wtpNote}>Violet marks unresolved tension. It is not an error to fix.</p>
+          </div>
+        ) : (
+          <p className={styles.wtpConcord}>
+            Every body holds its sign across both frames — a rare concordance. The divergence lives in degree, house and dignity rather than sign.
+          </p>
+        )}
+
+        <div className={styles.divergenceProse}>
+          {renderSection('synthesis', false, true)}
+        </div>
       </section>
     </div>
   )
