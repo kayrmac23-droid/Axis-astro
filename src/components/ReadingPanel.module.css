@@ -1,24 +1,10 @@
 .panel { padding: 4rem 0; }
 
 /* ─── Layout ──────────────────────────────────────────
-   Tropical and Sidereal side by side, hairline divider
-   between them; The Divergence full-width below both.
-   (DOCTRINE.md: CO-VISIBILITY)                          */
-.systemsGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
-  align-items: stretch;
-  /* Breakout: two comfortable prose measures need more than the
-     960px chrome column. Clipped by the page's overflow-x hidden. */
-  width: min(1320px, calc(100vw - 3rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
-}
-
-.columnDivider {
-  width: 1px;
-  background: var(--border);
-}
+   Tropical, then Sidereal, then The Divergence — stacked, one
+   column, both frames always rendered (DOCTRINE.md: CO-VISIBILITY;
+   AMENDMENT — READING PANEL DUAL DISPLAY, September 2026). The
+   retired two-column side-by-side layout is gone; do not reintroduce it. */
 
 /* Reading sits directly on the floor — no surface, no border, no shadow.
    Padding is retained for measure control only. */
@@ -27,31 +13,73 @@
   min-width: 0;
 }
 
-/* Single-frame mode: one reading column follows the frame toggle
-   (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle).
-   Widened from the old 820px so each placement's prose (~65ch) and its
-   readout data block sit side by side; the block fills the space that used
-   to sit empty to the right of the prose. */
-.singleFrame {
+/* Stacked section (Tropical or Sidereal): widened from the base 65ch column so
+   each placement's prose (~65ch) and its readout data block sit side by side;
+   the block fills the space that would otherwise sit empty to the right of
+   the prose. */
+.stackedSection {
   width: min(1080px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
+  background: var(--reading-surface);
+  border-top: 1px solid rgba(234, 232, 248, 0.10);
+  border-bottom: 1px solid rgba(234, 232, 248, 0.10);
 }
+.stackedSection + .stackedSection { margin-top: 5rem; }
 
-/* In single-frame the body is the full column width; each placement controls
-   its own measure (prose stays ~65ch). The Divergence and side-by-side keep
-   the 65ch-centred body defined above. */
-.singleFrame .readingBody { max-width: none; }
+/* In a stacked section the body is the full column width; each placement
+   controls its own measure (prose stays ~65ch). The Divergence keeps the
+   65ch-centred body defined below. */
+.stackedSection .readingBody { max-width: none; }
 
 .divergenceSection {
   width: min(1320px, calc(100vw - 3rem));
   margin-left: 50%;
   transform: translateX(-50%);
   margin-top: 4rem;
-  border-top: 1px solid var(--border);
+  background: var(--reading-surface);
+  border-top: 1px solid rgba(234, 232, 248, 0.10);
+  border-bottom: 1px solid rgba(234, 232, 248, 0.10);
 }
 
 .divergenceSection .readingBody { margin-inline: auto; }
+
+/* ─── Sticky section nav ──────────────────────────────
+   Orientation across the stacked scroll; supplements co-visibility,
+   does not replace it (DOCTRINE.md: AMENDMENT — READING PANEL DUAL
+   DISPLAY). Cyan marks the section in view — the one "live" thing
+   here (DESIGN.md: cyan is live/active/selected/streaming only). */
+.sectionNav {
+  position: sticky;
+  top: 4.3rem; /* sits just below SiteHeader's own sticky bar (z-index 200) */
+  z-index: 5;
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 0;
+  margin-bottom: 2.5rem;
+  background: var(--void);
+  border-bottom: 1px solid var(--border);
+}
+
+.navItem {
+  font-family: var(--font-display);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  background: none;
+  border: none;
+  padding: 0.3rem 0;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.navItem:hover { color: var(--fg); }
+
+.navItemActive {
+  color: var(--cyan);
+}
 
 /* ─── Header ──────────────────────────────────────── */
 .metaStrip {
@@ -139,13 +167,14 @@
   height: 46px;
 }
 
+/* Cyan marks live computation (DESIGN.md: cyan is live/active/selected/streaming only). */
 .generatingOrbit::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 50%;
   border: 1px solid var(--border-2);
-  border-top-color: var(--copper);
+  border-top-color: var(--cyan);
   animation: spin 2s linear infinite;
 }
 
@@ -495,11 +524,12 @@
 }
 
 /* ─── Cursor ──────────────────────────────────────── */
+/* Cyan: streaming cursor is the paradigm "live" cue (DESIGN.md). */
 .cursor {
   display: inline-block;
   width: 1.5px;
   height: 1.05em;
-  background: var(--copper);
+  background: var(--cyan);
   opacity: 0.7;
   margin-left: 2px;
   vertical-align: text-bottom;
@@ -550,9 +580,10 @@
   opacity: 0.45;
 }
 
+/* Cyan: the section currently generating (DESIGN.md: live computation status). */
 .chip_loading {
-  color: var(--copper);
-  border-color: rgba(200, 169, 107, 0.4);
+  color: var(--cyan);
+  border-color: var(--cyan-dim);
   animation: chipPulse 1.4s ease-in-out infinite;
 }
 
@@ -611,18 +642,9 @@
   }
 }
 
-/* ─── Stacked columns ─────────────────────────────── */
+/* ─── Full-width breakout collapses on narrow viewports ──────────── */
 @media (max-width: 900px) {
-  .systemsGrid {
-    grid-template-columns: minmax(0, 1fr);
-    width: 100%;
-    margin-left: 0;
-    transform: none;
-  }
-  .columnDivider {
-    width: 100%;
-    height: 1px;
-  }
+  .stackedSection,
   .divergenceSection {
     width: 100%;
     margin-left: 0;
@@ -637,4 +659,5 @@
   .paragraph { font-size: 1rem; }
   .infoText { font-size: 0.92rem; }
   .readingTitle { font-size: 1.3rem; }
+  .sectionNav { gap: 1.2rem; }
 }

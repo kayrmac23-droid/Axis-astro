@@ -59,7 +59,10 @@ optimized for sustained reading:
 
 - measure ~65ch
 - line-height ≥ 1.6
-- raised-surface navy (`#061230` family) behind text, not raw void
+- raised-surface neutral (`--surface-1` / `#0C0B0E` family) behind text, not raw
+  void and not navy — the earlier navy (`#061230`) reading surface is retired
+  (design review, September 2026): it read as a second brand color competing
+  with copper, not a neutral lift
 - body type sized for prose
 
 Doctrine everywhere; comfort where the reading lives.
@@ -112,16 +115,19 @@ visible as geometry. This replaces side-by-side wheels in a later pass.
 
 This amendment records a ratified product decision and governs the results page. It
 supersedes the two-wheels-side-by-side layout and the two-column reading layout.
-Future runs must not "correct" the single-panel layout back to two columns.
+Future runs must not reintroduce the two-column side-by-side reading layout this
+amendment retired. Point 2 below was itself superseded September 2026 — see
+AMENDMENT — READING PANEL DUAL DISPLAY.
 
 1. **The frame-shift wheel is the reading wheel.** One wheel; a Tropical/Sidereal
    toggle rotates the zodiac band by the live Lahiri ayanamsa. The rotation IS the
    divergence, rendered kinetically. The earlier **dual-ring (two concentric rings)**
    commitment above is **retired**, as is the **two-wheels-side-by-side** layout.
 
-2. **One reading panel, driven by the toggle.** The two-column Tropical/Sidereal
-   reading layout is superseded: a single reading panel shows the active frame's
-   prose (Tropical frame → Tropical sections, Sidereal frame → Sidereal sections).
+2. **One reading panel, driven by the toggle.** *(Superseded September 2026 — see
+   AMENDMENT — READING PANEL DUAL DISPLAY below. Kept here for history: this
+   originally read the two-column Tropical/Sidereal layout as superseded in favor
+   of a single panel showing only the active frame's prose.)*
 
 3. **Co-visibility is redefined.** It is satisfied by (a) the always-rendered readout
    table — every body with its Tropical column, Sidereal column, and Δ-sign column,
@@ -144,6 +150,36 @@ Future runs must not "correct" the single-panel layout back to two columns.
    guideline** (MOOD). The shift is the signature interaction and runs longer so the
    divergence is legible in motion; under `prefers-reduced-motion` it is instant, with
    the offset still legible via the static Δ callout arc.
+
+## AMENDMENT — READING PANEL DUAL DISPLAY (ratified September 2026)
+
+This amendment records a ratified product decision and partially supersedes point 2
+of the July 2026 FRAME-SHIFT WHEEL amendment above ("one reading panel, driven by
+the toggle"). It is not the "correction" back to two columns that amendment warned
+against — the two-column side-by-side layout stays retired — it is a move to a
+third layout, and it is the one now in force.
+
+1. **The reading panel shows both frames by default, stacked.** Tropical reads
+   first, Sidereal second, The Divergence third — one column, full prose measure,
+   each placement's prose still pinned beside its Tropical/Sidereal readout data.
+   A user who never touches the toggle still reads both systems; the dual-system
+   premise cannot depend on an interaction to be honoured.
+
+2. **The frame toggle now drives the wheel only.** Tropical/Sidereal on the wheel
+   still rotates the zodiac band by the live Lahiri ayanamsa, exactly as before.
+   It no longer gates which reading prose is shown — both are always shown. The
+   toggle is wheel-scoped state, not reading-scoped state.
+
+3. **A sticky TROPICAL · SIDEREAL · DIVERGENCE section nav aids orientation**
+   across the now-longer scroll, highlighting the section currently in view. It
+   supplements co-visibility; it does not replace it.
+
+4. **Co-visibility and Divergence placement are unchanged.** The readout table
+   still shows both frames for every body in every state; The Divergence still
+   renders full-width, after and below both systems, in every state.
+
+Future runs must not re-gate reading prose behind the frame toggle as a
+"simplification" — that was tried, is documented above, and is retired.
 
 ## SIGN-BOUNDARY CUSPS — DEREGISTERED (ratified August 2026)
 

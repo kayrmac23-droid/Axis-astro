@@ -8,11 +8,6 @@ import { capture } from '@/lib/analytics'
 
 interface ReadingPanelProps {
   chartData: DualChartData
-  // When set, the panel shows a single system's reading, driven by the
-  // frame toggle (DOCTRINE.md amendment July 2026). The Divergence still
-  // renders full-width below, in every frame state. Omit for the legacy
-  // side-by-side layout.
-  frame?: 'tropical' | 'sidereal'
 }
 
 // 'synthesis' survives here as the internal reading-type identifier only
@@ -219,7 +214,15 @@ type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
 type TabStatus = 'pending' | 'loading' | 'done' | 'failed'
 type SystemSection = 'tropical' | 'sidereal' | 'synthesis'
 
-export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
+// Sticky section nav (DOCTRINE.md: AMENDMENT — READING PANEL DUAL DISPLAY,
+// September 2026). Order matches reading order: Tropical, Sidereal, Divergence.
+const NAV_ITEMS: { key: SystemSection; label: string }[] = [
+  { key: 'tropical', label: 'TROPICAL' },
+  { key: 'sidereal', label: 'SIDEREAL' },
+  { key: 'synthesis', label: 'DIVERGENCE' },
+]
+
+export default function ReadingPanel({ chartData }: ReadingPanelProps) {
   const [readings, setReadings] = useState<Record<string, string>>({})
   const [tabStatus, setTabStatus] = useState<Record<string, TabStatus>>({
     tropical: 'pending',
@@ -237,10 +240,38 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const [activePlanetSection, setActivePlanetSection] = useState<string | null>(null)
   const [streamingTab, setStreamingTab] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
+  const [activeNavSection, setActiveNavSection] = useState<SystemSection>('tropical')
 
   const abortRef = useRef<AbortController | null>(null)
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
+
+  // Tracks which stacked section is in view for the sticky nav (DOCTRINE.md:
+  // AMENDMENT — READING PANEL DUAL DISPLAY). Orientation only — it does not
+  // gate which prose renders; both frames are always mounted.
+  const sectionRefs = useRef<Record<SystemSection, HTMLElement | null>>({
+    tropical: null, sidereal: null, synthesis: null,
+  })
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        const visible = entries
+          .filter(e => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        const sec = visible?.target instanceof HTMLElement
+          ? (visible.target.dataset.navSection as SystemSection | undefined)
+          : undefined
+        if (sec) setActiveNavSection(sec)
+      },
+      { rootMargin: '-15% 0px -70% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] }
+    )
+    Object.values(sectionRefs.current).forEach(el => { if (el) observer.observe(el) })
+    return () => observer.disconnect()
+  }, [])
+
+  const scrollToNavSection = (sec: SystemSection) => {
+    sectionRefs.current[sec]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const generateSingleReading = useCallback(async (
     sec: SystemSection,
@@ -538,8 +569,8 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   )
 
   // Renders one reading section's header, progress, states, and prose blocks.
-  // Tropical and Sidereal render side by side; the divergence section renders below both.
-  // withData=true (single-frame) pins each placement's readout data beside its prose.
+  // Tropical, Sidereal, and the Divergence render stacked, in that order.
+  // withData=true pins each placement's readout data beside its prose.
   const renderSection = (section: SystemSection, withData = false) => {
     const currentStatus   = tabStatus[section]
     const currentError    = tabErrors[section]
@@ -774,32 +805,54 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         </div>
       )}
 
-      {/* Interpretive prose follows the active frame (single panel); positional
-          data never hides — co-visibility lives in the wheel's readout table and
-          the persistent Δ chip (DOCTRINE.md amendment July 2026). The long-form
-          prose takes the raised reading surface (READING SURFACE EXCEPTION).
-          Without a frame, the legacy side-by-side layout is kept. */}
-      {frame ? (
-        <section
-          className={`${styles.readingColumn} ${styles.singleFrame}`}
-          aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}
-        >
-          {renderSection(frame, true)}
-        </section>
-      ) : (
-        <div className={styles.systemsGrid}>
-          <section className={styles.readingColumn} aria-label="Tropical reading">
-            {renderSection('tropical')}
-          </section>
-          <div className={styles.columnDivider} aria-hidden="true" />
-          <section className={styles.readingColumn} aria-label="Sidereal reading">
-            {renderSection('sidereal')}
-          </section>
-        </div>
-      )}
+      {/* Sticky section nav — orientation across the stacked scroll, not a gate.
+          Both frames are always mounted below (DOCTRINE.md: AMENDMENT — READING
+          PANEL DUAL DISPLAY, September 2026); the frame toggle above only rotates
+          the wheel now. */}
+      <nav className={styles.sectionNav} aria-label="Reading sections">
+        {NAV_ITEMS.map(item => (
+          <button
+            key={item.key}
+            type="button"
+            className={`${styles.navItem} ${activeNavSection === item.key ? styles.navItemActive : ''}`}
+            aria-current={activeNavSection === item.key ? 'true' : undefined}
+            onClick={() => scrollToNavSection(item.key)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
 
-      {/* The Divergence — full width, after and below both systems, in every frame */}
-      <section className={`${styles.readingColumn} ${styles.divergenceSection}`} aria-label="The Divergence reading">
+      {/* Tropical, then Sidereal, then The Divergence — stacked, both always
+          rendered; positional data never hides (co-visibility lives in the
+          wheel's readout table, the persistent Δ chip, and each placement's
+          pinned readout card here). The long-form prose takes the raised
+          reading surface (READING SURFACE EXCEPTION). */}
+      <section
+        ref={el => { sectionRefs.current.tropical = el }}
+        data-nav-section="tropical"
+        className={`${styles.readingColumn} ${styles.stackedSection}`}
+        aria-label="Tropical reading"
+      >
+        {renderSection('tropical', true)}
+      </section>
+
+      <section
+        ref={el => { sectionRefs.current.sidereal = el }}
+        data-nav-section="sidereal"
+        className={`${styles.readingColumn} ${styles.stackedSection}`}
+        aria-label="Sidereal reading"
+      >
+        {renderSection('sidereal', true)}
+      </section>
+
+      {/* The Divergence — full width, after and below both systems, always */}
+      <section
+        ref={el => { sectionRefs.current.synthesis = el }}
+        data-nav-section="synthesis"
+        className={`${styles.readingColumn} ${styles.divergenceSection}`}
+        aria-label="The Divergence reading"
+      >
         {renderSection('synthesis')}
       </section>
     </div>

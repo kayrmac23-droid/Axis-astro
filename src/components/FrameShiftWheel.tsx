@@ -7,8 +7,10 @@
    zodiac band rotates by the live Lahiri ayanamsa between the
    Tropical and Sidereal frames — the rotation IS the divergence.
 
-   • Frame is CONTROLLED by the parent (`frame` + `onFrameChange`)
-     so the same toggle drives the reading panel.
+   • Frame is CONTROLLED by the parent (`frame` + `onFrameChange`).
+     The toggle is wheel-scoped only — it no longer gates the reading
+     panel's prose, which always renders both frames stacked (DOCTRINE.md:
+     AMENDMENT — READING PANEL DUAL DISPLAY, September 2026).
    • The aspect web is drawn once from the (frame-invariant) real
      positions and does not rotate.
    • The Δ offset callout arc + the two 0°♈︎ fiducials are always
@@ -75,6 +77,11 @@ export default function FrameShiftWheel({
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
   const aspectElsRef = useRef<Record<string, SVGElement[]>>({})
   const onSelectRef = useRef<(id: string) => void>(() => {})
+  // Selected-body highlight on the wheel itself (DESIGN.md: cyan marks the
+  // active/selected/live measurement) — populated once at build time,
+  // toggled by the [selected] effect below.
+  const bodyMarkersRef = useRef<Record<string, { glyphEl: SVGElement; px: number; py: number }>>({})
+  const selRingRef = useRef<SVGElement | null>(null)
 
   const [selected, setSelected] = useState<string | null>(null)
 
@@ -372,6 +379,17 @@ export default function FrameShiftWheel({
     ;(gStarsIn as SVGElement).style.display = variant === 'C' ? '' : 'none'
     if (variant === 'B') rebuildNames()
 
+    // selected-body ring — one reusable element, positioned/shown by the
+    // [selected] effect. Lives in gSky so it sits at the body's fixed
+    // position (planets don't rotate; the sign band does).
+    selRingRef.current = mk('circle', {
+      r: 17, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
+      style: 'filter:drop-shadow(0 0 6px rgba(44,200,192,.6))',
+    }, gSky)
+    const markers: Record<string, { glyphEl: SVGElement; px: number; py: number }> = {}
+    SWEEP.forEach(sw => { if (sw.glyphEl) markers[sw.id] = { glyphEl: sw.glyphEl, px: sw.px, py: sw.py } })
+    bodyMarkersRef.current = markers
+
     apiRef.current = { setA, AY }
     setA(frame === 'sidereal' ? AY : 0)
     suppressFx = false
@@ -427,6 +445,23 @@ export default function FrameShiftWheel({
       const mine = new Set(map[selected] || [])
       all.forEach(l => { if (!mine.has(l)) l.setAttribute('opacity', '.28') })
     }
+
+    // Cyan ring + glyph on the selected body (DESIGN.md: cyan marks the
+    // active/selected/live measurement; everything else stays copper/white).
+    Object.entries(bodyMarkersRef.current).forEach(([id, m]) => {
+      m.glyphEl.setAttribute('fill', id === selected ? '#2CC8C0' : '#EAE8F8')
+    })
+    const ring = selRingRef.current
+    const marker = selected ? bodyMarkersRef.current[selected] : null
+    if (ring) {
+      if (marker) {
+        ring.setAttribute('cx', String(marker.px))
+        ring.setAttribute('cy', String(marker.py))
+        ring.setAttribute('opacity', '1')
+      } else {
+        ring.setAttribute('opacity', '0')
+      }
+    }
   }, [selected])
 
   const selRow = selected ? rows.find(r => r.id === selected) ?? null : null
@@ -476,7 +511,8 @@ export default function FrameShiftWheel({
             <div ref={sliderRef} className={styles.slider} />
           </div>
           <div className={styles.status} role="status" aria-live="polite">
-            {`// FRAME: ${frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}`}
+            {'// FRAME: '}
+            <span className={styles.statusFrame}>{frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}</span>
           </div>
 
           {selRow && (

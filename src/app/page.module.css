@@ -4,7 +4,13 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  overflow-x: hidden;
+  /* clip, not hidden: hidden (or any non-"visible" value paired with the
+     default "visible" on the other axis) makes this a scroll container,
+     which breaks position:sticky for every descendant (e.g. ReadingPanel's
+     section nav) — sticky then computes against this box instead of the
+     viewport. clip still clips the breakout elements' horizontal overflow
+     without establishing a scrollport. */
+  overflow-x: clip;
 }
 
 /* ─── Header / Masthead ───────────────────────────── */
@@ -372,13 +378,14 @@
   animation: fadeIn 0.4s ease;
 }
 
+/* Cyan marks live computation (DESIGN.md: cyan is live/active/selected/streaming only). */
 .loadingOrb {
   position: relative;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border-2);
-  border-top-color: var(--copper);
+  border-top-color: var(--cyan);
   animation: spin 2.5s linear infinite;
 }
 

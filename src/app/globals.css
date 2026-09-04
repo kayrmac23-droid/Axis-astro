@@ -19,8 +19,10 @@
   --surface-3: #1A171B;
 
   /* Raised surface behind long-form reading prose only (DOCTRINE.md:
-     READING SURFACE EXCEPTION) — chrome and the wheel stay on the void. */
-  --reading-surface: #061230;
+     READING SURFACE EXCEPTION) — chrome and the wheel stay on the void.
+     Neutral, not navy (design review, September 2026): the earlier
+     #061230 read as a second brand color, not a neutral lift. */
+  --reading-surface: var(--surface-1);
 
   /* ── Borders ──────────────────────────────────────── */
   --border:        #1A1940;

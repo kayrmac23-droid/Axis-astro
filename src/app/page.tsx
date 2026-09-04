@@ -14,9 +14,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [lastFormData, setLastFormData] = useState<Record<string, string> | null>(null)
   const [displayLocation, setDisplayLocation] = useState<string>('')
-  // Frame toggle: one wheel, one reading panel. The shift rotates the zodiac
-  // by the Lahiri ayanamsa and swaps the reading prose; the Divergence and the
-  // readout table stay frame-independent. (DOCTRINE.md amendment July 2026.)
+  // Frame toggle: drives the wheel only — it rotates the zodiac band by the
+  // Lahiri ayanamsa. The reading panel renders both frames stacked regardless
+  // of toggle state (DOCTRINE.md: AMENDMENT — READING PANEL DUAL DISPLAY,
+  // September 2026).
   const [frame, setFrame] = useState<'tropical' | 'sidereal'>('tropical')
   const readingRef = useRef<HTMLDivElement>(null)
 
@@ -93,10 +94,12 @@ export default function Home() {
         </div>
       )}
 
-      {/* Chart + reading — one frame-shift wheel + one reading panel, both
-          driven by the Tropical/Sidereal toggle. The wheel's readout table and
-          Δ chip carry co-visibility; The Divergence stays frame-independent.
-          (DOCTRINE.md amendment July 2026.) */}
+      {/* Chart + reading — one frame-shift wheel, whose toggle rotates the
+          band; one reading panel, which always renders both frames stacked
+          (Tropical, then Sidereal, then The Divergence). The wheel's readout
+          table and Δ chip carry co-visibility alongside the reading panel's
+          own per-placement data cards. (DOCTRINE.md: AMENDMENT — READING
+          PANEL DUAL DISPLAY, September 2026.) */}
       {chartData && (
         <div className={styles.readingLayout} ref={readingRef}>
           <section className={styles.wheelBreakout}>
@@ -108,7 +111,7 @@ export default function Home() {
             />
           </section>
           {readingReady && (
-            <ReadingPanel chartData={chartData} frame={frame} />
+            <ReadingPanel chartData={chartData} />
           )}
           <div className={styles.resetRow}>
             <button
