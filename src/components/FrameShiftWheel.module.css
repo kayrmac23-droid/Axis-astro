@@ -44,16 +44,19 @@
 
 .frameToggle { position: relative; display: flex; align-items: center; gap: 30px; border: 1px solid var(--hair2); padding: 12px 26px; }
 .tbtn { font-size: 12px; letter-spacing: 3px; padding: 2px 1px; transition: color .5s; }
-.tbtnOn { color: var(--star); }
+/* Active frame = the live frame: cyan text + cyan inset underline. Cyan is
+   reserved for this "happening now / selected" role (color-scheme doctrine). */
+.tbtnOn { color: var(--cyan); }
 .delta { text-align: center; min-width: 150px; }
 .deltaVal { font-family: var(--mono); font-size: 13px; letter-spacing: 1.5px; color: var(--copper-light); }
 .dsub { font-family: var(--mono); font-size: 7.5px; letter-spacing: 1.8px; color: var(--dim2); margin-top: 3px; }
-.slider { position: absolute; bottom: -1px; height: 1.5px; background: var(--copper-light); transition-property: left, width; transition-timing-function: cubic-bezier(.65, 0, .35, 1); }
+.slider { position: absolute; bottom: -1px; height: 2px; background: var(--cyan); transition-property: left, width; transition-timing-function: cubic-bezier(.65, 0, .35, 1); }
 
 .status { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--dim2); margin-top: 12px; min-height: 14px; }
+.frameLive { color: var(--cyan); }
 
 .callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--hair); padding: 10px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; line-height: 1.9; color: var(--dim); background: rgba(12, 11, 14, .82); max-width: 270px; z-index: 3; }
-.cname { color: var(--star); letter-spacing: 2.5px; }
+.cname { color: var(--cyan); letter-spacing: 2.5px; }
 .cverdict { color: var(--copper-light); }
 .calloutClose { position: absolute; top: 4px; right: 8px; font-size: 12px; line-height: 1; color: var(--dim2); }
 
@@ -82,8 +85,12 @@
 .table[data-frame="tropical"] .cs, .table[data-frame="tropical"] .thCs { opacity: .55; }
 .table[data-frame="sidereal"] .ct, .table[data-frame="sidereal"] .thCt { opacity: .55; }
 .table[data-frame="sidereal"] .cs, .table[data-frame="sidereal"] .thCs { opacity: .95; }
-.rowSel td { border-bottom-color: rgba(240, 185, 120, .6); }
+/* Selected body = live selection: 2px cyan left key + faint cyan wash. */
+.rowSel td { background: var(--cyan-tint); }
+.rowSel td:first-child { border-left: 2px solid var(--cyan); }
 .rowClickable { cursor: pointer; }
+.rowClickable:hover td { background: rgba(234, 232, 248, .03); }
+.rowSel:hover td { background: var(--cyan-tint); }
 
 .legend { font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.4px; line-height: 2.1; color: var(--dim2); margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hair2); }
 .legend .g { color: var(--copper-light); }

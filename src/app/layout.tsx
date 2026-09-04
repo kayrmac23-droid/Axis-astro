@@ -3,6 +3,8 @@ import { Cinzel, Cormorant_Garamond, Courier_Prime } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import SiteHeader from '@/components/SiteHeader'
+import SiteFooter from '@/components/SiteFooter'
+import Starfield from '@/components/Starfield'
 import './globals.css'
 
 const cinzel = Cinzel({
@@ -42,8 +44,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${cinzel.variable} ${cormorantGaramond.variable} ${courierPrime.variable}`}>
       <body>
+        <Starfield />
         <SiteHeader />
         {children}
+        <SiteFooter />
         <Analytics />
         <SpeedInsights />
       </body>

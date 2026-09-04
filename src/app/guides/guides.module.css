@@ -1,63 +1,140 @@
-.wrap {
+.main {
+  position: relative;
+  z-index: 1;
   width: 100%;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 4rem 2.5rem 6rem;
-  animation: fadeIn 0.6s ease;
-}
-
-.eyebrow {
-  font-family: var(--font-display, var(--font-mono));
-  font-size: 0.52rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--copper);
-}
-
-.title {
-  font-family: var(--font-editorial, var(--font-serif));
-  font-size: 2.2rem;
-  font-weight: 400;
-  font-style: italic;
-  line-height: 1.2;
-  color: var(--fg, var(--text));
-  margin-top: 0.8rem;
-}
-
-.lede {
-  font-family: var(--font-serif);
-  font-size: 1.1rem;
-  line-height: 1.85;
-  color: var(--fg-2, var(--text-2));
-  margin-top: 1.2rem;
-}
-
-.section {
-  margin-top: 3rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-}
-
-.sectionTitle {
-  font-family: var(--font-serif);
-  font-size: 1.4rem;
-  font-weight: 500;
-  color: var(--fg, var(--text));
+  animation: axRise 0.7s both;
 }
 
 .kicker {
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--copper-light, var(--copper));
-  margin-bottom: 0.4rem;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--copper-kicker);
 }
 
-.body {
+/* ── Hero ──────────────────────────────────────────── */
+.hero {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 88px var(--page-pad) 56px;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.h1 {
   font-family: var(--font-serif);
-  font-size: 1.05rem;
-  line-height: 1.85;
-  color: var(--fg-2, var(--text-2));
-  margin-top: 0.9rem;
+  font-size: clamp(34px, 5.2vw, 52px);
+  font-weight: 400;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+  margin: 28px 0 0;
+  text-wrap: pretty;
+  max-width: 22ch;
+}
+
+.lede {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--text-2);
+  margin: 28px 0 0;
+  max-width: 60ch;
+}
+
+/* ── Body: rail + prose ────────────────────────────── */
+.body {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 56px var(--page-pad) 96px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  gap: 48px;
+  align-items: start;
+}
+
+.rail {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  line-height: 2.2;
+  color: var(--text-3);
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.railItem { white-space: nowrap; }
+.railNum { color: var(--copper-kicker); margin-right: 12px; }
+
+.railNote {
+  margin-top: 28px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline-strong);
+  line-height: 1.9;
+}
+
+.prose {
+  max-width: 65ch;
+  display: flex;
+  flex-direction: column;
+  gap: 48px;
+}
+
+.microLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+
+.entryH {
+  font-family: var(--font-serif);
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 500;
+  line-height: 1.2;
+  margin: 10px 0 20px;
+}
+
+.para {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  line-height: 1.9;
+  margin: 0;
+  color: var(--text);
+}
+
+.entryRule {
+  border-top: 1.5px solid var(--copper);
+  padding-top: 24px;
+}
+
+/* ── CTAs ──────────────────────────────────────────── */
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 16px 26px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.btnSolid { background: var(--copper); color: var(--void); border: 1px solid var(--copper); }
+.btnSolid:hover { background: var(--copper-bright); border-color: var(--copper-bright); }
+.btnOutline { color: var(--text); background: transparent; border: 1px solid var(--copper-bright); }
+.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
+
+@media (max-width: 760px) {
+  .rail { position: static; }
 }
