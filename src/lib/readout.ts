@@ -53,8 +53,17 @@ export function dms(v: number): string {
 }
 
 export function lonStr(lon: number): string {
-  const L = norm(lon), s = Math.floor(L / 30)
-  return dms(L % 30) + ' ' + ZODIAC_GLYPHS[s]
+  // Round to whole arcminutes FIRST, then split into sign/degree/minute. Deriving
+  // the sign from the raw longitude and formatting the remainder separately lets a
+  // value like 29.996° into a sign round its minutes up to 60 → an impossible
+  // "30°00′" printed against the OLD sign's glyph, instead of rolling cleanly into
+  // 0°00′ of the next sign.
+  const total  = Math.round(norm(lon) * 60)   // whole arcminutes, 0..21600
+  const within = total % 1800                  // arcminutes into the sign
+  const s = Math.floor(total / 1800) % 12
+  const d = Math.floor(within / 60)
+  const m = within % 60
+  return d + '°' + String(m).padStart(2, '0') + '′ ' + ZODIAC_GLYPHS[s]
 }
 
 export interface ReadoutRow {
