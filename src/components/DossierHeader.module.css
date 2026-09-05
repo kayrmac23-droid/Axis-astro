@@ -1,0 +1,83 @@
+.head {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 48px;
+  align-items: end;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--copper-kicker);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(27px, 3.6vw, 36px);
+  font-weight: 400;
+  line-height: 1.15;
+  margin: 14px 0 0;
+  color: var(--text);
+}
+
+.castLine {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-2);
+  margin-top: 12px;
+}
+
+.provenance {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.cell {
+  border-left: 1px solid var(--hairline-strong);
+  padding-left: 14px;
+}
+
+.cellHead {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+}
+
+.cellCopper { color: var(--copper-kicker); }
+.cellWarn   { color: var(--copper-light); }
+
+/* ---------- birth-time warning ---------- */
+.warning {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  margin-top: 20px;
+  padding: 14px 18px;
+  border: 1px solid rgba(216, 148, 85, 0.35);
+  font-family: var(--font-mono);
+}
+.warnIcon { color: var(--copper-kicker); font-size: 12px; }
+.warnText {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  line-height: 1.7;
+  color: var(--copper-kicker);
+}
+
+@media (max-width: 1100px) {
+  .head { grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: start; }
+}
+@media (max-width: 760px) {
+  .provenance { grid-template-columns: 1fr 1fr; gap: 16px 0; }
+}

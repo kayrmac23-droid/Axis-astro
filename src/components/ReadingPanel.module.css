@@ -1,15 +1,25 @@
-/* The reading sits on the neutral lifted band (#0C0B0E) with hairline rules
-   top and bottom — the navy band was retired in the color-scheme update. The
-   band is full-bleed behind the (centred) reading column. */
-.panel {
+/* ============================================================
+   ReadingPanel — the dossier's prose. One frame's reading in a
+   raised band beside a sticky section rail, then The Divergence:
+   its flip table on the void, its prose in a second band.
+
+   Design: AXIS_Standalone, dossier view. The band colour is the
+   neutral lifted surface (#0C0B0E), not the design file's navy —
+   the navy band was retired in the color-scheme update.
+   ============================================================ */
+.panel { position: relative; }
+
+/* ─── Reading band ────────────────────────────────────
+   Full-bleed raised surface behind long-form prose only
+   (DOCTRINE.md: READING SURFACE EXCEPTION). */
+.band {
   position: relative;
-  padding: 3.5rem 0 4.5rem;
+  margin-top: 56px;
 }
-.panel::before {
+.band::before {
   content: '';
   position: absolute;
-  top: 0;
-  bottom: 0;
+  inset: 0;
   left: 50%;
   transform: translateX(-50vw);
   width: 100vw;
@@ -19,131 +29,169 @@
   z-index: 0;
   pointer-events: none;
 }
-.panel > * { position: relative; z-index: 1; }
 
-/* ─── Layout ──────────────────────────────────────────
-   Tropical and Sidereal side by side, hairline divider
-   between them; The Divergence full-width below both.
-   (DOCTRINE.md: CO-VISIBILITY)                          */
-.systemsGrid {
+.bandInner {
+  position: relative;
+  z-index: 1;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 56px clamp(20px, 5vw, 56px) 72px;
+}
+
+.bandHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.bandHeadRight { display: flex; gap: 18px; align-items: center; }
+.streaming { color: var(--cyan); }
+
+.bandGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
-  align-items: stretch;
-  /* Breakout: two comfortable prose measures need more than the
-     960px chrome column. Clipped by the page's overflow-x hidden. */
-  width: min(1320px, calc(100vw - 3rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
+  gap: 64px;
+  align-items: start;
+  padding-top: 40px;
 }
+.bandProse { min-width: 0; }
 
-.columnDivider {
-  width: 1px;
-  background: var(--border);
-}
-
-/* Reading sits directly on the floor — no surface, no border, no shadow.
-   Padding is retained for measure control only. */
-.readingColumn {
-  padding: 2.8rem 2.4rem 3.5rem;
+/* ─── Section rail ────────────────────────────────────
+   The index of this reading's sections, live-marked as they
+   stream. Sticky, so it stays with the prose. */
+.rail {
+  position: sticky;
+  top: 140px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.7;
   min-width: 0;
 }
+.railHead {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.railList {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  padding-top: 12px;
+}
+.railListSingle {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  padding-top: 12px;
+}
+.railPending { color: var(--text-4); }
+.railDone    { color: var(--text-2); }
+.railLive    { color: var(--cyan); }
+.railFailed  { color: var(--danger-text); }
 
-/* Single-frame mode: one reading column follows the frame toggle
-   (DOCTRINE.md amendment July 2026 — one panel, driven by the toggle).
-   Widened from the old 820px so each placement's prose (~65ch) and its
-   readout data block sit side by side; the block fills the space that used
-   to sit empty to the right of the prose. */
-.singleFrame {
-  width: min(1080px, calc(100vw - 3rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
+/* ─── The Divergence — evidence on the void ───────────
+   The flip table is frame-independent and never toggles off. */
+.divergence {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 80px clamp(20px, 5vw, 56px) 56px;
+}
+.divRule { height: 1.5px; background: var(--copper); }
+
+.divTop {
+  display: grid;
+  grid-template-columns: 5fr 7fr;
+  gap: 48px;
+  padding-top: 28px;
+  align-items: start;
 }
 
-/* In single-frame the body is the full column width; each placement controls
-   its own measure (prose stays ~65ch). The Divergence and side-by-side keep
-   the 65ch-centred body defined above. */
-.singleFrame .readingBody { max-width: none; }
-
-.divergenceSection {
-  width: min(1320px, calc(100vw - 3rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
-  margin-top: 4rem;
-  border-top: 1px solid var(--border);
+.divTitle {
+  font-family: var(--font-wordmark);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: var(--copper);
+}
+.divSub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  margin-top: 10px;
+}
+.divCount {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--copper-light);
+  margin-top: 28px;
 }
 
-.divergenceSection .readingBody { margin-inline: auto; }
+.flipTable { display: flex; flex-direction: column; font-family: var(--font-mono); }
+.flipHead {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--hairline-strong);
+}
+.flipRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--hairline);
+  align-items: center;
+  color: var(--text);
+}
+.flipRight { text-align: right; }
+.flipGlyph { color: var(--copper-kicker); margin-right: 6px; }
+.flipSignal { color: var(--violet-light); }
+.flipDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--violet);
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+.flipEmpty {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.flipNote {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-top: 12px;
+}
 
 /* ─── Header ──────────────────────────────────────── */
-.metaStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2.5rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 3rem;
-}
 
-.columnHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  padding-bottom: 1.6rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2.5rem;
-}
 
-.readingTitle {
-  font-family: var(--font-editorial);
-  font-size: 1.7rem;
-  font-weight: 500;
-  font-style: italic;
-  color: var(--fg);
-  letter-spacing: -0.01em;
-  line-height: 1.1;
-}
 
-.readingSubtitle {
-  font-family: var(--font-display);
-  font-size: 0.5rem;
-  font-weight: 400;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  margin-top: 0.3rem;
-}
 
-.summaryGroup { display: flex; flex-direction: column; gap: 0.15rem; }
 
-.summarySystem {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--fg-4);
-}
 
-.summaryPlacements {
-  font-family: var(--font-serif);
-  font-size: 0.92rem;
-  font-weight: 400;
-  color: var(--copper);
-  letter-spacing: 0.03em;
-}
 
-.ephemerisSource {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  color: rgba(201,150,46,0.55);
-}
 
-.ephemerisFallback {
-  font-family: var(--font-mono, monospace);
-  font-size: 0.6rem;
-  letter-spacing: 0.08em;
-  color: rgba(138,96,32,0.7);
-}
 
 /* ─── Loading ─────────────────────────────────────── */
 .generating {
@@ -191,35 +239,9 @@
 }
 
 /* ─── Error ───────────────────────────────────────── */
-.errorState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding: 4rem 0;
-}
 
-.errorText {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--danger-text);
-  letter-spacing: 0.05em;
-}
 
-.retryBtn {
-  font-family: var(--font-display);
-  font-size: 0.56rem;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  background: none;
-  border: 1px solid var(--border-2);
-  padding: 0.65rem 1.6rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.retryBtn:hover { color: var(--fg); border-color: var(--fg); }
 
 /* ─── Section error block (tab-level + inline) ────── */
 .sectionErrorBlock {
@@ -281,7 +303,11 @@
    Prose measure ~65ch, line-height ≥ 1.6, body type sized
    for sustained reading (DOCTRINE.md: READING SURFACE
    EXCEPTION).                                            */
-.readingBody { max-width: 65ch; margin-inline: auto; }
+/* The single-frame body is the full prose column — each placement controls
+   its own measure (prose stays ~65ch beside its data). Flat sections (The
+   Divergence) keep the 65ch measure directly. */
+.readingBody { max-width: none; }
+.flatBody { max-width: 68ch; margin-inline: auto; }
 
 .readingText { display: flex; flex-direction: column; gap: 0; }
 
@@ -295,7 +321,7 @@
    mono, dimmed, copper the sole accent, zero radius, no blur. */
 .placement {
   display: grid;
-  grid-template-columns: minmax(0, 65ch) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 65ch) minmax(0, 22rem);
   gap: 3rem;
   align-items: start;
 }
@@ -487,33 +513,8 @@
 }
 
 /* ─── Birth time warning ──────────────────────────── */
-.birthTimeWarning {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.8rem;
-  padding: 1rem 1.4rem;
-  background: rgba(138, 96, 32, 0.08);
-  border: 1px solid rgba(138, 96, 32, 0.22);
-  border-left: 2px solid rgba(138, 96, 32, 0.5);
-  margin-bottom: 2.5rem;
-}
 
-.birthTimeWarningIcon {
-  font-size: 0.85rem;
-  color: #8A6020;
-  opacity: 0.8;
-  flex-shrink: 0;
-  margin-top: 0.1rem;
-}
 
-.birthTimeWarningText {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.05em;
-  color: #D89455;   /* --copper-bright: warnings are copper, not mud */
-  line-height: 1.7;
-  opacity: 0.9;
-}
 
 /* ─── Cursor ──────────────────────────────────────── */
 /* Streaming cursor is cyan — it marks live output ("this is being written
@@ -547,77 +548,6 @@
   border: 0;
 }
 
-/* ─── Section progress bar ────────────────────────── */
-.sectionProgress {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 2rem;
-  padding: 1rem 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.sectionChip {
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--border);
-  transition: all 0.2s ease;
-}
-
-.chip_pending {
-  color: var(--fg-4);
-  border-color: var(--border);
-  opacity: 0.45;
-}
-
-.chip_loading {
-  color: var(--copper);
-  border-color: rgba(200, 169, 107, 0.4);
-  animation: chipPulse 1.4s ease-in-out infinite;
-}
-
-.chip_done {
-  color: var(--fg-3);
-  border-color: var(--border);
-  opacity: 0.7;
-}
-
-.chip_failed {
-  color: rgba(180, 60, 60, 0.7);
-  border-color: rgba(138, 32, 32, 0.3);
-}
-
-.chipCheck { color: var(--fg-4); }
-.chipFail  { color: rgba(180, 60, 60, 0.7); }
-
-@keyframes chipPulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.5; }
-}
-
-/* ─── Partial failure banner ──────────────────────── */
-.partialFailBanner {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  padding: 1.2rem 1.5rem;
-  background: rgba(138, 32, 32, 0.04);
-  border: 1px solid rgba(138, 32, 32, 0.14);
-  border-left: 2px solid rgba(138, 32, 32, 0.35);
-  margin-bottom: 2.5rem;
-}
-
-.partialFailText {
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
-  color: rgba(180, 60, 60, 0.8);
-  letter-spacing: 0.04em;
-  line-height: 1.6;
-}
-
 /* ─── Single-frame placement: collapse to one column ──
    Below this width the prose + data grid can't hold both comfortably, so the
    data block reflows directly BELOW the prose it belongs to (never hidden,
@@ -634,30 +564,25 @@
   }
 }
 
-/* ─── Stacked columns ─────────────────────────────── */
-@media (max-width: 900px) {
-  .systemsGrid {
-    grid-template-columns: minmax(0, 1fr);
-    width: 100%;
-    margin-left: 0;
-    transform: none;
-  }
-  .columnDivider {
-    width: 100%;
-    height: 1px;
-  }
-  .divergenceSection {
-    width: 100%;
-    margin-left: 0;
-    transform: none;
-  }
+/* ─── Band + Divergence: collapse the rails ───────── */
+@media (max-width: 1100px) {
+  .bandGrid { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .rail { position: static; }
+  .railList { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .divTop { grid-template-columns: minmax(0, 1fr); gap: 32px; }
 }
 
-/* ─── Mobile ──────────────────────────────────────── */
 @media (max-width: 640px) {
-  .metaStrip { gap: 1.5rem; }
-  .readingColumn { padding: 2rem 1.4rem 2.5rem; }
   .paragraph { font-size: 1rem; }
   .infoText { font-size: 0.92rem; }
-  .readingTitle { font-size: 1.3rem; }
+  .bandInner { padding: 40px clamp(16px, 5vw, 32px) 48px; }
+  .flipHead, .flipRow { grid-template-columns: 1.2fr 1fr 1fr; font-size: 11px; }
+  .flipHead > span:last-child, .flipRow > span:last-child { grid-column: 1 / -1; text-align: left; }
+}
+
+/* ─── Print ───────────────────────────────────────── */
+@media print {
+  .band::before { display: none; }
+  .rail { display: none; }
+  .bandGrid { grid-template-columns: minmax(0, 1fr); }
 }

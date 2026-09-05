@@ -7,25 +7,27 @@
    zodiac band rotates by the live Lahiri ayanamsa between the
    Tropical and Sidereal frames — the rotation IS the divergence.
 
-   • Frame is CONTROLLED by the parent (`frame` + `onFrameChange`)
-     so the same toggle drives the reading panel.
+   • Frame is CONTROLLED by the parent (`frame`), as is selection
+     (`selected` + `onSelect`) — the dossier owns both so the frame
+     control, the readout rail and the reading panel stay in step.
    • The aspect web is drawn once from the (frame-invariant) real
      positions and does not rotate.
    • The Δ offset callout arc + the two 0°♈︎ fiducials are always
      drawn, so the offset stays legible even in the static state
      (and under prefers-reduced-motion, where the swap is instant).
-   • The readout table renders BOTH frames for every body in every
-     toggle state (co-visibility); only prose follows the frame.
+   • This component owns the instrument only: the SVG stage and its
+     legend. The dossier header, frame control and READOUT rail are
+     separate components (DossierHeader / FrameControl / ReadoutRail),
+     composed by the page — the layout the design calls for.
    • Treatments (graticule / plate / stellar) live behind a prop,
      default "stellar"; the prototype's picker is removed.
 
    Every astrological glyph carries VS-15 (U+FE0E); no emoji.
    ============================================================ */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import {
-  VS, ZODIAC_GLYPHS as SG, PLANET_GLYPH, PLANET_ORDER,
-  norm, dms, lonStr, buildReadoutRows, type ReadoutRow,
+  ZODIAC_GLYPHS as SG, PLANET_GLYPH, PLANET_ORDER, norm, dms,
 } from '@/lib/readout'
 import styles from './FrameShiftWheel.module.css'
 
@@ -57,45 +59,28 @@ const TREATMENT_LETTER: Record<string, 'A' | 'B' | 'C'> = { graticule: 'A', plat
 interface FrameShiftWheelProps {
   data: DualChartData
   frame: 'tropical' | 'sidereal'
-  onFrameChange: (frame: 'tropical' | 'sidereal') => void
-  displayLocation?: string
+  /** Selected body id (readout row id), controlled by the page. */
+  selected?: string | null
+  /** Toggle selection. Called with the clicked id; null clears. */
+  onSelect?: (id: string | null) => void
+  /** Element that receives the live Δ value (dms only, no prefix) during the
+   *  rotation, so the frame control's pill counts up with the animation. */
+  deltaRef?: RefObject<HTMLSpanElement>
   treatment?: 'graticule' | 'plate' | 'stellar'
 }
 
 export default function FrameShiftWheel({
-  data, frame, onFrameChange, displayLocation, treatment = 'stellar',
+  data, frame, selected = null, onSelect, deltaRef, treatment = 'stellar',
 }: FrameShiftWheelProps) {
   const svgRef = useRef<SVGSVGElement>(null)
-  const deltaRef = useRef<HTMLDivElement>(null)
-  const btnTRef = useRef<HTMLButtonElement>(null)
-  const btnSRef = useRef<HTMLButtonElement>(null)
-  const sliderRef = useRef<HTMLDivElement>(null)
   const builtRef = useRef(false)
   const aRef = useRef(0)
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
   const aspectElsRef = useRef<Record<string, SVGElement[]>>({})
+  const selRingsRef = useRef<Record<string, SVGElement>>({})
   const onSelectRef = useRef<(id: string) => void>(() => {})
 
-  const [selected, setSelected] = useState<string | null>(null)
-
   const { tropical, sidereal, ayanamsa } = data
-
-  // ── casting header line (real) ──────────────────────────────
-  const castingLine = useMemo(() => {
-    const b = data.birthData
-    const loc = displayLocation || (b.tzName ? b.tzName.split('/').pop()?.replace(/_/g, ' ') : 'Unknown location')
-    const dateStr = new Date(b.year, b.month - 1, b.day).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()
-    let timeStr = 'TIME UNKNOWN'
-    if (!b.birthTimeUnknown) {
-      const isPM = b.hour >= 12
-      const h = b.hour % 12 || 12
-      timeStr = `${h}:${String(b.minute).padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
-    }
-    return `${loc} · ${dateStr} · ${timeStr}`
-  }, [data.birthData, displayLocation])
-
-  // ── readout rows (both frames, always) — shared source (lib/readout) ──
-  const rows = useMemo<ReadoutRow[]>(() => buildReadoutRows(data), [data])
 
   // ── build the wheel once (imperative, mirrors the prototype) ──
   useEffect(() => {
@@ -294,6 +279,9 @@ export default function FrameShiftWheel({
       glyph.textContent = b.g
       const [dx, dy] = pt(b.lon, b.r - 24)
       const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 8.8, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)' }, gSky)
+      selRingsRef.current[b.id] = mk('circle', {
+        cx: px, cy: py, r: 16, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
+      }, gSky)
       const hit = mk('circle', { cx: px, cy: py, r: 22, fill: 'transparent', cursor: 'pointer' }, gSky)
       const onClick = (e: Event) => { e.stopPropagation(); onSelectRef.current(b.id) }
       hit.addEventListener('click', onClick)
@@ -355,7 +343,7 @@ export default function FrameShiftWheel({
       const q = AY > 0 ? a / AY : 0
       gNumT.setAttribute('opacity', ((1 - q) * NUMOP).toFixed(3))
       gNumS.setAttribute('opacity', (q * NUMOP).toFixed(3))
-      if (deltaRef.current) deltaRef.current.textContent = 'Δ ' + dms(a)
+      if (deltaRef?.current) deltaRef.current.textContent = dms(a)
       SWEEP.forEach(sw => {
         const dl = norm(sw.lon - a), s = Math.floor(dl / 30)
         sw.degEl.textContent = dms(dl % 30) + ' ' + SG[s]
@@ -400,23 +388,9 @@ export default function FrameShiftWheel({
     return () => cancelAnimationFrame(raf)
   }, [frame])
 
-  // ── keep the toggle underline under the active button ──
-  useEffect(() => {
-    const place = () => {
-      const btn = frame === 'sidereal' ? btnSRef.current : btnTRef.current
-      const slider = sliderRef.current
-      if (!btn || !slider) return
-      slider.style.left = btn.offsetLeft + 'px'
-      slider.style.width = btn.offsetWidth + 'px'
-    }
-    place()
-    window.addEventListener('resize', place)
-    return () => window.removeEventListener('resize', place)
-  }, [frame])
-
   // ── selection dims the rest of the aspect web ──
   useEffect(() => {
-    onSelectRef.current = (id: string) => setSelected(s => (s === id ? null : id))
+    onSelectRef.current = (id: string) => onSelect?.(id === selected ? null : id)
   })
   useEffect(() => {
     const map = aspectElsRef.current
@@ -427,132 +401,27 @@ export default function FrameShiftWheel({
       const mine = new Set(map[selected] || [])
       all.forEach(l => { if (!mine.has(l)) l.setAttribute('opacity', '.28') })
     }
+    // Cyan ring on the selected body — what the legend's SELECTED chip names.
+    Object.entries(selRingsRef.current).forEach(([id, el]) =>
+      el.setAttribute('opacity', id === selected ? '1' : '0'))
   }, [selected])
-
-  const selRow = selected ? rows.find(r => r.id === selected) ?? null : null
 
   return (
     <div className={styles.root}>
-      <header className={styles.header}>
-        <div className={styles.brand}>
-          <span className={styles.ax}>AXIS</span>
-          <span className={styles.sub}>FRAME-SHIFT WHEEL</span>
-        </div>
-        <div className={styles.meta}>
-          {castingLine} · WHOLE SIGN · {'☊' + VS} TRUE NODE · LAHIRI {dms(ayanamsa)}
-        </div>
-      </header>
-
-      <div className={styles.main}>
-        <section className={styles.stage}>
-          <svg
-            ref={svgRef}
-            className={styles.wheel}
-            viewBox="-50 -50 1000 1000"
-            role="img"
-            aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
-            onClick={() => setSelected(null)}
-          />
-          <div className={styles.caption}>ONE SKY · TWO RULERS</div>
-          <div className={styles.frameToggle}>
-            <button
-              ref={btnTRef}
-              type="button"
-              className={`${styles.tbtn} ${frame === 'tropical' ? styles.tbtnOn : ''}`}
-              aria-pressed={frame === 'tropical'}
-              onClick={() => onFrameChange('tropical')}
-            >TROPICAL</button>
-            <div className={styles.delta}>
-              <div ref={deltaRef} className={styles.deltaVal}>Δ {dms(frame === 'sidereal' ? ayanamsa : 0)}</div>
-              <div className={styles.dsub}>LAHIRI OFFSET {dms(ayanamsa)}</div>
-            </div>
-            <button
-              ref={btnSRef}
-              type="button"
-              className={`${styles.tbtn} ${frame === 'sidereal' ? styles.tbtnOn : ''}`}
-              aria-pressed={frame === 'sidereal'}
-              onClick={() => onFrameChange('sidereal')}
-            >SIDEREAL</button>
-            <div ref={sliderRef} className={styles.slider} />
-          </div>
-          <div className={styles.status} role="status" aria-live="polite">
-            {'// FRAME: '}
-            <span className={styles.frameLive}>{frame === 'sidereal' ? 'SIDEREAL' : 'TROPICAL'}</span>
-            {frame === 'sidereal' ? ` · BAND ROTATED −${dms(ayanamsa)} · PLANETS FIXED` : ' · BAND AT 0° · PLANETS FIXED'}
-          </div>
-
-          {selRow && (
-            <div className={styles.callout}>
-              <button className={styles.calloutClose} aria-label="Close" onClick={() => setSelected(null)}>×</button>
-              <span className={styles.cname}>{selRow.glyph ? selRow.glyph + ' ' : ''}{selRow.name}</span><br />
-              TROPICAL&nbsp; {lonStr(selRow.tLon)}<br />
-              SIDEREAL&nbsp; {lonStr(selRow.sLon)}<br />
-              <span className={styles.cverdict}>
-                {selRow.flip
-                  ? `SHIFTS · ${SG[selRow.tSign]} → ${SG[selRow.sSign]}`
-                  : `HOLDS ${SG[selRow.tSign]} · MARGIN ${dms(Math.abs((norm(selRow.tLon) % 30) - ayanamsa))}`}
-              </span>
-            </div>
-          )}
-        </section>
-
-        <aside className={styles.rail}>
-          <h2 className={styles.railH2}>READOUT — BOTH FRAMES, ALWAYS CO-VISIBLE</h2>
-          <div className={styles.tableScroll}>
-            <table className={styles.table} data-frame={frame}>
-              <thead>
-                <tr>
-                  <th>BODY</th>
-                  <th className={styles.thCt}>TROPICAL</th>
-                  <th className={styles.thCs}>SIDEREAL</th>
-                  <th>Δ SIGN</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr
-                    key={r.id}
-                    className={`${styles.rowClickable} ${selected === r.id ? styles.rowSel : ''}`}
-                    onClick={() => setSelected(s => (s === r.id ? null : r.id))}
-                  >
-                    <td className={styles.bname}>
-                      {r.glyph && <span className={styles.bglyph}>{r.glyph} </span>}{r.name}
-                      {r.retro && <span className={styles.retro}>℞</span>}
-                    </td>
-                    <td className={styles.ct}>
-                      {lonStr(r.tLon)}
-                      {r.tHouse != null && <span className={styles.house}>H{r.tHouse}</span>}
-                      {r.tDignity && <span className={styles.dignity}>{r.tDignity}</span>}
-                    </td>
-                    <td className={styles.cs}>
-                      {lonStr(r.sLon)}
-                      {r.sHouse != null && <span className={styles.house}>H{r.sHouse}</span>}
-                      {r.sDignity && <span className={styles.dignity}>{r.sDignity}</span>}
-                      {r.nakshatra && (
-                        <span className={styles.nak}>{r.nakshatra}{r.nakPada != null ? ` · pada ${r.nakPada}` : ''}</span>
-                      )}
-                    </td>
-                    <td className={`${styles.dsig} ${r.flip ? styles.flip : styles.hold}`}>
-                      {r.flip ? `${SG[r.tSign]} → ${SG[r.sSign]}` : `${SG[r.tSign]} · ${SG[r.sSign]}`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className={styles.legend}>
-            SOLID HAIRLINE — SQUARE · OPPOSITION&nbsp;&nbsp;·&nbsp;&nbsp;DASHED — TRINE · SEXTILE<br />
-            THE WEB IS DRAWN ONCE. IT DOES NOT ROTATE.<br />
-            {'☊' + VS} {'☋' + VS} TRUE (OSCULATING) NODE&nbsp;&nbsp;·&nbsp;&nbsp;HOUSES: WHOLE SIGN<br />
-            <span className={styles.g}>◆</span> SIGN SHIFTS BETWEEN FRAMES&nbsp;&nbsp;·&nbsp;&nbsp;TAP A BODY FOR BOTH READINGS
-          </div>
-          <p className={styles.footnote}>
-            The planets do not move. Between the tropical and sidereal castings every body keeps its place in the sky and every aspect keeps its angle; what turns is the ring of signs beneath them — {dms(ayanamsa)} of offset between the seasonal calendar and the stars.
-          </p>
-        </aside>
+      <svg
+        ref={svgRef}
+        className={styles.wheel}
+        viewBox="-50 -50 1000 1000"
+        role="img"
+        aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
+        onClick={() => onSelect?.(null)}
+      />
+      <div className={styles.legend}>
+        <span><i className={styles.lineHard} />SQUARE · OPPOSITION</span>
+        <span><i className={styles.lineSoft} />TRINE · SEXTILE</span>
+        <span><i className={styles.dotSel} />SELECTED</span>
+        <span><i className={styles.deltaMark}>Δ</i>OFFSET ARC</span>
       </div>
-
-      <footer className={styles.footer}>TWO SYSTEMS. ONE DIVERGENCE. · Δ {dms(ayanamsa)} LAHIRI</footer>
     </div>
   )
 }

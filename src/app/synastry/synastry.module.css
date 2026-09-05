@@ -189,15 +189,50 @@
   align-items: start;
   padding-top: 32px;
 }
-.wheelCol { min-width: 0; }
+.wheelCol {
+  min-width: 0;
+  border: 1px solid var(--hairline-strong);
+  padding: 20px clamp(14px, 2vw, 24px) 22px;
+}
+.wheelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 16px;
+}
+.wheelHeadLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
 .wheelLabel {
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.14em;
   color: var(--text);
-  margin: 0 0 8px;
+  margin: 0;
 }
+
+/* Per-chart stat row — what the design puts under each synastry wheel. */
+.wheelStats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 18px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  line-height: 1.7;
+  color: var(--text);
+}
+.wheelStats > span:nth-child(odd) { color: var(--text-3); white-space: nowrap; }
 
 /* ── Footer actions ────────────────────────────────── */
 .actions {
