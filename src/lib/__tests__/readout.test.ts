@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import type { ChartData, DualChartData, PlanetPosition, BirthData } from '../astro-calc'
-import { buildReadoutRows, buildFlips, countBodies, dms, lonStr } from '../readout'
+import { buildReadoutRows, buildFlips, countBodies, dms, lonStr, ZODIAC_GLYPHS } from '../readout'
 
 const SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -92,5 +92,12 @@ describe('formatting', () => {
 
   it('renders a longitude as degree-in-sign plus the sign glyph', () => {
     expect(lonStr(125)).toBe('5°00′ ♌︎')
+  })
+
+  it('rolls a near-boundary longitude into the next sign instead of printing 30°00′', () => {
+    // 59.996° rounds to 60.0° → must read 0°00′ Gemini, never "30°00′ Taurus".
+    expect(lonStr(59.996)).toBe('0°00′ ' + ZODIAC_GLYPHS[2])
+    // Wrap-around at 360°: rolls into 0°00′ Aries, not 30°00′ Pisces.
+    expect(lonStr(359.996)).toBe('0°00′ ' + ZODIAC_GLYPHS[0])
   })
 })

@@ -266,9 +266,13 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     setStreamingTab(sec)
 
     const sectionsToFetch = PLANET_SECTIONS[sec]
+    // Key section states by `${sec}:${planetSec}` — planetSection names collide
+    // across tabs (sun/moon/… exist in both tropical and sidereal), so a bare key
+    // would let one tab's progress overwrite another's. Merge (don't replace) so
+    // an already-completed tab keeps its rail state as the chain advances.
     const initialStates: Record<string, PlanetSectionState> = {}
-    for (const s of sectionsToFetch) initialStates[s] = 'pending'
-    setSectionStates(initialStates)
+    for (const s of sectionsToFetch) initialStates[`${sec}:${s}`] = 'pending'
+    setSectionStates(prev => ({ ...prev, ...initialStates }))
     setActivePlanetSection(null)
     setLiveStatus(`Starting ${sec} reading`)
     capture('reading_start', { section: sec, section_count: sectionsToFetch.length })
@@ -279,7 +283,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       for (const planetSec of sectionsToFetch) {
         if (signal.aborted) break
 
-        setSectionStates(prev => ({ ...prev, [planetSec]: 'loading' }))
+        setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'loading' }))
         setActivePlanetSection(planetSec)
         setLiveStatus(`Loading ${SECTION_DISPLAY[planetSec] ?? planetSec}`)
 
@@ -367,7 +371,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
         if (!sectionSuccess) {
           capture('reading_section_failed', { section: sec, planet_section: planetSec, error: lastError })
-          setSectionStates(prev => ({ ...prev, [planetSec]: 'failed' }))
+          setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'failed' }))
           setLiveStatus(`${SECTION_DISPLAY[planetSec] ?? planetSec} failed to load`)
           setPlanetSectionErrors(prev => ({ ...prev, [`${sec}:${planetSec}`]: lastError }))
           accumulatedText += `\n\n[AXIS_FAILED:${planetSec}]\n\n`
@@ -375,7 +379,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           continue
         }
 
-        setSectionStates(prev => ({ ...prev, [planetSec]: 'done' }))
+        setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'done' }))
         accumulatedText += sectionText + '\n\n'
         setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
       }
@@ -764,8 +768,8 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               <div className={styles.railHead}>SECTIONS</div>
               <div className={styles.railList}>
                 {frameSections.map(key => (
-                  <span key={key} className={railState(key)}>
-                    {(sectionStates[key] === 'loading' ? '● ' : '')}
+                  <span key={key} className={railState(`${frame}:${key}`)}>
+                    {(sectionStates[`${frame}:${key}`] === 'loading' ? '● ' : '')}
                     {(SECTION_DISPLAY[key] ?? key).toUpperCase()}
                   </span>
                 ))}
@@ -823,8 +827,8 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               <div className={styles.railHead}>MOVEMENTS</div>
               <div className={styles.railListSingle}>
                 {DIVERGENCE_MOVEMENTS.map(m => (
-                  <span key={m.key} className={railState(m.key)}>
-                    {(sectionStates[m.key] === 'loading' ? '● ' : '')}{m.label}
+                  <span key={m.key} className={railState(`synthesis:${m.key}`)}>
+                    {(sectionStates[`synthesis:${m.key}`] === 'loading' ? '● ' : '')}{m.label}
                   </span>
                 ))}
               </div>
