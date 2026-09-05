@@ -26,10 +26,8 @@
   display: flex;
   align-items: baseline;
   gap: 1rem;
-  padding: 0.7rem 1rem;
-  background: rgba(184, 115, 51, 0.06);
-  border: 1px solid rgba(184, 115, 51, 0.18);
-  border-radius: 4px;
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--hairline);
   margin-bottom: 1.6rem;
   flex-wrap: wrap;
 }
@@ -86,8 +84,14 @@
 }
 
 .sym_harmonious { color: var(--copper-light); }
-.sym_tense      { color: var(--fg-3); }
-.sym_neutral    { color: var(--copper); }
+.sym_tense      { color: var(--violet-light); }
+.sym_neutral    { color: var(--fg); }
+
+/* Group left-rule keys the whole group by harmony (color-scheme doctrine:
+   copper = harmonious, violet = tense, white = conjunction/neutral). */
+.row_harmonious { border-left: 2px solid var(--copper); padding-left: 10px; }
+.row_tense      { border-left: 2px solid var(--violet); padding-left: 10px; }
+.row_neutral    { border-left: 2px solid rgba(234, 232, 248, 0.5); padding-left: 10px; }
 
 .groupLabel {
   font-family: var(--font-display);
@@ -136,8 +140,8 @@
 }
 
 .glyph_harmonious { color: var(--copper-light); }
-.glyph_tense      { color: var(--fg-3); }
-.glyph_neutral    { color: var(--copper); }
+.glyph_tense      { color: var(--violet-light); }
+.glyph_neutral    { color: var(--fg); }
 
 .orb {
   font-family: var(--font-display);
@@ -145,4 +149,13 @@
   letter-spacing: 0.04em;
   color: var(--fg-4);
   text-align: right;
+}
+
+.legend {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+  margin-top: 1.4rem;
+  line-height: 1.9;
 }

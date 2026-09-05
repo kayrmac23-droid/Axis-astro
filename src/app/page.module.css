@@ -204,7 +204,8 @@
 }
 
 .premiseRuleAxis {
-  background: linear-gradient(to right, var(--copper), var(--cyan));
+  /* The Divergence rule is copper (identity), not cyan — cyan is live-only. */
+  background: linear-gradient(to right, var(--copper), var(--violet));
 }
 
 .premiseSystem {
@@ -362,134 +363,42 @@
   cursor: not-allowed;
 }
 
-/* ─── Loading — calibration ritual ────────────────────
-   Not a generic spinner (DESIGN.md: Loading state). A thin
-   aligning orbital marker plus five named stages: done in
-   copper, the live stage in cyan, pending dim. */
+/* ─── Loading ─────────────────────────────────────── */
 .loadingState {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem;
+  gap: 2rem;
   padding: 7rem 2rem;
-  width: 100%;
-  max-width: 960px;
   animation: fadeIn 0.4s ease;
 }
 
-.ritual {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2.25rem;
-  width: 100%;
-  max-width: 480px;
-  padding: 0 1.5rem;
-}
-
-.ritualLabel {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--copper-bright);
-}
-
-.ritualOrb {
+.loadingOrb {
   position: relative;
-  width: 84px;
-  height: 84px;
-}
-.ritualOrb::before {
-  content: '';
-  position: absolute;
-  inset: 0;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid var(--border-2);
+  border-top-color: var(--copper);
+  animation: spin 2.5s linear infinite;
 }
-.ritualOrb::after {
+
+.loadingOrb::after {
   content: '';
   position: absolute;
-  inset: 12px;
+  inset: 11px;
   border-radius: 50%;
-  border: 1px dashed var(--copper-bright);
-  animation: spin 9s linear infinite;
-}
-.ritualHand {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 14px;
-  background: var(--cyan);
-  transform-origin: 0 42px;
-  animation: spin 2.6s linear infinite;
-}
-.ritualCore {
-  position: absolute;
-  inset: 36px;
-  border-radius: 50%;
-  background: var(--copper-light);
+  border: 1px solid rgba(138, 94, 20, 0.12);
+  border-bottom-color: rgba(138, 94, 20, 0.4);
+  animation: spin 1.5s linear infinite reverse;
 }
 
-.ritualList {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.stageRow {
-  display: grid;
-  grid-template-columns: 1.8rem 1fr auto;
-  gap: 1rem;
-  align-items: baseline;
-  padding: 0.85rem 0;
-  border-top: 1px solid var(--border);
-}
-.stageRow:last-child { border-bottom: 1px solid var(--border); }
-
-.stageNum {
-  font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.1em;
-  color: var(--fg-4);
-}
-.stageLabel {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
+.loadingText {
+  font-family: var(--font-display);
+  font-size: 0.54rem;
+  letter-spacing: 0.42em;
+  color: var(--fg-3);
   text-transform: uppercase;
-  color: var(--fg-4);
-  transition: color 0.4s ease;
-}
-.stageState {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-align: right;
-  color: var(--fg-4);
-}
-
-.stageDone { border-top-color: var(--copper); }
-.stageDone .stageNum,
-.stageDone .stageLabel { color: var(--fg); }
-.stageDone .stageState { color: var(--copper); }
-
-.stageLive { border-top-color: var(--cyan); }
-.stageLive .stageNum,
-.stageLive .stageLabel { color: var(--fg); }
-.stageLive .stageState { color: var(--cyan); animation: chipPulse 1.4s ease-in-out infinite; }
-
-@keyframes chipPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ritualOrb::after,
-  .ritualHand,
-  .stageLive .stageState { animation: none; }
 }
 
 /* ─── Reading Layout ──────────────────────────────── */

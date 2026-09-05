@@ -1,276 +1,180 @@
-/* AXIS calibration panel — the birth-data form styled as a precision
-   instrument input console. Bordered notation boxes for each field,
-   outlined cast button, // AWAITING INPUT vs // READY status indicator. */
-
+/* AXIS calibration form — rules-not-cards. Rows sit between hairlines, mono
+   chrome throughout, cyan reserved for form-state feedback (focus, AM/PM
+   active, time colon, "✓ SET", the completion status). */
 .form {
+  font-family: var(--font-mono);
   display: flex;
   flex-direction: column;
-  gap: 1.6rem;
-  width: 100%;
-}
-
-/* ── Calibration header ───────────────────────────────────────────── */
-
-.calibrationHeader {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.2rem;
-}
-
-.calibrationLabel {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.7rem;
-  letter-spacing: 0.3em;
-  color: var(--copper);
-  text-transform: uppercase;
-  flex-shrink: 0;
-}
-
-.calibrationRule {
-  flex: 1;
-  border: none;
-  border-top: 1px solid var(--copper-border);
   margin: 0;
+  min-width: 0;
 }
 
-.calibrationIntro {
-  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
-  font-size: 1.05rem;
-  font-style: italic;
-  font-weight: 400;
-  line-height: 1.65;
-  color: var(--fg-2);
-  margin-bottom: 0.6rem;
-  max-width: 32rem;
-}
-
-/* ── Field group ──────────────────────────────────────────────────── */
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  border: none;
-  padding: 0;
-  margin: 0;
-}
-
-.label {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.7rem;
-  letter-spacing: 0.24em;
-  color: var(--copper);
-  text-transform: uppercase;
-  padding: 0;
-}
-
-.row {
-  display: flex;
+/* ── Form rows ─────────────────────────────────────── */
+.formRow {
+  display: grid;
+  grid-template-columns: minmax(110px, 160px) minmax(0, 1fr);
+  gap: 24px;
   align-items: center;
-  gap: 0.5rem;
+  padding: 22px 0;
+  border-top: 1px solid var(--hairline-strong);
+}
+.formRowTop { align-items: start; }
+.formRowLast { border-bottom: 1px solid var(--hairline-strong); }
+
+.rowLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text);
+}
+.rowLabelTime { padding-top: 14px; }
+
+.rowField {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.3s ease;
 }
 
-.fieldNote {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  color: var(--fg-4);
-  text-transform: uppercase;
-  margin-top: 0.15rem;
-}
-
-/* ── Notation box (the bordered field container) ──────────────────── */
-
-.notationBox {
-  border: 1px solid var(--copper-dim);
-  background: rgba(20, 20, 24, 0.55);
-  padding: 0;
-  display: flex;
-  align-items: stretch;
-  transition: border-color 0.18s ease;
-  flex: 0 0 auto;
-  width: 4.5rem;
-}
-
-.notationBox:focus-within {
-  border-color: var(--copper);
-}
-
-.notationBoxWide {
-  width: 6rem;
-}
-
-.notationBoxFull {
-  flex: 1;
-  width: 100%;
-}
-
-.notationBoxDisabled {
-  opacity: 0.4;
-  pointer-events: none;
-}
-
-.notationInput {
-  width: 100%;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 0.65rem 0.7rem;
-  color: var(--fg);
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.95rem;
-  letter-spacing: 0.08em;
+/* ── Numeric inputs ────────────────────────────────── */
+.numInput {
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  width: 72px;
+  padding: 12px 0;
   text-align: center;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  outline: none;
+  border-radius: 0;
 }
-
-.notationInput::placeholder {
-  color: rgba(233, 231, 242, 0.5);
-  letter-spacing: 0.15em;
+.numInputWide { width: 96px; }
+.numInput::placeholder { color: var(--text-4); }
+.numInput:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan-ring);
 }
+.numInput:disabled { cursor: not-allowed; }
 
-.notationInput[type="text"] {
-  text-align: left;
-  letter-spacing: 0.04em;
+.sep { color: var(--text-4); }
+.colon { color: var(--copper-bright); font-size: 16px; }
+
+.rowStatus {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  margin-left: 12px;
+  color: var(--text-4);
 }
+.rowStatusLive { color: var(--cyan); }
 
-/* Remove number-input spinners */
-.notationInput[type="number"]::-webkit-inner-spin-button,
-.notationInput[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.notationInput[type="number"] {
-  -moz-appearance: textfield;
-}
-
-/* ── Time separator + AM/PM ───────────────────────────────────────── */
-
-.timeSeparator {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 1.1rem;
-  color: var(--copper);
-  padding: 0 0.2rem;
+/* ── Time / AM-PM ──────────────────────────────────── */
+.timeStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .ampmGroup {
   display: inline-flex;
-  border: 1px solid var(--copper-dim);
-  background: rgba(20, 20, 24, 0.55);
-  margin-left: 0.4rem;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  margin-left: 8px;
 }
-
 .ampmButton {
-  background: transparent;
+  background: none;
   border: none;
-  padding: 0.65rem 0.85rem;
-  color: var(--fg-3);
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
+  border-right: 1px solid var(--border-2);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  transition: color 0.18s ease, background 0.18s ease;
+  color: var(--text-3);
 }
+.ampmButton:last-child { border-right: none; }
+.ampmButton:disabled { cursor: not-allowed; }
+.ampmButtonActive { color: var(--cyan); }
 
-.ampmButton:hover:not(:disabled) {
-  color: var(--copper-light);
-}
-
-.ampmButtonActive {
-  color: var(--fg);
-  background: var(--copper-subtle);
-}
-
-.ampmButton:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ── Checkbox row ─────────────────────────────────────────────────── */
-
-.checkboxRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  margin-top: 0.5rem;
+/* ── Birth-time-unknown card ───────────────────────── */
+.unknownCard {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border: 1px solid var(--hairline);
+  background: none;
   cursor: pointer;
-  user-select: none;
+  text-align: left;
+  color: inherit;
+  transition: border-color 150ms ease;
 }
+.unknownCard:hover { border-color: rgba(216, 148, 85, 0.5); }
 
-.checkbox {
-  appearance: none;
-  -webkit-appearance: none;
+.unknownBox {
   width: 14px;
   height: 14px;
-  border: 1px solid var(--copper-dim);
-  background: rgba(20, 20, 24, 0.55);
-  cursor: pointer;
-  position: relative;
-  flex-shrink: 0;
-  margin-top: 0.15rem;
-  transition: border-color 0.18s ease, background 0.18s ease;
+  border: 1px solid var(--copper-bright);
+  margin-top: 3px;
+  background: transparent;
 }
+.unknownBoxOn { background: var(--copper-bright); }
 
-.checkbox:hover {
-  border-color: var(--copper);
+.unknownTitle {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text);
 }
-
-.checkbox:checked {
-  background: var(--copper);
-  border-color: var(--copper);
-}
-
-.checkbox:checked::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0;
-  width: 5px;
-  height: 9px;
-  border: solid var(--void);
-  border-width: 0 1.5px 1.5px 0;
-  transform: rotate(45deg);
-}
-
-.checkboxLabel {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.65rem;
-  letter-spacing: 0.18em;
-  color: var(--fg-2);
-  text-transform: uppercase;
-  line-height: 1.5;
-}
-
-.checkboxNote {
-  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
-  font-style: italic;
-  font-size: 0.9rem;
-  font-weight: 400;
+.unknownDesc {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 16px;
   line-height: 1.55;
-  color: var(--fg-3);
-  margin-top: 0.4rem;
-  padding-left: 1.7rem;
-  max-width: 30rem;
+  color: var(--text-2);
+  margin-top: 4px;
 }
 
-/* ── Location autocomplete ────────────────────────────────────────── */
+/* ── Place ─────────────────────────────────────────── */
+.placeWrap { position: relative; }
 
-.locationWrapper {
-  position: relative;
+.placeInput {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-2);
+  background: var(--surface-1);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  outline: none;
+  border-radius: 0;
+}
+.placeInput::placeholder { color: var(--text-4); }
+.placeInput:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan-ring);
 }
 
-.locationLoading {
+.placeMeta {
   position: absolute;
-  right: 0.8rem;
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.55rem;
-  letter-spacing: 0.2em;
-  color: var(--fg-4);
-  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
   pointer-events: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suggestionList {
@@ -278,111 +182,93 @@
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 30;
-  list-style: none;
+  z-index: 5;
   margin: 0;
   padding: 0;
+  list-style: none;
   border: 1px solid var(--copper-border);
-  background: rgba(20, 20, 24, 0.98);
-  max-height: 240px;
+  background: var(--surface-1);
+  max-height: 260px;
   overflow-y: auto;
 }
-
 .suggestionItem {
-  padding: 0.65rem 0.85rem;
-  cursor: pointer;
-  font-family: var(--font-editorial, 'Cormorant Garamond', serif);
-  font-size: 0.95rem;
-  font-weight: 400;
-  color: var(--fg-2);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
   border-bottom: 1px solid var(--border);
-  transition: background 0.12s ease, color 0.12s ease;
+  padding: 11px 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+  cursor: pointer;
 }
-
-.suggestionItem:last-child {
-  border-bottom: none;
-}
-
-.suggestionItem:hover,
+.suggestionItem:last-child { border-bottom: none; }
 .suggestionItemActive {
-  background: var(--copper-subtle);
-  color: var(--fg);
+  background: rgba(184, 115, 51, 0.10);
+  color: var(--text);
 }
+.suggestName { overflow: hidden; text-overflow: ellipsis; }
+.suggestCoords { color: var(--text-4); white-space: nowrap; }
 
-/* ── Inline validation error ──────────────────────────────────────── */
-
+/* ── Footer / submit ───────────────────────────────── */
 .submitError {
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.62rem;
-  letter-spacing: 0.18em;
-  color: #e07070;
-  text-transform: uppercase;
-  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--danger-text);
+  margin: 16px 0 0;
 }
 
-/* ── Submit button ────────────────────────────────────────────────── */
+.formFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 28px;
+}
+
+.formStatus {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+}
+.formStatusLive { color: var(--cyan); }
 
 .submitBtn {
-  position: relative;
-  overflow: hidden;
-  width: auto;
-  min-width: 17rem;
-  align-self: flex-start;
-  padding: 1rem 1.7rem;
-  background: var(--copper);
-  border: 1px solid var(--copper);
-  color: var(--bg);
-  font-family: var(--font-mono, 'Space Mono', monospace);
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  background: var(--copper);
+  color: var(--void);
+  padding: 16px 28px;
+  min-width: 272px;
+  text-align: center;
+  border: 1px solid var(--copper);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 150ms ease, border-color 150ms ease, opacity 0.3s ease;
 }
+.submitBtn:hover:not(:disabled) { background: var(--copper-bright); border-color: var(--copper-bright); }
+.submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.submitBtn:hover:not(:disabled) {
-  background: var(--copper-bright);
-  border-color: var(--copper-bright);
-}
-
-/* No opacity/filter: the button holds full --copper (#B87333) to match the
-   hero CTA. Submission is still guarded by the `disabled` attribute + inline
-   validation; the not-allowed cursor signals the pre-valid state. */
-.submitBtn:disabled {
-  cursor: not-allowed;
-}
-
-.btnLoading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
+.btnLoading { display: inline-flex; align-items: center; gap: 10px; }
 .btnSpinner {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--copper-dim);
-  border-top-color: var(--copper-bright);
-  border-radius: 0;
-  animation: spin 0.8s linear infinite;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid rgba(2, 3, 10, 0.4);
+  border-top-color: var(--void);
+  border-radius: 50%;
+  animation: axSpin 0.7s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Mobile ───────────────────────────────────────────────────────── */
-
-@media (max-width: 560px) {
-  .row {
-    gap: 0.4rem;
-  }
-  .notationBox { width: 3.6rem; }
-  .notationBoxWide { width: 5rem; }
-  /* Place-of-birth field spans the form column — the 3.6rem rule above must
-     not shrink it to a DD box (which truncated its placeholder to "Cit"). */
-  .notationBoxFull { width: 100%; }
-  .ampmGroup { margin-left: 0; margin-top: 0.5rem; }
-  .submitBtn { width: 100%; min-width: 0; align-self: stretch; }
+/* ── Responsive · 760px ────────────────────────────── */
+@media (max-width: 760px) {
+  .formRow { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .submitBtn { min-width: 0; width: 100%; }
 }

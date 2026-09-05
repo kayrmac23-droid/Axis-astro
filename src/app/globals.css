@@ -19,8 +19,10 @@
   --surface-3: #1A171B;
 
   /* Raised surface behind long-form reading prose only (DOCTRINE.md:
-     READING SURFACE EXCEPTION) — chrome and the wheel stay on the void. */
-  --reading-surface: #061230;
+     READING SURFACE EXCEPTION) — chrome and the wheel stay on the void.
+     The navy band (#061230) was retired in the color-scheme update: prose
+     bands now carry no colour and sit on the neutral lifted surface. */
+  --reading-surface: #0C0B0E;
 
   /* ── Borders ──────────────────────────────────────── */
   --border:        #1A1940;
@@ -55,10 +57,27 @@
   --copper-subtle: rgba(184, 115, 51, 0.10);
   --copper-border: rgba(184, 115, 51, 0.28);
 
-  /* ── Cyan accent ──────────────────────────────────── */
-  --cyan:      #2CC8C0;
-  --cyan-dim:  #0A4845;
-  --cyan-glow: rgba(44, 200, 192, 0.15);
+  /* ── Cyan accent — LIVE / SELECTED / NOW only ─────── */
+  /* Doctrine: cyan means "this is happening now" or "this is selected" —
+     active frame toggle, selected body, streaming cursor, running stage,
+     active nav item, and all form-state feedback. It is NOT a brand colour
+     and must never appear on static chrome. See the redesign handoff. */
+  --cyan:       #2CC8C0;
+  --cyan-dim:   #0A4845;
+  --cyan-glow:  rgba(44, 200, 192, 0.15);
+  --cyan-ring:  rgba(44, 200, 192, 0.25);  /* focus ring */
+  --cyan-tint:  rgba(44, 200, 192, 0.06);  /* selected table row wash */
+
+  /* ── Copper family (redesign aliases) ─────────────── */
+  /* --copper #B87333 fill/rules · --copper-bright #D89455 kicker/link/hover ·
+     --copper-light #F0B978 non-live emphasis values · --copper-dim #5A2F18
+     pill border. Redesign-named handles onto the existing values. */
+  --copper-emphasis: #F0B978;   /* = --copper-light: Δ values, sign-shift markers */
+  --copper-kicker:   #D89455;   /* = --copper-bright: kickers, links */
+
+  /* ── Hairlines on the void (redesign) ─────────────── */
+  --hairline:        rgba(234, 232, 248, 0.08);
+  --hairline-strong: rgba(234, 232, 248, 0.14);
 
   /* ── Violet accent ────────────────────────────────── */
   --violet:       #7844FF;
@@ -126,6 +145,11 @@
   --s-8:  2rem;
   --s-10: 2.5rem;
   --s-12: 3rem;
+
+  /* ── Layout constants (redesign) ──────────────────── */
+  --page-max: 1360px;
+  --page-pad: clamp(20px, 5vw, 56px);
+  --grid-gap: 48px;
 
   /* ── Radius tokens ────────────────────────────────── */
   --r-none:   0;
@@ -261,3 +285,22 @@ p {
 
 .animate-fadeIn { animation: fadeIn 0.6s ease forwards; }
 .animate-fadeUp { animation: fadeUp 0.8s ease forwards; }
+
+/* ── Redesign motion — transforms + opacity only, no bounces ─────────── */
+@keyframes axRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes axBlink { 0%, 100% { opacity: 0.85; } 50% { opacity: 0; } }
+@keyframes axPulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+@keyframes axSpin  { to { transform: rotate(360deg); } }
+@keyframes axTw    { 0%, 100% { opacity: 0.15; } 50% { opacity: 0.85; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

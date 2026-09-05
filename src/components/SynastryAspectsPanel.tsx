@@ -56,7 +56,7 @@ export default function SynastryAspectsPanel({ data }: Props) {
 
   return (
     <section className={styles.panel}>
-      <p className={styles.panelLabel}>Synastry aspects</p>
+      <p className={styles.panelLabel}>Inter-chart aspects</p>
 
       <div className={styles.compositeBar}>
         <span className={styles.compositeLabel}>Composite</span>
@@ -98,6 +98,12 @@ export default function SynastryAspectsPanel({ data }: Props) {
           </div>
         </div>
       ))}
+
+      {groups.length > 0 && (
+        <p className={styles.legend}>
+          COPPER · HARMONIOUS&nbsp;&nbsp;VIOLET · TENSE&nbsp;&nbsp;WHITE · CONJUNCTION, READ BY THE BODIES INVOLVED
+        </p>
+      )}
     </section>
   )
 }

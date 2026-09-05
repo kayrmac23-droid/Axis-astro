@@ -49,19 +49,22 @@
 .wheel { width: min(72vh, 620px); max-width: 100%; display: block; }
 
 /* Frame control sits ABOVE the wheel (DESIGN.md: control close to the wheel).
-   Active state is cyan; the offset chip stays copper. */
+   The caption is gone with the rest of the prototype chrome. Active frame =
+   the live frame: cyan text + cyan underline. Cyan is reserved for the
+   "happening now / selected" role (color-scheme doctrine). Mono chrome sits
+   at the 11px floor; only wheel tick annotations go smaller. */
 .frameToggle { position: relative; display: flex; align-items: center; gap: 30px; border: 1px solid var(--hair2); padding: 12px 26px; margin-bottom: 6px; }
 .tbtn { font-size: 12px; font-weight: 700; letter-spacing: 3px; padding: 2px 1px; transition: color .5s; }
 .tbtnOn { color: var(--cyan); }
 .delta { text-align: center; min-width: 150px; }
 .deltaVal { font-family: var(--mono); font-size: 13px; letter-spacing: 1.5px; color: var(--copper-light); }
 .dsub { font-family: var(--mono); font-size: 11px; letter-spacing: 1px; color: var(--dim2); margin-top: 4px; }
-.slider { position: absolute; bottom: -1px; height: 1.5px; background: var(--cyan); transition-property: left, width; transition-timing-function: cubic-bezier(.65, 0, .35, 1); }
+.slider { position: absolute; bottom: -1px; height: 2px; background: var(--cyan); transition-property: left, width; transition-timing-function: cubic-bezier(.65, 0, .35, 1); }
 
 .status { font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px; color: var(--dim2); margin: 0 0 14px; min-height: 14px; }
-.status b { color: var(--cyan); font-weight: 400; }
+.frameLive { color: var(--cyan); }
 
-.callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--cyan); padding: 11px 15px; font-family: var(--mono); font-size: 11px; letter-spacing: .8px; line-height: 1.9; color: var(--dim); background: rgba(6, 18, 48, .9); max-width: 280px; z-index: 3; }
+.callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--cyan); padding: 11px 15px; font-family: var(--mono); font-size: 11px; letter-spacing: .8px; line-height: 1.9; color: var(--dim); background: rgba(12, 11, 14, .92); max-width: 280px; z-index: 3; }
 .cname { color: var(--cyan); letter-spacing: 1.6px; font-weight: 700; }
 .cverdict { color: var(--copper-light); }
 .calloutClose { position: absolute; top: 4px; right: 8px; font-size: 12px; line-height: 1; color: var(--dim2); }
@@ -92,12 +95,15 @@
 .table[data-frame="tropical"] .cs, .table[data-frame="tropical"] .thCs { opacity: .55; }
 .table[data-frame="sidereal"] .ct, .table[data-frame="sidereal"] .thCt { opacity: .55; }
 .table[data-frame="sidereal"] .cs, .table[data-frame="sidereal"] .thCs { opacity: .95; }
+/* Active frame's column header is cyan too — the live column. */
 .table[data-frame="tropical"] .thCt { color: var(--cyan); }
 .table[data-frame="sidereal"] .thCs { color: var(--cyan); }
-/* Selected row gains a cyan keyline, not a saturated fill (DESIGN.md). */
-.rowSel td { border-bottom-color: rgba(44, 200, 192, .5); }
-.rowSel td:first-child { box-shadow: inset 2px 0 0 var(--cyan); }
+/* Selected body = live selection: 2px cyan left key + faint cyan wash. */
+.rowSel td { background: var(--cyan-tint); }
+.rowSel td:first-child { border-left: 2px solid var(--cyan); }
 .rowClickable { cursor: pointer; }
+.rowClickable:hover td { background: rgba(234, 232, 248, .03); }
+.rowSel:hover td { background: var(--cyan-tint); }
 
 .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .8px; color: var(--dim2); margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hair2); }
 .legendItem { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }

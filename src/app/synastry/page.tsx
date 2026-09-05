@@ -2,11 +2,30 @@
 import { useState, useRef } from 'react'
 import BirthForm from '@/components/BirthForm'
 import FrameShiftWheel from '@/components/FrameShiftWheel'
-import AstrolabeDecor from '@/components/AstrolabeDecor'
 import SynastryAspectsPanel from '@/components/SynastryAspectsPanel'
 import SynastryReadingPanel from '@/components/SynastryReadingPanel'
+import ComputationInterstitial from '@/components/ComputationInterstitial'
 import { SynastryData } from '@/lib/synastry-calc'
-import styles from '../page.module.css'
+import styles from './synastry.module.css'
+
+const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+
+function castLine(f: Record<string, string> | null): string {
+  if (!f) return ''
+  const mi = Math.min(11, Math.max(0, (parseInt(f.month, 10) || 1) - 1))
+  const place = (f.location || '').toUpperCase()
+  const unknown = f.birthTimeUnknown === 'true'
+  let time = 'TIME UNKNOWN'
+  if (!unknown) {
+    const h24 = parseInt(f.hour, 10)
+    if (!isNaN(h24)) {
+      const isPM = h24 >= 12
+      const h = h24 % 12 || 12
+      time = `${String(h).padStart(2, '0')}:${String(f.minute || '00').padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
+    }
+  }
+  return [place, `${parseInt(f.day, 10) || 1} ${MON[mi]} ${f.year}`, time].filter(Boolean).join(' · ')
+}
 
 export default function SynastryPage() {
   const [synastryData, setSynastryData] = useState<SynastryData | null>(null)
@@ -47,141 +66,116 @@ export default function SynastryPage() {
     }
   }
 
+  const setCount = [personAData, personBData].filter(Boolean).length
+  const bothSet = setCount === 2
+  const statusText = bothSet
+    ? '// BOTH CHARTS SET · READY'
+    : `// ${setCount} OF 2 SET · AWAITING PERSON ${!personAData ? 'A' : 'B'}`
+  const calcLabel = !personAData ? 'SET PERSON A FIRST' : !personBData ? 'SET PERSON B FIRST' : 'CALCULATE SYNASTRY'
+
+  const reset = () => {
+    setSynastryData(null); setPersonAData(null)
+    setPersonBData(null); setSynastryError(null)
+    setFrameA('tropical'); setFrameB('tropical')
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+
+  if (synastryLoading) {
+    return (
+      <ComputationInterstitial
+        variant="synastry"
+        ayanamsa="24°13′"
+        line={`${(personAData?.location || '').toUpperCase()} × ${(personBData?.location || '').toUpperCase()} · TWO CHARTS · BOTH FRAMES`}
+      />
+    )
+  }
+
   return (
     <main className={styles.main}>
-      {/* Synastry hero */}
       {!synastryData && (
-        <section className={styles.hero}>
-          <div className={styles.heroLeft}>
-            <p className={styles.heroEyebrow}>Synastry reading</p>
-            <h2 className={styles.heroHeadline}>
-              Two charts.<br />
-              <span className={styles.heroAccent}>One field.</span>
-            </h2>
-          </div>
-          <div className={styles.heroCenter}>
-            <AstrolabeDecor />
-          </div>
-          <div className={styles.heroRight}>
-            <p className={styles.heroBody}>
-              Synastry maps the live field between two charts —
-              the aspects, the composite entity, and what each person
-              activates in the other.
-            </p>
-            <p className={styles.heroDetail}>
-              Inter-chart aspects · Composite chart · Relationship reading
-            </p>
-          </div>
-        </section>
-      )}
-
-      {/* Dual birth forms */}
-      {!synastryData && (
-        <section className={styles.synastryForms}>
-          <div className={styles.synastryFormSlot}>
-            <div className={styles.synastryPersonLabel}>
-              <span className={styles.synastryPersonTag}>A</span>
-              <span className={styles.synastryPersonTitle}>Person A</span>
-              {personAData && <span className={styles.synastryPersonSet}>✓ Set</span>}
+        <>
+          {/* Hero */}
+          <section className={styles.hero}>
+            <div>
+              <div className={styles.kicker}>{'// SYNASTRY'}</div>
+              <h1 className={styles.h1}>Two charts. One field.</h1>
             </div>
-            <BirthForm
-              onSubmit={data => setPersonAData(data)}
-              loading={false}
-              submitLabel="Set Person A"
-            />
-          </div>
-          <div className={styles.synastryFormSlot}>
-            <div className={styles.synastryPersonLabel}>
-              <span className={styles.synastryPersonTag}>B</span>
-              <span className={styles.synastryPersonTitle}>Person B</span>
-              {personBData && <span className={styles.synastryPersonSet}>✓ Set</span>}
-            </div>
-            <BirthForm
-              onSubmit={data => setPersonBData(data)}
-              loading={false}
-              submitLabel="Set Person B"
-            />
-          </div>
-        </section>
-      )}
-
-      {/* Calculate synastry button */}
-      {!synastryData && (personAData || personBData) && (
-        <div className={styles.synastryCalcRow}>
-          {synastryError && (
-            <p className={styles.calcErrorMsg}>{synastryError}</p>
-          )}
-          <button
-            className={styles.submitBtn}
-            disabled={!personAData || !personBData || synastryLoading}
-            onClick={handleCalculateSynastry}
-          >
-            {synastryLoading ? (
-              <span className={styles.btnLoading}>
-                <span className={styles.btnSpinner} />
-                Calculating
-              </span>
-            ) : (
-              !personAData ? 'Set Person A first'
-              : !personBData ? 'Set Person B first'
-              : 'Calculate Synastry'
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Synastry loading */}
-      {synastryLoading && (
-        <div className={styles.loadingState}>
-          <div className={styles.loadingOrb} />
-          <p className={styles.loadingText}>Calculating synastry</p>
-        </div>
-      )}
-
-      {/* Synastry results */}
-      {synastryData && (
-        <div className={styles.readingLayout} ref={readingRef}>
-          <section className={styles.wheelSection}>
-            <p className={styles.wheelSectionLabel}>Natal charts — both frames</p>
-            <div className={styles.synastryWheelBreakout}>
-              <div className={styles.synastryWheelStack}>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Person A</p>
-                  <FrameShiftWheel
-                    data={synastryData.personA}
-                    frame={frameA}
-                    onFrameChange={setFrameA}
-                  />
-                </div>
-                <div className={styles.wheelItem}>
-                  <p className={styles.wheelLabel}>Person B</p>
-                  <FrameShiftWheel
-                    data={synastryData.personB}
-                    frame={frameB}
-                    onFrameChange={setFrameB}
-                  />
-                </div>
-              </div>
+            <div>
+              <p className={styles.heroBody}>Synastry maps the live field between two charts: the inter-chart aspects, the composite entity, and what each person activates in the other. Both charts are cast in both frames.</p>
+              <div className={styles.heroDetail}>INTER-CHART ASPECTS · COMPOSITE CHART · RELATIONSHIP READING</div>
             </div>
           </section>
 
-          <SynastryAspectsPanel data={synastryData} />
+          {/* Person forms */}
+          <section className={styles.forms}>
+            {([
+              { tag: 'A', title: 'PERSON A', data: personAData, set: setPersonAData },
+              { tag: 'B', title: 'PERSON B', data: personBData, set: setPersonBData },
+            ] as const).map(p => (
+              <div key={p.tag} className={`${styles.personCol} ${p.data ? styles.personColSet : ''}`}>
+                <div className={styles.personHead}>
+                  <span className={styles.personTag}>{p.tag}</span>
+                  <span className={styles.personTitle}>{p.title}</span>
+                  <span className={`${styles.personStatus} ${p.data ? styles.personStatusSet : ''}`}>
+                    {p.data ? '✓ SET' : 'READY TO SET'}
+                  </span>
+                </div>
+                <BirthForm
+                  onSubmit={data => p.set(data)}
+                  loading={false}
+                  submitLabel={p.data ? `Person ${p.tag} set` : `Set person ${p.tag}`}
+                />
+              </div>
+            ))}
+          </section>
+
+          {/* Bottom status bar */}
+          <section className={styles.statusBar}>
+            <div className={styles.statusRow}>
+              {synastryError && <p className={styles.calcErrorMsg}>{synastryError}</p>}
+              <span className={`${styles.statusText} ${bothSet ? styles.statusTextLive : ''}`}>{statusText}</span>
+              <button className={styles.calcBtn} disabled={!bothSet} onClick={handleCalculateSynastry}>
+                {calcLabel}
+              </button>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Results */}
+      {synastryData && (
+        <div ref={readingRef}>
+          <div className={styles.results}>
+            <div className={styles.resultsHead}>
+              <div>
+                <div className={styles.kicker}>{'// SYNASTRY DOSSIER'}</div>
+                <h2 className={styles.resultsTitle}>Two natal charts, both frames</h2>
+              </div>
+              <div className={styles.resultsLines}>
+                <span className={styles.abTag}>A</span>&nbsp; {castLine(personAData)}<br />
+                <span className={styles.abTag}>B</span>&nbsp; {castLine(personBData)}
+              </div>
+            </div>
+
+            <div className={styles.wheelGrid}>
+              <div className={styles.wheelCol}>
+                <p className={styles.wheelLabel}>PERSON A</p>
+                <FrameShiftWheel data={synastryData.personA} frame={frameA} onFrameChange={setFrameA} />
+              </div>
+              <div className={styles.wheelCol}>
+                <p className={styles.wheelLabel}>PERSON B</p>
+                <FrameShiftWheel data={synastryData.personB} frame={frameB} onFrameChange={setFrameB} />
+              </div>
+            </div>
+
+            <SynastryAspectsPanel data={synastryData} />
+          </div>
+
           <SynastryReadingPanel synastryData={synastryData} />
 
-          <div className={styles.resetRow}>
-            <button className={styles.pdfBtn} onClick={() => window.print()}>
-              Download PDF
-            </button>
-            <button
-              className={styles.resetBtn}
-              onClick={() => {
-                setSynastryData(null); setPersonAData(null)
-                setPersonBData(null); setSynastryError(null)
-                setFrameA('tropical'); setFrameB('tropical')
-              }}
-            >
-              New synastry
-            </button>
+          <div className={styles.actions}>
+            <button className={styles.btnOutline} onClick={reset}>NEW SYNASTRY</button>
+            <button className={styles.btnGhost} onClick={() => window.print()}>SAVE DOSSIER · PDF</button>
           </div>
         </div>
       )}
