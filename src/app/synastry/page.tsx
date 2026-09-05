@@ -2,10 +2,12 @@
 import { useState, useRef } from 'react'
 import BirthForm from '@/components/BirthForm'
 import FrameShiftWheel from '@/components/FrameShiftWheel'
+import FrameControl from '@/components/FrameControl'
 import SynastryAspectsPanel from '@/components/SynastryAspectsPanel'
 import SynastryReadingPanel from '@/components/SynastryReadingPanel'
 import ComputationInterstitial from '@/components/ComputationInterstitial'
 import { SynastryData } from '@/lib/synastry-calc'
+import { buildReadoutRows, lonStr, dms } from '@/lib/readout'
 import styles from './synastry.module.css'
 
 const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
@@ -37,6 +39,10 @@ export default function SynastryPage() {
   // one frame per person so each chart can be shifted independently.
   const [frameA, setFrameA] = useState<'tropical' | 'sidereal'>('tropical')
   const [frameB, setFrameB] = useState<'tropical' | 'sidereal'>('tropical')
+  // One selected body per chart — the wheel highlights it and the card's
+  // stat row names it.
+  const [selA, setSelA] = useState<string | null>(null)
+  const [selB, setSelB] = useState<string | null>(null)
   const readingRef = useRef<HTMLDivElement>(null)
 
   const handleCalculateSynastry = async () => {
@@ -57,7 +63,12 @@ export default function SynastryPage() {
       const data: SynastryData = await res.json()
       setSynastryData(data)
       setTimeout(() => {
-        readingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        const el = readingRef.current
+        if (!el) return
+        // Explicit offset — the site header is sticky, so a plain
+        // scrollIntoView would tuck the dossier kicker underneath it.
+        const top = el.getBoundingClientRect().top + window.scrollY - 90
+        window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
       }, 300)
     } catch (err) {
       setSynastryError(err instanceof Error ? err.message : 'Synastry calculation failed. Please try again.')
@@ -77,6 +88,7 @@ export default function SynastryPage() {
     setSynastryData(null); setPersonAData(null)
     setPersonBData(null); setSynastryError(null)
     setFrameA('tropical'); setFrameB('tropical')
+    setSelA(null); setSelB(null)
     window.scrollTo({ top: 0, behavior: 'auto' })
   }
 
@@ -158,14 +170,54 @@ export default function SynastryPage() {
             </div>
 
             <div className={styles.wheelGrid}>
-              <div className={styles.wheelCol}>
-                <p className={styles.wheelLabel}>PERSON A</p>
-                <FrameShiftWheel data={synastryData.personA} frame={frameA} onFrameChange={setFrameA} />
-              </div>
-              <div className={styles.wheelCol}>
-                <p className={styles.wheelLabel}>PERSON B</p>
-                <FrameShiftWheel data={synastryData.personB} frame={frameB} onFrameChange={setFrameB} />
-              </div>
+              {([
+                { tag: 'A', title: 'PERSON A', data: synastryData.personA, frame: frameA, setFrame: setFrameA, sel: selA, setSel: setSelA },
+                { tag: 'B', title: 'PERSON B', data: synastryData.personB, frame: frameB, setFrame: setFrameB, sel: selB, setSel: setSelB },
+              ] as const).map(c => {
+                const rows = buildReadoutRows(c.data)
+                const row = (id: string) => rows.find(r => r.id === id)
+                const lon = (id: string) => {
+                  const r = row(id)
+                  if (!r) return '—'
+                  return lonStr(c.frame === 'sidereal' ? r.sLon : r.tLon)
+                }
+                const selRow = c.sel ? row(c.sel) : null
+                return (
+                  <div key={c.tag} className={styles.wheelCol}>
+                    <div className={styles.wheelHead}>
+                      <div className={styles.wheelHeadLeft}>
+                        <span className={styles.abTag}>{c.tag}</span>
+                        <span className={styles.wheelLabel}>{c.title}</span>
+                      </div>
+                      <FrameControl
+                        compact
+                        frame={c.frame}
+                        onFrameChange={c.setFrame}
+                        ayanamsa={dms(c.data.ayanamsa)}
+                        delta={dms(c.frame === 'sidereal' ? c.data.ayanamsa : 0)}
+                        label={`Frame — person ${c.tag}`}
+                      />
+                    </div>
+                    <FrameShiftWheel
+                      data={c.data}
+                      frame={c.frame}
+                      selected={c.sel}
+                      onSelect={c.setSel}
+                    />
+                    <div className={styles.wheelStats}>
+                      <span>FRAME</span><span>{c.frame.toUpperCase()}</span>
+                      <span>SUN · MOON · ASC</span>
+                      <span>{lon('sun')} · {lon('moon')} · {lon('asc')}</span>
+                      <span>SELECTED</span>
+                      <span>
+                        {selRow
+                          ? `${selRow.glyph ? selRow.glyph + ' ' : ''}${selRow.name} · ${lonStr(c.frame === 'sidereal' ? selRow.sLon : selRow.tLon)}`
+                          : 'NONE'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
             <SynastryAspectsPanel data={synastryData} />

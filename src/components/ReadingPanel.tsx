@@ -2,17 +2,16 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
-import { buildReadoutRows, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
+import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
 
 interface ReadingPanelProps {
   chartData: DualChartData
-  // When set, the panel shows a single system's reading, driven by the
-  // frame toggle (DOCTRINE.md amendment July 2026). The Divergence still
-  // renders full-width below, in every frame state. Omit for the legacy
-  // side-by-side layout.
-  frame?: 'tropical' | 'sidereal'
+  // The panel shows one system's reading, driven by the frame toggle
+  // (DOCTRINE.md amendment July 2026). The Divergence renders below it in
+  // every frame state; positional data never follows the frame.
+  frame: 'tropical' | 'sidereal'
 }
 
 // 'synthesis' survives here as the internal reading-type identifier only
@@ -29,6 +28,21 @@ const SECTION_DISPLAY: Record<string, string> = {
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
+
+// The band kicker beside the frame name — what this frame is a reading OF.
+const FRAME_KICKER: Record<string, string> = {
+  tropical: 'THE PSYCHOLOGICAL INTERIOR',
+  sidereal: 'INCARNATIONAL PATTERNING',
+}
+
+// Rail labels. The Divergence's four movements are named as the design names
+// them; the planet sections reuse SECTION_DISPLAY, uppercased.
+const DIVERGENCE_MOVEMENTS: { key: string; label: string }[] = [
+  { key: 'agree',   label: 'CONCORDANCE' },
+  { key: 'diverge', label: 'WHERE THEY PART' },
+  { key: 'tension', label: 'CENTRAL TENSION' },
+  { key: 'closing', label: 'LIVING THE DIVERGENCE' },
+]
 
 // Must exceed the server's maxDuration (60s) so the server — not the client —
 // decides when a section has failed. /api/reading streams a single first-pass
@@ -522,13 +536,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     }
   }, [chartData])
 
-  const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
-
-  const sunT  = chartData.tropical.planets.find(p => p.name === 'Sun')
-  const moonT = chartData.tropical.planets.find(p => p.name === 'Moon')
-  const sunS  = chartData.sidereal.planets.find(p => p.name === 'Sun')
-  const moonS = chartData.sidereal.planets.find(p => p.name === 'Moon')
-
   // Per-section readout data, from the SAME source as the wheel table
   // (lib/readout). Indexed by row id so each placement can pin its body's data.
   const readoutRows = useMemo(() => buildReadoutRows(chartData), [chartData])
@@ -548,7 +555,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     const label           = SECTION_LABELS[section]
     const blocks          = currentText ? parseReading(currentText, section) : []
     const descriptors     = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
-    const currentSections = PLANET_SECTIONS[section]
 
     // One parsed block → its element. Shared by the flat layout (side-by-side /
     // Divergence) and the grouped layout (single-frame, with data blocks).
@@ -621,32 +627,12 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
     return (
       <>
-        <div className={styles.columnHeader}>
-          <h2 className={styles.readingTitle}>{label.title}</h2>
-          <p className={styles.readingSubtitle}>{label.subtitle}</p>
-        </div>
+        {/* The band head and the section rail carry this heading visually
+            (design: dossier reading band); it stays in the document for
+            structure and for screen readers. */}
+        <h2 className={styles.srOnly}>{label.title} — {label.subtitle}</h2>
 
-        {/* Planet-section progress bar — visible while this section is actively streaming */}
-        {isStreaming && currentStatus === 'loading' && (
-          <div className={styles.sectionProgress} aria-label="Section loading progress">
-            {currentSections.map(s => {
-              const state = sectionStates[s] ?? 'pending'
-              return (
-                <span
-                  key={s}
-                  className={`${styles.sectionChip} ${styles[`chip_${state}`]}`}
-                  aria-label={`${SECTION_DISPLAY[s] ?? s}: ${state}`}
-                >
-                  {SECTION_DISPLAY[s] ?? s}
-                  {state === 'done'   && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
-                  {state === 'failed' && <span className={styles.chipFail}  aria-hidden="true"> ✕</span>}
-                </span>
-              )
-            })}
-          </div>
-        )}
-
-        <div className={styles.readingBody}>
+        <div className={`${styles.readingBody} ${withData ? '' : styles.flatBody}`}>
 
           {/* Section-level error */}
           {currentError && (
@@ -728,6 +714,27 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     )
   }
 
+  // Band head counter: which planet section of this frame is streaming.
+  const frameSections = PLANET_SECTIONS[frame]
+  const frameStreaming = streamingTab === frame && tabStatus[frame] === 'loading'
+  const activeIdx = activePlanetSection ? frameSections.indexOf(activePlanetSection) : -1
+  const counter = frameStreaming && activeIdx >= 0
+    ? `SECTION ${activeIdx + 1} OF ${frameSections.length}`
+    : `${frameSections.length} SECTIONS`
+
+  const railState = (key: string) => {
+    const st = sectionStates[key] ?? 'pending'
+    return st === 'loading' ? styles.railLive
+      : st === 'done' ? styles.railDone
+      : st === 'failed' ? styles.railFailed
+      : styles.railPending
+  }
+
+  // Bodies that change sign between the frames — the Divergence's evidence
+  // table. Derived from the same rows the READOUT rail renders.
+  const flips = buildFlips(readoutRows)
+  const bodyCount = countBodies(readoutRows)
+
   return (
     <div className={styles.panel}>
       {/* Screen-reader live region */}
@@ -735,72 +742,95 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         {liveStatus}
       </div>
 
-      {/* Shared chart meta — both systems always visible (DOCTRINE.md: CO-VISIBILITY) */}
-      <div className={styles.metaStrip}>
-        <div className={styles.summaryGroup}>
-          <span className={styles.summarySystem}>Tropical</span>
-          <span className={styles.summaryPlacements}>
-            {'☉︎'} {sunT?.sign} · {'☽︎'} {moonT?.sign} · {'↑︎'} {chartData.tropical.ascendantSign}
-          </span>
-        </div>
-        <div className={styles.summaryGroup}>
-          <span className={styles.summarySystem}>Sidereal</span>
-          <span className={styles.summaryPlacements}>
-            {'☉︎'} {sunS?.sign} · {'☽︎'} {moonS?.sign} · {'↑︎'} {chartData.sidereal.ascendantSign}
-          </span>
-        </div>
-        {chartData.plutoSource && (
-          <div className={styles.summaryGroup}>
-            <span className={styles.summarySystem}>Pluto ephemeris</span>
-            <span className={
-              chartData.plutoSource === 'local-meeus'
-                ? styles.ephemerisFallback
-                : styles.ephemerisSource
-            }>
-              {chartData.plutoSource === 'local-meeus'
-                ? '⚠ local fallback (~15–60 arcmin)'
-                : `JPL Horizons ${chartData.plutoSource.replace('jpl-horizons-', '').toUpperCase()}`}
+      {/* ── The frame reading ───────────────────────────────
+          Prose follows the frame; positional data never does — it is pinned
+          beside each placement in both frames (DOCTRINE.md: CO-VISIBILITY).
+          The long-form prose takes the raised reading surface
+          (DOCTRINE.md: READING SURFACE EXCEPTION). */}
+      <section className={styles.band} aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}>
+        <div className={styles.bandInner}>
+          <div className={styles.bandHead}>
+            <span>{`// ${frame.toUpperCase()} FRAME · ${FRAME_KICKER[frame]}`}</span>
+            <span className={styles.bandHeadRight}>
+              <span>{counter}</span>
+              {frameStreaming && <span className={styles.streaming}>● STREAMING</span>}
             </span>
           </div>
-        )}
-      </div>
-
-      {birthTimeUnknown && (
-        <div className={styles.birthTimeWarning}>
-          <span className={styles.birthTimeWarningIcon}>⚠</span>
-          <p className={styles.birthTimeWarningText}>
-            Birth time unknown — noon approximation used. Ascendant, house placements, MC, and Moon degree may be inaccurate. Planetary sign positions are reliable.
-          </p>
+          <div className={styles.bandGrid}>
+            <div className={styles.bandProse}>
+              {renderSection(frame, true)}
+            </div>
+            <aside className={styles.rail} aria-label="Sections in this reading">
+              <div className={styles.railHead}>SECTIONS</div>
+              <div className={styles.railList}>
+                {frameSections.map(key => (
+                  <span key={key} className={railState(key)}>
+                    {(sectionStates[key] === 'loading' ? '● ' : '')}
+                    {(SECTION_DISPLAY[key] ?? key).toUpperCase()}
+                  </span>
+                ))}
+              </div>
+            </aside>
+          </div>
         </div>
-      )}
+      </section>
 
-      {/* Interpretive prose follows the active frame (single panel); positional
-          data never hides — co-visibility lives in the wheel's readout table and
-          the persistent Δ chip (DOCTRINE.md amendment July 2026). The long-form
-          prose takes the raised reading surface (READING SURFACE EXCEPTION).
-          Without a frame, the legacy side-by-side layout is kept. */}
-      {frame ? (
-        <section
-          className={`${styles.readingColumn} ${styles.singleFrame}`}
-          aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}
-        >
-          {renderSection(frame, true)}
-        </section>
-      ) : (
-        <div className={styles.systemsGrid}>
-          <section className={styles.readingColumn} aria-label="Tropical reading">
-            {renderSection('tropical')}
-          </section>
-          <div className={styles.columnDivider} aria-hidden="true" />
-          <section className={styles.readingColumn} aria-label="Sidereal reading">
-            {renderSection('sidereal')}
-          </section>
+      {/* ── The Divergence ──────────────────────────────────
+          Frame-independent: it never toggles off, and it is read after both.
+          The flip table is the evidence; the prose below it is the reading. */}
+      <section className={styles.divergence} aria-label="The Divergence">
+        <div className={styles.divRule} />
+        <div className={styles.divTop}>
+          <div>
+            <div className={styles.divTitle}>THE DIVERGENCE</div>
+            <div className={styles.divSub}>FRAME-INDEPENDENT · READ AFTER BOTH · NEVER TOGGLES OFF</div>
+            <div className={styles.divCount}>
+              {flips.length} OF {bodyCount} BODIES CHANGE SIGN BETWEEN FRAMES
+            </div>
+          </div>
+          <div className={styles.flipTable}>
+            <div className={styles.flipHead}>
+              <span>WHERE THEY PART</span><span>TROPICAL</span><span>SIDEREAL</span>
+              <span className={styles.flipRight}>SIGNAL</span>
+            </div>
+            {flips.map(f => (
+              <div key={f.id} className={styles.flipRow}>
+                <span><span className={styles.flipGlyph}>{f.glyph}</span>{f.name}</span>
+                <span>{f.tCell}</span>
+                <span>{f.sCell}</span>
+                <span className={`${styles.flipRight} ${styles.flipSignal}`}>
+                  <span className={styles.flipDot} />{f.signal}
+                </span>
+              </div>
+            ))}
+            {flips.length === 0 && (
+              <div className={styles.flipEmpty}>
+                NO BODY CHANGES SIGN BETWEEN FRAMES. THE DIVERGENCE IS IN DEGREE AND HOUSE, NOT SIGN.
+              </div>
+            )}
+            <div className={styles.flipNote}>VIOLET MARKS UNRESOLVED TENSION. IT IS NOT AN ERROR TO FIX.</div>
+          </div>
         </div>
-      )}
+      </section>
 
-      {/* The Divergence — full width, after and below both systems, in every frame */}
-      <section className={`${styles.readingColumn} ${styles.divergenceSection}`} aria-label="The Divergence reading">
-        {renderSection('synthesis')}
+      <section className={styles.band} aria-label="The Divergence reading">
+        <div className={styles.bandInner}>
+          <div className={styles.bandGrid}>
+            <div className={styles.bandProse}>
+              {renderSection('synthesis')}
+            </div>
+            <aside className={styles.rail} aria-label="The four movements">
+              <div className={styles.railHead}>MOVEMENTS</div>
+              <div className={styles.railListSingle}>
+                {DIVERGENCE_MOVEMENTS.map(m => (
+                  <span key={m.key} className={railState(m.key)}>
+                    {(sectionStates[m.key] === 'loading' ? '● ' : '')}{m.label}
+                  </span>
+                ))}
+              </div>
+            </aside>
+          </div>
+        </div>
       </section>
     </div>
   )

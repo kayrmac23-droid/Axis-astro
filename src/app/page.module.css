@@ -1,3 +1,12 @@
+/* ============================================================
+   Home route — the landing shell and the chart dossier.
+
+   The landing body owns its own module (landing/PreviewLanding);
+   the dossier's parts own theirs (DossierHeader, FrameControl,
+   FrameShiftWheel, ReadoutRail, ReadingPanel). What is left here
+   is the page frame and the dossier's composition grid.
+   ============================================================ */
+
 .main {
   min-height: 100vh;
   display: flex;
@@ -7,788 +16,87 @@
   overflow-x: hidden;
 }
 
-/* ─── Header / Masthead ───────────────────────────── */
-.header {
+/* ─── Dossier ─────────────────────────────────────── */
+.dossier {
   width: 100%;
-  max-width: 960px;
-  padding: 2.8rem 2.5rem 2.4rem;
+  /* The header is sticky — keep the dossier kicker clear of it when the cast
+     flow scrolls this into view. */
+  scroll-margin-top: 90px;
+  animation: axRise 0.7s cubic-bezier(0, 0, 0.2, 1) both;
+}
+
+.dossierHead {
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 64px clamp(20px, 5vw, 56px) 0;
+}
+
+/* The instrument beside the readout. 7fr wheel / 5fr rail, as the design
+   sets it; both collapse to one column below 1100px. */
+.instrument {
   display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: end;
-  gap: 2rem;
+  grid-template-columns: 7fr 5fr;
+  gap: 48px;
+  align-items: start;
 }
 
-.headerRule {
-  width: 100%;
-  border: none;
-  border-top: 1.5px solid var(--fg);
-  opacity: 0.9;
-  grid-column: 1 / -1;
-  margin-top: 0.6rem;
-}
-
-.logoBlock {
+/* ─── Footer actions ──────────────────────────────── */
+.actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.logo {
-  font-family: var(--font-wordmark);
-  font-size: 2.6rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  line-height: 1;
-  color: var(--fg);
-}
-
-.logoSub {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.45em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-}
-
-.headerMid {
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 0.3rem;
-}
-
-.tagline {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  font-weight: 400;
-  font-style: italic;
-  color: var(--fg);
-  letter-spacing: 0.02em;
-}
-
-.headerRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.2rem;
-  padding-bottom: 0.3rem;
-}
-
-.headerStat {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--fg-4);
-}
-
-/* ─── Hero ────────────────────────────────────────── */
-.hero {
-  width: 100%;
-  max-width: 960px;
-  padding: 3.5rem 2.5rem 4rem;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 3rem;
-  align-items: center;
-  animation: fadeUp 1s ease both;
-  border-bottom: 1px solid var(--border);
-  position: relative;            /* anchors ConstellationDecor (absolute) */
-  overflow: hidden;              /* clip constellation decor to hero bounds */
-}
-
-.heroLeft {}
-
-.heroCenter {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;            /* anchors HeroNotation (absolute) */
-}
-
-.heroEyebrow {
-  font-family: var(--font-display);
-  font-size: 0.52rem;
-  letter-spacing: 0.45em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-bottom: 1.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.heroEyebrow::before {
-  content: '';
-  display: inline-block;
-  width: 24px;
-  height: 1px;
-  background: var(--copper);
-  flex-shrink: 0;
-}
-
-.heroHeadline {
-  font-family: var(--font-editorial);
-  font-size: 3.4rem;
-  font-weight: 500;
-  font-style: italic;
-  line-height: 1.1;
-  color: var(--fg);
-  letter-spacing: -0.01em;
-  margin-bottom: 2rem;
-}
-
-.heroAccent {
-  color: var(--copper);
-}
-
-.heroRight {
-  padding-top: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.heroBody {
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  line-height: 1.9;
-  font-weight: 400;             /* was 300 — bumped to 400 for screen legibility */
-  color: var(--fg);
-}
-
-.heroDetail {
-  font-family: var(--font-display);
-  font-size: 0.63rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  line-height: 1.8;
-}
-
-/* ─── Premise Section ─────────────────────────────── */
-.premiseSection {
-  width: 100%;
-  max-width: 960px;
-  padding: 5rem 2.5rem 4rem;
-  border-top: 1px solid var(--border);
-  animation: fadeIn 0.8s ease;
-}
-
-.premiseGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 3rem;
-}
-
-.premiseCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.premiseRule {
-  height: 1px;
-  width: 100%;
-  margin-bottom: 1.4rem;
-}
-
-.premiseRuleCopper {
-  background: var(--copper);
-}
-
-.premiseRuleViolet {
-  background: var(--violet);
-}
-
-.premiseRuleAxis {
-  /* The Divergence rule is copper (identity), not cyan — cyan is live-only. */
-  background: linear-gradient(to right, var(--copper), var(--violet));
-}
-
-.premiseSystem {
-  font-family: var(--font-editorial);
-  font-size: 1.55rem;
-  font-weight: 500;
-  font-style: italic;
-  line-height: 1.1;
-  color: var(--fg);
-  margin: 0 0 0.5rem;
-}
-
-.premiseRole {
-  font-family: var(--font-display);
-  font-size: 0.50rem;
-  font-weight: 400;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  margin: 0 0 1.4rem;
-}
-
-.premiseDesc {
-  font-family: var(--font-serif);
-  font-size: 0.96rem;
-  font-weight: 300;
-  line-height: 1.9;
-  color: var(--fg-2);
-  margin: 0;
-}
-
-/* ─── Methodology Strip ────────────────────────────── */
-.methodStrip {
-  width: 100%;
-  max-width: 960px;
-  padding: 1.8rem 2.5rem;
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
-  animation: fadeIn 0.9s ease;
+  justify-content: center;
+  gap: 16px;
+  padding: 56px clamp(20px, 5vw, 56px) 96px;
 }
 
-.methodItem {
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  font-weight: 400;
-  letter-spacing: 0.30em;
-  text-transform: uppercase;
-  color: var(--fg-4);
-}
-
-.methodDot {
-  font-family: var(--font-display);
-  font-size: 0.46rem;
-  color: var(--border-2);
-  letter-spacing: 0;
-}
-
-/* ─── Form Section ────────────────────────────────── */
-.formSection {
-  width: 100%;
-  max-width: 960px;
-  padding: 3.5rem 2.5rem 5rem;
-  display: grid;
-  grid-template-columns: 1fr 1.6fr;
-  gap: 5rem;
-  align-items: start;
-  animation: fadeUp 1s ease 0.15s both;
-  border-bottom: 1px solid var(--border);
-}
-
-.formIntro {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  position: sticky;
-  top: 3rem;
-}
-
-.formIntroLabel {
-  font-family: var(--font-display);
-  font-size: 0.52rem;
-  letter-spacing: 0.4em;
-  text-transform: uppercase;
-  color: var(--copper);
-}
-
-.formIntroTitle {
-  font-family: var(--font-editorial);
-  font-size: 1.9rem;
-  font-weight: 400;
-  font-style: italic;
-  line-height: 1.2;
-  color: var(--fg);
-}
-
-.formIntroDesc {
-  font-family: var(--font-serif);
-  font-size: 1.05rem;
-  line-height: 1.85;
-  font-weight: 400;             /* was 300 — bumped to 400 for screen legibility */
-  color: var(--fg-2);
-  margin-top: 0.5rem;
-}
-
-.formRight {
-  padding: 1.9rem 1.9rem 2rem;
-  border: 1px solid var(--border-2);
-  background: rgba(19, 17, 20, 0.94);
-}
-
-.calcError {
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  padding: 1.4rem 1.6rem;
-  background: rgba(138, 32, 32, 0.06);
-  border: 1px solid rgba(138, 32, 32, 0.18);
-  border-left: 2px solid rgba(138, 32, 32, 0.45);
-  margin-top: 1.5rem;
-}
-
-.calcErrorMsg {
-  font-family: var(--font-serif);
-  font-size: 0.98rem;
-  line-height: 1.75;
-  font-weight: 400;             /* was 300 — bumped to 400 for legibility */
-  color: rgba(220, 90, 90, 0.9);
-}
-
-.calcRetryBtn {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  background: none;
-  border: 1px solid var(--border-2);
-  padding: 0.65rem 1.6rem;
+.btnOutline,
+.btnGhost {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 14px 28px;
+  background: transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
-  align-self: flex-start;
+  transition: background 0.3s, color 0.3s, border-color 0.3s;
 }
 
-.calcRetryBtn:hover:not(:disabled) {
-  color: var(--fg);
-  border-color: var(--fg);
+.btnOutline {
+  color: var(--text);
+  border: 1px solid var(--copper-kicker);
 }
+.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
 
-.calcRetryBtn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* ─── Loading ─────────────────────────────────────── */
-.loadingState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2rem;
-  padding: 7rem 2rem;
-  animation: fadeIn 0.4s ease;
-}
-
-.loadingOrb {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+.btnGhost {
+  color: var(--text-3);
   border: 1px solid var(--border-2);
-  border-top-color: var(--copper);
-  animation: spin 2.5s linear infinite;
+}
+.btnGhost:hover { color: var(--text); border-color: var(--text); }
+
+.btnOutline:focus-visible,
+.btnGhost:focus-visible { outline: 1px solid var(--cyan); outline-offset: 2px; }
+
+@keyframes axRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
 }
 
-.loadingOrb::after {
-  content: '';
-  position: absolute;
-  inset: 11px;
-  border-radius: 50%;
-  border: 1px solid rgba(138, 94, 20, 0.12);
-  border-bottom-color: rgba(138, 94, 20, 0.4);
-  animation: spin 1.5s linear infinite reverse;
+@media (prefers-reduced-motion: reduce) {
+  .dossier { animation: none; }
 }
 
-.loadingText {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.42em;
-  color: var(--fg-3);
-  text-transform: uppercase;
+/* ─── Responsive ──────────────────────────────────── */
+@media (max-width: 1100px) {
+  .instrument { grid-template-columns: minmax(0, 1fr); gap: 40px; }
 }
 
-/* ─── Reading Layout ──────────────────────────────── */
-.readingLayout {
-  width: 100%;
-  max-width: 960px;
-  padding: 0 2.5rem 7rem;
-  animation: fadeIn 0.7s ease;
-  /* No overflow clip here — .wheelBreakout deliberately breaks past this
-     column's width and is clipped by .main's overflow-x instead. */
-  position: relative;
-}
-
-/* ─── Frame-shift wheel breakout ──────────────────────
-   The wheel (stage + always-co-visible readout rail) needs more than the
-   960px chrome column on wide screens; break out like the reading grid.
-   Clipped by the page's overflow-x hidden. Radius 0, no shadow. */
-.wheelBreakout {
-  width: min(1320px, calc(100vw - 2rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
-  padding: 2rem 0 0;
-}
-
-/* Synastry breaks out wider — it holds TWO frame-shift wheels side by side. */
-.synastryWheelBreakout {
-  width: min(1600px, calc(100vw - 2rem));
-  margin-left: 50%;
-  transform: translateX(-50%);
-  padding: 2rem 0 0;
-}
-
-/* ─── Wheel Section ───────────────────────────────── */
-.wheelSection {
-  padding: 1.5rem 0 5rem;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.wheelSectionLabel {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: #C8A96B;
-  opacity: 0.85;
-  margin-bottom: 1.75rem;
-}
-
-.wheelSingle {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.wheelPair {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5rem;
-}
-
-.wheelItem {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.2rem;
-}
-
-.wheelLabel {
-  font-family: var(--font-display);
-  font-size: 0.56rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: #8E8ACF;
-}
-
-.wheelDivider {
-  opacity: 0.2;
-  flex-shrink: 0;
-}
-
-/* Synastry: two frame-shift wheels (Person A / Person B), each with the app's
-   built-in tropical/sidereal toggle. Side by side on desktop, stacked on
-   narrower screens. A 1px divider (same var(--border) token) sits between the
-   two — vertical when side by side, horizontal when stacked. Each wheel
-   collapses its own wheel/rail via the FrameShiftWheel container query, so a
-   half-width column stays legible. No cards, no radius, no shadow. */
-.synastryWheelStack {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 3rem;
-  width: 100%;
-}
-
-.synastryWheelStack > * {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.synastryWheelStack > * + * {
-  border-left: 1px solid var(--border);
-  padding-left: 3rem;
-}
-
-@media (max-width: 1080px) {
-  .synastryWheelStack {
-    flex-direction: column;
-    align-items: center;
-    gap: 3.5rem;
-  }
-  .synastryWheelStack > * {
-    flex: none;
-    width: 100%;
-  }
-  .synastryWheelStack > * + * {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid var(--border);
-    padding-top: 3.5rem;
-  }
-
-  /* At/below the stack breakpoint the two wheels sit vertically and each caps at
-     its own max-width, so the full-bleed breakout reclaims no usable width — it
-     only introduces risk. Its margin-left:50% + translateX(-50%) interacts badly
-     with .wheelSection's flex `align-items: center` at narrow widths, pushing the
-     element off the left edge on mobile. Neutralise it so the wheels stay inside
-     the normal, centred, padded reading column. */
-  .wheelBreakout,
-  .synastryWheelBreakout {
-    width: 100%;
-    margin-left: 0;
-    transform: none;
-  }
-}
-
-/* ─── Actions ─────────────────────────────────────── */
-.resetRow {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  padding: 4rem 0 0;
-}
-
-.resetBtn {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  background: none;
-  border: 1px solid var(--border-2);
-  padding: 0.9rem 2.4rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.resetBtn:hover {
-  color: var(--fg);
-  border-color: var(--fg);
-}
-
-.pdfBtn {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-  background: none;
-  border: 1px solid var(--border-2);
-  padding: 0.9rem 2.4rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pdfBtn:hover {
-  color: var(--copper);
-  border-color: var(--copper);
-}
-
-/* ─── Footer ──────────────────────────────────────── */
-.footer {
-  width: 100%;
-  padding: 2rem;
-  border-top: 1.5px solid var(--fg);
-  opacity: 0.9;
-  text-align: center;
-  margin-top: auto;
-}
-
-.footer p {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-}
-
-/* ─── Mode toggle ─────────────────────────────────── */
-.modeToggle {
-  display: flex;
-  border: 1px solid var(--border-2);
-  width: 100%;
-  max-width: 960px;
-  box-sizing: border-box;
-  margin: 0 auto;
-  padding: 0 var(--s-10);
-}
-
-.modeBtn {
-  flex: 1;
-  padding: 0.9rem 1rem;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--fg-4);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.modeBtnActive {
-  color: var(--copper);
-  border-bottom-color: var(--copper);
-}
-
-.modeBtn:hover:not(.modeBtnActive) {
-  color: var(--fg-2);
-}
-
-/* ─── Synastry forms ───────────────────────────────── */
-.synastryForms {
-  width: 100%;
-  max-width: 960px;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 3rem;
-  padding: 3rem 2.5rem 4rem;
-  align-items: start;
-}
-
-.synastryFormSlot {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.synastryPersonLabel {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--border);
-}
-
-.synastryPersonTag {
-  width: 1.8rem;
-  height: 1.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--copper-border);
-  color: var(--copper);
-  font-family: var(--font-display);
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-}
-
-.synastryPersonTitle {
-  font-family: var(--font-display);
-  font-size: 0.54rem;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--fg-3);
-}
-
-.synastryPersonSet {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--copper);
-  margin-left: auto;
-}
-
-.synastryCalcRow {
-  width: 100%;
-  max-width: 480px;
-  padding: 0 2.5rem 3rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-self: center;
-  margin: 0 auto;
-}
-
-/* Synastry calculate button — composes the single source of truth in
-   BirthForm.module.css (copper fill, incl. :hover and :disabled) so the two
-   primary CTAs share one treatment and cannot drift apart. */
-.submitBtn {
-  composes: submitBtn from '../components/BirthForm.module.css';
-}
-
-.btnLoading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.btnSpinner {
-  width: 12px;
-  height: 12px;
-  border: 1px solid var(--copper-dim);
-  border-top-color: var(--copper);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@media (max-width: 560px) {
+  .dossierHead { padding-top: 40px; }
+  .actions { padding-bottom: 64px; }
 }
 
 /* ─── Print ───────────────────────────────────────── */
 @media print {
-  .header, .wheelSection, .resetRow, .footer {
-    display: none !important;
-  }
-  .readingLayout { padding: 0; max-width: 100%; }
-}
-
-/* ─── Tablet ──────────────────────────────────────── */
-@media (max-width: 780px) {
-  .hero {
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    padding: 4rem 2rem 4rem;
-  }
-  .heroCenter {
-    display: none;
-  }
-  .formSection {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-    padding: 4rem 2rem 5rem;
-  }
-  .synastryForms {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-    padding: 3rem 2rem 4rem;
-  }
-  .formIntro { position: static; }
-  .heroHeadline { font-size: 2.4rem; }
-  .premiseGrid { grid-template-columns: 1fr; gap: 2.5rem; }
-  .premiseSection { padding: 3.5rem 2rem 3rem; }
-  .methodStrip { padding: 1.4rem 2rem; gap: 1rem; }
-  .logo { font-size: 2.1rem; }
-  .header { grid-template-columns: 1fr 1fr; padding: 2rem 2rem 1.8rem; }
-  .headerMid { display: none; }
-  .formRight { padding: 1.6rem; }
-}
-
-/* ─── Mobile ──────────────────────────────────────── */
-@media (max-width: 560px) {
-  .logo { font-size: 1.7rem; }
-  .heroHeadline { font-size: 2rem; }
-  .wheelPair { flex-direction: column; gap: 3rem; }
-  .wheelDivider { display: none; }
-  .header {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
-    padding: 1.8rem 1.5rem 1.5rem;
-  }
-  .headerRight { display: none; }
-  .headerRule { margin-top: 0.4rem; }
-  .hero,
-  .formSection,
-  .readingLayout {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-  .formRight { padding: 1.35rem; }
+  .actions { display: none !important; }
+  .dossierHead { padding: 0; }
 }

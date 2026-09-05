@@ -6,6 +6,7 @@
 // DOCTRINE.md — THE LAW: this module only *derives and formats* both frames as
 // distinct data. It never reconciles Tropical and Sidereal into one value.
 import { DualChartData } from './astro-calc'
+import { ZODIAC_SIGNS } from './zodiac-constants'
 
 export const VS = '︎'
 // Zodiac sign glyphs, VS-15 flat (index 0 = Aries).
@@ -16,6 +17,9 @@ export const PLANET_GLYPH: Record<string, string> = {
   Jupiter: '♃' + VS, Saturn: '♄' + VS, Uranus: '♅' + VS, Neptune: '♆' + VS,
   Pluto: '♇' + VS, Rahu: '☊' + VS, Ketu: '☋' + VS,
 }
+/** Sign names, index 0 = Aries — shared with the wheel and the flip tables. */
+export const SIGN_NAMES = ZODIAC_SIGNS.map(s => s.name)
+
 export const PLANET_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu']
 
 const DIGNITIES: Record<string, { domicile: string[]; exaltation: string; detriment: string[]; fall: string }> = {
@@ -112,4 +116,42 @@ export function buildReadoutRows(data: DualChartData): ReadoutRow[] {
     })
   }
   return out
+}
+
+/** One body that changes sign between the frames, formatted for the
+ *  "WHERE THEY PART" tables (dossier Divergence, sample dossier).
+ *  Angles are excluded: the Ascendant and MC shift by construction, so they
+ *  carry no divergence signal of their own. */
+export interface FlipRow {
+  id: string
+  glyph: string
+  name: string
+  tCell: string
+  sCell: string
+  /** 'SIGN + HOUSE' when the whole-sign house moves too, else 'SIGN'. */
+  signal: string
+}
+
+const cell = (sign: number, house: number | null) =>
+  SIGN_NAMES[sign] + (house != null ? ` · H${house}` : '')
+
+export function buildFlips(rows: ReadoutRow[]): FlipRow[] {
+  return rows
+    .filter(r => r.flip && !r.isAngle)
+    .map(r => ({
+      id: r.id,
+      glyph: r.glyph,
+      name: r.name,
+      tCell: cell(r.tSign, r.tHouse),
+      sCell: cell(r.sSign, r.sHouse),
+      signal: r.tHouse != null && r.sHouse != null && r.tHouse !== r.sHouse
+        ? 'SIGN + HOUSE'
+        : 'SIGN',
+    }))
+}
+
+/** Bodies counted for the "N OF M BODIES CHANGE SIGN" line — angles excluded,
+ *  matching buildFlips. */
+export function countBodies(rows: ReadoutRow[]): number {
+  return rows.filter(r => !r.isAngle).length
 }

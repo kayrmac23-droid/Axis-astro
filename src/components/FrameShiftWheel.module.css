@@ -1,127 +1,59 @@
 /* ============================================================
-   FrameShiftWheel — ported from public/wheel.html (the ratified
-   reading wheel). Outer chrome + readout table styles here; the
-   wheel SVG is built imperatively in the component. Values are
-   preserved from the source; fonts use the app's next/font vars,
-   tokens come from globals.css. Radius 0 everywhere (instrument
-   aesthetic); no shadows, no blur.
+   FrameShiftWheel — the instrument only: the SVG stage and its
+   legend. The dossier header, frame control and READOUT rail
+   are separate components; the page composes them (design:
+   AXIS_Standalone dossier view). Radius 0 everywhere
+   (instrument aesthetic); no shadows, no blur.
    ============================================================ */
 
 .root {
-  --star: var(--text);
-  --hair: rgba(234, 232, 248, .16);
-  --hair2: rgba(234, 232, 248, .08);
-  --dim: rgba(234, 232, 248, .55);
-  --dim2: rgba(234, 232, 248, .36);
-  --mono: var(--font-mono);
-  --serif: var(--font-serif);
-  --disp: var(--font-wordmark);
-  color: var(--star);
-  font-family: var(--serif);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
   width: 100%;
-  /* Establish an inline-size query container so the wheel/rail can collapse
-     based on THIS component's own width (e.g. a half-width synastry column),
-     not just the viewport. The viewport @media rules below are retained. */
-  container: fsw / inline-size;
+  color: var(--text);
 }
 .root * { border-radius: 0 !important; }
-.root button { background: none; border: none; font-family: var(--mono); cursor: pointer; color: var(--dim2); }
-.root button:focus-visible { outline: 1px solid var(--copper-bright); outline-offset: 3px; }
 
-/* ---------- header ---------- */
-.header { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; padding: 22px 0 14px; border-bottom: 1px solid var(--hair2); flex-wrap: wrap; }
-.brand { display: flex; align-items: baseline; gap: 18px; }
-.ax { font-family: var(--disp); font-size: 16px; letter-spacing: 7px; color: var(--star); }
-.sub { font-family: var(--mono); font-size: 9px; letter-spacing: 2.5px; color: var(--dim2); }
-.meta { font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.8px; color: var(--dim2); text-align: right; }
-
-/* ---------- main layout ---------- */
-.main { display: flex; justify-content: center; align-items: flex-start; gap: 44px; padding: 20px 0 34px; position: relative; }
-.stage { position: relative; display: flex; flex-direction: column; align-items: center; }
-.wheel { width: min(72vh, 620px); max-width: 100%; display: block; }
-
-.caption { font-family: var(--mono); font-size: 10px; letter-spacing: 5px; color: var(--dim); margin: 10px 0 16px; }
-
-.frameToggle { position: relative; display: flex; align-items: center; gap: 30px; border: 1px solid var(--hair2); padding: 12px 26px; }
-.tbtn { font-size: 12px; letter-spacing: 3px; padding: 2px 1px; transition: color .5s; }
-/* Active frame = the live frame: cyan text + cyan inset underline. Cyan is
-   reserved for this "happening now / selected" role (color-scheme doctrine). */
-.tbtnOn { color: var(--cyan); }
-.delta { text-align: center; min-width: 150px; }
-.deltaVal { font-family: var(--mono); font-size: 13px; letter-spacing: 1.5px; color: var(--copper-light); }
-.dsub { font-family: var(--mono); font-size: 7.5px; letter-spacing: 1.8px; color: var(--dim2); margin-top: 3px; }
-.slider { position: absolute; bottom: -1px; height: 2px; background: var(--cyan); transition-property: left, width; transition-timing-function: cubic-bezier(.65, 0, .35, 1); }
-
-.status { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--dim2); margin-top: 12px; min-height: 14px; }
-.frameLive { color: var(--cyan); }
-
-.callout { position: absolute; top: 6px; left: 6px; border: 1px solid var(--hair); padding: 10px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 1.2px; line-height: 1.9; color: var(--dim); background: rgba(12, 11, 14, .82); max-width: 270px; z-index: 3; }
-.cname { color: var(--cyan); letter-spacing: 2.5px; }
-.cverdict { color: var(--copper-light); }
-.calloutClose { position: absolute; top: 4px; right: 8px; font-size: 12px; line-height: 1; color: var(--dim2); }
-
-/* ---------- rail / readout ---------- */
-.rail { width: 372px; flex-shrink: 0; border-left: 1px solid var(--hair2); padding-left: 30px; margin-top: 4px; }
-.railH2 { font-family: var(--mono); font-size: 9px; font-weight: 400; letter-spacing: 2.5px; color: var(--dim2); padding-bottom: 10px; border-bottom: 1px solid var(--hair2); }
-/* No nested scroll region: the table grows to fit its content and the page
-   itself scrolls. Width fits the rail because .dignity / .nak sub-labels wrap
-   (below) instead of forcing the column wider than the 372px rail. */
-.tableScroll {}
-.table { width: 100%; border-collapse: collapse; margin-top: 2px; }
-.table th { font-family: var(--mono); font-size: 8px; font-weight: 400; letter-spacing: 1.6px; color: var(--dim2); text-align: left; padding: 8px 6px 6px; border-bottom: 1px solid var(--hair2); white-space: nowrap; }
-.table td { font-family: var(--mono); font-size: 10.5px; letter-spacing: .6px; padding: 5.5px 6px; border-bottom: 1px solid var(--hair2); white-space: nowrap; vertical-align: top; }
-.bname { color: var(--dim); font-size: 9.5px; letter-spacing: 1.4px; }
-.bglyph { color: var(--star); }
-.retro { color: var(--copper-light); margin-left: 3px; }
-.house { color: var(--dim2); margin-left: 6px; }
-.dignity { display: block; font-size: 8px; letter-spacing: 1px; color: var(--copper-bright); margin-top: 2px; white-space: normal; }
-.nak { display: block; font-size: 8px; letter-spacing: .8px; color: var(--dim2); margin-top: 2px; white-space: normal; }
-.dsig.flip { color: var(--copper-light); }
-.dsig.hold { color: var(--dim2); }
-
-/* frame emphasis — positional data never hides; the active frame is brightened */
-.ct, .cs { transition: opacity .9s; }
-.table[data-frame="tropical"] .ct, .table[data-frame="tropical"] .thCt { opacity: .95; }
-.table[data-frame="tropical"] .cs, .table[data-frame="tropical"] .thCs { opacity: .55; }
-.table[data-frame="sidereal"] .ct, .table[data-frame="sidereal"] .thCt { opacity: .55; }
-.table[data-frame="sidereal"] .cs, .table[data-frame="sidereal"] .thCs { opacity: .95; }
-/* Selected body = live selection: 2px cyan left key + faint cyan wash. */
-.rowSel td { background: var(--cyan-tint); }
-.rowSel td:first-child { border-left: 2px solid var(--cyan); }
-.rowClickable { cursor: pointer; }
-.rowClickable:hover td { background: rgba(234, 232, 248, .03); }
-.rowSel:hover td { background: var(--cyan-tint); }
-
-.legend { font-family: var(--mono); font-size: 8.5px; letter-spacing: 1.4px; line-height: 2.1; color: var(--dim2); margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--hair2); }
-.legend .g { color: var(--copper-light); }
-.footnote { font-family: var(--serif); font-style: italic; font-size: 15.5px; line-height: 1.68; color: rgba(234, 232, 248, .74); max-width: 60ch; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--hair2); }
-
-.footer { font-family: var(--mono); font-size: 8.5px; letter-spacing: 2.5px; color: var(--dim2); text-align: center; padding: 16px 0; border-top: 1px solid var(--hair2); }
-
-/* ---------- responsive ---------- */
-@media (max-width: 1080px) {
-  .main { flex-direction: column; align-items: center; }
-  .rail { width: 100%; max-width: 640px; border-left: none; padding-left: 0; border-top: 1px solid var(--hair2); padding-top: 18px; }
-  .wheel { width: 100%; max-width: 560px; }
-  .meta { text-align: left; }
+.wheel {
+  width: 100%;
+  max-width: 700px;
+  display: block;
 }
+
+/* ---------- legend ---------- */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 32px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+}
+.legend span { white-space: nowrap; }
+
+.lineHard,
+.lineSoft,
+.dotSel,
+.deltaMark {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.lineHard { width: 18px; height: 1px; background: rgba(234, 232, 248, 0.6); }
+.lineSoft { width: 18px; border-top: 1px dashed rgba(234, 232, 248, 0.6); }
+.dotSel {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--cyan);
+  border-radius: 50% !important;
+}
+.deltaMark { color: var(--copper-light); font-style: normal; }
+
 @media (max-width: 460px) {
-  .frameToggle { gap: 16px; padding: 12px 14px; }
-  .delta { min-width: 96px; }
-  .header { gap: 12px; }
-}
-
-/* Container-query mirrors of the responsive rules above: fire when the
-   component's own inline size is constrained (e.g. two wheels side by side in
-   a synastry column) even though the viewport is wide. */
-@container fsw (max-width: 1080px) {
-  .main { flex-direction: column; align-items: center; }
-  .rail { width: 100%; max-width: 640px; border-left: none; padding-left: 0; border-top: 1px solid var(--hair2); padding-top: 18px; }
-  .wheel { width: 100%; max-width: 560px; }
-  .meta { text-align: left; }
-}
-@container fsw (max-width: 460px) {
-  .frameToggle { gap: 16px; padding: 12px 14px; }
-  .delta { min-width: 96px; }
-  .header { gap: 12px; }
+  .legend { gap: 8px 18px; font-size: 10px; }
 }

@@ -16,7 +16,7 @@ Requires `.env.local`: `ANTHROPIC_API_KEY=your_key_here`
 
 Next.js 16 App Router, TypeScript.
 
-**Data flow:** `BirthForm` → `/api/geocode` + `/api/timezone` → `/api/calculate` → `DualChartData` → `ChartWheel` + `ChartFactsPanel` + `ReadingPanel` → `/api/reading` (sequential streaming, one per planet section). Synastry adds a parallel flow: two births → `/api/synastry` → inter-aspects + composite → `SynastryAspectsPanel` + `SynastryReadingPanel`.
+**Data flow:** `BirthForm` → `/api/geocode` + `/api/timezone` → `/api/calculate` → `DualChartData` → the dossier (`DossierHeader` + `FrameControl` + `FrameShiftWheel` + `ReadoutRail` + `ReadingPanel`) → `/api/reading` (sequential streaming, one per planet section). Synastry adds a parallel flow: two births → `/api/synastry` → inter-aspects + composite → `SynastryAspectsPanel` + `SynastryReadingPanel`.
 
 Page routes: `/` (main app), `/method`, `/guides`, `/sample`, `/synastry`.
 
@@ -39,7 +39,7 @@ Planet sections — **tropical**: sun, moon, ascendant, mercury, venus, mars, ju
 - **`lib/reading-quality-gate.ts`**: post-generation evaluator. **⚠ Not on the request path** — `/api/reading` imports only `isTruncated` from this module; `evaluateSection`/`repairSection` are not called during a reading (the eval + repair passes were removed from the synchronous route to stay under `maxDuration`, and are retained here for a future async/sampled redesign). It's exercised by its unit tests only. When run, it scores the first-pass reading against the rubric and, if it fails, runs a single repair pass before the text is cached — bounded by a wall-clock budget. The rubric is **10 criteria**: nine scored by the LLM evaluator (`LLM_CRITERIA`) plus a tenth, `length`, scored deterministically in code (`scoreLength(countWords(text), wordBandFor(section, planetSection, countAspectsInContext(chartContext)))` → 5 inside the full band, 3 a bit short or over-but-not-runaway, 1 only for under-delivery below the hard floor or runaway length past `hardMax + LENGTH_RUNAWAY_MARGIN`; the band is aspect-scaled so earned depth on a densely aspected chart is not failed as padding) and merged into `GateScores` before `computePassFromScores` runs — so a thin or runaway section trips `MIN_INDIVIDUAL` (3) while merely-long-but-earned does not (padding is judged by the prose criteria). `validateScores` parses only the nine LLM scores (`LlmScores`); the LLM is told not to score length. The rubric also catches the compensatory-reframe compulsion (folded into `contradiction_handling`) and Barnum/universally-endorsable claims (the `falsifiability` criterion — scores the inversion test only; anchoring stays in `chart_evidence`, so the two are never double-counted). Two of the three banned rescue moves are enforced in the gate as well as the prompt: **resolution-by-hierarchy** (divergence → depth-ranked systems) is folded into `synthesis` (it flattens the divergence just as pseudo-synthesis flattens a tension), and the **rescue clause** (ease → hidden strength) into `contradiction_handling` alongside the compensatory reframe. `contradiction_handling` also mirrors the third member of that family, **manufactured shadow** (a strength followed by an unrelated bolted-on flaw rather than that same quality under stress), and is told not to penalise a genuinely mild distortion stated briefly. The rescue clause additionally has a deterministic backstop, `detectRescuePhrasings(text)`: a literal case-insensitive match on the curated high-precision `BANNED_RESCUE_PHRASINGS` forces `contradiction_handling` below `MIN_INDIVIDUAL`, so the flattery is repaired even when the evaluator missed it (the softer, context-dependent cases the list omits are left to the LLM criterion's deletion test). The banned-Barnum phrasings are a shared const (`BANNED_BARNUM_PHRASINGS`/`BANNED_BARNUM_LIST` in `prompts.ts`) imported by both files so prompt and gate cannot drift; `FALSIFIABILITY_DIVERGENCE_EXAMPLE` is the permanent regression fixture proving `specificity` and `falsifiability` are orthogonal. **Truncation is a pre-scoring hard failure**: `isTruncated(text)` (truncation sentinel present, or prose ending on a non-terminal char) short-circuits `evaluateSection` to `{ pass:false, scores:null, truncated:true }` with no eval call. On the live route the same `isTruncated(text)` is called directly to block caching truncated output — truncated text never reaches the cache or ships as final.
 - **`lib/route-rate-limiter.ts`**: Redis-backed per-IP fixed-window rate limiter (atomic Lua INCR+EXPIRE via Upstash); falls back to in-memory when Redis env vars are absent.
 - **`lib/reading-cache.ts`**: Upstash Redis KV cache, 30-day TTL. `READING_PROMPT_VERSION = 'v10.17'` — bump to invalidate all prior cached readings.
-- **`lib/cusps.ts`**: `CUSPS` — the 12 named sign-boundary cusp descriptions (`CuspData[]`). Reference data, not currently wired into the runtime.
+- **`lib/readout.ts`**: the single source for per-body positional data. `buildReadoutRows(DualChartData)` derives both frames for every body (never reconciled); `buildFlips`/`countBodies` derive the sign-change rows behind the Divergence table; `dms`/`lonStr`/`SIGN_NAMES`/glyph tables format them. The wheel, the READOUT rail and the reading's placement blocks all read from here, so no two surfaces can drift.
 - **`lib/jpl-horizons.ts`**: fetches Pluto longitude from JPL Horizons REST API. Module-level cache (500 entries, FIFO). Returns `null` on any error.
 - **`lib/zodiac-constants.ts`**: centralised `ZODIAC_SIGNS` array — shared source of truth.
 - **`lib/tz.ts`**: DST-aware UTC offset from an IANA timezone name (`tzNameToOffset`), calendar-date validity (`isValidCalendarDate`), and local-birth→UTC-instant conversion (`birthToUtcMs`). The latter two use `setFullYear`/`setUTCFullYear` so years 1–99 are not remapped to 1900–1999 by the `Date` constructor's legacy two-digit-year rule.
@@ -49,17 +49,28 @@ Planet sections — **tropical**: sun, moon, ascendant, mercury, venus, mars, ju
 ### React components
 
 - **`BirthForm.tsx`**: geocode search (Nominatim, debounced), `birthTimeUnknown` toggle, AM/PM→24h.
-- **`ChartWheel.tsx`** / **`DualChartWheel.tsx`** / **`FrameShiftWheel.tsx`**: SVG chart wheel renderers (single, side-by-side dual, and tropical↔sidereal frame-shift).
-- **`ChartFactsPanel.tsx`**: tropical vs sidereal comparison table. Hidden in `@media print`.
-- **`ReadingPanel.tsx`**: sequential streaming per section, accumulates text into section map, per-section retry.
+- **The dossier** (composed by `app/page.tsx`, one component per band of the design): **`DossierHeader.tsx`** (kicker, chart title, cast line, four-cell provenance strip, birth-time warning) → **`FrameControl.tsx`** (TROPICAL/SIDEREAL group, live Δ pill, frame status line) → **`FrameShiftWheel.tsx`** + **`ReadoutRail.tsx`** side by side → **`ReadingPanel.tsx`** → the actions row (CAST ANOTHER CHART · SAVE DOSSIER · PDF). Frame and selection are page state, so the wheel, the rail and the prose never disagree.
+- **`FrameShiftWheel.tsx`**: the instrument only — the imperative SVG stage (the zodiac band rotates by the live ayanamsa; planets and the aspect web stay fixed) plus its four legend chips. Selection is controlled (`selected`/`onSelect`); `deltaRef` receives the animating Δ so the frame control's pill counts with the rotation. **`ChartWheel.tsx`** / **`DualChartWheel.tsx`** are the older single/side-by-side renderers.
+- **`ReadoutRail.tsx`**: the READOUT panel — every body in BOTH frames in every toggle state (co-visibility), the selected body's detail block, and the flip count.
+- **`ReadingPanel.tsx`**: sequential streaming per section, accumulates text into a section map, per-section retry. Renders the frame's prose in a raised band (65ch measure, each placement's positions pinned beside it) with a sticky SECTIONS rail, then The Divergence: its flip table (`buildFlips`) on the void, its prose in a second band beside the four MOVEMENTS.
 - **`SynastryReadingPanel.tsx`** / **`SynastryAspectsPanel.tsx`**: synastry section streaming and inter-aspect table.
-- **`AxisTensionSummary.tsx`**, **`DossierHeader.tsx`**, **`SiteHeader.tsx`**, **`MethodologyStrip.tsx`**, **`MethodPremise.tsx`**, **`SampleDossier.tsx`**: layout / disclosure / dossier chrome.
-- **`HeroWheel.tsx`**, **`AstrolabeDecor.tsx`**, **`landing/PreviewLanding.tsx`**: decorative / landing presentational elements.
+- **`SiteHeader.tsx`** / **`SiteFooter.tsx`** / **`Starfield.tsx`** / **`ComputationInterstitial.tsx`**: global chrome and the five-stage computation interstitial.
+- **`HeroWheel.tsx`**, **`landing/PreviewLanding.tsx`**: the landing instrument and the landing body.
 
 ## Tests
 
-`src/lib/__tests__/astro-calc.test.ts` — shape, ayanamsa, Whole Sign houses, leap years, extreme coords, JPL override, Rahu/Ketu. `@` alias → `src/` (vitest.config.ts).
+`src/lib/__tests__/astro-calc.test.ts` — shape, ayanamsa, Whole Sign houses, leap years, extreme coords, JPL override, Rahu/Ketu. `src/lib/__tests__/readout.test.ts` — flip rows (`buildFlips`), body count, and the degree/longitude formatters. `@` alias → `src/` (vitest.config.ts).
 
 ## Deployment
 
 Vercel, auto-deploys from `main`. Set `ANTHROPIC_API_KEY` in project Environment Variables. `maxDuration` is declared via `export const` in each route file.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

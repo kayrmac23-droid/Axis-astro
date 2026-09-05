@@ -129,3 +129,9 @@
   }
   .navActions { grid-column: 2; }
 }
+
+/* Below this the wordmark's descriptor and the CTA cannot both fit on one
+   row without pushing the header past the viewport — the descriptor goes. */
+@media (max-width: 560px) {
+  .logoSub { display: none; }
+}
