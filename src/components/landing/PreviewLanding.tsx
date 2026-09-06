@@ -45,7 +45,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
       <section id="axis-hero" className={styles.hero}>
         <div className={styles.heroCopy}>
           <div className={styles.kicker}>{'// ORIENTATION'}</div>
-          <h1 className={styles.heroTitle}>Tropical maps the self you construct. Sidereal maps the terrain it was born into.</h1>
+          <h1 className={styles.heroTitle}>Tropical maps the self you construct. Sidereal maps the self you inherit.</h1>
           <p className={styles.heroLede}>
             One birth, computed against two zodiacs held <span className={styles.num}>{offsetStr}</span> apart. AXIS never averages them. The divergence is the reading.
           </p>
