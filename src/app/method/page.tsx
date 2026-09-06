@@ -48,7 +48,7 @@ export default function MethodPage() {
               <span className={styles.mapTitle}>SIDEREAL</span>
               <span className={styles.readTag}>02 · READ SECOND</span>
             </div>
-            <div className={styles.mapAnchor}>ANCHOR · FIXED STARS · THE SELF BENEATH</div>
+            <div className={styles.mapAnchor}>ANCHOR · FIXED STARS · THE SELF YOU WERE HANDED</div>
             <p className={styles.mapBody}>A recalibrated sky, older terrain. The body, circumstances and inherited tendencies a person arrived with — a second lens that often moves the centre of gravity by a whole sign.</p>
           </div>
         </div>
