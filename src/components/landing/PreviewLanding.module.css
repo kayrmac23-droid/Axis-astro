@@ -187,7 +187,7 @@
   top: 11px;
   left: 0;
   height: 1px;
-  background: var(--cyan);
+  background: rgba(44, 200, 192, 0.4);   /* dim teal rail — the knob is the only full-strength accent */
 }
 
 .slider {
@@ -213,13 +213,15 @@
 .epochRead {
   display: flex;
   gap: 28px;
+  width: 560px;                 /* match the epoch track so the readout aligns under it */
+  max-width: 100%;
   margin-top: 14px;
   font-family: var(--font-mono);
   font-size: 12px;
   letter-spacing: 0.1em;
   color: var(--text-3);
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .epochRead b { color: var(--text); font-weight: 400; }
 .epochOffset { color: var(--cyan); }
