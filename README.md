@@ -92,11 +92,11 @@ AXIS uses a restrained dark-void palette. **Copper is the primary accent, ratifi
 
 | Token | Value | Role |
 |---|---|---|
-| `--void` | `#010108` | True background black-blue |
+| `--void` | `#02030A` | True background black-blue |
 | `--bg` | `#030212` | Page base |
-| `--surface` | `#090820` | Panels and form surfaces |
-| `--surface-2` | `#0F0E2C` | Raised cards |
-| `--reading-surface` | `#061230` | Raised surface behind long-form reading prose only (see DOCTRINE.md) |
+| `--surface` | `#0C0B0E` | Panels and form surfaces (neutral lifted base) |
+| `--surface-2` | `#131114` | Raised cards |
+| `--reading-surface` | `#0C0B0E` | Raised neutral surface behind long-form reading prose only (see DOCTRINE.md) |
 | `--text` | `#EAE8F8` | Primary star-white text |
 | `--text-2` | `#A8A4C8` | Body support text |
 | `--text-3` | `#9490C4` | Labels and metadata |

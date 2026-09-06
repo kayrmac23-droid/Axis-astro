@@ -9,7 +9,7 @@ colors:
   surface1: "#0C0B0E"
   surface2: "#131114"
   surface3: "#1A171B"
-  readingSurface: "#061230"
+  readingSurface: "#0C0B0E"
   border: "#1A1940"
   borderStrong: "#282660"
   borderBright: "#3E3C80"
@@ -276,7 +276,7 @@ The dossier is a reading experience, not dashboard microcopy.
 
 - Target measure: roughly **60–68 characters per line**.
 - Reading line-height: **1.8–1.9**.
-- Use primary star-white text on the reading-surface navy.
+- Use primary star-white text on the reading surface.
 - Paragraph spacing should be generous enough to breathe but should not fragment continuous analytical prose into cardlets.
 - Avoid bullet-heavy interpretation. Readings are continuous analytical prose.
 
@@ -393,7 +393,7 @@ AXIS is fundamentally flat. Depth is produced through **tonal layering, borders,
 
 ### Allowed depth
 
-- Reading surface lifted from the void with a darker-navy tonal difference.
+- Reading surface lifted from the void with a neutral tonal difference.
 - Very soft ambient copper glow around rare active symbolic moments.
 - Cyan glow around a live focus/measurement point.
 - Subtle deep shadow only when a raised panel truly needs separation from an overlapping surface.
