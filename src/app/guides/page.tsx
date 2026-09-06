@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const RAIL = [
   { n: '01', label: 'TROPICAL · THE SELF YOU KNOW' },
-  { n: '02', label: 'SIDEREAL · THE SELF BENEATH' },
+  { n: '02', label: 'SIDEREAL · THE SELF YOU WERE HANDED' },
   { n: '03', label: 'THE DIVERGENCE' },
   { n: '04', label: 'READING IN ORDER' },
 ]
@@ -53,14 +53,14 @@ export default function GuidesPage() {
           </div>
 
           <div className={styles.entry}>
-            <div className={styles.microLabel}>02 · THE DEEPER LAYER</div>
-            <h2 className={styles.entryH}>Sidereal — the self beneath</h2>
+            <div className={styles.microLabel}>02 · THE SECOND LAYER</div>
+            <h2 className={styles.entryH}>Sidereal — the self you were handed</h2>
             <p className={styles.para}>
               The Sidereal chart is calculated against the observed positions of the
               constellations, and it often shifts planets into different signs. It describes
               the terrain you arrived with rather than the identity you built: inherited
-              tendencies, instinctive orientations, the patterning underneath the constructed
-              self. Where the Tropical chart shows what you made, the Sidereal shows what you
+              tendencies, instinctive orientations, the patterning you did not construct.
+              Where the Tropical chart shows what you made, the Sidereal shows what you
               were handed.
             </p>
           </div>
@@ -82,8 +82,8 @@ export default function GuidesPage() {
             <div className={styles.microLabel}>04 · HOW TO USE IT</div>
             <h2 className={styles.entryH}>Reading in order</h2>
             <p className={styles.para}>
-              Start with Tropical to meet the familiar self. Move to Sidereal to feel the layer
-              underneath — note especially any planet that changed signs between the two. Then
+              Start with Tropical to meet the familiar self. Move to Sidereal to feel the inherited
+              layer — note especially any planet that changed signs between the two. Then
               read The Divergence, which assumes you have already read both. The point is never
               to decide which chart is &ldquo;true.&rdquo; Both are. The truth you are looking
               for lives in the tension between them.
