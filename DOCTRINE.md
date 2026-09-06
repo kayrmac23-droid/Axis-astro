@@ -59,7 +59,7 @@ optimized for sustained reading:
 
 - measure ~65ch
 - line-height ≥ 1.6
-- raised-surface navy (`#061230` family) behind text, not raw void
+- raised neutral surface (`#0C0B0E`) behind text, not raw void
 - body type sized for prose
 
 Doctrine everywhere; comfort where the reading lives.
@@ -79,7 +79,7 @@ CANCELLED. Gold `#FFC030` is no longer canonical anywhere. There is no gold toke
 | `--cyan` | `#2CC8C0` | Active computation, selected state, streaming, focus |
 | `--violet` | `#7844FF` | Unresolved tension, dissonance, liminal states |
 
-Surfaces: void `#010108`, bg `#030212`. Primary text `#EAE8F8`.
+Surfaces: void `#02030A`, bg `#030212`. Primary text `#EAE8F8`.
 
 **Two-tier linework rule:** base copper `#B87333` is too dim for 1px lines and tiny
 type on void. ALL fine linework, hairlines, chart ticks, and small mono labels use
