@@ -64,6 +64,10 @@ export default function Home() {
       const data: DualChartData = await res.json()
       capture('calculate_success', { pluto_source: data.plutoSource })
       setChartData(data)
+      // The dossier opens with the Sun isolated (design: post-cast state is
+      // "frame reset to tropical, Sun selected") so the wheel, readout card and
+      // reading section agree on first paint.
+      setSelected('sun')
       setTimeout(() => {
         const el = readingRef.current
         if (!el) return

@@ -87,7 +87,7 @@ export default function ReadoutRail({ rows, frame, ayanamsa, selected, onSelect 
                   )}
                 </td>
                 <td className={`${styles.delta} ${r.flip ? styles.flip : styles.hold}`}>
-                  {r.flip ? `${SG[r.tSign]} → ${SG[r.sSign]}` : `${SG[r.tSign]} · ${SG[r.sSign]}`}
+                  {r.flip ? `${SG[r.tSign]} → ${SG[r.sSign]}` : 'HOLDS'}
                 </td>
               </tr>
             ))}

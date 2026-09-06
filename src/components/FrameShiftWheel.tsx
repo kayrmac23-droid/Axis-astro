@@ -77,7 +77,11 @@ export default function FrameShiftWheel({
   const aRef = useRef(0)
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
   const aspectElsRef = useRef<Record<string, SVGElement[]>>({})
+  const aspectKindRef = useRef<Map<SVGElement, 'hard' | 'soft'>>(new Map())
   const selRingsRef = useRef<Record<string, SVGElement>>({})
+  const glyphElsRef = useRef<Record<string, SVGElement>>({})
+  const pointerElsRef = useRef<Record<string, SVGElement>>({})
+  const selectedIdRef = useRef<string | null>(selected)
   const onSelectRef = useRef<(id: string) => void>(() => {})
 
   const { tropical, sidereal, ayanamsa } = data
@@ -200,7 +204,7 @@ export default function FrameShiftWheel({
       const [x0, y0] = pt(i * 30, 336), [x1, y1] = pt(i * 30, 408)
       mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.55)', 'stroke-width': 1 }, gBand)
       const [gx, gy] = pt(i * 30 + 15, 367)
-      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 19, fill: '#F0B978' }, gBand)
+      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#F0B978' }, gBand)
       t.textContent = SG[i]
       glyphEls.push({ el: t, x: gx, y: gy })
     }
@@ -220,7 +224,7 @@ export default function FrameShiftWheel({
     mk('circle', { cx: CX, cy: CY, r: 312, fill: 'none', stroke: 'rgba(234,232,248,.10)', 'stroke-width': 1 }, gNak)
     for (let n = 0; n < 27; n++) {
       const Lc = n * (360 / 27) + 360 / 27 / 2 + AY
-      straightLabel(gNak, Lc, 321, NAKS[n], '7.4', '.7', 'rgba(234,232,248,.55)', '1')
+      straightLabel(gNak, Lc, 321, NAKS[n], '8', '.7', 'rgba(234,232,248,.55)', '1')
     }
 
     // ghost anchors — both rulers (plate)
@@ -257,6 +261,7 @@ export default function FrameShiftWheel({
     ASPECTS.forEach(([a, b, kind]) => {
       const [x0, y0] = pt(lonOf[a], 218), [x1, y1] = pt(lonOf[b], 218)
       const l = mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,' + (kind === 'hard' ? .40 : .26) + ')', 'stroke-width': 1, 'stroke-dasharray': kind === 'hard' ? 'none' : '3 4' }, gSky)
+      aspectKindRef.current.set(l, kind)
       ;(aspectEls[a] = aspectEls[a] || []).push(l)
       ;(aspectEls[b] = aspectEls[b] || []).push(l)
     })
@@ -274,14 +279,18 @@ export default function FrameShiftWheel({
     bodyList.forEach(b => {
       const [px, py] = pt(b.lon, b.r)
       const [hx0, hy0] = pt(b.lon, 336), [hx1, hy1] = pt(b.lon, b.r + 18)
-      mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
+      const pointer = mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
+      pointerElsRef.current[b.id] = pointer
       const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer' }, gSky)
       glyph.textContent = b.g
+      glyphElsRef.current[b.id] = glyph
       const [dx, dy] = pt(b.lon, b.r - 24)
-      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 8.8, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)' }, gSky)
-      selRingsRef.current[b.id] = mk('circle', {
-        cx: px, cy: py, r: 16, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
+      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)' }, gSky)
+      const selRing = mk('circle', {
+        cx: px, cy: py, r: 17, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
       }, gSky)
+      selRing.style.filter = 'drop-shadow(0 0 6px rgba(44,200,192,.6))'
+      selRingsRef.current[b.id] = selRing
       const hit = mk('circle', { cx: px, cy: py, r: 22, fill: 'transparent', cursor: 'pointer' }, gSky)
       const onClick = (e: Event) => { e.stopPropagation(); onSelectRef.current(b.id) }
       hit.addEventListener('click', onClick)
@@ -296,7 +305,7 @@ export default function FrameShiftWheel({
     }
     ANGLES.forEach(ax => {
       const cfg = ANGLE_LBL[ax.id]
-      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 10, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)' }, gSky)
+      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)' }, gSky)
       t.textContent = ax.n
       const d = mk('text', { x: cfg.x, y: cfg.y + 14, 'text-anchor': cfg.anchor, 'font-size': 8.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.5)' }, gSky)
       SWEEP.push({ id: ax.id, lon: ax.lon, px: cfg.x, py: cfg.y, glyphEl: null, degEl: d, lastS: Math.floor(ax.lon / 30) })
@@ -310,13 +319,13 @@ export default function FrameShiftWheel({
       mk('line', { x1: s0x, y1: s0y, x2: s1x, y2: s1y, stroke: '#F0B978', 'stroke-width': 1, opacity: .9, 'stroke-dasharray': '3 3' }, gFid)
       mk('path', { d: arcPath(0, AY, 426), fill: 'none', stroke: '#F0B978', 'stroke-width': 1.2, opacity: .85 }, gFid)
       const [mx, my] = pt(AY / 2, 449)
-      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 11.5, 'letter-spacing': 1.5, fill: '#F0B978' }, gFid)
+      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 12.5, 'letter-spacing': 1.5, fill: '#F0B978' }, gFid)
       lbl.textContent = 'Δ ' + dms(AY)
       const [ax0, ay0] = pt(0, 452)
-      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 7.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
+      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
       l1.textContent = '0°' + SG[0] + ' TROPICAL'
       const [bx, by] = pt(AY, 452)
-      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 7.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
+      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
       l2.textContent = '0°' + SG[0] + ' SIDEREAL'
     }
 
@@ -332,7 +341,7 @@ export default function FrameShiftWheel({
         if (p < 1) requestAnimationFrame(anim); else gFx.removeChild(c)
       }
       requestAnimationFrame(anim)
-      if (sw.glyphEl) { sw.glyphEl.setAttribute('fill', '#F0B978'); setTimeout(() => sw.glyphEl?.setAttribute('fill', '#EAE8F8'), 620) }
+      if (sw.glyphEl) { sw.glyphEl.setAttribute('fill', '#F0B978'); setTimeout(() => sw.glyphEl?.setAttribute('fill', selectedIdRef.current === sw.id ? '#2CC8C0' : '#EAE8F8'), 620) }
     }
 
     // the core: rotate the band by −a; planets stay; degrees recount
@@ -388,20 +397,37 @@ export default function FrameShiftWheel({
     return () => cancelAnimationFrame(raf)
   }, [frame])
 
-  // ── selection dims the rest of the aspect web ──
+  // ── selection isolates the body: cyan glyph, pointer, ring + aspect lines,
+  //    everything else dimmed (matches AXIS.dc.html buildSky selection state) ──
   useEffect(() => {
     onSelectRef.current = (id: string) => onSelect?.(id === selected ? null : id)
+    selectedIdRef.current = selected
   })
   useEffect(() => {
     const map = aspectElsRef.current
+    const kinds = aspectKindRef.current
     const all = new Set<SVGElement>()
     Object.values(map).forEach(a => a.forEach(l => all.add(l)))
-    all.forEach(l => l.setAttribute('opacity', '1'))
+    // restore every aspect line to its frame-invariant base
+    all.forEach(l => {
+      const kind = kinds.get(l)
+      l.setAttribute('opacity', '1')
+      l.setAttribute('stroke', 'rgba(234,232,248,' + (kind === 'hard' ? .40 : .26) + ')')
+      l.setAttribute('stroke-width', '1')
+    })
     if (selected) {
       const mine = new Set(map[selected] || [])
-      all.forEach(l => { if (!mine.has(l)) l.setAttribute('opacity', '.28') })
+      all.forEach(l => {
+        if (mine.has(l)) { l.setAttribute('stroke', '#2CC8C0'); l.setAttribute('stroke-width', '1.2') }
+        else l.setAttribute('opacity', '.28')
+      })
     }
-    // Cyan ring on the selected body — what the legend's SELECTED chip names.
+    // Selected body: cyan glyph, cyan pointer line, cyan ring (+glow); the rest
+    // return to their resting fills.
+    Object.entries(glyphElsRef.current).forEach(([id, el]) =>
+      el.setAttribute('fill', id === selected ? '#2CC8C0' : '#EAE8F8'))
+    Object.entries(pointerElsRef.current).forEach(([id, el]) =>
+      el.setAttribute('stroke', id === selected ? '#2CC8C0' : 'rgba(234,232,248,.32)'))
     Object.entries(selRingsRef.current).forEach(([id, el]) =>
       el.setAttribute('opacity', id === selected ? '1' : '0'))
   }, [selected])
