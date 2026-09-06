@@ -187,7 +187,7 @@
   top: 11px;
   left: 0;
   height: 1px;
-  background: var(--copper-bright);
+  background: var(--cyan);
 }
 
 .slider {
@@ -205,8 +205,8 @@
   top: 5px;
   width: 13px;
   height: 13px;
-  background: var(--copper-emphasis);       /* non-live emphasis knob */
-  box-shadow: 0 0 12px rgba(240, 185, 120, 0.5);
+  background: var(--cyan);                   /* live scrubber — drives the wheel's cyan annotation */
+  box-shadow: 0 0 12px rgba(44, 200, 192, 0.5);
   pointer-events: none;
 }
 
@@ -222,7 +222,7 @@
   justify-content: center;
 }
 .epochRead b { color: var(--text); font-weight: 400; }
-.epochOffset { color: var(--copper-emphasis); }
+.epochOffset { color: var(--cyan); }
 
 /* ── TWO MAPS ──────────────────────────────────────── */
 .twoMapsSection {
