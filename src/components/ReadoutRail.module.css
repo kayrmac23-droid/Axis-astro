@@ -77,7 +77,7 @@
 
 .delta { text-align: right; }
 .flip { color: var(--copper-light); }
-.hold { color: var(--text-3); }
+.hold { color: var(--text-4); }
 
 /* The active frame reads at full strength; the other stays legible and
    present — never hidden (DOCTRINE.md: CO-VISIBILITY). */
