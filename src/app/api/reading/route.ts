@@ -8,10 +8,16 @@ import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading 
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
-import { isTruncated } from '@/lib/reading-quality-gate'
+import { evaluateSection, repairSection, isTruncated } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
-export const maxDuration = 60
+// Vercel Pro raises the per-function ceiling to 300s. The synchronous quality
+// gate (first-pass generation → evaluateSection → conditional repairSection)
+// runs three sequential Sonnet calls on an uncached, gate-failing section;
+// worst-case wall clock on the heaviest section is ~145–170s, so 300s gives the
+// pipeline ~1.8x headroom. This is what let the gate move back onto the request
+// path — it breached the old 60s Hobby ceiling on gen+eval alone.
+export const maxDuration = 300
 
 // ── Model config ───────────────────────────────────────────────────────────────
 const MODEL       = 'claude-sonnet-4-6'
@@ -50,6 +56,15 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
 const READING_RATE_LIMIT = { max: Number(process.env.AXIS_READING_RATE_LIMIT_MAX ?? 20), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
+
+// ── Quality-gate budget ────────────────────────────────────────────────────────
+// Wall-clock budget after first pass + eval beyond which we skip the repair pass
+// to stay under maxDuration (300s). A repair pass on the heaviest section is
+// ~60s worst case, so starting one only while elapsed < 200s leaves ~40s of
+// safety margin under the ceiling. In practice the gate returns by ~90s, so this
+// threshold trips only under pathological model slowness — it never gates a
+// healthy repair, it just guarantees the route cannot exceed maxDuration.
+const REPAIR_SKIP_THRESHOLD_MS = 200_000
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -124,8 +139,10 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
 // Deterministic doctrine scan. NOT a semantic gate - it only catches the
 // high-precision, unambiguous banned phrasings that have no legitimate use
 // in a reading. Returns every phrase found (lowercased substring match).
-// The semantic gate (soft synthesis, THE LAW claim-level test) is the
-// separate async redesign; this is the deterministic bridge only.
+// The semantic gate (soft synthesis, THE LAW claim-level test) runs before
+// this as evaluateSection; this literal scan is a final deterministic backstop
+// on whatever text is about to be cached, catching a banned phrasing the
+// evaluator missed or one that survived a repair pass.
 function detectBannedPhrasings(text: string): string[] {
   const hay = text.toLowerCase()
   const hits: string[] = []
@@ -316,27 +333,40 @@ export async function POST(req: NextRequest) {
       { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
     ]
 
-    // ── First-pass generation pipeline ─────────────────────────────────────────
+    // ── Quality-gated generation pipeline ──────────────────────────────────────
     // The first pass streams to the client token-by-token, so prose starts
-    // rendering within ~1s. The stream now flows straight to close as soon as
-    // first-pass generation finishes: the eval + repair passes have been taken
-    // OFF the synchronous request path (each was a full Sonnet call, and
-    // generation + eval alone breached the 60s ceiling on heavy sections). The
-    // gate/repair machinery is retained in reading-quality-gate.ts for a later
-    // async/sampled redesign. Non-truncated first-pass text is cached directly;
-    // truncated text ships with the marker and is never cached.
+    // rendering within ~1s instead of after the whole section (plus gate, plus
+    // repair) has finished buffering. The quality gate then runs synchronously
+    // after the stream — moved back onto the request path now that Vercel Pro
+    // lifts the ceiling to 300s (see maxDuration): if the draft passes it is
+    // cached as-is; if it fails and there is wall-clock budget, a repair pass is
+    // streamed behind an [AXIS_REPAIRED] marker and the client swaps the visible
+    // draft for it. Only validated (passing or repaired), non-truncated,
+    // doctrine-clean text is ever cached.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
-        // The eval + repair passes are off the request path, so an uncached
-        // section now makes exactly one Sonnet call (first-pass generation), which
-        // streams straight through to close. Recorded once in the finally path
-        // regardless of outcome.
+        const startedAt = Date.now()
+        // 'streaming' while first-pass tokens are flowing (never inject a ping
+        // mid-stream — it would corrupt the prose). 'gating' during the eval /
+        // repair gap, where a boundary-only keep-alive space is harmless (it
+        // lands as trailing whitespace the client trims when the gate passes, and
+        // is discarded with everything before the [AXIS_REPAIRED] marker when a
+        // repair supersedes the draft).
+        let phase: 'streaming' | 'gating' | 'done' = 'streaming'
+        // Count the Sonnet calls this request actually makes so the global daily
+        // budget records real model spend, not one-per-request. Recorded once in
+        // the finally path regardless of pass/fail/repair outcome.
         let modelCalls = 0
+        const keepAlive = setInterval(() => {
+          if (phase === 'gating') {
+            try { controller.enqueue(encoder.encode(' ')) } catch { /* closed */ }
+          }
+        }, 5000)
 
         try {
-          // First pass — streamed live. This is the only model call on this path.
+          // 1. First pass — streamed live.
           const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
@@ -353,22 +383,75 @@ export async function POST(req: NextRequest) {
             }
           }
           const firstMessage = await stream.finalMessage()
-          modelCalls = 1  // first-pass generation completed — the only model call
+          modelCalls = 1  // first-pass generation completed
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
-          // No gate, no repair on the request path. Truncated drafts ship with
-          // the truncation marker and are never cached; a non-empty, non-truncated
-          // first pass is cached directly and the stream closes.
-          const cacheText = firstText
-          const cacheable = !truncated && firstText.trim().length > 0
+          phase = 'gating'
+
+          // 2. Gate + optional repair. Truncated drafts are never gated — they
+          //    ship with the truncation marker so the client can surface it.
+          let cacheText = firstText
+          let cacheable = !truncated && firstText.trim().length > 0
 
           if (truncated) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
+          } else if (firstText.trim().length > 0) {
+            const gate = await evaluateSection({
+              generatedText: firstText,
+              chartContext:  userContent,
+              section,
+              planetSection,
+            })
+            modelCalls += 1  // evaluateSection made a gate call
+
+            if (gate.truncated) {
+              // Defence in depth: the model stopped mid-section without a
+              // max_tokens stop_reason. Surface it and never cache it.
+              controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
+              cacheable = false
+            } else {
+              const elapsedMs = Date.now() - startedAt
+              const haveBudget = elapsedMs < REPAIR_SKIP_THRESHOLD_MS
+
+              if (!gate.pass && gate.critique && haveBudget) {
+                modelCalls += 1  // a repair call is issued (counted even if it throws)
+                try {
+                  const repaired = await repairSection({
+                    originalUserContent: userContent,
+                    systemBlocks,
+                    failedDraft:         firstText,
+                    critique:            gate.critique,
+                    maxTokens,
+                    model:               MODEL,
+                  })
+                  if (repaired.trim().length > 0) {
+                    // Supersede the streamed draft. The client keeps only the text
+                    // after the last [AXIS_REPAIRED] marker as the final section.
+                    controller.enqueue(encoder.encode('\n\n[AXIS_REPAIRED]\n\n' + repaired))
+                    cacheText = repaired
+                  }
+                } catch (repairErr) {
+                  // Repair failed — the streamed first pass still stands, but a
+                  // known-failed draft is not cached.
+                  console.error('Reading quality gate: repair pass failed:', repairErr instanceof Error ? repairErr.message : repairErr)
+                  cacheable = false
+                }
+              } else if (!gate.pass && gate.critique && !haveBudget) {
+                // Out of budget for a repair — the streamed first pass stands, but
+                // is not cached so the next request gets a fresh attempt.
+                cacheable = false
+                console.warn(`Reading quality gate: skipped repair (elapsed ${elapsedMs}ms ≥ ${REPAIR_SKIP_THRESHOLD_MS}ms threshold) for ${section}/${planetSection}`)
+              }
+            }
           }
 
+          phase = 'done'
           controller.close()
 
-          // Final guard: never cache empty or truncated text.
+          // Final guard: never cache empty or truncated text — including a repair
+          // pass that itself hit max_tokens and was superseded into cacheText —
+          // and never cache text carrying a banned doctrine phrasing (a
+          // deterministic backstop to the gate's semantic doctrine criteria).
           const bannedHits = detectBannedPhrasings(cacheText)
           if (bannedHits.length > 0) {
             console.warn(
@@ -384,12 +467,14 @@ export async function POST(req: NextRequest) {
             await setCachedReading(cacheKey, cacheText)
           }
         } catch (err) {
+          phase = 'done'
           try {
             controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
             controller.close()
           } catch { /* already closed */ }
           console.error('Reading generation error:', err instanceof Error ? err.message : err)
         } finally {
+          clearInterval(keepAlive)
           // Record the true model-call count for this request against the global
           // daily budget. Best-effort: recordModelCalls never throws, but guard
           // anyway so a rejection can never surface to the client.

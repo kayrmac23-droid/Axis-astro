@@ -13,9 +13,16 @@ import { Redis } from '@upstash/redis'
 import type { BirthData } from '@/lib/astro-calc'
 
 // ── Version constant ───────────────────────────────────────────────────────────
-// Bump this whenever prompts are intentionally changed.
+// Bump this whenever prompts are intentionally changed, or when the pipeline that
+// produces cached text changes materially.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
-export const READING_PROMPT_VERSION = 'v10.17'
+//
+// v11.0 — the reading quality gate (evaluateSection + repairSection) was moved
+// back onto the synchronous /api/reading path under the 300s Vercel Pro ceiling.
+// Prior entries were cached WITHOUT the gate; a major bump invalidates them so
+// every cache miss is now regenerated through the gate rather than serving a
+// pre-gate draft for the rest of its 30-day TTL.
+export const READING_PROMPT_VERSION = 'v11.0'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

@@ -1,17 +1,17 @@
 // Reading Quality Gate
 //
-// ⚠ NOT ON THE REQUEST PATH. As of the streaming redesign, /api/reading does NOT
-// call evaluateSection / repairSection: each was a full Sonnet call, and
-// generation + eval breached the 60s route ceiling on heavy sections, so the
-// eval + repair passes were taken off the synchronous path. The route imports
-// only isTruncated from this module; the live cache-write guards are isTruncated
-// plus the deterministic banned-phrase scan in the route itself. This full
-// evaluator is RETAINED for a future async/sampled redesign (evaluate-and-recache
-// after the response ships) and is exercised only by its unit tests today. Do not
-// assume readings users see have passed the rubric below.
+// ON THE REQUEST PATH. /api/reading streams the first pass live, then calls
+// evaluateSection synchronously and, on failure with wall-clock budget left,
+// repairSection once — all under maxDuration=300 (Vercel Pro). These passes were
+// off the path only while the ceiling was 60s (gen + eval alone breached it on
+// heavy sections); the Pro ceiling restored them. The route imports
+// evaluateSection, repairSection, and isTruncated from this module. Caching
+// happens only after a pass (or a successful repair), so the text a section
+// caches — and therefore what every later cache-hit viewer sees — has passed the
+// rubric below.
 //
-// When it IS run: a second-pass evaluator that scores a generated section against
-// AXIS's elite-reading criteria and, on failure, regenerates it once with the
+// A second-pass evaluator that scores a generated section against AXIS's
+// elite-reading criteria and, on failure, regenerates it once with the
 // evaluator's critique as repair instructions; the repaired text is what gets
 // cached.
 //

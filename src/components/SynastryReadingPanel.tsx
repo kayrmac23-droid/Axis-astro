@@ -20,14 +20,27 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
   navigation:     'What Each Requires',
 }
 
-// Must exceed the server's maxDuration (60s) so the server — not the client —
-// decides when a section has failed. /api/reading streams a single first-pass
-// generation straight through to close (the eval/repair passes were taken off
-// the request path); aborting earlier would kill a section mid-generation before
-// the server can cache it.
-const SECTION_TIMEOUT_MS = 65_000
+// Must exceed the server's maxDuration (300s) so the server — not the client —
+// decides when a section has failed. /api/reading streams the first-pass draft
+// live, then runs the quality gate and, on failure, a single repair pass
+// synchronously (generate → gate → repair, up to ~170s on the heaviest section);
+// aborting earlier would kill a section mid-gate before the server can validate
+// and cache it.
+const SECTION_TIMEOUT_MS = 310_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
+
+// The server streams the first-pass draft live. If the quality gate triggers a
+// repair, it appends [AXIS_REPAIRED] followed by the final copy — everything up
+// to and including the last marker is the superseded draft, so we keep only what
+// follows it. (Synastry sections go through the same gate/repair pipeline as
+// natal sections, so this marker can appear here too.)
+function stripRepairMarker(text: string): string {
+  const marker = '[AXIS_REPAIRED]'
+  const idx = text.lastIndexOf(marker)
+  if (idx === -1) return text
+  return text.slice(idx + marker.length).replace(/^\s+/, '')
+}
 
 function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | null {
   const h = heading.toLowerCase()
@@ -139,9 +152,10 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
               const { done, value } = await reader.read()
               if (done) break
               chunk += decoder.decode(value, { stream: true })
-              setText(accumulated + chunk)
+              setText(accumulated + stripRepairMarker(chunk))
             }
             chunk += decoder.decode()
+            chunk = stripRepairMarker(chunk)
             setText(accumulated + chunk)
 
             if (chunk.includes('[AXIS_STREAM_ERROR:')) {
