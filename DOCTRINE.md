@@ -199,3 +199,52 @@ not a missing feature; agents must not "complete" it by inventing the undefined
 object.
 
 VOCABULARY: Synastry closing section identifier is `central_dynamic` (renamed from `integration`, Aug 2026) to comply with the inter-system vocabulary ban.
+
+## IDENTITY & STORAGE TIERS (ratified September 2026)
+
+AXIS has three identity tiers. Storage obligations are scoped to tier; they do
+not apply product-wide. AXIS makes no product-wide no-storage claim.
+
+FREE (Orientation)
+- Anonymous. No account, no email, no PII.
+- Nothing is persisted beyond the anonymous 30-day birth-data cache. This is an
+  architectural fact, not a user-facing guarantee. The UI makes no explicit
+  no-storage promise.
+
+ONE-OFF (Dossier)
+- Buyer identity = the email Stripe already collects at checkout, read
+  server-side from the Stripe session. No custom email field is built; no email
+  input UI is added; Stripe's collection notice is the point-of-capture notice.
+- Purchase binds to a durably stored reading. Identity model is email ->
+  [readings] (one email may own several readings with distinct birth data),
+  never email -> single reading.
+- Durable reading storage is a DISTINCT LAYER from the 30-day cache. The cache
+  remains a performance/dedup optimization and is NEVER the archive. Cache must
+  never substitute for user-controlled storage.
+- Re-access window is bounded, not perpetual: RETENTION PERIOD TO BE SET.
+  Beyond the window, a re-request regenerates. (Expiry mechanism is unbuilt
+  infrastructure to be scoped at phase-2 build time.)
+
+SUBSCRIPTION
+- Full account: auth, persistence, entitlement. Email is the account key.
+- A one-off buyer who later subscribes is the SAME IDENTITY LEVELLED UP, not a
+  second store. One-off email and subscription account share one identity
+  primitive.
+
+CROSS-TIER OBLIGATIONS (one-off + subscription only)
+- Any tier storing PII (email) or durable readings inherits: a lawful basis and
+  notice at point of collection, user-triggered deletion, and export. One-off
+  buyers fall under the SAME deletion/export regime as subscribers, not a
+  separate lighter one.
+- Capturing an email crosses the PII line even without a password. "No account"
+  is not "no obligation."
+
+RESOLVES (standing open item)
+- Cache-as-paywall conflict (Redis keyed on birth data, not purchase token):
+  resolved. Re-access checks the purchase->reading binding, not the anonymous
+  cache.
+
+STATUS: Ratified as product law. NOT YET IMPLEMENTED. Phase-2 (paywall)
+decision; does not reorder phase-1 (foundations + gate) work. Supersedes the
+prior unratified "accounts = v2 / nothing stored product-wide" framing, which
+lived only in memory and was never canonical.
