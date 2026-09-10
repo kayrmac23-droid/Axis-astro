@@ -11,7 +11,7 @@ import { isValidCalendarDate } from '@/lib/tz'
 import { isTruncated } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
 // ── Model config ───────────────────────────────────────────────────────────────
 const MODEL       = 'claude-sonnet-4-6'
