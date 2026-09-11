@@ -159,20 +159,41 @@ export function scoreLength(words: number, band: WordBand): number {
 }
 
 // Count the major aspects the section was built to work through, by reading the
-// "ASPECTS (tightest first):" block the interpretation engine emits into the
-// chart context (bullet lines, terminated by a blank/non-bullet line). Multiple
-// blocks — e.g. Jupiter + Saturn — are summed. Used to scale the length band so
-// a densely aspected chart is allowed the earned length a sparse one is not.
+// aspect blocks the interpretation engine emits into the chart context. Multiple
+// blocks — e.g. Jupiter + Saturn, or the Ascendant's own — are summed. Used to
+// scale the length band so a densely aspected chart is allowed the earned length
+// a sparse one is not.
+//
+// Two block shapes exist and both must be counted:
+//   • "ASPECTS (tightest first):"     — bullet lines (formatPlanetBlock,
+//                                       formatAscendantBlock)
+//   • "ALL MAJOR ASPECTS (tightest first):" — the key_aspects section, whose
+//     entries are NOT bullet-prefixed. Matching only the bulleted header form
+//     silently returned 0 for that section.
 // Returns 0 when no such block is present (→ base band, unchanged behaviour).
 // Exported for unit testing — pure, no behaviour change.
+const ASPECT_ENTRY_RE = /^[A-Z][A-Za-z]* [^ ] [A-Z][A-Za-z]* \(orb /
+
 export function countAspectsInContext(chartContext: string): number {
   let count = 0
-  let inBlock = false
+  let inBulletBlock = false
+  let inPlainBlock  = false
   for (const line of chartContext.split('\n')) {
-    if (line.startsWith('ASPECTS (tightest first):')) { inBlock = true; continue }
-    if (!inBlock) continue
-    if (line.trimStart().startsWith('•')) count++
-    else inBlock = false // blank line or a new header ends the block
+    if (line.startsWith('ALL MAJOR ASPECTS (tightest first):')) {
+      inPlainBlock = true; inBulletBlock = false; continue
+    }
+    if (line.startsWith('ASPECTS (tightest first):')) {
+      inBulletBlock = true; inPlainBlock = false; continue
+    }
+    if (inBulletBlock) {
+      if (line.trimStart().startsWith('•')) count++
+      else inBulletBlock = false // blank line or a new header ends the block
+    } else if (inPlainBlock) {
+      // "Sun ☌ Moon (orb 3.2°, applying, intensifying)". Indented continuation
+      // lines and blanks are skipped; a new non-indented header ends the block.
+      if (ASPECT_ENTRY_RE.test(line)) count++
+      else if (line.length > 0 && !line.startsWith(' ')) inPlainBlock = false
+    }
   }
   return count
 }
