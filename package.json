@@ -32,5 +32,9 @@
   },
   "overrides": {
     "postcss": ">=8.5.14"
+  },
+  "allowScripts": {
+    "core-js@3.49.0": true,
+    "unrs-resolver@1.11.1": true
   }
 }
