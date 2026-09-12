@@ -55,11 +55,18 @@ interface CacheKeyParams {
   birth:         BirthData
   section:       string
   planetSection: string
+  // Which Pluto the reading was generated against. JPL Horizons and the local
+  // Meeus fallback differ by up to ~0.5°, which can put Pluto in a different sign
+  // near a boundary. Without this in the key, whichever source won the FIRST
+  // uncached request stayed frozen in the cached prose for 30 days while the wheel
+  // and the READOUT rail re-derived Pluto live on every visit — the exact
+  // surface-to-surface drift readout.ts exists to prevent.
+  plutoSource?:  string
 }
 
 export function makeSynastryCacheKey({
-  birthA, birthB, section, planetSection,
-}: { birthA: BirthData; birthB: BirthData; section: string; planetSection: string }): string {
+  birthA, birthB, section, planetSection, plutoSourceA, plutoSourceB,
+}: { birthA: BirthData; birthB: BirthData; section: string; planetSection: string; plutoSourceA?: string; plutoSourceB?: string }): string {
   const norm = (b: BirthData) => ({
     year: b.year, month: b.month, day: b.day,
     hour:   b.birthTimeUnknown ? 12 : b.hour,
@@ -69,11 +76,16 @@ export function makeSynastryCacheKey({
     tz:  Math.round(b.timezone  * 100) / 100,
     btu: b.birthTimeUnknown === true,
   })
-  const key = { a: norm(birthA), b: norm(birthB), section, planetSection, promptVersion: READING_PROMPT_VERSION }
+  const key = {
+    a: norm(birthA), b: norm(birthB), section, planetSection,
+    promptVersion: READING_PROMPT_VERSION,
+    plutoSourceA:  plutoSourceA ?? 'local-meeus',
+    plutoSourceB:  plutoSourceB ?? 'local-meeus',
+  }
   return 'axis:synastry:' + createHash('sha256').update(JSON.stringify(key)).digest('hex').slice(0, 40)
 }
 
-export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams): string {
+export function makeCacheKey({ birth, section, planetSection, plutoSource }: CacheKeyParams): string {
   // Normalize birth data to ensure equivalent inputs produce identical keys.
   // - lat/lon: 2 decimal places (~1.1 km, sufficient for astrological precision)
   // - tz: 2 decimal places (handles half/quarter-hour offsets like IST +5.5)
@@ -93,6 +105,7 @@ export function makeCacheKey({ birth, section, planetSection }: CacheKeyParams):
     promptVersion:    READING_PROMPT_VERSION,
     ayanamsa:         'lahiri',
     houseSystem:      'whole-sign',
+    plutoSource:      plutoSource ?? 'local-meeus',
   }
   return 'axis:reading:' + createHash('sha256')
     .update(JSON.stringify(normalized))

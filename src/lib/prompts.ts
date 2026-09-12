@@ -40,21 +40,84 @@ export const BANNED_BARNUM_LIST = BANNED_BARNUM_PHRASINGS.map(p => `"${p}"`).joi
 // not the simultaneous holding THE LAW requires. Single source of truth: the
 // sidereal/synthesis prompts interpolate this into their banned-as-written line and
 // the reading quality gate imports the same list, so prompt and gate cannot drift.
+// These are LITERAL bans: every entry is a construction with no innocent use in a
+// reading, so a bare case-insensitive substring match is a safe signal.
+//
+// Deliberately NOT here: bare "underneath", bare "beneath", and bare "the mask".
+// Those are ordinary English that a reading uses innocently all the time ("the
+// warmth shuts off on the surface while the attachment continues underneath" is
+// AXIS's own Leo copy, three hundred lines below). Banning them literally made
+// every section containing the word permanently uncacheable — a pure cost with no
+// doctrinal benefit, since the runtime scan happens after the text has already
+// streamed to the reader. They now live in HIERARCHY_CONTEXTUAL_TERMS and are
+// flagged only in the company of identity/system language, matching the rule
+// scripts/verify-thesis.sh has always applied to hand-authored copy.
 export const BANNED_HIERARCHY_PHRASINGS = [
   'deeper stratum',
-  'underneath',
   'beneath the performance',
   'beneath the constructed',
-  "what's actually made of",
+  "what it's actually made of",
   'what the identity is actually made of',
   'the real self',
   'the performed self',
   'surface versus essence',
   'surface vs essence',
-  'the mask',
 ] as const
 
 export const BANNED_HIERARCHY_LIST = BANNED_HIERARCHY_PHRASINGS.map(p => `"${p}"`).join('; ')
+
+// Depth-ranking terms that are only a doctrine breach in context. Each is banned
+// ONLY when it lands within HIERARCHY_PROXIMITY_CHARS of identity/system language
+// — "underneath the constructed identity" is resolution-by-hierarchy; "the
+// attachment continues underneath" is just a sentence. Mirrors the context-bounded
+// checks in scripts/verify-thesis.sh so the source-side checker and the runtime
+// scanner can no longer disagree about what the doctrine actually bans.
+export const HIERARCHY_CONTEXTUAL_TERMS = [
+  'underneath',
+  'beneath',
+  'the mask',
+] as const
+
+// Identity / system tokens that turn a contextual term into a hierarchy claim.
+// `self` is word-bounded so "yourself", "themselves" and "itself" do not match —
+// without that, "you find yourself underneath a pile of it" reads as doctrine.
+export const HIERARCHY_IDENTITY_TOKENS = [
+  'constructed', 'identity', '\\bself\\b', 'tropical', 'sidereal',
+  'performance', 'persona', 'essence', 'essential',
+] as const
+
+// Character window either side of a contextual term.
+//
+// Wider than the 30 in scripts/verify-thesis.sh, deliberately: that script scans
+// terse hand-authored UI copy, where the identity token and the depth term sit
+// close together. Generated prose is looser — "the constructed self is only a
+// layer over what lies beneath" spans 32 — so a 30-char window misses real
+// breaches in readings. 60 is about one clause.
+//
+// It is not widened further, because the two error directions cost very
+// differently. A false NEGATIVE caches one doctrine-breaching section. A false
+// POSITIVE makes a section permanently uncacheable: a full model call on every
+// page load, forever, against the global daily cap — and it prevents nothing,
+// since this scan runs after the text has already streamed to the reader. When
+// in doubt, miss.
+export const HIERARCHY_PROXIMITY_CHARS = 60
+
+// True when `text` uses a contextual depth-ranking term adjacent to identity or
+// system language. Shared by the live route scan and the doctrine parity tests so
+// prompt, source checker and runtime cannot drift. Returns the terms that hit.
+export function detectContextualHierarchy(text: string): string[] {
+  const hay   = text.toLowerCase()
+  const ident = HIERARCHY_IDENTITY_TOKENS.join('|')
+  const gap   = HIERARCHY_PROXIMITY_CHARS
+  const hits: string[] = []
+  for (const term of HIERARCHY_CONTEXTUAL_TERMS) {
+    const t = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const before = new RegExp(`(?:${ident})[\\s\\S]{0,${gap}}${t}`, 'i')
+    const after  = new RegExp(`${t}[\\s\\S]{0,${gap}}(?:${ident})`, 'i')
+    if (before.test(hay) || after.test(hay)) hits.push(term)
+  }
+  return hits
+}
 
 // Rescue-clause phrasings — the SECOND banned rescue move (ease → hidden strength).
 // A trailing value-assertion appended to a placement description that adds no
@@ -250,12 +313,12 @@ WHOLE-PERSON PORTRAIT — NON-NEGOTIABLE:
 A reading exists to show a whole person — the full spectrum of what makes them who they are — not to diagnose what is wrong with them. Render the entire range with equal weight: the gifts, the warmth, the talents, the particular way aliveness and delight show up in THIS person, alongside the difficulty, the shadow, and the tension. Struggle is one colour in the portrait, never the whole of it. If a section spends more of itself on what is hard than on what is alive, capable, and good, it has failed the person in front of it — go back and give the gifts their due.
 - The STRUCTURED INTERPRETATION CONTEXT now names strengths explicitly (STRENGTHS / CAPACITIES blocks, dignified placements, flowing aspects) as well as difficulties (TENSIONS / CONTRADICTIONS). Treat the STRENGTHS material as load-bearing, not optional. Give a person's capacities the same specific, earned, fully-developed treatment you give their wounds — do not rush past the gift in one clause to spend three paragraphs on the difficulty.
 - A gift is subject to the SAME unified-system cross-referencing as every difficulty — this is what keeps it elite rather than generic. Never state a strength flat, as if the rest of the chart did not exist. Before naming a gift as clean, check what modifies it: the dispositor's condition, the aspects the planet receives, a contradicting placement elsewhere. A gift that another placement amplifies, qualifies, or undercuts must be named WITH that cross-reference — "this warmth is real, but the Saturn square means it is offered carefully and rarely first" is elite; "you are warm" is a horoscope. The contradiction between a gift and the placement that complicates it is more accurate, and more useful, than the gift stated alone.
-- This is NOT positivity, affirmation, flattery, or the wellness-industry voice, and it does NOT soften Axis's honesty — those remain banned. The difference between a gift and a platitude is precision: "your sensitivity is a gift" is worthless, but naming the exact capacity, where it shows up, and what other people actually receive from it is as sharp and as true as any hard observation. Precision is the warmth — on the bright side of a person exactly as much as on the shadow side.
+- This is NOT positivity, affirmation, flattery, or the wellness-industry voice, and it does NOT soften Axis's honesty — those remain banned. The difference between a capacity and a platitude is precision: "your sensitivity is a gift" is worthless, but naming the exact capacity, the situation that calls it out, and what it costs or enables in the moment it operates is as sharp and as true as any hard observation. Name the capacity from inside the person exercising it, never as the audience's appraisal of them (PROSE FAILURE MODES #3 applies to strengths exactly as it does to difficulties, and is hardest to catch when the frame is flattering). Precision is the warmth — on the bright side of a person exactly as much as on the shadow side.
 - The honest observation a section ends on can be a strength this person undervalues or cannot see in themselves, just as readily as a blind spot or a wound. Do not reserve the sharpest closing insight for what is wrong with them.
 
 SITUATIONAL MANIFESTATION — NON-NEGOTIABLE:
 A chart locates a pattern; the reading must show WHEN and WHERE that pattern actually surfaces in a life. This is the difference between describing the architecture and describing the lived experience — and the reading must do the second, not stop at the first. For every behavioural tendency you name, anchor it to the conditions that bring it to the surface: the specific kind of situation, relationship, or pressure that activates it, and — where the chart supports it — the conditions under which it goes quiet. A reading that says where the difficulty lives without ever showing the moment it shows up has described a map and skipped the territory.
-- Do not write "you struggle with commitment." Write the scene: the situation in which the urge to leave arrives, what sets it off, what it feels like from the inside in that moment, and what other people see from the outside.
+- Do not write "you struggle with commitment." Write the scene: the situation in which the urge to leave arrives, what sets it off, what it feels like from the inside in that moment, and what the person themselves registers having done once it has passed.
 - The STRUCTURED INTERPRETATION CONTEXT gives you the raw material for this directly: the house is the arena where a placement surfaces, aspects are what trigger it, dignity is how cleanly it expresses, the sign is the mode it takes when activated. Translate those facts into recognisable, situational language — not "this placement creates tension" but the actual recurring moment in which the tension is felt.
 - Struggle is the WHAT; situation and trigger are the WHEN. A section that names only the struggle has done half the work. Lead the reader to recognise the scene, then name what it costs — in that order, not the reverse.
 
@@ -264,7 +327,7 @@ VOICE AND TONE — NON-NEGOTIABLE:
 - Direct, unsentimental, warm-but-honest. Precision is the warmth — when an observation lands accurately, the reader feels seen without being flattered
 - British spelling throughout: favour, colour, recognised, emphasise, analyse, practise (verb), licence (noun), centre, honour
 - Paragraphs must be 3–4 sentences maximum for mobile readability. One idea per paragraph, fully developed, then stop. Never accumulate observations into a dense block.
-- Concrete: show what a pattern looks like in real life, what it feels like from the inside, what other people experience from the outside
+- Concrete: show what a pattern looks like in real life, what it feels like from the inside, and what the person registers of its effect on the people around them — their reading of the room, never the room's verdict on them (PROSE FAILURE MODES #3)
 - Open each planet section with something immediately recognisable — not a definition, not a trait list, but a moment or quality that makes the reader feel seen in the first sentence. Recognition before analysis
 - Lead with emotional texture first, then mechanism
 - Allow one carefully chosen phrase or image per section that gives a quality its exact name — not mystical, not decorative, but precise. One. Not a pattern. If a metaphor lands once, move on — do not vary it, extend it, or echo it again in the same section. One precise image is elegant; two versions of it are redundancy.
@@ -314,7 +377,7 @@ CONTRADICTIONS AND BOTH SIDES:
 Never state any placement — a behavioural expression, a difficulty, OR a gift — as definitive fact without first checking whether another major placement contradicts, qualifies, or amplifies it. This cross-referencing is the core of an elite reading: every sign and planet is read against the rest of the chart, never in isolation. Where two placements produce opposing tendencies — Mars wanting to exit versus Moon unable to detach, Sun needing privacy versus Ascendant projecting confidence, Venus idealising versus Saturn restricting, a Jupiter-given generosity versus a 2nd-house Saturn's scarcity reflex — name both sides and describe the lived experience of carrying that contradiction. A strength the chart undercuts elsewhere, and a struggle the chart resolves elsewhere, are both more accurate stated as the cross-reference than either stated alone.
 
 ${SHADOW_RULES}
-- Vary how the distortion clause is built. If every quality in the section arrives with the same trailing stress-state tacked on after a dash, the shadow rule has produced the predictable rhythm PROSE FAILURE MODES #1 bans. Sometimes the distortion leads, sometimes it is the middle of the sentence, sometimes it is the condition under which the quality goes quiet. Coverage is a requirement; one construction is not.
+- Vary how the distortion clause is built. If every quality in the section arrives with the same trailing stress-state tacked on after a dash, the shadow rule has produced the predictable rhythm PROSE FAILURE MODES #1 bans. Sometimes the distortion leads, sometimes it is the middle of the sentence, sometimes it is the condition under which the quality goes quiet. Varying the construction is required; inventing a distortion in order to have one to vary is not — that is the manufacture the block above bans.
 - Do not soften a shadow that IS real. Present it as a structural feature of how this energy operates — not a moral verdict, and not a difficulty on its way to being redeemed (UNCOMPENSATED CONSTRAINT still applies).
 
 ANTI-CLICHÉ REQUIREMENT:
@@ -486,9 +549,9 @@ Internally identify the chart's dominant story: which placements are strongest (
 
 Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
-Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement — name the Sun impulse and the Moon's override or confirmation explicitly, reasoning from that evidence rather than pointing to any other section.
+Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement. This is an EVIDENCE CHECK, not a Moon interpretation. You may name the Moon's net effect on the Sun's impulse in one or two sentences — whether it confirms the Sun's reach toward relationship or overrides it toward withholding — stated as a behavioural fact ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity, or aspects here — no "Virgo Moon grounds through constancy", no unpacking the 4th-house domain, no characterising the Moon's emotional operating mode. The Moon has its own full section and has NOT been interpreted yet; building its portrait here pre-empts that section and is a scope violation. Reference the Moon only as it bears on the Sun; the moment a sentence is about the Moon rather than about the Sun-Moon behavioural cross-purpose, it belongs in the Moon section, not here.
 
-This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated — a consequence, a cost, or a capacity the preceding paragraphs set up — which may be a real strength this person undervalues, just as readily as something they misread about themselves. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising.`,
+This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated — a consequence, a cost, or a capacity the preceding paragraphs set up — which may be a real strength this person undervalues, just as readily as something they misread about themselves. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
@@ -646,7 +709,9 @@ Start with: ## Where the Chart Is Least Negotiable
 
 Identify 2–3 placements or patterns that appear in both the Tropical and Sidereal charts pointing to the same psychological truth. Name the specific planets, signs, and houses from both systems. These are the points where the chart is least negotiable — the facts that hold no matter which framework is used, because both frameworks insist on them at once. Frame them as the narrow, fixed ground, not as a resolution the rest of the reading builds toward.
 
-Write with certainty and weight. These are not approximations. This section must reference specific placements from both systems by name — never speak in abstract terms.`,
+Write with certainty and weight. These are not approximations. This section must reference specific placements from both systems by name — never speak in abstract terms.
+
+${lengthClause(BAND_CONCORDANCE)}`,
 
     diverge: `Write the DIVERGENCE section of The Divergence reading.
 
@@ -672,15 +737,19 @@ Start with: ## The Central Tension
 
 Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person rather than a type. This is the heart of the reading. State it precisely enough that it could not be mistaken for anyone else's tension: name the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree. This is not a summary of all tensions; it is the one thing that runs through everything, the thing that neither chart shows alone but both together make visible.
 
-Reference specific planets, signs, and houses from both systems by name. No comfort. No resolution. Do not gesture at how it might ease. Sharp and specific.`,
+Reference specific planets, signs, and houses from both systems by name. No comfort. No resolution. Do not gesture at how it might ease. Sharp and specific.
+
+${lengthClause(BAND_CENTRAL_TENSION)}`,
 
     closing: `Write the CLOSING section of The Divergence reading.
 
 Start with: ## Living the Divergence
 
-One cohesive paragraph: how does this person live inside the divergence between their Tropical psychological architecture and their Sidereal karmic trajectory — a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe instead how the person carries the divergence between them: how the constructed self and the incarnational pattern pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve. This is a description of how the divergence is inhabited, not a chain that dissolves it.
+Two or three short paragraphs that read as one continuous movement (the paragraph cap in VOICE AND TONE still applies — do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and their Sidereal karmic trajectory — a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe instead how the person carries the divergence between them: how the constructed self and the incarnational pattern pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve. This is a description of how the divergence is inhabited, not a chain that dissolves it.
 
-The final sentence must be the sharpest, most precise observation in the entire reading — something true that has probably been felt but never articulated. No resolution. Do not soften. Name what is, not what might be done about it. End here.`,
+The final sentence must be the sharpest, most precise observation in the entire reading — something true that has probably been felt but never articulated. No resolution. Do not soften. Name what is, not what might be done about it. End here.
+
+${lengthClause(BAND_CLOSING)}`,
   },
 
   synastry: {

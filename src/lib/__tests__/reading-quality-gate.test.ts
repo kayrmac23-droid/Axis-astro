@@ -24,6 +24,8 @@ import {
   BANNED_RESCUE_LIST,
   BANNED_HIERARCHY_PHRASINGS,
   BANNED_HIERARCHY_LIST,
+  HIERARCHY_CONTEXTUAL_TERMS,
+  detectContextualHierarchy,
   SHARED_RULES,
   SHADOW_RULES,
   wordBandFor,
@@ -452,5 +454,115 @@ describe('falsifiability criterion — Barnum doctrine', () => {
   it('exposes the divergence fixture as a stable, non-empty regression string', () => {
     expect(typeof FALSIFIABILITY_DIVERGENCE_EXAMPLE).toBe('string')
     expect(FALSIFIABILITY_DIVERGENCE_EXAMPLE.length).toBeGreaterThan(0)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Regression: the runtime doctrine scan vs. ordinary English.
+//
+// BANNED_HIERARCHY_PHRASINGS used to contain the bare words 'underneath' and
+// 'the mask'. /api/reading substring-matches that list and refuses to cache any
+// section that hits, so every reading using "underneath" in an innocent sense was
+// permanently uncacheable — a full model call on every page load, against the
+// global daily cap, catching nothing (the scan runs after the text has already
+// streamed). Meanwhile scripts/verify-thesis.sh had always applied the correct
+// context-bounded rule to hand-authored copy. These tests bind the two surfaces.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('contextual hierarchy detection', () => {
+  it('does not flag bare "underneath" in ordinary prose', () => {
+    expect(detectContextualHierarchy(
+      'The warmth shuts off on the surface while the attachment continues underneath.'
+    )).toEqual([])
+  })
+
+  it('does not flag "beneath" describing physical or emotional position', () => {
+    expect(detectContextualHierarchy(
+      'The anger sits beneath the politeness and rarely surfaces in the room itself.'
+    )).toEqual([])
+  })
+
+  it('does not flag "the mask" used as an ordinary image', () => {
+    expect(detectContextualHierarchy('The mask slips when she is tired.')).toEqual([])
+  })
+
+  it('flags a depth-ranking claim: term before identity language', () => {
+    expect(detectContextualHierarchy(
+      'the Sidereal chart is what sits underneath the constructed identity'
+    )).toContain('underneath')
+  })
+
+  it('flags a depth-ranking claim: identity language before term', () => {
+    expect(detectContextualHierarchy(
+      'the constructed self is only a layer over what lies beneath'
+    )).toContain('beneath')
+  })
+
+  it('flags the Tropical-as-mask hierarchy', () => {
+    expect(detectContextualHierarchy(
+      'the Tropical chart is the mask over a truer reading'
+    )).toContain('the mask')
+  })
+
+  it('does not treat reflexive pronouns as identity language', () => {
+    // `self` is word-bounded, so "yourself"/"themselves"/"itself" must not arm
+    // the proximity rule and resurrect the false positives this replaced.
+    expect(detectContextualHierarchy('you find yourself underneath a pile of it')).toEqual([])
+    expect(detectContextualHierarchy('the pattern repeats itself beneath the noise')).toEqual([])
+  })
+
+  it('keeps bare contextual terms OUT of the literal ban list', () => {
+    // The literal list is substring-matched with no context check, so no entry in
+    // it may be a bare ordinary word. This is the assertion whose absence let
+    // 'underneath' ship as a literal ban.
+    for (const term of HIERARCHY_CONTEXTUAL_TERMS) {
+      expect(BANNED_HIERARCHY_PHRASINGS as readonly string[]).not.toContain(term)
+    }
+  })
+
+  it("does not flag AXIS's own prompt copy as a doctrine breach", () => {
+    // SHARED_RULES states the anti-hierarchy rule by quoting the banned moves, and
+    // its Leo entry uses "underneath" innocently. A scan that flags the prompt
+    // teaching the rule will flag a model dutifully restating it.
+    const leo = SHARED_RULES.split('\n').find(l => l.startsWith('LEO:'))
+    expect(leo).toBeDefined()
+    expect(detectContextualHierarchy(leo!)).toEqual([])
+  })
+})
+
+describe('countAspectsInContext — both emitted block shapes', () => {
+  it('counts the bulleted per-planet block', () => {
+    const ctx = [
+      'ASPECTS (tightest first):',
+      '• Sun □ Saturn (orb 1.2°, applying, tense): friction',
+      '• Sun △ Moon (orb 4.0°, separating, flowing): flow',
+      '',
+      'OTHER HEADER:',
+    ].join('\n')
+    expect(countAspectsInContext(ctx)).toBe(2)
+  })
+
+  it('counts the non-bulleted key_aspects block', () => {
+    // Regression: buildInterpretationContext emits 'ALL MAJOR ASPECTS (tightest
+    // first):' with un-bulleted entries for the key_aspects section. Matching only
+    // the bulleted header silently returned 0 for it.
+    const ctx = [
+      'ALL MAJOR ASPECTS (tightest first):',
+      '',
+      'Sun ☌ Mercury (orb 2.1°, applying, intensifying)',
+      '  Sun: core identity',
+      '  Mercury: cognition',
+      '  Dynamic: merger',
+      '',
+      'Moon □ Mars (orb 3.4°, separating, tense)',
+      '  Moon: emotional register',
+      '  Mars: drive',
+      '  Dynamic: friction',
+      '',
+    ].join('\n')
+    expect(countAspectsInContext(ctx)).toBe(2)
+  })
+
+  it('returns 0 when no aspect block is present', () => {
+    expect(countAspectsInContext('SIGN CHARACTER: Fire Fixed\nKeywords: warm')).toBe(0)
   })
 })
