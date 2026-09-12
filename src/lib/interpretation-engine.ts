@@ -308,7 +308,7 @@ const ASPECT_DEFS = [
   { name: 'Conjunction', angle: 0,   orb: 8, glyph: '☌', nature: 'merger — the two planets operate as a single intensified unit; their energies amplify each other, for better or worse; the combined effect is harder to modulate than either alone', quality: 'intensifying' },
   { name: 'Sextile',     angle: 60,  orb: 6, glyph: '⚹', nature: 'latent cooperation — the planets can work in concert when intentional, but the ease requires activation and tends to go unnoticed because it creates no friction', quality: 'cooperative' },
   { name: 'Square',      angle: 90,  orb: 8, glyph: '□', nature: 'productive friction — the planets pull in incompatible directions; this conflict returns again and again without clean resolution; the most generative difficult aspect', quality: 'tense' },
-  { name: 'Trine',       angle: 120, orb: 8, glyph: '△', nature: 'natural flow — the planets work together easily and automatically; the gift may be so effortless it goes unexamined and underdeveloped', quality: 'flowing' },
+  { name: 'Trine',       angle: 120, orb: 8, glyph: '△', nature: 'natural flow — the planets work together easily and automatically; the coordination is automatic enough that it is rarely examined, and therefore rarely developed past its default level', quality: 'flowing' },
   { name: 'Opposition',  angle: 180, orb: 8, glyph: '☍', nature: 'polarization — the person tends to identify with one pole and project the other onto partners or adversaries; what feels external is often an unintegrated internal tension', quality: 'polarizing' }
 ]
 
@@ -600,6 +600,56 @@ function computeAspects(planets: PlanetPosition[], filter?: string[]): Aspect[] 
   return aspects.sort((a, b) => a.orb - b.orb) // tightest first
 }
 
+// Aspects from the Ascendant to each planet.
+//
+// The Ascendant is an angle, not a body, so it is not a member of chart.planets and
+// computeAspects() never sees it. Without this, the Ascendant/Lagna context block
+// carried no aspects at all — while DEPTH REQUIREMENTS instructs the model to work
+// "every major aspect with the aspecting planet named" for that very section, and the
+// section's word band is aspect-scaled. A model told to work aspects it was never
+// given can only pad or invent, so this supplies the real ones.
+//
+// Orbs are tighter than for planet-to-planet aspects: an angle is a point, not a body
+// with its own orb of influence, and the Ascendant is acutely time-sensitive (~1° per
+// four minutes of birth time), so a loose orb here would manufacture aspects that a
+// few minutes' uncertainty erases. Applying/separating is not reported: the Ascendant
+// moves ~360°/day, which swamps every planet's motion and makes the distinction
+// meaningless in a natal chart.
+const ANGLE_ORB = 5
+
+export interface AngleAspect {
+  planet:     string
+  aspectName: string
+  glyph:      string
+  orb:        number
+  nature:     string
+  quality:    string
+}
+
+// Exported for unit testing — pure, no behaviour change.
+export function computeAscendantAspects(ascendant: number, planets: PlanetPosition[]): AngleAspect[] {
+  const out: AngleAspect[] = []
+  for (const p of planets) {
+    if (p.name === 'Ketu') continue // tracked via the Rahu axis, as in computeAspects
+    const diff = angleDiff(ascendant, p.longitude)
+    for (const def of ASPECT_DEFS) {
+      const orb = Math.abs(diff - def.angle)
+      if (orb <= Math.min(def.orb, ANGLE_ORB)) {
+        out.push({
+          planet:     p.name,
+          aspectName: def.name,
+          glyph:      def.glyph,
+          orb:        Math.round(orb * 10) / 10,
+          nature:     def.nature,
+          quality:    def.quality,
+        })
+        break
+      }
+    }
+  }
+  return out.sort((a, b) => a.orb - b.orb) // tightest first
+}
+
 function getDispositor(planet: PlanetPosition, allPlanets: PlanetPosition[], vedic = false): string {
   const rulers = vedic ? SIGN_RULERS_VEDIC : SIGN_RULERS_TRADITIONAL
   const rulerName = rulers[planet.sign]
@@ -659,10 +709,10 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
   return conflicts
 }
 
-// Strengths / gifts — the symmetric counterpart to buildConflicts.
+// Strengths / capacities — the symmetric counterpart to buildConflicts.
 // buildConflicts was the only evaluative block the context emitted, which skewed
 // readings toward diagnosis. This surfaces the planet's genuine capacities with
-// equal weight: its constructive gift, dignified placement, and harmonious aspects.
+// equal weight: its constructive capacity, dignified placement, and harmonious aspects.
 // These are capacities rendered precisely, NOT affirmations — the reading must give
 // them the same airtime and specificity as the difficulties.
 const BENEFICS = new Set(['Venus', 'Jupiter'])
@@ -673,12 +723,12 @@ function buildStrengths(planet: PlanetPosition, aspects: Aspect[]): string[] {
   if (!pData) return strengths
 
   if (pData.gift) {
-    strengths.push(`${planet.name}'s constructive capacity: ${pData.gift}. This is a real strength of the chart — render it as specifically as any difficulty, never as a consolation tacked on at the end`)
+    strengths.push(`${planet.name}'s constructive capacity: ${pData.gift}. Render this with the same specificity as any difficulty; state what it does, not what it is worth`)
   }
 
   const dignity = computeDignity(planet.name, planet.sign)
   if (['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(dignity.status)) {
-    strengths.push(`${planet.name} is dignified (${dignity.status}) in ${planet.sign}: this function operates with unusual ease and confidence — one of the places this person is naturally, reliably strong`)
+    strengths.push(`${planet.name} is dignified (${dignity.status}) in ${planet.sign}: the function meets little internal resistance and needs no compensating effort to express`)
   }
 
   aspects
@@ -689,9 +739,9 @@ function buildStrengths(planet: PlanetPosition, aspects: Aspect[]): string[] {
       if (!otherData) return
       const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
       const flavour = a.aspectName === 'Trine'
-        ? 'a natural, flowing support — so easy it may go unnoticed and underused'
-        : 'a latent support that rewards deliberate use'
-      strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another — a genuine talent, not just an absence of friction`)
+        ? 'the two functions coordinate without effort, which is also why the combination is seldom deliberately deployed'
+        : 'the two functions coordinate only when deliberately engaged, and stay dormant otherwise'
+      strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another`)
     })
 
   aspects
@@ -1049,6 +1099,22 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
     })
     lines.push('')
   }
+
+  // Aspects TO the Ascendant. Uses the same 'ASPECTS (tightest first):' header and
+  // bullet shape as formatPlanetBlock so countAspectsInContext() scales this
+  // section's word band to what the chart actually gives it.
+  const ascAspects = computeAscendantAspects(chart.ascendant, chart.planets)
+  lines.push('ASPECTS (tightest first):')
+  if (ascAspects.length === 0) {
+    lines.push(`• None within ${ANGLE_ORB}° orb. The ${vedic ? 'Lagna' : 'Ascendant'} is unaspected by any planet at this orb — interpret it through its sign, its ruler's condition, and any 1st-house tenants alone. Do NOT assert an aspect that is not listed here.`)
+  } else {
+    ascAspects.forEach(a => {
+      const pData = PLANET_CORE[a.planet]
+      lines.push(`• ${vedic ? 'Lagna' : 'Ascendant'} ${a.glyph} ${a.planet} (orb ${a.orb}°, ${a.quality}): ${pData ? `${a.planet} — ${pData.coreFunction}. ` : ''}${a.nature}`)
+    })
+    lines.push(`These are the ONLY aspects to the ${vedic ? 'Lagna' : 'Ascendant'}; every other planet is outside the ${ANGLE_ORB}° orb an angle carries. Work these and do not assert any other.`)
+  }
+  lines.push('')
 
   return lines.join('\n')
 }

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, BANNED_HIERARCHY_PHRASINGS, BANNED_RESCUE_PHRASINGS } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, BANNED_HIERARCHY_PHRASINGS, BANNED_RESCUE_PHRASINGS, detectContextualHierarchy } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
@@ -123,16 +123,26 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
 
 // Deterministic doctrine scan. NOT a semantic gate - it only catches the
 // high-precision, unambiguous banned phrasings that have no legitimate use
-// in a reading. Returns every phrase found (lowercased substring match).
+// in a reading. Returns every phrase found.
 // The semantic gate (soft synthesis, THE LAW claim-level test) is the
 // separate async redesign; this is the deterministic bridge only.
+//
+// Two passes, because the doctrine has two shapes of violation:
+//   1. LITERAL   - constructions with no innocent use, matched as substrings.
+//   2. CONTEXTUAL - ordinary words ("underneath", "beneath", "the mask") that
+//      only breach THE LAW next to identity/system language. These are matched
+//      by proximity, not bare presence. Matching them bare (the previous
+//      behaviour) made any section using the word permanently uncacheable,
+//      which cost a full model call per page load and caught nothing: this scan
+//      runs after the text has already streamed to the reader, so its only
+//      effect is on whether the result is cached.
 function detectBannedPhrasings(text: string): string[] {
   const hay = text.toLowerCase()
   const hits: string[] = []
   for (const phrase of [...BANNED_HIERARCHY_PHRASINGS, ...BANNED_RESCUE_PHRASINGS]) {
     if (hay.includes(phrase.toLowerCase())) hits.push(phrase)
   }
-  return hits
+  return [...hits, ...detectContextualHierarchy(text)]
 }
 
 export async function POST(req: NextRequest) {
@@ -231,9 +241,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Cache check (before rate limiting — cache hits are free) ───────────────
+    // plutoSource is part of the key: the cached prose describes whichever Pluto
+    // the reading was generated against, and JPL vs the Meeus fallback can differ
+    // by enough to change Pluto's sign near a boundary. Keying on it stops a
+    // Meeus-era reading being served for 30 days beside a JPL wheel.
     const cacheKey = section === 'synastry'
-      ? makeSynastryCacheKey({ birthA: birthA!, birthB: birthB!, section, planetSection })
-      : makeCacheKey({ birth: birthData!, section, planetSection })
+      ? makeSynastryCacheKey({
+          birthA: birthA!, birthB: birthB!, section, planetSection,
+          plutoSourceA: overrideA?.plutoSource, plutoSourceB: overrideB?.plutoSource,
+        })
+      : makeCacheKey({ birth: birthData!, section, planetSection, plutoSource: plutoOverride?.plutoSource })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
       return new Response(cached, {
