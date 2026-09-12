@@ -1,19 +1,24 @@
 // Reading Quality Gate
 //
-// ⚠ NOT ON THE REQUEST PATH. As of the streaming redesign, /api/reading does NOT
-// call evaluateSection / repairSection: each was a full Sonnet call, and
-// generation + eval breached the 60s route ceiling on heavy sections, so the
-// eval + repair passes were taken off the synchronous path. The route imports
-// only isTruncated from this module; the live cache-write guards are isTruncated
-// plus the deterministic banned-phrase scan in the route itself. This full
-// evaluator is RETAINED for a future async/sampled redesign (evaluate-and-recache
-// after the response ships) and is exercised only by its unit tests today. Do not
-// assume readings users see have passed the rubric below.
+// ON THE REQUEST PATH, AFTER THE RESPONSE — "evaluate-and-recache". /api/reading
+// streams the first pass straight to the reader and closes the stream, THEN calls
+// gateForCache() below while the invocation is still alive. So the gate never adds
+// latency to what the reader waits for, and it decides only one thing: what future
+// readers get from the 30-day cache.
 //
-// When it IS run: a second-pass evaluator that scores a generated section against
-// AXIS's elite-reading criteria and, on failure, regenerates it once with the
-// evaluator's critique as repair instructions; the repaired text is what gets
-// cached.
+// The consequence, stated plainly: the FIRST reader of an uncached section sees
+// ungated first-pass prose. Everyone after them is served the gated (and, where it
+// failed, repaired) text. The gate cannot retroactively fix what already streamed —
+// it converts a one-off ungated impression into a cached, gated artifact.
+//
+// This replaced the earlier synchronous design, which was removed when generation +
+// eval breached the then-60s route ceiling on heavy sections. maxDuration is now 120
+// and the passes are off the response path entirely, so the ceiling is no longer the
+// binding constraint; the wall-clock guards in gateForCache are.
+//
+// What it does when it runs: scores a generated section against AXIS's elite-reading
+// criteria and, on failure, regenerates it once with the evaluator's critique as
+// repair instructions; the repaired text is what gets cached.
 //
 // This is the load-bearing check the prompt alone cannot enforce: model output
 // is non-deterministic, and a strong prompt can still occasionally produce a
@@ -49,6 +54,8 @@ import {
   BANNED_RESCUE_LIST,
   BANNED_RESCUE_PHRASINGS,
   BANNED_HIERARCHY_LIST,
+  BANNED_HIERARCHY_PHRASINGS,
+  detectContextualHierarchy,
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
@@ -526,4 +533,183 @@ ${failedDraft}`
   })
 
   return extractText(msg)
+}
+
+// ── Deterministic doctrine scan ───────────────────────────────────────────────
+
+// NOT a semantic gate — it catches only the high-precision, unambiguous banned
+// phrasings that have no legitimate use in a reading. Two passes, because the
+// doctrine has two shapes of violation:
+//   1. LITERAL    — constructions with no innocent use, matched as substrings.
+//   2. CONTEXTUAL — ordinary words ("underneath", "beneath", "the mask") that
+//      breach THE LAW only next to identity/system language, matched by
+//      proximity rather than bare presence. Keep bare ordinary words OUT of the
+//      literal lists: a false positive here makes a section permanently
+//      uncacheable, which costs a full model call on every page load.
+// Exported for unit testing — pure, no behaviour change.
+export function detectBannedPhrasings(text: string): string[] {
+  const hay = text.toLowerCase()
+  const hits: string[] = []
+  for (const phrase of [...BANNED_HIERARCHY_PHRASINGS, ...BANNED_RESCUE_PHRASINGS]) {
+    if (hay.includes(phrase.toLowerCase())) hits.push(phrase)
+  }
+  return [...hits, ...detectContextualHierarchy(text)]
+}
+
+// ── Evaluate-and-recache orchestration ────────────────────────────────────────
+
+// Wall-clock guards, measured from the START of the request so that a slow first
+// pass correctly shrinks what is left for gating. All of this runs after the
+// response has been delivered, so overrunning costs the cache write — never the
+// reader's section. The route's maxDuration is 120s; these leave room for the
+// slowest observed pass of each kind plus the Redis write.
+const EVAL_SKIP_AFTER_MS   = 95_000  // an eval is ~5–15s
+const REPAIR_SKIP_AFTER_MS = 70_000  // a repair is a full regeneration, ~20–45s
+
+export interface GateForCacheInput {
+  firstPassText: string
+  chartContext:  string   // the same user content the first pass was generated from
+  section:       string
+  planetSection: string
+  systemBlocks:  Anthropic.TextBlockParam[]
+  maxTokens:     number
+  model:         string
+  startedAt:     number   // Date.now() at the top of the request handler
+  // The generation's own stop_reason === 'max_tokens'. Authoritative where
+  // isTruncated()'s heuristic is not: a section cut off at the token ceiling can
+  // still happen to end on a full stop, which the end-of-prose check would pass.
+  truncated:     boolean
+}
+
+export interface GateForCacheResult {
+  // The text to cache, or null when nothing should be cached — a failing,
+  // unrepairable, or doctrine-breaching section is left uncached so the next
+  // request gets a fresh attempt rather than a frozen bad one.
+  cacheText:  string | null
+  modelCalls: number   // billable calls this gating pass made, for the daily budget
+  scores:     GateScores | null
+  repaired:   boolean
+  reason:     string
+}
+
+// One greppable line per gated section. This is the only place gate scores are
+// observable in production — `[AXIS_GATE]` in the logs answers "what fraction of
+// sections fail, and on which criterion".
+function logGateOutcome(label: string, reason: string, scores: GateScores | null): void {
+  const scoreStr = scores
+    ? CRITERIA.map(k => `${k}=${scores[k]}`).join(' ')
+    : 'scores=none'
+  console.log(`[AXIS_GATE] section=${label} reason=${reason} ${scoreStr}`)
+}
+
+// Cache the text only if the deterministic scan is clean. Used on the paths that
+// skip the LLM gate entirely (gate disabled, out of wall-clock budget), which
+// keeps them at exactly the pre-gate behaviour rather than a weaker one.
+function cacheIfClean(text: string, reason: string, label: string, modelCalls: number): GateForCacheResult {
+  const hits = detectBannedPhrasings(text)
+  if (hits.length > 0) {
+    console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} hits=${hits.join('|')}`)
+    return { cacheText: null, modelCalls, scores: null, repaired: false, reason: `${reason}+doctrine-hit` }
+  }
+  return { cacheText: text, modelCalls, scores: null, repaired: false, reason }
+}
+
+// Decide what — if anything — this section should leave behind in the cache.
+// Called AFTER the response stream has closed, so it never delays the reader.
+// Never throws: a gating failure must not surface anywhere near the request.
+export async function gateForCache(input: GateForCacheInput): Promise<GateForCacheResult> {
+  const {
+    firstPassText, chartContext, section, planetSection,
+    systemBlocks, maxTokens, model, startedAt, truncated,
+  } = input
+  const label = `${section}/${planetSection}`
+
+  // Truncated or empty output is never cached, never scored, never repaired in
+  // place — it has to be regenerated in full, so spending an eval call on it
+  // would buy nothing.
+  if (truncated || firstPassText.trim().length === 0 || isTruncated(firstPassText)) {
+    return { cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'truncated-or-empty' }
+  }
+
+  // Kill switch, mirroring AXIS_READINGS_ENABLED: gating roughly doubles the model
+  // calls an uncached section costs (triples it when a repair fires), so it must be
+  // possible to stop that during a spend incident without a redeploy.
+  if (process.env.AXIS_GATE_ENABLED === 'false') {
+    return cacheIfClean(firstPassText, 'gate-disabled', label, 0)
+  }
+
+  if (Date.now() - startedAt > EVAL_SKIP_AFTER_MS) {
+    console.warn(`[AXIS_GATE] section=${label} eval skipped — ${Date.now() - startedAt}ms elapsed`)
+    return cacheIfClean(firstPassText, 'eval-skipped-budget', label, 0)
+  }
+
+  // evaluateSection swallows its own errors (returning evaluatorErrored), so this
+  // resolves either way. Count the call regardless: a response that failed to parse
+  // still billed tokens, and over-counting spend is the safe direction.
+  const gate = await evaluateSection({
+    generatedText: firstPassText,
+    chartContext,
+    section,
+    planetSection,
+  })
+  let modelCalls = 1
+
+  // The deterministic scan is folded in as a failure condition, not just a cache
+  // veto. Pre-gate, a doctrine hit meant "never cache" — so the section regenerated
+  // on every single page load, burning a model call each time and usually
+  // re-violating. Routing it through the repair pass is what closes that hole.
+  const bannedHits = detectBannedPhrasings(firstPassText)
+  const needsRepair = !gate.pass || bannedHits.length > 0
+
+  if (!needsRepair) {
+    const reason = gate.evaluatorErrored ? 'passed-evaluator-errored' : 'passed'
+    logGateOutcome(label, reason, gate.scores)
+    return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason }
+  }
+
+  let critique = gate.critique
+  if (bannedHits.length > 0) {
+    critique = `DOCTRINE FAILURE — the section uses banned phrasing(s) with no legitimate use in an AXIS reading: ${bannedHits.map(p => `"${p}"`).join(', ')}. Remove each one. Do not substitute a synonym for the same move: a difficulty stays a difficulty, a strength is named as plain function, and the two systems are held simultaneously with neither ranked beneath the other.\n\n${critique}`.trim()
+  }
+
+  if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
+    console.warn(`[AXIS_GATE] section=${label} repair skipped — ${Date.now() - startedAt}ms elapsed`)
+    logGateOutcome(label, 'failed-repair-skipped-budget', gate.scores)
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-skipped-budget' }
+  }
+
+  let repaired: string
+  try {
+    modelCalls++  // count the attempt: a call that throws late can still have billed
+    repaired = await repairSection({
+      originalUserContent: chartContext,
+      systemBlocks,
+      failedDraft: firstPassText,
+      critique,
+      maxTokens,
+      model,
+    })
+  } catch (err) {
+    console.error(`[AXIS_GATE] section=${label} repair pass failed:`, err instanceof Error ? err.message : err)
+    logGateOutcome(label, 'failed-repair-errored', gate.scores)
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored' }
+  }
+
+  // The repair is re-checked deterministically but NOT re-scored by the evaluator:
+  // a second eval call per repair is not worth the spend, and a repair that still
+  // trips the scan is simply not cached. So the cache holds either a rubric-passing
+  // first pass or a repair that is at minimum complete and doctrine-clean.
+  if (repaired.trim().length === 0 || isTruncated(repaired)) {
+    logGateOutcome(label, 'repair-truncated-or-empty', gate.scores)
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty' }
+  }
+  const repairedHits = detectBannedPhrasings(repaired)
+  if (repairedHits.length > 0) {
+    console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} hits=${repairedHits.join('|')} (after repair)`)
+    logGateOutcome(label, 'repair-doctrine-hit', gate.scores)
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit' }
+  }
+
+  logGateOutcome(label, 'repaired', gate.scores)
+  return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired' }
 }

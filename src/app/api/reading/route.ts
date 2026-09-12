@@ -2,13 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, BANNED_HIERARCHY_PHRASINGS, BANNED_RESCUE_PHRASINGS, detectContextualHierarchy } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { isValidCalendarDate } from '@/lib/tz'
-import { isTruncated } from '@/lib/reading-quality-gate'
+import { gateForCache } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
 export const maxDuration = 120
@@ -121,31 +121,9 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
     : undefined
 }
 
-// Deterministic doctrine scan. NOT a semantic gate - it only catches the
-// high-precision, unambiguous banned phrasings that have no legitimate use
-// in a reading. Returns every phrase found.
-// The semantic gate (soft synthesis, THE LAW claim-level test) is the
-// separate async redesign; this is the deterministic bridge only.
-//
-// Two passes, because the doctrine has two shapes of violation:
-//   1. LITERAL   - constructions with no innocent use, matched as substrings.
-//   2. CONTEXTUAL - ordinary words ("underneath", "beneath", "the mask") that
-//      only breach THE LAW next to identity/system language. These are matched
-//      by proximity, not bare presence. Matching them bare (the previous
-//      behaviour) made any section using the word permanently uncacheable,
-//      which cost a full model call per page load and caught nothing: this scan
-//      runs after the text has already streamed to the reader, so its only
-//      effect is on whether the result is cached.
-function detectBannedPhrasings(text: string): string[] {
-  const hay = text.toLowerCase()
-  const hits: string[] = []
-  for (const phrase of [...BANNED_HIERARCHY_PHRASINGS, ...BANNED_RESCUE_PHRASINGS]) {
-    if (hay.includes(phrase.toLowerCase())) hits.push(phrase)
-  }
-  return [...hits, ...detectContextualHierarchy(text)]
-}
-
 export async function POST(req: NextRequest) {
+  // Wall-clock origin for the post-response gating budget (see gateForCache).
+  const startedAt = Date.now()
   try {
     if (!isAnthropicKeyConfigured()) {
       return NextResponse.json({ error: 'API key not configured' }, { status: 500 })
@@ -333,27 +311,27 @@ export async function POST(req: NextRequest) {
       { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
     ]
 
-    // ── First-pass generation pipeline ─────────────────────────────────────────
+    // ── Generation pipeline (evaluate-and-recache) ─────────────────────────────
     // The first pass streams to the client token-by-token, so prose starts
-    // rendering within ~1s. The stream now flows straight to close as soon as
-    // first-pass generation finishes: the eval + repair passes have been taken
-    // OFF the synchronous request path (each was a full Sonnet call, and
-    // generation + eval alone breached the 60s ceiling on heavy sections). The
-    // gate/repair machinery is retained in reading-quality-gate.ts for a later
-    // async/sampled redesign. Non-truncated first-pass text is cached directly;
-    // truncated text ships with the marker and is never cached.
+    // rendering within ~1s, and the stream closes the moment generation finishes.
+    // The quality gate then runs AFTER close, while the invocation is still alive:
+    // it adds no latency to what the reader waits for and decides only what future
+    // readers get from the cache. A passing first pass is cached as-is; a failing
+    // one is repaired once and the repair is cached; truncated, unrepairable, or
+    // doctrine-breaching output is not cached at all, so the next request retries.
+    // The first reader of an uncached section therefore sees ungated prose —
+    // everyone after them is served the gated text.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
-        // The eval + repair passes are off the request path, so an uncached
-        // section now makes exactly one Sonnet call (first-pass generation), which
-        // streams straight through to close. Recorded once in the finally path
-        // regardless of outcome.
+        // An uncached section costs one Sonnet call to generate, plus one to
+        // evaluate, plus one more when a repair fires. Counted as they happen and
+        // recorded once in the finally path regardless of outcome.
         let modelCalls = 0
 
         try {
-          // First pass — streamed live. This is the only model call on this path.
+          // First pass — the only model call the reader ever waits on.
           const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
@@ -370,35 +348,33 @@ export async function POST(req: NextRequest) {
             }
           }
           const firstMessage = await stream.finalMessage()
-          modelCalls = 1  // first-pass generation completed — the only model call
+          modelCalls = 1  // first-pass generation completed; gating adds its own below
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
-          // No gate, no repair on the request path. Truncated drafts ship with
-          // the truncation marker and are never cached; a non-empty, non-truncated
-          // first pass is cached directly and the stream closes.
-          const cacheText = firstText
-          const cacheable = !truncated && firstText.trim().length > 0
-
+          // Truncated drafts ship with the marker so the client can surface it.
           if (truncated) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
 
+          // The reader has the whole section from here on. Everything below only
+          // decides what lands in the 30-day cache.
           controller.close()
 
-          // Final guard: never cache empty or truncated text.
-          const bannedHits = detectBannedPhrasings(cacheText)
-          if (bannedHits.length > 0) {
-            console.warn(
-              `[AXIS_DOCTRINE_UNCACHED] section=${planetSection} hits=${bannedHits.join('|')}`
-            )
-          }
-          if (
-            cacheable &&
-            cacheText.trim().length > 0 &&
-            !isTruncated(cacheText) &&
-            bannedHits.length === 0
-          ) {
-            await setCachedReading(cacheKey, cacheText)
+          const verdict = await gateForCache({
+            firstPassText: firstText,
+            truncated,
+            chartContext:  userContent,
+            section,
+            planetSection,
+            systemBlocks,
+            maxTokens,
+            model: MODEL,
+            startedAt,
+          })
+          modelCalls += verdict.modelCalls
+
+          if (verdict.cacheText) {
+            await setCachedReading(cacheKey, verdict.cacheText)
           }
         } catch (err) {
           try {
