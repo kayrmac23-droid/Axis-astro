@@ -48,7 +48,7 @@ const RESULTS_FILE = process.env.RUN_TIME_GATE_OUT || join(tmpdir(), 'axis-time-
 import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { TROPICAL_SYSTEM_PROMPT, SHARED_RULES, SECTION_INSTRUCTIONS } from '@/lib/prompts'
-import { calculateDualChart } from '@/lib/astro-calc'
+import { calculateDualChart, type BirthData } from '@/lib/astro-calc'
 import Anthropic from '@anthropic-ai/sdk'
 
 // ── Config pulled from source, not memory ──────────────────────────────────
@@ -68,7 +68,7 @@ const MAX_TOKENS_HEAVY = 2500
 const DECLARED_MAX_DURATION_S = 120
 
 // A real, fixed birth used for every run so the payload is stable and comparable.
-const BIRTH = {
+const BIRTH: BirthData = {
   year: 1990, month: 6, day: 15, hour: 14, minute: 30,
   latitude: -37.8136, longitude: 144.9631, timezone: 10, // Melbourne
   tzName: 'Australia/Melbourne', birthTimeUnknown: false,
@@ -77,7 +77,7 @@ const BIRTH = {
 // Build the exact user content the route builds for a tropical section.
 // Mirrors route.ts:  `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
 function buildUserContent(planetSection: string): string {
-  const dual = calculateDualChart(BIRTH as any, undefined) // route passes plutoOverride; undefined = local Meeus fallback, fine for timing
+  const dual = calculateDualChart(BIRTH, undefined) // route passes plutoOverride; undefined = local Meeus fallback, fine for timing
   const ctxBlock = buildInterpretationContext(dual, 'tropical', planetSection)
   const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
   const sectionInstruction = SECTION_INSTRUCTIONS[SECTION]?.[planetSection]
@@ -102,7 +102,7 @@ function buildSystemBlocks(): Anthropic.TextBlockParam[] {
 // "ASPECTS (tightest first):" line that formatEliteChartBlock emits. Passing
 // chart+ctx (no instruction) is exactly what evaluateSection is built to score.
 function buildChartContext(planetSection: string): string {
-  const dual = calculateDualChart(BIRTH as any, undefined)
+  const dual = calculateDualChart(BIRTH, undefined)
   const ctxBlock = buildInterpretationContext(dual, 'tropical', planetSection)
   const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
   return `${chartBlock}\n${ctxBlock}`
@@ -132,7 +132,7 @@ async function timeGeneration(planetSection: string): Promise<{ ms: number; text
   const ms = performance.now() - t0
   const truncated = final.stop_reason === 'max_tokens'
   // cache_read_input_tokens tells us whether the prefix was warm. 0 = cold.
-  const cacheRead = (final.usage as any)?.cache_read_input_tokens ?? 0
+  const cacheRead = final.usage.cache_read_input_tokens ?? 0
   return { ms, text, truncated, cacheRead }
 }
 
@@ -180,7 +180,6 @@ describe('AXIS gate timing harness', () => {
     async () => {
       if (!process.env.ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set')
 
-      // eslint-disable-next-line no-console
       console.log(
         `\n=== AXIS TIME GATE ===\n` +
         `model=${MODEL} temp=${TEMPERATURE} genMaxTokens=${MAX_TOKENS_HEAVY}\n` +
@@ -202,14 +201,13 @@ describe('AXIS gate timing harness', () => {
             section: planetSection, run: r,
             gen: Math.round(g.ms), evalMs: Math.round(e.ms), repair: Math.round(rep.ms),
             happy: Math.round(happy), fail: Math.round(fail),
-            pass: (e.result as any)?.pass ?? false,
+            pass: e.result.pass,
             cacheRead: g.cacheRead,
           })
-          // eslint-disable-next-line no-console
           console.log(
             `${planetSection} run ${r}: gen=${Math.round(g.ms)}ms eval=${Math.round(e.ms)}ms ` +
             `repair=${Math.round(rep.ms)}ms | happy(gen+eval)=${Math.round(happy)}ms ` +
-            `fail(+repair)=${Math.round(fail)}ms | pass=${(e.result as any)?.pass} ` +
+            `fail(+repair)=${Math.round(fail)}ms | pass=${e.result.pass} ` +
             `truncated=${g.truncated} cacheReadTokens=${g.cacheRead}`
           )
         }
@@ -224,7 +222,6 @@ describe('AXIS gate timing harness', () => {
         maxFail >= C * 0.8 ? 'THIN: fits but revive keep-alive/heartbeat; no margin for spikes.' :
         'FITS with margin: sync viable, keep-alive not needed on this evidence.'
 
-      // eslint-disable-next-line no-console
       console.log(
         `\n=== RESULT ===\n` +
         `T_happy (max gen+eval)        = ${maxHappy}ms\n` +
@@ -249,7 +246,6 @@ describe('AXIS gate timing harness', () => {
           2
         )
       )
-      // eslint-disable-next-line no-console
       console.log(`\nResults written to ${RESULTS_FILE}\n`)
     },
     600_000 // 10-min vitest timeout: 2 sections × 3 runs × 3 sequential Sonnet calls

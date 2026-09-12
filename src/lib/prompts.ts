@@ -174,7 +174,7 @@ export interface WordBand {
 }
 
 const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant — no aspect scaling: formatAscendantBlock assembles no aspects, so it could never fire
+const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
 const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700, aspectBaseline: 2, aspectAllowance: 60 } // sidereal Lagna/Sun/Moon
 const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500, aspectBaseline: 2, aspectAllowance: 60 } // Mercury, Venus, Mars, Jup/Sat
 const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }

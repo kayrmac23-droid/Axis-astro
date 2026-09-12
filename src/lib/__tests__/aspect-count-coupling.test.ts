@@ -43,32 +43,39 @@ describe('countAspectsInContext ↔ interpretation-engine format coupling', () =
     }
   })
 
-  it('KNOWN GAP: key_aspects emits a header the counter does not match', () => {
-    // interpretation-engine.ts emits 'ALL MAJOR ASPECTS (tightest first):' for
-    // this section. Three independent reasons the count is 0: the startsWith
-    // match fails on the 'ALL MAJOR ' prefix, a blank line follows the header,
-    // and the aspect lines carry no '• ' bullet.
-    //
-    // Inert today: BAND_KEY_ASPECTS (prompts.ts) declares no aspectBaseline or
-    // aspectAllowance, so scaleBand returns the band unchanged whatever the
-    // count is. Deferred deliberately — a definitionally all-aspects section
-    // scaling its length by aspect count is circular.
-    //
-    // Pinned to CURRENT (broken) behaviour on purpose: if anyone fixes the
-    // engine or the counter, this test SHOULD fail. When it does, update it and
-    // decide whether BAND_KEY_ASPECTS should opt in to scaling too.
+  it('counts key_aspects from its plain (non-bulleted) block', () => {
+    // interpretation-engine.ts emits 'ALL MAJOR ASPECTS (tightest first):' here,
+    // followed by a blank line and unbulleted entries with indented continuation
+    // lines — a different shape from the '• ' bullets formatPlanetBlock emits.
+    // countAspectsInContext reads both (inPlainBlock vs inBulletBlock), so assert
+    // the plain branch stays wired: if it regresses to 0 the count is silently
+    // wrong, not an error.
     const ctx = chartContext('tropical', 'key_aspects')
     expect(ctx).toContain('ALL MAJOR ASPECTS (tightest first):')
-    expect(countAspectsInContext(ctx)).toBe(0)
+    expect(countAspectsInContext(ctx)).toBeGreaterThan(0)
+
+    // The count is INERT for this section by design: BAND_KEY_ASPECTS (prompts.ts)
+    // declares no aspectBaseline or aspectAllowance, so scaleBand returns the band
+    // unchanged whatever the count is. Deliberate — a definitionally all-aspects
+    // section scaling its length by aspect count is circular.
   })
 
-  it('ascendant/lagna assemble no aspects at all', () => {
-    // formatAscendantBlock emits no ASPECTS block — there is no computeAspects
-    // call on that path — so the count is structurally 0. Harmless: BAND_PRIMARY
-    // no longer advertises scaling, and BAND_SIDEREAL_PRIMARY's baseline clamps
-    // the bonus to 0. Guards against a future ASC-aspect block landing without
-    // the counter being taught to read it.
-    expect(countAspectsInContext(chartContext('tropical', 'ascendant'))).toBe(0)
-    expect(countAspectsInContext(chartContext('sidereal', 'lagna'))).toBe(0)
+  it('counts the Ascendant/Lagna aspects computeAscendantAspects supplies', () => {
+    // formatAscendantBlock now emits a real ASPECTS block, fed by
+    // computeAscendantAspects (5° angle orb — the ASC is a point, and it moves
+    // ~1° per four minutes of birth time). It uses the same '• ' bullet shape
+    // formatPlanetBlock does, so the counter reads it with no special case.
+    const asc = chartContext('tropical', 'ascendant')
+    expect(asc).toContain('ASPECTS (tightest first):')
+    // Pin the count to the bullets actually emitted rather than a magic number:
+    // the chart is fixed, but this fails loudly if the two ever disagree.
+    const ascBullets = asc.split('\n').filter(l => l.trimStart().startsWith('• Ascendant ')).length
+    expect(ascBullets).toBeGreaterThan(0)
+    expect(countAspectsInContext(asc)).toBe(ascBullets)
+
+    // Sidereal Lagna matters more: BAND_SIDEREAL_PRIMARY declares
+    // aspectBaseline/aspectAllowance, so this count actually scales the band.
+    // (BAND_PRIMARY, the tropical Ascendant band, still declares no scaling.)
+    expect(countAspectsInContext(chartContext('sidereal', 'lagna'))).toBeGreaterThan(0)
   })
 })
