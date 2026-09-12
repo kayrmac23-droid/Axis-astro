@@ -13,9 +13,13 @@ import { Redis } from '@upstash/redis'
 import type { BirthData } from '@/lib/astro-calc'
 
 // ── Version constant ───────────────────────────────────────────────────────────
-// Bump this whenever prompts are intentionally changed.
+// Bump this whenever prompts are intentionally changed, or whenever what a cached
+// entry MEANS changes. v10.19 is the latter: the prompt text is identical to
+// v10.18, but every v10.18 entry was written by an ungated pipeline. Without the
+// bump those entries would keep serving for the rest of their 30-day TTL and the
+// gate would only ever apply to charts nobody had cast yet.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
-export const READING_PROMPT_VERSION = 'v10.18'
+export const READING_PROMPT_VERSION = 'v10.19'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
