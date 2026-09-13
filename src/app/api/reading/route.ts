@@ -7,7 +7,8 @@ import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpr
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
-import { isValidCalendarDate } from '@/lib/tz'
+import { parseBirthDataInput } from '@/lib/birth-data-validation'
+import { readLimitedJsonBody } from '@/lib/request-security'
 import { gateForCache } from '@/lib/reading-quality-gate'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
@@ -71,39 +72,6 @@ const anthropic = new Anthropic({
   apiKey: getAnthropicKey() ?? undefined
 })
 
-// Parse and validate a BirthData object from unknown user input.
-// Returns null if any required field is missing or out of range.
-function parseBirthData(raw: unknown): BirthData | null {
-  if (!raw || typeof raw !== 'object') return null
-  const d   = raw as Record<string, unknown>
-  const y   = Number(d.year)
-  const mo  = Number(d.month)
-  const dy  = Number(d.day)
-  const hRaw = Number(d.hour)
-  const h   = isNaN(hRaw) ? 12 : hRaw
-  const mi  = Number(d.minute) || 0
-  const lat = Number(d.latitude)
-  const lon = Number(d.longitude)
-  const tzRaw = Number(d.timezone)
-  const tz  = (isNaN(tzRaw) || tzRaw < -14 || tzRaw > 14) ? 0 : tzRaw
-  if (isNaN(y)   || y   < 1    || y   > 9999) return null
-  if (isNaN(mo)  || mo  < 1    || mo  > 12)   return null
-  if (isNaN(dy)  || dy  < 1    || dy  > 31)   return null
-  if (isNaN(h)   || h   < 0    || h   > 23)   return null
-  if (isNaN(mi)  || mi  < 0    || mi  > 59)   return null
-  if (isNaN(lat) || lat < -90  || lat > 90)   return null
-  if (isNaN(lon) || lon < -180 || lon > 180)  return null
-  // Reject impossible calendar dates (e.g. Feb 31), matching /api/calculate and
-  // /api/synastry — a direct POST here must not recompute a chart on a bogus date.
-  if (!isValidCalendarDate(y, mo, dy))        return null
-  return {
-    year: y, month: mo, day: dy, hour: h, minute: mi,
-    latitude: lat, longitude: lon, timezone: tz,
-    tzName:           typeof d.tzName === 'string' ? d.tzName : undefined,
-    birthTimeUnknown: d.birthTimeUnknown === true || d.birthTimeUnknown === 'true',
-  }
-}
-
 // Build a validated Pluto override from client-supplied hints. The reading route
 // stays authoritative: the client may supply the canonical Pluto longitude (the one
 // value the server does not recompute in this hot path, to avoid a JPL call), but it
@@ -139,16 +107,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Payload size guard ─────────────────────────────────────────────────────
-    // Read the actual body bytes — the Content-Length header is advisory only
-    // and can be omitted or spoofed by the client.
-    const rawBody = await req.text()
-    if (rawBody.length > MAX_PAYLOAD_BYTES) {
-      return NextResponse.json({ error: 'Request payload too large' }, { status: 400 })
+    // ── Payload size guard + parse ─────────────────────────────────────────────
+    // Streams the body with a hard byte cap (see readLimitedJsonBody) — the
+    // Content-Length header is advisory only and can be omitted or spoofed.
+    const parsedBody = await readLimitedJsonBody(req, MAX_PAYLOAD_BYTES)
+    if (!parsedBody.ok) {
+      return NextResponse.json({ error: parsedBody.error }, { status: parsedBody.status })
+    }
+    if (!parsedBody.value || typeof parsedBody.value !== 'object' || Array.isArray(parsedBody.value)) {
+      return NextResponse.json({ error: 'JSON body must be an object' }, { status: 400 })
     }
 
-    // ── Parse body ─────────────────────────────────────────────────────────────
-    let body: {
+    const body = parsedBody.value as {
       birthData?: unknown
       birthA?: unknown
       birthB?: unknown
@@ -162,11 +132,6 @@ export async function POST(req: NextRequest) {
       plutoSourceB?: unknown
       section?: string
       planetSection?: string
-    }
-    try {
-      body = JSON.parse(rawBody)
-    } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
     }
 
     const { section, planetSection } = body
@@ -191,17 +156,19 @@ export async function POST(req: NextRequest) {
     let birthA:    BirthData | null = null
     let birthB:    BirthData | null = null
 
+    // resolveTzName: false — the offset was already resolved by /api/calculate and
+    // is part of the reading cache key, so it must be used exactly as sent.
     if (section === 'synastry') {
-      birthA = parseBirthData(body.birthA)
-      birthB = parseBirthData(body.birthB)
-      if (!birthA || !birthB) {
-        return NextResponse.json({ error: 'Invalid or missing birthA / birthB for synastry section' }, { status: 400 })
-      }
+      const parsedA = parseBirthDataInput(body.birthA, { label: 'birthA', resolveTzName: false })
+      if (!parsedA.ok) return NextResponse.json({ error: parsedA.error }, { status: 400 })
+      const parsedB = parseBirthDataInput(body.birthB, { label: 'birthB', resolveTzName: false })
+      if (!parsedB.ok) return NextResponse.json({ error: parsedB.error }, { status: 400 })
+      birthA = parsedA.data
+      birthB = parsedB.data
     } else {
-      birthData = parseBirthData(body.birthData)
-      if (!birthData) {
-        return NextResponse.json({ error: 'Invalid or missing birthData for natal section' }, { status: 400 })
-      }
+      const parsed = parseBirthDataInput(body.birthData, { label: 'birthData', resolveTzName: false })
+      if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 })
+      birthData = parsed.data
     }
 
     // ── Canonical Pluto override (validated client hint) ───────────────────────

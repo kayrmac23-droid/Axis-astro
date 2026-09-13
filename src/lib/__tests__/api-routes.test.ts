@@ -85,9 +85,24 @@ describe('/api/calculate (validates before the JPL Horizons call)', () => {
     expect(res.status).toBe(400)
   })
 
-  it('400s on an over-size payload before parsing', async () => {
+  it('413s on an over-size payload before parsing', async () => {
     const big = { ...VALID_BIRTH, junk: 'x'.repeat(17_000) }
     const res = await calculatePOST(jsonPost('https://x/api/calculate', big))
+    expect(res.status).toBe(413)
+  })
+
+  it('415s on a non-JSON content type', async () => {
+    const req = new NextRequest('https://x/api/calculate', {
+      method: 'POST',
+      headers: { 'content-type': 'text/plain' },
+      body: JSON.stringify(VALID_BIRTH),
+    })
+    const res = await calculatePOST(req)
+    expect(res.status).toBe(415)
+  })
+
+  it('400s on a junk-suffixed year that parseInt would have accepted', async () => {
+    const res = await calculatePOST(jsonPost('https://x/api/calculate', { ...VALID_BIRTH, year: '1990junk' }))
     expect(res.status).toBe(400)
   })
 })

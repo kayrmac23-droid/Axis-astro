@@ -41,10 +41,16 @@ function fallbackCheck(
 
   if (!rec || now - rec.windowStart >= windowSecs * 1000) {
     // Evict expired entries before adding a new one when the map is at capacity.
+    // If every entry is still live, drop the oldest (Map preserves insertion
+    // order) — otherwise rotating IPs during a Redis outage grow this unbounded.
     if (!rec && map.size >= MAX_FALLBACK_ENTRIES) {
       map.forEach((v, k) => {
         if (now - v.windowStart >= windowSecs * 1000) map.delete(k)
       })
+      if (map.size >= MAX_FALLBACK_ENTRIES) {
+        const oldestKey = map.keys().next().value
+        if (oldestKey !== undefined) map.delete(oldestKey)
+      }
     }
     map.set(ip, { count: 1, windowStart: now })
     return { allowed: true, retryAfter: 0 }
@@ -79,7 +85,10 @@ export async function checkRateLimit(
 
 // Resolve the client IP for per-IP rate limiting.
 //
-// SECURITY ASSUMPTION: this trusts the first `x-forwarded-for` entry, which is
+// `x-vercel-forwarded-for` is set by Vercel's edge and cannot be supplied by the
+// client, so it is preferred when present.
+//
+// SECURITY ASSUMPTION: the fallback trusts the first `x-forwarded-for` entry, which is
 // only safe when the app runs behind a trusted proxy that SETS this header and
 // strips any client-supplied value — which is the case on Vercel (the production
 // target). If AXIS is ever deployed behind a proxy that forwards a client-supplied
@@ -88,9 +97,10 @@ export async function checkRateLimit(
 // before any such deployment. The `'direct'` fallback buckets header-less requests
 // together, which is acceptable.
 export function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-forwarded-for')?.split(',')[0].trim()
-           ?? req.headers.get('x-real-ip')
-           ?? 'direct'
+  return req.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim()
+           || req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+           || req.headers.get('x-real-ip')
+           || 'direct'
 }
 
 // ── Global daily spend cap ───────────────────────────────────────────────────
