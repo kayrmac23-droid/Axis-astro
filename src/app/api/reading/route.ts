@@ -10,6 +10,7 @@ import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } 
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
 import { gateForCache } from '@/lib/reading-quality-gate'
+import { classifyGenerationError } from '@/lib/reading-stream'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
 export const maxDuration = 120
@@ -344,11 +345,27 @@ export async function POST(req: NextRequest) {
             await setCachedReading(cacheKey, verdict.cacheText)
           }
         } catch (err) {
+          // Tell the client WHICH kind of failure this was. A fatal one (billing,
+          // auth) means every remaining section will fail the same way, so the
+          // client stops the run instead of retrying into a wall; the historic
+          // 'generation failed' wording is kept verbatim for the transient case so
+          // an older client still behaves exactly as before.
+          const { fatal, code } = classifyGenerationError(err)
           try {
-            controller.enqueue(encoder.encode('\n\n[AXIS_STREAM_ERROR: generation failed]'))
+            controller.enqueue(encoder.encode(
+              fatal
+                ? `\n\n[AXIS_STREAM_ERROR: unavailable:${code}]`
+                : '\n\n[AXIS_STREAM_ERROR: generation failed]'
+            ))
             controller.close()
           } catch { /* already closed */ }
-          console.error('Reading generation error:', err instanceof Error ? err.message : err)
+          // One greppable line per failure, carrying the classification, so a
+          // billing outage is distinguishable from model trouble in the logs
+          // without reading the message text of every entry.
+          console.error(
+            `[AXIS_GEN_FAIL] section=${section}/${planetSection} fatal=${fatal} code=${code} —`,
+            err instanceof Error ? err.message : err
+          )
         } finally {
           // Record the true model-call count for this request against the global
           // daily budget. Best-effort: recordModelCalls never throws, but guard

@@ -5,6 +5,7 @@ import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } fro
 import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
+import { detectStreamError, ReadingUnavailableError } from '@/lib/reading-stream'
 
 interface ReadingPanelProps {
   chartData: DualChartData
@@ -44,12 +45,15 @@ const DIVERGENCE_MOVEMENTS: { key: string; label: string }[] = [
   { key: 'closing', label: 'LIVING THE DIVERGENCE' },
 ]
 
-// Must exceed the server's maxDuration (60s) so the server — not the client —
-// decides when a section has failed. /api/reading streams a single first-pass
-// generation straight through to close (the eval/repair passes were taken off
-// the request path); aborting earlier would kill a section mid-generation before
-// the server can cache it.
-const SECTION_TIMEOUT_MS = 65_000
+// Must exceed the server's maxDuration so the server — not the client — decides
+// when a section has failed. /api/reading streams a single first-pass generation
+// straight through to close (the eval/repair passes were taken off the request
+// path); aborting earlier kills a section mid-generation before the server can
+// cache it, and the retry then re-generates from scratch — so a client cap below
+// the server ceiling turns one slow section into two billed calls and a failure.
+// route.ts declares maxDuration = 120, so this sits just above it. Keep the two
+// in step: this was left at 65s when maxDuration went 60 → 120.
+const SECTION_TIMEOUT_MS = 125_000
 
 function getDescriptorKey(heading: string, section: string): string | null {
   const h = heading.toLowerCase()
@@ -339,8 +343,17 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             chunkText += decoder.decode()
             setReadings(prev => ({ ...prev, [sec]: accumulatedText + chunkText }))
 
-            if (chunkText.includes('[AXIS_STREAM_ERROR:')) {
-              lastError = 'Generation failed. Please retry this reading.'
+            const failure = detectStreamError(chunkText)
+            if (failure) {
+              // A fatal failure (billing, auth) is the account's problem, not this
+              // section's — every remaining section would fail identically. Unwind
+              // the whole run instead of retrying this one and then marching through
+              // the rest, which turns one outage into ~42 doomed round trips.
+              if (failure.fatal) {
+                capture('reading_unavailable', { section: sec, planet_section: planetSec, code: failure.code })
+                throw new ReadingUnavailableError(failure)
+              }
+              lastError = failure.message
               sectionText = ''
               if (attempt === 0) continue
               break
@@ -357,6 +370,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             sectionSuccess = true
             break
           } catch (fetchErr: unknown) {
+            // Fatal-service unwind and user aborts both pass straight through:
+            // neither is a section-level failure and neither may be retried.
+            if (fetchErr instanceof ReadingUnavailableError) throw fetchErr
             if (fetchErr instanceof Error && fetchErr.name === 'AbortError' && signal.aborted) {
               throw fetchErr
             }
@@ -456,6 +472,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
     let fetchedText = ''
     let success = false
+    // Set when the service itself is unavailable (billing/auth), so the failure
+    // copy tells the reader retrying is pointless rather than inviting another go.
+    let fatalMessage = ''
 
     for (let attempt = 0; attempt < 2; attempt++) {
       if (signal.aborted) break
@@ -495,7 +514,11 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         }
         fetchedText += decoder.decode()
 
-        if (fetchedText.includes('[AXIS_STREAM_ERROR:')) {
+        const failure = detectStreamError(fetchedText)
+        if (failure) {
+          // A fatal failure cannot be retried away — burn no second attempt and
+          // show the reader why, instead of the generic "Retry failed".
+          if (failure.fatal) { fatalMessage = failure.message; break }
           if (attempt === 0) continue
           break
         }
@@ -528,7 +551,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         }
       })
     } else {
-      const errMsg = 'Retry failed. Please try again.'
+      const errMsg = fatalMessage || 'Retry failed. Please try again.'
       setPlanetSectionErrors(prev => ({ ...prev, [`${sec}:${planetSec}`]: errMsg }))
       setReadings(prev => {
         const text = prev[sec] || ''
