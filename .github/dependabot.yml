@@ -5,11 +5,18 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Major versions (React 19, TypeScript 7, ESLint 10, Vitest 5, ...) need a
+    # deliberate migration, so they are skipped here and upgraded by hand.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
     groups:
       production-dependencies:
         dependency-type: production
+        update-types: [minor, patch]
       development-dependencies:
         dependency-type: development
+        update-types: [minor, patch]
 
   - package-ecosystem: github-actions
     directory: /
