@@ -11,7 +11,6 @@
      from the neutral --surface-* base below, never from lightening the floor
      (which is blue-dominant ~5:1 and lands navy the moment it is lifted). */
   --void:      #02030A;
-  --bg:        #030212;
   --deep:      #0A090C;   /* deep lifted tier — neutral, derived from the base, not the floor */
   --surface-1: #0C0B0E;   /* neutral base for lifted surfaces */
   --surface:   var(--surface-1);   /* legacy alias → neutral base */
@@ -178,10 +177,16 @@
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
 
   /* ── Background tokens ────────────────────────────── */
+  /* Atmosphere is DARKEN-ONLY. --void is the floor AND the ceiling of the page
+     ground: the brightest pixel of the background field measures exactly
+     #02030A. These gradients may only sink below it, never lift above it.
+     The retired version lifted the top 60% of the viewport to #0A0A18, which
+     composited over the void to ~#070712 — a +14 blue drift that broke the
+     doctrinal ground colour and landed navy, the exact failure the --void
+     comment above warns about. */
   --bg-stars:
-  radial-gradient(ellipse 120% 60% at 50% -10%, #0A0A18 0%, transparent 55%),
-  radial-gradient(ellipse 60% 40% at 5% 95%,   #08080F 0%, transparent 50%),
-  radial-gradient(ellipse 50% 35% at 95% 85%, #06060C 0%, transparent 50%);
+  radial-gradient(ellipse 60% 40% at 5% 95%,  rgba(0, 0, 0, 0.45) 0%, transparent 50%),
+  radial-gradient(ellipse 50% 35% at 95% 85%, rgba(0, 0, 0, 0.35) 0%, transparent 50%);
 
   --noise-overlay: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
 
