@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { SynastryData } from '@/lib/synastry-calc'
 import { SYNASTRY_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
+import { detectStreamError, ReadingUnavailableError } from '@/lib/reading-stream'
 
 interface Props {
   synastryData: SynastryData
@@ -20,12 +21,15 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
   navigation:     'What Each Requires',
 }
 
-// Must exceed the server's maxDuration (60s) so the server — not the client —
-// decides when a section has failed. /api/reading streams a single first-pass
-// generation straight through to close (the eval/repair passes were taken off
-// the request path); aborting earlier would kill a section mid-generation before
-// the server can cache it.
-const SECTION_TIMEOUT_MS = 65_000
+// Must exceed the server's maxDuration so the server — not the client — decides
+// when a section has failed. /api/reading streams a single first-pass generation
+// straight through to close (the eval/repair passes were taken off the request
+// path); aborting earlier kills a section mid-generation before the server can
+// cache it, and the retry then re-generates from scratch — so a client cap below
+// the server ceiling turns one slow section into two billed calls and a failure.
+// route.ts declares maxDuration = 120, so this sits just above it. Keep the two
+// in step: this was left at 65s when maxDuration went 60 → 120.
+const SECTION_TIMEOUT_MS = 125_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
 
@@ -144,8 +148,12 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
             chunk += decoder.decode()
             setText(accumulated + chunk)
 
-            if (chunk.includes('[AXIS_STREAM_ERROR:')) {
-              lastError = 'Generation failed. Please retry.'; sectionText = ''
+            const failure = detectStreamError(chunk)
+            if (failure) {
+              // Fatal (billing/auth) means every remaining section fails the same
+              // way — unwind the run rather than retrying into a wall.
+              if (failure.fatal) throw new ReadingUnavailableError(failure)
+              lastError = failure.message; sectionText = ''
               if (attempt === 0) continue
               break
             }
@@ -158,6 +166,7 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
             sectionSuccess = true
             break
           } catch (err: unknown) {
+            if (err instanceof ReadingUnavailableError) throw err
             if (err instanceof Error && err.name === 'AbortError' && abortRef.current?.signal.aborted) throw err
             if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
               lastError = `${SECTION_DISPLAY[sec]} timed out. Please retry.`
