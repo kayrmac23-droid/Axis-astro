@@ -2,14 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
-import { gateForCache } from '@/lib/reading-quality-gate'
+import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { classifyGenerationError } from '@/lib/reading-stream'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 
@@ -327,6 +327,27 @@ export async function POST(req: NextRequest) {
           // The reader has the whole section from here on. Everything below only
           // decides what lands in the 30-day cache.
           controller.close()
+
+          // ── Length telemetry ───────────────────────────────────────────────
+          // One greppable line per GENERATED section (cache hits return long
+          // before here, so this measures only fresh output). It pairs the
+          // finished word count with the band the gate will score it against
+          // and the aspect count that scales that band, so a section that ran
+          // long because the chart genuinely carried more aspects is
+          // distinguishable from one that runs multiples over spec on every
+          // chart. There is no other way to see this: a truncated section
+          // short-circuits before evaluateSection and therefore never emits an
+          // [AXIS_GATE] line to read instead. countWords and wordBandFor are
+          // the gate's own helpers, so the number logged here is exactly the
+          // number scoreLength acts on — the log cannot drift from the scorer.
+          // Sits below controller.close() so it stays off the response path.
+          const lenAspects = countAspectsInContext(userContent)
+          const lenBand    = wordBandFor(section, planetSection, lenAspects)
+          console.log(
+            `[AXIS_LEN] section=${section}/${planetSection} words=${countWords(firstText)} ` +
+            `band=${lenBand.fullMin}-${lenBand.fullMax} hardMax=${lenBand.hardMax} ` +
+            `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason}`
+          )
 
           const verdict = await gateForCache({
             firstPassText: firstText,
