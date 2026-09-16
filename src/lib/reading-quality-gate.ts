@@ -66,11 +66,11 @@ import {
 } from '@/lib/prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
-// stronger model reliably delivers: Haiku is fast but too lenient on the subtle
+// stronger model reliably delivers: smaller models are too lenient on the subtle
 // failure modes the gate exists to catch (pseudo-synthesis, compensatory
-// reframes, under-grounded prose). Sonnet's slower, sharper read is worth the
-// added latency because the gate is the last line before caching.
-const EVAL_MODEL = 'claude-sonnet-4-6'
+// reframes, under-grounded prose). Opus is deliberately more capable than the
+// Sonnet generator because the gate is the last line before caching.
+const EVAL_MODEL = 'claude-opus-5'
 // Failure-path output is the sizing constraint, not the pass path: a failing
 // section emits scores + a repair critique + the falsifiability_inversion
 // evidence field. The critique is kept concise and failing-criteria-only (see
@@ -80,7 +80,7 @@ const EVAL_MODEL = 'claude-sonnet-4-6'
 const EVAL_MAX_TOKENS = 1200
 const EVAL_TEMPERATURE = 0
 
-const REPAIR_TEMPERATURE = 0.2
+const REPAIR_TEMPERATURE = 0.7
 
 // The worked example the falsifiability criterion is calibrated against, and a
 // permanent regression fixture (see reading-quality-gate.test.ts). This claim
