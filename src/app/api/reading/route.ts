@@ -16,19 +16,17 @@ import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 export const maxDuration = 120
 
 // ── Model config ───────────────────────────────────────────────────────────────
-const MODEL       = 'claude-sonnet-4-6'
+const MODEL       = 'claude-sonnet-5'
 
-// Generation temperature — env-tunable without a redeploy. 0.2 is a low setting
-// that collapses the model onto its highest-probability cadence, which is the
-// aphoristic register the PROSE FAILURE MODES rules exist to fight; a higher value
-// (~0.6–0.8) is worth measuring against the eval set for anti_cliche / voice_quality
-// before flipping the default. Kept at 0.2 pending that measurement.
+// Generation temperature — env-tunable without a redeploy. The 0.7 default gives
+// the model enough latitude to avoid collapsing onto the repetitive aphoristic
+// cadence that the PROSE FAILURE MODES rules are designed to prevent.
 function readTemperature(raw: string | undefined, fallback: number): number {
   if (raw == null || raw.trim() === '') return fallback
   const n = Number(raw)
   return Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback
 }
-const TEMPERATURE = readTemperature(process.env.AXIS_READING_TEMPERATURE, 0.2)
+const TEMPERATURE = readTemperature(process.env.AXIS_READING_TEMPERATURE, 0.7)
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical

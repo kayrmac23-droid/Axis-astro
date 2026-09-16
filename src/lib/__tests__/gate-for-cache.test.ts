@@ -53,7 +53,7 @@ const BASE = {
   planetSection: 'sun',
   systemBlocks:  [{ type: 'text' as const, text: 'SYSTEM' }] as Anthropic.TextBlockParam[],
   maxTokens:     2500,
-  model:         'claude-sonnet-4-6',
+  model:         'claude-sonnet-5',
   truncated:     false,
 }
 
@@ -183,18 +183,36 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     // cache", so the section regenerated on every page load and usually
     // re-violated. It must now go through repair instead.
     const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
-    const clean = sectionOfWords(IN_BAND_WORDS)
+    const replacement = 'This steadiness remains available in ordinary decisions.'
     create
       .mockResolvedValueOnce(evalReply(5))       // first-pass eval passes the rubric…
-      .mockResolvedValueOnce(textReply(clean))   // …but the doctrine scan forces a repair
-      .mockResolvedValueOnce(evalReply(5))       // re-eval of the clean repair: pass
+      .mockResolvedValueOnce(textReply(JSON.stringify([replacement])))
 
     const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
-    expect(r.cacheText).toBe(clean)
+    expect(r.cacheText).toBe(`${GOOD_SECTION} ${replacement}`)
     expect(r.repaired).toBe(true)
-    expect(r.modelCalls).toBe(3)
+    expect(r.reason).toBe('doctrine-repaired')
+    expect(r.modelCalls).toBe(2)
     const repairCall = create.mock.calls[1][0]
-    expect(repairCall.messages[0].content).toContain('DOCTRINE FAILURE')
+    expect(repairCall.max_tokens).toBe(500)
+    expect(repairCall.messages[0].content).toContain(BANNED_RESCUE_PHRASINGS[0])
+    expect(repairCall.messages[0].content).not.toContain(GOOD_SECTION)
+    expect(create).toHaveBeenCalledTimes(2)
+  })
+
+  it('surgically replaces a contextual hierarchy sentence and preserves surrounding prose byte-for-byte', async () => {
+    const before = `${GOOD_SECTION} `
+    const dirtySentence = 'Underneath that identity, the Sidereal self is the essential one.'
+    const after = ' The tension remains active in close relationships.'
+    const replacement = 'The Sidereal account describes a simultaneous inward emphasis.'
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(JSON.stringify([replacement])))
+
+    const r = await gateForCache({ ...BASE, firstPassText: before + dirtySentence + after, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBe(before + replacement + after)
+    expect(r.reason).toBe('doctrine-repaired')
+    expect(r.modelCalls).toBe(2)
   })
 })
 

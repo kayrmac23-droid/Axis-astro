@@ -66,11 +66,11 @@ import {
 } from '@/lib/prompts'
 
 // The semantic doctrine check needs the discriminating judgment that only the
-// stronger model reliably delivers: Haiku is fast but too lenient on the subtle
+// stronger model reliably delivers: smaller models are too lenient on the subtle
 // failure modes the gate exists to catch (pseudo-synthesis, compensatory
-// reframes, under-grounded prose). Sonnet's slower, sharper read is worth the
-// added latency because the gate is the last line before caching.
-const EVAL_MODEL = 'claude-sonnet-4-6'
+// reframes, under-grounded prose). Opus is deliberately more capable than the
+// Sonnet generator because the gate is the last line before caching.
+const EVAL_MODEL = 'claude-opus-5'
 // Failure-path output is the sizing constraint, not the pass path: a failing
 // section emits scores + a repair critique + the falsifiability_inversion
 // evidence field. The critique is kept concise and failing-criteria-only (see
@@ -80,7 +80,8 @@ const EVAL_MODEL = 'claude-sonnet-4-6'
 const EVAL_MAX_TOKENS = 1200
 const EVAL_TEMPERATURE = 0
 
-const REPAIR_TEMPERATURE = 0.2
+const REPAIR_TEMPERATURE = 0.7
+const DOCTRINE_REPAIR_MAX_TOKENS = 500
 
 // The worked example the falsifiability criterion is calibrated against, and a
 // permanent regression fixture (see reading-quality-gate.test.ts). This claim
@@ -122,6 +123,10 @@ export interface GateScores extends LlmScores {
 
 export interface GateResult {
   pass:     boolean
+  // Verdict before deterministic doctrine backstops lower a score. This lets
+  // orchestration distinguish an otherwise-approved section needing one local
+  // copy edit from prose that genuinely failed the evaluator rubric.
+  rubricPass: boolean
   scores:   GateScores | null
   critique: string
   // Internal — true when the evaluator itself errored and we defaulted to a pass.
@@ -371,6 +376,7 @@ export async function evaluateSection({
   if (isTruncated(generatedText)) {
     return {
       pass:     false,
+      rubricPass: false,
       scores:   null,
       critique: 'Section is truncated — it carries the truncation sentinel or ends mid-sentence. It must be regenerated in full; truncated output must never be cached or shown as final.',
       evaluatorErrored: false,
@@ -420,7 +426,7 @@ Score the generated section against the criteria and return the JSON object spec
     const llmScores = (parsed && validateScores(parsed.scores)) || extractScoresFromRaw(raw)
     if (!llmScores) {
       console.error('Reading quality gate: invalid scores object in evaluator output')
-      return { pass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
+      return { pass: true, rubricPass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
     }
 
     // Merge the deterministic length score against this section's typed band, so
@@ -433,6 +439,7 @@ Score the generated section against the criteria and return the JSON object spec
     const band       = wordBandFor(section, planetSection, countAspectsInContext(chartContext))
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
+    const rubricPass = computePassFromScores(scores)
 
     // Deterministic rescue-clause backstop (ease → hidden strength). A literal
     // match on a curated reassurance frame forces contradiction_handling below
@@ -484,6 +491,7 @@ Score the generated section against the criteria and return the JSON object spec
 
     return {
       pass,
+      rubricPass,
       scores,
       critique: pass ? '' : critique,
       evaluatorErrored: false,
@@ -494,7 +502,7 @@ Score the generated section against the criteria and return the JSON object spec
     // first pass. The prompt's own constraints remain in force; the gate is
     // an additional safety net, not a single point of failure.
     console.error('Reading quality gate evaluator error:', err instanceof Error ? err.message : err)
-    return { pass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
+    return { pass: true, rubricPass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
   }
 }
 
@@ -540,6 +548,69 @@ ${failedDraft}`
   return extractText(msg)
 }
 
+interface TextSpan {
+  start: number
+  end:   number
+  text:  string
+}
+
+// Identify only the sentences that contain a deterministic doctrine hit. The
+// segmenter's indices let us splice replacements back into the original draft;
+// every byte outside these spans therefore remains unchanged.
+function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
+  const needles = hits.map(hit => hit.toLowerCase())
+  const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' })
+  const targets: TextSpan[] = []
+  for (const segment of segmenter.segment(draft)) {
+    const text = segment.segment
+    const lower = text.toLowerCase()
+    if (!needles.some(needle => lower.includes(needle))) continue
+    targets.push({ start: segment.index, end: segment.index + text.length, text })
+  }
+  return targets
+}
+
+// A doctrine-only failure does not justify regenerating an otherwise passing
+// 650-word section. Ask for replacements for the offending sentences alone,
+// then splice them into the draft so unrelated passages cannot regress.
+export async function repairDoctrineSentences(
+  draft: string,
+  hits: string[],
+  model: string,
+): Promise<string> {
+  const targets = doctrineRepairTargets(draft, hits)
+  if (targets.length === 0) throw new Error('No sentence found for doctrine hit')
+
+  const numbered = targets.map((target, index) => `${index + 1}. ${target.text.trim()}`).join('\n')
+  const msg = await getAnthropic().messages.create({
+    model,
+    max_tokens: DOCTRINE_REPAIR_MAX_TOKENS,
+    temperature: 0,
+    system: `You make surgical copy edits. Rewrite only the supplied sentences to remove the named AXIS doctrine violations. Preserve each sentence's concrete astrological meaning, tone, and approximate length. Do not add reassurance, rank Tropical above Sidereal or vice versa, or describe one identity as deeper, truer, masked, or underneath another. Return only a JSON array of replacement sentence strings, in the same order and with exactly the same number of items.`,
+    messages: [{
+      role: 'user',
+      content: `Banned phrasing or hierarchy terms: ${hits.map(hit => `"${hit}"`).join(', ')}\n\nSentences:\n${numbered}`,
+    }],
+  })
+
+  const raw = extractText(msg).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+  const replacements: unknown = JSON.parse(raw)
+  if (!Array.isArray(replacements) || replacements.length !== targets.length ||
+      replacements.some(item => typeof item !== 'string' || item.trim().length === 0)) {
+    throw new Error('Invalid doctrine repair response')
+  }
+
+  let repaired = draft
+  for (let i = targets.length - 1; i >= 0; i--) {
+    const target = targets[i]
+    const original = target.text
+    const leading = original.match(/^\s*/)?.[0] ?? ''
+    const trailing = original.match(/\s*$/)?.[0] ?? ''
+    repaired = repaired.slice(0, target.start) + leading + (replacements[i] as string).trim() + trailing + repaired.slice(target.end)
+  }
+  return repaired
+}
+
 // ── Deterministic doctrine scan ───────────────────────────────────────────────
 
 // NOT a semantic gate — it catches only the high-precision, unambiguous banned
@@ -549,8 +620,8 @@ ${failedDraft}`
 //   2. CONTEXTUAL — ordinary words ("underneath", "beneath", "the mask") that
 //      breach THE LAW only next to identity/system language, matched by
 //      proximity rather than bare presence. Keep bare ordinary words OUT of the
-//      literal lists: a false positive here makes a section permanently
-//      uncacheable, which costs a full model call on every page load.
+//      literal lists: a false positive still spends an unnecessary surgical repair
+//      call and changes prose that did not need editing.
 // Exported for unit testing — pure, no behaviour change.
 export function detectBannedPhrasings(text: string): string[] {
   const hay = text.toLowerCase()
@@ -670,6 +741,31 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     const reason = gate.evaluatorErrored ? 'passed-evaluator-errored' : 'passed'
     logGateOutcome(label, reason, gate.scores)
     return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason }
+  }
+
+  // If the rubric passes and only the deterministic doctrine scan objects, edit
+  // only the offending sentence(s). A full regeneration spends far more tokens
+  // and creates fresh regression risk in prose the evaluator already approved.
+  if (gate.rubricPass && bannedHits.length > 0) {
+    if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
+      logGateOutcome(label, 'failed-doctrine-repair-skipped-budget', gate.scores)
+      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-skipped-budget' }
+    }
+    try {
+      modelCalls++
+      const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model)
+      const remainingHits = detectBannedPhrasings(repaired)
+      if (remainingHits.length > 0 || isTruncated(repaired)) {
+        logGateOutcome(label, 'doctrine-repair-invalid', gate.scores)
+        return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'doctrine-repair-invalid' }
+      }
+      logGateOutcome(label, 'doctrine-repaired', gate.scores)
+      return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'doctrine-repaired' }
+    } catch (err) {
+      console.error(`[AXIS_GATE] section=${label} doctrine repair failed:`, err instanceof Error ? err.message : err)
+      logGateOutcome(label, 'failed-doctrine-repair-errored', gate.scores)
+      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-errored' }
+    }
   }
 
   let critique = gate.critique
