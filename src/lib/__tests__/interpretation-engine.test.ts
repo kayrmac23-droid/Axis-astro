@@ -172,3 +172,46 @@ describe('interpretation context — does not model the banned rescue register',
     // is banned, and that is covered by the ban-list parity tests above.
   })
 })
+
+describe('shared Divergence evidence plan', () => {
+  it('uses one symmetrical plan in every Divergence section and includes computed aspects', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const chart = calculateDualChart(MODERN_BIRTH)
+    const plan = buildDivergencePlan(chart)
+    const contexts = ['agree', 'diverge', 'tension', 'closing'].map(section =>
+      buildInterpretationContext(chart, 'synthesis', section))
+    expect(new Set(contexts).size).toBe(1)
+    expect(plan.evidence.some(e => e.kind === 'aspect' && /orb \d/.test(e.summary))).toBe(true)
+    expect(contexts[0]).toContain('Angular relationship is unchanged across frameworks')
+    expect(contexts[0]).not.toMatch(/masking|essential \/ instinctive|constructed persona|load-bearing and certain/i)
+    expect(contexts[0]).toContain('Tropical')
+    expect(contexts[0]).toContain('Sidereal')
+  })
+
+  it('ranks chart-specific ruler, dignity and tight-aspect evidence', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
+    expect(plan.candidates.some(c => c.reasons.some(r => /rules an Ascendant|dignity changes|tight major aspect/.test(r)))).toBe(true)
+    expect(plan.candidates.map(c => c.score)).toEqual([...plan.candidates.map(c => c.score)].sort((a, b) => b - a))
+  })
+
+  it('excludes time-dependent houses, angles and ranking when birth time is unknown', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const chart = calculateDualChart({ ...MODERN_BIRTH, birthTimeUnknown: true })
+    const plan = buildDivergencePlan(chart)
+    const text = buildInterpretationContext(chart, 'synthesis', 'diverge')
+    expect(plan.evidence.find(e => e.id === 'L-BIRTH-TIME')?.summary).toContain('angles, houses, angle-derived ranking')
+    expect(plan.candidates.flatMap(c => c.reasons)).not.toContain('reliable house changes')
+    expect(text).not.toMatch(/Tropical ASC:|Sidereal Lagna:|MC SHIFT| H\d/)
+    expect(text).toContain('Moon degree and any very tight Moon aspect as timing-sensitive')
+  })
+
+  it('allows fewer than three substantial differences', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const chart = calculateDualChart(MODERN_BIRTH)
+    const same = { ...chart, sidereal: { ...chart.tropical, system: 'sidereal' as const, planets: chart.tropical.planets.map(p => ({ ...p })) } }
+    const plan = buildDivergencePlan(same)
+    expect(plan.allocation.diverge).toHaveLength(0)
+    expect(plan.evidence.filter(e => e.kind === 'concordance').length).toBeGreaterThan(3)
+  })
+})

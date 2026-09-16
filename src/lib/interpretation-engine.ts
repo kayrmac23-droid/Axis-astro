@@ -1119,209 +1119,128 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   return lines.join('\n')
 }
 
-// House domain groupings for thematic convergence detection
-function getHouseDomain(house: number): string {
-  const domains: Record<number, string> = {
-    1:  'self-identity-body',
-    2:  'resources-self-worth',
-    3:  'mind-communication',
-    4:  'private-foundations-roots',
-    5:  'creativity-expression-pleasure',
-    6:  'service-health-routine',
-    7:  'partnership-the-other',
-    8:  'depth-transformation-shared-power',
-    9:  'meaning-expansion-beliefs',
-    10: 'career-public-reputation',
-    11: 'community-collective-future',
-    12: 'hidden-self-transcendence'
-  }
-  return domains[house] || 'other'
+export interface DivergenceEvidence {
+  id: string
+  kind: 'difference' | 'concordance' | 'aspect' | 'limitation'
+  role: 'supporting' | 'complicating' | 'context'
+  planets: string[]
+  summary: string
 }
 
-// Returns true when two house domains are thematically related (same life arena, different house)
-function houseDomainsRelated(h1: number, h2: number): boolean {
-  if (h1 === h2) return false
-  const relatedGroups = [
-    [1, 5, 9],      // fire trine: self-expression axis
-    [2, 8],         // resources / shared resources axis
-    [2, 10],        // value / career-worth axis
-    [3, 6],         // mind / daily work axis
-    [3, 9],         // mind / belief axis
-    [4, 10],        // roots / public axis
-    [4, 12],        // private / hidden axis
-    [5, 11],        // creative self / collective axis
-    [6, 12],        // service / hidden axis
-    [7, 1],         // self / other axis
-    [8, 10],        // shared power / public authority axis
+export interface DivergenceCandidate {
+  id: string
+  subject: string
+  score: number
+  reasons: string[]
+  evidenceIds: string[]
+}
+
+export interface DivergencePlan {
+  candidates: DivergenceCandidate[]
+  evidence: DivergenceEvidence[]
+  allocation: Record<'agree' | 'diverge' | 'tension' | 'closing', string[]>
+}
+
+/** Deterministic evidence plan used unchanged by all four Divergence sections. */
+export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
+  const evidence: DivergenceEvidence[] = []
+  const candidates: DivergenceCandidate[] = []
+  const unknown = chartData.birthData.birthTimeUnknown === true
+  const names = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+  const tropicalAspects = computeAspects(chartData.tropical.planets)
+  const siderealAspects = computeAspects(chartData.sidereal.planets)
+  const chartRulers = unknown ? [] : [
+    SIGN_RULERS_TRADITIONAL[chartData.tropical.ascendantSign],
+    SIGN_RULERS_VEDIC[chartData.sidereal.ascendantSign],
   ]
-  return relatedGroups.some(g => g.includes(h1) && g.includes(h2))
+
+  for (const name of names) {
+    const t = chartData.tropical.planets.find(p => p.name === name)
+    const s = chartData.sidereal.planets.find(p => p.name === name)
+    if (!t || !s) continue
+    const signChanged = t.sign !== s.sign
+    const houseChanged = !unknown && t.house !== s.house
+    const td = computeDignity(name, t.sign).status
+    const sd = computeDignity(name, s.sign).status
+    const tRuler = SIGN_RULERS_TRADITIONAL[t.sign]
+    const sRuler = SIGN_RULERS_VEDIC[s.sign]
+    const tDisp = chartData.tropical.planets.find(p => p.name === tRuler)
+    const sDisp = chartData.sidereal.planets.find(p => p.name === sRuler)
+    const id = `D-${name.toUpperCase()}`
+    const placement = `Tropical ${name}: ${t.sign}${unknown ? '' : ` H${t.house}`} [${td}], ruled by ${tRuler}${tDisp ? ` in ${tDisp.sign}${unknown ? '' : ` H${tDisp.house}`} [${computeDignity(tRuler, tDisp.sign).status}]` : ''}; Sidereal ${name}: ${s.sign}${unknown ? '' : ` H${s.house}`} [${sd}], ruled by ${sRuler}${sDisp ? ` in ${sDisp.sign}${unknown ? '' : ` H${sDisp.house}`} [${computeDignity(sRuler, sDisp.sign).status}]` : ''}.`
+    if (!signChanged && !houseChanged && td === sd && tRuler === sRuler) {
+      const eid = `C-${name.toUpperCase()}`
+      evidence.push({ id: eid, kind: 'concordance', role: 'supporting', planets: [name], summary: `${placement} Consistent across the two frameworks; this is concordance, not independent proof of a psychological claim.` })
+      continue
+    }
+    const reasons: string[] = []
+    let score = 0
+    if (signChanged) { score += 4; reasons.push('sign changes') }
+    if (houseChanged) { score += 2; reasons.push('reliable house changes') }
+    if (td !== sd) { score += 3; reasons.push(`dignity changes (${td} → ${sd})`) }
+    if (tRuler !== sRuler) { score += 2; reasons.push(`system-specific rulers differ (${tRuler} / ${sRuler})`) }
+    if (chartRulers.includes(name)) { score += 4; reasons.push('planet rules an Ascendant in this chart') }
+    const tight = tropicalAspects.filter(a => (a.planet1 === name || a.planet2 === name) && a.orb <= 3)
+    if (tight.length) { score += Math.min(4, tight.length * 2); reasons.push(`${tight.length} tight major aspect${tight.length > 1 ? 's' : ''}`) }
+    if (name === 'Moon' && unknown) { score -= 4; reasons.push('Moon degree is timing-sensitive because birth time is unknown') }
+    evidence.push({ id, kind: 'difference', role: 'context', planets: [name], summary: `${placement} Changes: ${[signChanged && 'sign', houseChanged && 'house', td !== sd && 'dignity', tRuler !== sRuler && 'ruler'].filter(Boolean).join(', ') || 'degree only'}. This is evidence for comparison, not proof of conflict.` })
+    candidates.push({ id, subject: name, score, reasons, evidenceIds: [id] })
+  }
+
+  if (!unknown) {
+    for (const angle of [
+      { subject: 'Ascendant', tSign: chartData.tropical.ascendantSign, sSign: chartData.sidereal.ascendantSign, id: 'D-ASC', base: 6 },
+      { subject: 'Midheaven', tSign: chartData.tropical.midheavenSign, sSign: chartData.sidereal.midheavenSign, id: 'D-MC', base: 5 },
+    ]) {
+      if (angle.tSign === angle.sSign) {
+        evidence.push({ id: angle.id.replace('D-', 'C-'), kind: 'concordance', role: 'supporting', planets: [], summary: `${angle.subject} remains ${angle.tSign} across both frameworks; consistent, not independent proof.` })
+      } else {
+        evidence.push({ id: angle.id, kind: 'difference', role: 'context', planets: [], summary: `Tropical ${angle.subject}: ${angle.tSign}; Sidereal ${angle.subject}: ${angle.sSign}. Birth time is known, so this angular sign change is available for comparison.` })
+        candidates.push({ id: angle.id, subject: angle.subject, score: angle.base, reasons: ['reliable angular sign changes'], evidenceIds: [angle.id] })
+      }
+    }
+  }
+
+  // A common ayanamsa preserves planet-to-planet angular separation. List each
+  // computed relationship once, while making clear that its sign/house/ruler
+  // interpretation may change between frameworks.
+  for (const a of tropicalAspects.filter(a =>
+    candidates.some(c => a.planet1 === c.subject || a.planet2 === c.subject) &&
+    !(unknown && (a.planet1 === 'Moon' || a.planet2 === 'Moon'))
+  )) {
+    const sid = siderealAspects.find(x => x.planet1 === a.planet1 && x.planet2 === a.planet2 && x.aspectName === a.aspectName)
+    const eid = `A-${a.planet1.toUpperCase()}-${a.planet2.toUpperCase()}-${a.aspectName.toUpperCase()}`
+    evidence.push({ id: eid, kind: 'aspect', role: ['tense', 'polarizing'].includes(a.quality) ? 'complicating' : 'supporting', planets: [a.planet1, a.planet2], summary: `${a.planet1} ${a.glyph} ${a.planet2}, orb ${a.orb}° (${a.applying ? 'applying' : 'separating'}). ${sid ? 'Angular relationship is unchanged across frameworks; interpret it through each system’s signs, houses (when reliable), dignity and rulers rather than counting it twice.' : 'No matching Sidereal aspect was computed; do not infer one.'}` })
+    for (const c of candidates) if (c.subject === a.planet1 || c.subject === a.planet2) c.evidenceIds.push(eid)
+  }
+  if (unknown) evidence.push({ id: 'L-BIRTH-TIME', kind: 'limitation', role: 'complicating', planets: ['Moon'], summary: 'Birth time unknown: angles, houses, angle-derived ranking and dasha timing are excluded. Treat the Moon degree and any very tight Moon aspect as timing-sensitive.' })
+  candidates.sort((a, b) => b.score - a.score || a.subject.localeCompare(b.subject))
+  const selected = candidates.filter(c => c.score >= 4).slice(0, 4)
+  const concordances = evidence.filter(e => e.kind === 'concordance').map(e => e.id)
+  const aspects = evidence.filter(e => e.kind === 'aspect' && selected.some(c => e.planets.includes(c.subject))).map(e => e.id)
+  return {
+    candidates,
+    evidence,
+    allocation: {
+      agree: concordances,
+      diverge: selected.map(c => c.id),
+      tension: [...selected.slice(0, 2).map(c => c.id), ...aspects.slice(0, 2)],
+      closing: selected.slice(0, 2).map(c => c.id),
+    },
+  }
 }
 
 function formatSynthesisBlock(chartData: DualChartData): string {
+  const plan = buildDivergencePlan(chartData)
   const lines: string[] = []
-  lines.push('CROSS-SYSTEM CONCORDANCE / DIVERGENCE MAP:')
-  lines.push('(For each planet: note what each system produces, where they converge or diverge, and what that tension creates in lived experience.)')
-  lines.push('')
-
-  const majorPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
-  majorPlanets.forEach(pName => {
-    const trop = chartData.tropical.planets.find(p => p.name === pName)
-    const sid  = chartData.sidereal.planets.find(p => p.name === pName)
-    if (!trop || !sid) return
-
-    const tropDig    = computeDignity(pName, trop.sign)
-    const sidDig     = computeDignity(pName, sid.sign)
-    const signShift  = trop.sign  !== sid.sign
-    const houseShift = trop.house !== sid.house
-
-    lines.push(`${pName}:`)
-    lines.push(`  Tropical: ${trop.sign} H${trop.house} [${tropDig.status}]${trop.retrograde ? ' ℞' : ''}`)
-    lines.push(`  Sidereal: ${sid.sign} H${sid.house} [${sidDig.status}]${sid.retrograde ? ' ℞' : ''}`)
-
-    if (!signShift && !houseShift) {
-      lines.push(`  ✓ CONCORDANCE: same sign and house — this ${pName} theme is load-bearing and certain across both systems`)
-      if (tropDig.status !== 'peregrine') {
-        lines.push(`  Dignity consistent: [${tropDig.status}] in both — strengthens the certainty of this placement's character`)
-      }
-    } else {
-      if (!signShift && houseShift) {
-        lines.push(`  ~ SAME-SIGN CONCORDANCE: ${trop.sign} in both systems — the essential quality of this ${pName} is fixed across both frameworks; only the life domain shifts (H${trop.house} Tropical → H${sid.house} Sidereal)`)
-        if (tropDig.status === sidDig.status && tropDig.status !== 'peregrine') {
-          lines.push(`    Dignity consistent: [${tropDig.status}] in both — the strength or challenge of this ${pName} is a cross-system fact, not an artifact of framework`)
-        }
-      }
-
-      if (signShift) {
-        const tropSData = SIGN_DATA[trop.sign]
-        const sidSData  = SIGN_DATA[sid.sign]
-        lines.push(`  ⚑ SIGN SHIFT: ${trop.sign} (${tropSData?.element} ${tropSData?.modality}) → ${sid.sign} (${sidSData?.element} ${sidSData?.modality})`)
-        lines.push(`    Tropical layer: "${tropSData?.coreNeed}" — ${trop.sign} quality produces this as conscious drive or constructed identity`)
-        lines.push(`    Sidereal layer: "${sidSData?.coreNeed}" — ${sid.sign} quality operates at the essential / instinctive level`)
-
-        // Element analysis
-        const tropElem = tropSData?.element || ''
-        const sidElem  = sidSData?.element  || ''
-        if (tropElem === sidElem) {
-          lines.push(`    Element continuity: both signs share the ${tropElem} element — the ${pName} operates in the same elemental register across both systems, through different sign expression`)
-        } else {
-          lines.push(`    Element shift: ${tropElem} → ${sidElem} — the fundamental quality of ${pName}'s expression changes: ${tropElem} (${trop.sign}) at the constructed level vs. ${sidElem} (${sid.sign}) at the essential level`)
-        }
-
-        // Dignity direction
-        const tropStrong = ['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(tropDig.status)
-        const tropWeak   = ['DETRIMENT', 'FALL'].includes(tropDig.status)
-        const sidStrong  = ['DOMICILE', 'EXALTATION', 'DOMICILE + EXALTATION'].includes(sidDig.status)
-        const sidWeak    = ['DETRIMENT', 'FALL'].includes(sidDig.status)
-
-        if (tropStrong && sidStrong) {
-          lines.push(`    Dignity concordance: ${pName} is dignified in both systems — strength of expression is a consistent cross-system fact`)
-        } else if (tropWeak && sidWeak) {
-          lines.push(`    Challenge concordance: ${pName} is challenged in both systems [${tropDig.status} / ${sidDig.status}] — difficulty with this function is load-bearing across both frameworks`)
-        } else if ((tropStrong && sidWeak) || (tropWeak && sidStrong)) {
-          const direction = tropStrong
-            ? `a strong constructed ${pName} (${tropDig.status}) masking a pressured essential ${pName} (${sidDig.status})`
-            : `a challenged constructed ${pName} (${tropDig.status}) beneath which the essential ${pName} is stronger (${sidDig.status})`
-          lines.push(`    Dignity reversal: ${direction} — this gap between the two layers is psychologically significant`)
-        } else if (tropDig.status !== sidDig.status) {
-          lines.push(`    Dignity shifts: [${tropDig.status}] → [${sidDig.status}]`)
-        }
-
-        // Dispositor convergence check
-        const tropRulerName = SIGN_RULERS_TRADITIONAL[trop.sign]
-        const sidRulerName  = SIGN_RULERS_VEDIC[sid.sign]
-        if (tropRulerName && sidRulerName && tropRulerName === sidRulerName) {
-          const tropRulerP = chartData.tropical.planets.find(p => p.name === tropRulerName)
-          if (tropRulerP) {
-            const rulerDig = dignityLabel(tropRulerName, tropRulerP.sign)
-            lines.push(`    Dispositor convergence: both systems' ${pName} are ultimately ruled by ${tropRulerName} (in ${tropRulerP.sign} H${tropRulerP.house} [${rulerDig}]) — the ruler chain converges on the same planet despite the sign shift`)
-          }
-        }
-      }
-
-      if (houseShift) {
-        const tropHData   = HOUSE_DATA[trop.house]
-        const sidHData    = HOUSE_DATA[sid.house]
-        const tropDomain  = getHouseDomain(trop.house)
-        const sidDomain   = getHouseDomain(sid.house)
-        const related     = houseDomainsRelated(trop.house, sid.house)
-
-        lines.push(`  ⚑ HOUSE SHIFT: H${trop.house} (${tropHData?.domain}) → H${sid.house} (${sidHData?.domain})`)
-        if (related) {
-          lines.push(`    Domain relation: H${trop.house} and H${sid.house} are thematically related (${tropDomain} / ${sidDomain}) — ${pName} operates in a similar life arena in both systems through different mechanisms`)
-        } else {
-          lines.push(`    Domain shift: the life arena where ${pName} operates changes significantly: ${tropDomain} (Tropical) → ${sidDomain} (Sidereal)`)
-        }
-      }
-    }
-
-    // Cross-system cusp observation: read the divergence when a planet sits near a
-    // sign boundary in one system but settles into the body of its sign in the other
-    const tropOnCusp = trop.degree > 27 || trop.degree < 3
-    const sidOnCusp  = sid.degree  > 27 || sid.degree  < 3
-
-    if (tropOnCusp || sidOnCusp) {
-      if (tropOnCusp && !sidOnCusp) {
-        lines.push(`    The Tropical cusp resolves into the body of ${sid.sign} in the Sidereal chart — what reads as boundary ambiguity at the psychological level becomes more settled at the essential level`)
-      } else if (!tropOnCusp && sidOnCusp) {
-        lines.push(`    The ayanamsa shift places Sidereal ${pName} near a sign boundary despite a non-cusp Tropical position — boundary ambiguity exists at the essential level but not at the psychological`)
-      } else {
-        lines.push(`    ${pName} is near a sign boundary in both systems — adjacent-sign qualities blend into its expression at both the psychological and essential levels`)
-      }
-    }
-
-    lines.push('')
-  })
-
-  // Ascendant / Lagna comparison with sign character
-  const tropAsc = chartData.tropical.ascendantSign
-  const sidAsc  = chartData.sidereal.ascendantSign
-  const tropAscData = SIGN_DATA[tropAsc]
-  const sidAscData  = SIGN_DATA[sidAsc]
-  lines.push('ASCENDANT / LAGNA:')
-  lines.push(`  Tropical ASC: ${tropAsc} ${fmtDeg(chartData.tropical.ascendantDegree)} — ${tropAscData?.element} ${tropAscData?.modality}, core need: ${tropAscData?.coreNeed}`)
-  lines.push(`  Sidereal Lagna: ${sidAsc} ${fmtDeg(chartData.sidereal.ascendantDegree)} — ${sidAscData?.element} ${sidAscData?.modality}, core need: ${sidAscData?.coreNeed}`)
-  if (tropAsc !== sidAsc) {
-    lines.push(`  ⚑ SHIFT: The constructed persona (${tropAsc}: ${tropAscData?.coreNeed}) differs from the essential soul-body orientation (${sidAsc}: ${sidAscData?.coreNeed})`)
-    const sameElem = tropAscData?.element === sidAscData?.element
-    if (sameElem) {
-      lines.push(`  Element continuity: both Ascendants share the ${tropAscData?.element} element — the orientation of self-presentation is consistent in quality despite different sign expression`)
-    } else {
-      lines.push(`  Element shift: ${tropAscData?.element} (${tropAsc}) → ${sidAscData?.element} (${sidAsc}) — the fundamental quality of self-presentation differs between the two systems`)
-    }
-  } else {
-    lines.push(`  ✓ CONCORDANCE: same sign in both systems — persona and soul orientation are aligned; this ASC quality is especially load-bearing`)
-  }
-
-  // MC comparison
-  const tropMC = chartData.tropical.midheavenSign
-  const sidMC  = chartData.sidereal.midheavenSign
-  lines.push('')
-  lines.push(`MC (career/public axis):`)
-  lines.push(`  Tropical MC: ${tropMC} ${fmtDeg(chartData.tropical.midheavenDegree)}`)
-  lines.push(`  Sidereal MC: ${sidMC} ${fmtDeg(chartData.sidereal.midheavenDegree)}`)
-  if (tropMC !== sidMC) {
-    lines.push(`  ⚑ MC SHIFT: ${tropMC} → ${sidMC} — the constructed professional orientation differs from the essential karmic direction`)
-  } else {
-    lines.push(`  ✓ MC CONCORDANCE: same sign in both systems`)
-  }
-  lines.push('')
-
-  // Dasha and yogas
-  const dasha = computeVimshottariDasha(chartData)
-  if (dasha) {
-    lines.push('ACTIVE VIMSHOTTARI DASHA:')
-    lines.push(`  Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
-    lines.push(`  Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
-    lines.push(`  Note: the dasha period sets the karmic timing context for the divergence — use it to illuminate which planets and themes are currently active, not as a predictive verdict.`)
-    lines.push('')
-  }
-
-  const yogas = detectMajorYogas(chartData.sidereal)
-  if (yogas.length > 0) {
-    lines.push('MAJOR YOGAS (Sidereal chart):')
-    yogas.forEach(y => lines.push(`  • ${y}`))
-    lines.push('')
-  }
+  lines.push('SHARED DIVERGENCE PLAN (use only supplied evidence; do not calculate or invent relationships):')
+  lines.push('RANKED CANDIDATES:')
+  if (!plan.candidates.length) lines.push('  None: do not manufacture a major divergence.')
+  plan.candidates.forEach((c, i) => lines.push(`  ${i + 1}. [${c.id}] ${c.subject} (priority ${c.score}): ${c.reasons.join('; ')}. Evidence: ${c.evidenceIds.join(', ')}`))
+  lines.push('EVIDENCE DOSSIER:')
+  plan.evidence.forEach(e => lines.push(`  [${e.id}] (${e.role}) ${e.summary}`))
+  lines.push('SECTION ALLOCATION (the same plan governs all four sections):')
+  for (const section of ['agree', 'diverge', 'tension', 'closing'] as const) lines.push(`  ${section}: ${plan.allocation[section].join(', ') || 'No allocated evidence; state the limitation rather than inventing material.'}`)
 
   return lines.join('\n')
 }

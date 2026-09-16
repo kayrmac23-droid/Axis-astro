@@ -308,9 +308,11 @@ export async function POST(req: NextRequest) {
       // synthesis — needs both chart systems
       const dual          = calculateDualChart(birthData!, plutoOverride)
       const ctxBlock      = buildInterpretationContext(dual, 'synthesis', planetSection)
-      const tropicalBlock = formatEliteChartBlock(dual.tropical, 'tropical')
-      const siderealBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
-      userContent = `${tropicalBlock}\n\n${siderealBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
+      // The shared plan is deliberately the sole comparison dossier. Appending
+      // two full chart blocks here used to reintroduce unreliable houses/angles
+      // for unknown birth times and invited two parallel readings rather than a
+      // comparison of computed evidence.
+      userContent = `${ctxBlock}\n\n---\n\n${sectionInstruction}`
     }
 
     const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
