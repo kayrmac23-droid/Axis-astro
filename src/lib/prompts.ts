@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.18
+// AXIS Production System Prompts v10.20
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -577,7 +577,7 @@ Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects
 
 Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
-End with ### Putting It Together: 1–2 paragraphs distilling the most specific and honest observation about this cognitive style. 300–400 words total.`,
+End with ### Putting It Together: 1–2 paragraphs distilling the most specific and honest observation about this cognitive style. ${lengthClause(BAND_SECONDARY)}`,
 
     venus: `Interpret Venus.
 
@@ -587,7 +587,7 @@ Cover sign, house, dignity, the condition of Venus's sign ruler, and every key a
 
 Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
 
-End with ### Putting It Together: the relational pattern most likely to repeat. 300–400 words total.`,
+End with ### Putting It Together: the relational pattern most likely to repeat. ${lengthClause(BAND_SECONDARY)}`,
 
     mars: `Interpret Mars.
 
@@ -597,7 +597,7 @@ Cover sign, house, dignity, the condition of Mars's sign ruler, and every key as
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 
-End with ### Putting It Together: the most honest observation about how this drive actually operates in practice. 300–400 words total.`,
+End with ### Putting It Together: the most honest observation about how this drive actually operates in practice. ${lengthClause(BAND_SECONDARY)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
 
@@ -605,7 +605,7 @@ Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → 
 
 Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — name it first with its orb and applying/separating status and what it produces as an ongoing internal condition. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
-End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. 300–400 words total.`,
+End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${lengthClause(BAND_SECONDARY)}`,
 
     key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
@@ -615,7 +615,7 @@ For each aspect you include: name both planets with their houses and rulerships;
 
 Not all remaining aspects deserve equal weight. The tightest applying aspects, and those involving chart angles or the chart ruler, carry the most force. Name the weight difference — say why one pattern is more structurally significant than another.
 
-200–300 words.`,
+${lengthClause(BAND_KEY_ASPECTS)}`,
 
     rahu_ketu: `Interpret the Lunar Nodes — Rahu (North Node) and Ketu (South Node) — in the Tropical chart.
 
@@ -627,7 +627,7 @@ Cover, in continuous prose: each node's sign and house and what each produces ps
 
 Anchor every claim to the recognisable situation in which it surfaces — when the Rahu pull arrives, what Ketu's groove feels like in a familiar moment — not abstract destiny language. No "soul mission," no "past life" claims, no fatalistic framing.
 
-250–350 words. End with the sharpest precise observation about how this person's nodal axis actually operates in lived experience, not a prescription for growth.`,
+${lengthClause(BAND_NODES_TROP)} End with the sharpest precise observation about how this person's nodal axis actually operates in lived experience, not a prescription for growth.`,
   },
 
   sidereal: {
@@ -667,7 +667,7 @@ Start with: ## Mercury
 
 Note any sign shift from Tropical in the first sentence. Name the Nakshatra and what precision it adds. Cover sign, house, dignity — interpret the instinctive cognitive style at the essential level.
 
-End with ### Putting It Together. 250–300 words.`,
+End with ### Putting It Together. ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     venus: `Interpret Venus in the Sidereal chart.
 
@@ -675,7 +675,7 @@ Start with: ## Venus
 
 Note any sign shift from Tropical. Name the Nakshatra and its specific quality. Cover sign, house, dignity — the incarnational-layer relational nature standing beside the constructed Tropical Venus, not beneath it (resolution-by-hierarchy is banned).
 
-End with ### Putting It Together. 250–300 words.`,
+End with ### Putting It Together. ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     mars: `Interpret Mars in the Sidereal chart.
 
@@ -683,7 +683,7 @@ Start with: ## Mars
 
 Note any sign shift from Tropical. Name the Nakshatra. Cover sign, house, dignity — if in own sign or exaltation or debilitation, state it and interpret what that means functionally for how this drive operates at the essential level.
 
-End with ### Putting It Together. 250–300 words.`,
+End with ### Putting It Together. ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 
@@ -691,7 +691,7 @@ Start with: ## Jupiter and Saturn
 
 Note any sign shifts from Tropical for each. Cover signs, houses, dignity. Address the incarnational expansion and contraction dynamic — what the soul is oriented toward (Jupiter) and what it must work hardest against (Saturn) at the incarnational layer, held beside the Tropical account rather than ranked beneath or above it (resolution-by-hierarchy is banned).
 
-End with ### Putting It Together. 250–300 words.`,
+End with ### Putting It Together. ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     rahu_ketu: `Interpret Rahu and Ketu — the Lunar Nodes.
 
@@ -699,7 +699,7 @@ Start with: ## Rahu and Ketu
 
 The nodal axis describes the soul's trajectory: what it is moving toward (Rahu's sign and house) and what it is releasing over-dependence on (Ketu's sign and house). Cover: the signs and houses of both nodes; the Nakshatras for each and the specific quality they add to the nodal axis; what this axis means as a life direction — not abstractly, but specifically for this chart's configuration.
 
-250–300 words.`,
+${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
   },
 
   synthesis: {
@@ -761,7 +761,7 @@ Focus on: Sun-Moon aspects between the charts (both directions), Sun-Sun, Moon-M
 
 Reference the composite Sun and Moon positions to show how the relationship itself functions as an entity.
 
-300–400 words.`,
+${lengthClause(BAND_SYN_LARGE)}`,
 
     venus_mars: `Interpret Venus-Mars dynamics between the two charts.
 
@@ -769,7 +769,7 @@ Start with: ## Venus and Mars
 
 Focus on Venus-Mars aspects between the charts (both directions), Venus-Venus, Mars-Mars. These aspects govern attraction, desire, and how each person's relational style and drive interact. Name the specific aspects and orbs. Cover: what draws them together, where desire and values reinforce versus conflict, how each person experiences the other's approach to pleasure and assertion. Include Venus-Venus and Mars-Mars to show whether their relational styles and drives are in harmony or tension.
 
-250–350 words.`,
+${lengthClause(BAND_SYN_MED)}`,
 
     outer_planets: `Interpret the remaining inter-aspects: Mercury, Jupiter, Saturn, and the outers.
 
@@ -777,7 +777,7 @@ Start with: ## Mind, Structure, and the Outer Planets
 
 Cover Mercury-to-Mercury and cross-aspects (how they think together, communicate, irritate each other intellectually). Cover Jupiter and Saturn aspects to personal planets — where one person expands or structures the other. Note any significant Uranus, Neptune, or Pluto contacts to personal planets if present: these aspects describe where one person's outer-planet energy transforms, disrupts, or dissolves something fundamental in the other. Only interpret aspects that are actually present within orb — do not discuss absent aspects.
 
-250–350 words.`,
+${lengthClause(BAND_SYN_MED)}`,
 
     composite_chart: `Interpret the composite chart as a relationship entity.
 
@@ -787,7 +787,7 @@ The composite is the chart of the relationship itself — not either person, but
 
 Name specific composite placements throughout. Do not interpret composite positions as if they were natal positions — they describe a relationship's character, not a person's.
 
-300–400 words.`,
+${lengthClause(BAND_SYN_LARGE)}`,
 
     central_dynamic: `Write the closing central-dynamic section for this synastry reading.
 
@@ -797,7 +797,7 @@ Name the one most defining feature of this combination — the thing that makes 
 
 The final paragraph: what does this relationship ask of each person? Not prescriptively — not what they should do — but structurally, what each chart requires the other to carry or confront. End on the sharpest observation in the reading.
 
-250–300 words.`,
+${lengthClause(BAND_SYN_SMALL)}`,
 
     navigation: `Write the navigating differences section for this synastry reading.
 
@@ -809,6 +809,6 @@ Then address 2–3 specific friction points evident from the inter-aspects and c
 
 The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that it can be recognised as chart-driven rather than personal, chosen, or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
 
-300–400 words.`,
+${lengthClause(BAND_SYN_LARGE)}`,
   },
 }

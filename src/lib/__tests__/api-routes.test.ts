@@ -3,11 +3,12 @@
 // so no network access is needed. Rate limiting falls back to per-instance memory
 // when Redis env vars are absent (the case under test), so the first request per
 // input always passes the limiter and reaches validation.
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET as timezoneGET } from '@/app/api/timezone/route'
 import { GET as geocodeGET } from '@/app/api/geocode/route'
 import { POST as calculatePOST } from '@/app/api/calculate/route'
+import { POST as readingPOST } from '@/app/api/reading/route'
 
 function jsonPost(url: string, body: unknown): NextRequest {
   return new NextRequest(url, {
@@ -104,5 +105,44 @@ describe('/api/calculate (validates before the JPL Horizons call)', () => {
   it('400s on a junk-suffixed year that parseInt would have accepted', async () => {
     const res = await calculatePOST(jsonPost('https://x/api/calculate', { ...VALID_BIRTH, year: '1990junk' }))
     expect(res.status).toBe(400)
+  })
+})
+
+describe('/api/reading — unknown-birth-time angle guard (finding #9)', () => {
+  // With no birth time, the Ascendant/Lagna is uniform across the zodiac, so the
+  // route returns a deterministic honest explainer instead of spending a model
+  // call on a confident interpretation. This runs before any Anthropic call, so
+  // no SDK mock is needed — only a configured key so the route gets past its
+  // key-check guard.
+  const priorKey = process.env.ANTHROPIC_API_KEY
+  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key' })
+  afterAll(() => {
+    if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
+    else process.env.ANTHROPIC_API_KEY = priorKey
+  })
+
+  const UNKNOWN_TIME_BIRTH = {
+    year: 1990, month: 6, day: 15, hour: 12, minute: 0,
+    latitude: 51.5, longitude: -0.12, timezone: 0, birthTimeUnknown: true,
+  }
+
+  it('returns the deterministic notice for a tropical Ascendant, no model call', async () => {
+    const res = await readingPOST(jsonPost('https://x/api/reading', {
+      birthData: UNKNOWN_TIME_BIRTH, section: 'tropical', planetSection: 'ascendant',
+    }))
+    expect(res.status).toBe(200)
+    const body = await res.text()
+    expect(body.startsWith('## The Ascendant')).toBe(true)
+    expect(body).toContain('Birth time is unknown')
+  })
+
+  it('returns the deterministic notice for a sidereal Lagna', async () => {
+    const res = await readingPOST(jsonPost('https://x/api/reading', {
+      birthData: UNKNOWN_TIME_BIRTH, section: 'sidereal', planetSection: 'lagna',
+    }))
+    expect(res.status).toBe(200)
+    const body = await res.text()
+    expect(body.startsWith('## The Lagna')).toBe(true)
+    expect(body).toContain('Birth time is unknown')
   })
 })

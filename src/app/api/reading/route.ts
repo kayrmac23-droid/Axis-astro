@@ -1,5 +1,5 @@
 // app/api/reading/route.ts
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor } from '@/lib/prompts'
@@ -17,7 +17,18 @@ export const maxDuration = 120
 
 // ── Model config ───────────────────────────────────────────────────────────────
 const MODEL       = 'claude-sonnet-4-6'
-const TEMPERATURE = 0.2
+
+// Generation temperature — env-tunable without a redeploy. 0.2 is a low setting
+// that collapses the model onto its highest-probability cadence, which is the
+// aphoristic register the PROSE FAILURE MODES rules exist to fight; a higher value
+// (~0.6–0.8) is worth measuring against the eval set for anti_cliche / voice_quality
+// before flipping the default. Kept at 0.2 pending that measurement.
+function readTemperature(raw: string | undefined, fallback: number): number {
+  if (raw == null || raw.trim() === '') return fallback
+  const n = Number(raw)
+  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback
+}
+const TEMPERATURE = readTemperature(process.env.AXIS_READING_TEMPERATURE, 0.2)
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
@@ -88,6 +99,20 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
   return validLon !== undefined && validSource
     ? { plutoLongitude: validLon, plutoSource: validSource }
     : undefined
+}
+
+// Deterministic stand-in for the Ascendant/Lagna section when the birth time is
+// unknown. Starts with the same ## heading the model section would, so the client
+// renders it in place (and attaches the Ascendant readout card via bodiesForHeading).
+// It states the limitation plainly instead of interpreting an angle that is, at
+// noon, uniform across the whole zodiac.
+function unknownTimeAngleNotice(planetSection: string): string {
+  const heading = planetSection === 'lagna' ? '## The Lagna (Ascendant)' : '## The Ascendant'
+  return `${heading}
+
+Birth time is unknown for this chart, so noon has been used as a placeholder. The Ascendant — and every house placement that follows from it — depends on the exact minute of birth: it advances a full sign roughly every two hours, so across a single day it can land in any of the twelve signs. With no time to anchor it, no honest reading of the rising sign, the chart ruler, the houses, or the Midheaven can be given here.
+
+This section is deliberately left uninterpreted rather than filled with claims the data cannot support. The rest of the reading stands on firmer ground: planetary signs, dignities, and the sign-based aspects between planets do not depend on birth time and remain accurate. If you can recover even an approximate birth time, re-casting the chart will unlock this section and sharpen the Moon and the houses throughout.`
 }
 
 export async function POST(req: NextRequest) {
@@ -184,6 +209,26 @@ export async function POST(req: NextRequest) {
     const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
     if (!systemPrompt || !sectionInstruction) {
       return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
+    }
+
+    // ── Unknown-birth-time angle guard ─────────────────────────────────────────
+    // With no birth time, noon is assumed and the Ascendant/Lagna is essentially
+    // uniform across all twelve signs (it moves a full sign roughly every two
+    // hours). Generating a confident 450–650-word interpretation of it is the
+    // product's worst integrity hole: the caveat block tells the model to hedge
+    // while the quality rubric rewards confident anchoring, and the rubric usually
+    // wins. So for the dedicated angle section we skip the model entirely and
+    // return a short, honest, deterministic explainer. Free (no model call, no
+    // rate-limit spend), and it closes the hole regardless of client. Every other
+    // section still runs — sign-based placements are accurate without a birth time.
+    if (
+      section !== 'synastry' &&
+      birthData?.birthTimeUnknown === true &&
+      (planetSection === 'ascendant' || planetSection === 'lagna')
+    ) {
+      return new Response(unknownTimeAngleNotice(planetSection), {
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      })
     }
 
     // ── Cache check (before rate limiting — cache hits are free) ───────────────
@@ -328,43 +373,61 @@ export async function POST(req: NextRequest) {
           // decides what lands in the 30-day cache.
           controller.close()
 
-          // ── Length telemetry ───────────────────────────────────────────────
-          // One greppable line per GENERATED section (cache hits return long
-          // before here, so this measures only fresh output). It pairs the
-          // finished word count with the band the gate will score it against
-          // and the aspect count that scales that band, so a section that ran
-          // long because the chart genuinely carried more aspects is
-          // distinguishable from one that runs multiples over spec on every
-          // chart. There is no other way to see this: a truncated section
-          // short-circuits before evaluateSection and therefore never emits an
-          // [AXIS_GATE] line to read instead. countWords and wordBandFor are
-          // the gate's own helpers, so the number logged here is exactly the
-          // number scoreLength acts on — the log cannot drift from the scorer.
-          // Sits below controller.close() so it stays off the response path.
-          const lenAspects = countAspectsInContext(userContent)
-          const lenBand    = wordBandFor(section, planetSection, lenAspects)
-          console.log(
-            `[AXIS_LEN] section=${section}/${planetSection} words=${countWords(firstText)} ` +
-            `band=${lenBand.fullMin}-${lenBand.fullMax} hardMax=${lenBand.hardMax} ` +
-            `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason}`
-          )
+          // Post-response work — the quality gate and the spend recording — is
+          // registered with after() rather than run inline below the close.
+          // after() guarantees the platform keeps the invocation alive until this
+          // completes; work left inline after controller.close() can be dropped on
+          // a runtime that freezes the instance the moment the response flushes,
+          // and with it EVERY cache write and the spend count (the gate would
+          // silently never run in production). Nothing here touches the response.
+          after(async () => {
+            try {
+              // ── Length telemetry ───────────────────────────────────────────
+              // One greppable line per GENERATED section (cache hits return long
+              // before here, so this measures only fresh output). It pairs the
+              // finished word count with the band the gate will score it against
+              // and the aspect count that scales that band, so a section that ran
+              // long because the chart genuinely carried more aspects is
+              // distinguishable from one that runs multiples over spec on every
+              // chart. countWords and wordBandFor are the gate's own helpers, so
+              // the number logged here is exactly the number scoreLength acts on.
+              const lenAspects = countAspectsInContext(userContent)
+              const lenBand    = wordBandFor(section, planetSection, lenAspects)
+              console.log(
+                `[AXIS_LEN] section=${section}/${planetSection} words=${countWords(firstText)} ` +
+                `band=${lenBand.fullMin}-${lenBand.fullMax} hardMax=${lenBand.hardMax} ` +
+                `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason}`
+              )
 
-          const verdict = await gateForCache({
-            firstPassText: firstText,
-            truncated,
-            chartContext:  userContent,
-            section,
-            planetSection,
-            systemBlocks,
-            maxTokens,
-            model: MODEL,
-            startedAt,
+              const verdict = await gateForCache({
+                firstPassText: firstText,
+                truncated,
+                chartContext:  userContent,
+                section,
+                planetSection,
+                systemBlocks,
+                maxTokens,
+                model: MODEL,
+                startedAt,
+              })
+              modelCalls += verdict.modelCalls
+
+              if (verdict.cacheText) {
+                await setCachedReading(cacheKey, verdict.cacheText)
+              }
+            } catch (gateErr) {
+              // gateForCache never throws by contract; guard anyway so a stray
+              // rejection can never surface as an unhandled promise rejection.
+              console.error(
+                `[AXIS_GATE] section=${section}/${planetSection} post-response gating failed:`,
+                gateErr instanceof Error ? gateErr.message : gateErr
+              )
+            } finally {
+              // Record the true model-call count (generation + gate + repair) for
+              // this request against the global daily budget. Best-effort.
+              try { await recordModelCalls(modelCalls) } catch { /* best-effort */ }
+            }
           })
-          modelCalls += verdict.modelCalls
-
-          if (verdict.cacheText) {
-            await setCachedReading(cacheKey, verdict.cacheText)
-          }
         } catch (err) {
           // Tell the client WHICH kind of failure this was. A fatal one (billing,
           // auth) means every remaining section will fail the same way, so the
@@ -387,13 +450,14 @@ export async function POST(req: NextRequest) {
             `[AXIS_GEN_FAIL] section=${section}/${planetSection} fatal=${fatal} code=${code} —`,
             err instanceof Error ? err.message : err
           )
-        } finally {
-          // Record the true model-call count for this request against the global
-          // daily budget. Best-effort: recordModelCalls never throws, but guard
-          // anyway so a rejection can never surface to the client.
-          try {
-            await recordModelCalls(modelCalls)
-          } catch { /* spend recording is best-effort */ }
+          // Record whatever generation cost was incurred before the failure. Via
+          // after() for the same reason the success path uses it: post-close work
+          // is not guaranteed to run once the response has flushed. The success
+          // path records inside its own after() (gate calls included), so the two
+          // paths are mutually exclusive and never double-count.
+          after(async () => {
+            try { await recordModelCalls(modelCalls) } catch { /* best-effort */ }
+          })
         }
       }
     })
