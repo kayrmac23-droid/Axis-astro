@@ -24,7 +24,9 @@ import type { BirthData } from '@/lib/astro-calc'
 // so the prompt text those sections send the model changed. Bumped to invalidate
 // the prior cache.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
-export const READING_PROMPT_VERSION = 'v10.20'
+// v10.21: Sonnet 5 generation at temperature 0.7, evaluated by Opus 5.
+// Invalidate older cached prose so the new generation configuration takes effect.
+export const READING_PROMPT_VERSION = 'v10.21'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

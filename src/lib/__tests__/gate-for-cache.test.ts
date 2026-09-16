@@ -53,7 +53,7 @@ const BASE = {
   planetSection: 'sun',
   systemBlocks:  [{ type: 'text' as const, text: 'SYSTEM' }] as Anthropic.TextBlockParam[],
   maxTokens:     2500,
-  model:         'claude-sonnet-4-6',
+  model:         'claude-sonnet-5',
   truncated:     false,
 }
 

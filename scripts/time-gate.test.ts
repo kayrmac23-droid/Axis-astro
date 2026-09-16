@@ -28,7 +28,7 @@
 //     C*0.8 ≤ T_fail < C → fits thin; revive keep-alive/heartbeat
 //     T_fail ≥ C        → sync does not fit; do NOT write the wiring prompt.
 //                          Options in order: Haiku eval, then async, then raise C.
-//   NOTE: with maxDuration = 120, T_fail is 3 Sonnet calls (two @ 2500 max_tokens).
+//   NOTE: with maxDuration = 120, T_fail is two Sonnet calls plus one Opus evaluation.
 //   If you intend to ship at a higher ceiling, BUMP maxDuration FIRST and test
 //   against that value — measuring against a stale C while shipping at a higher
 //   one is the wrong ceiling. See the console banner, which prints C read from source.
@@ -54,8 +54,8 @@ import Anthropic from '@anthropic-ai/sdk'
 // ── Config pulled from source, not memory ──────────────────────────────────
 // These four mirror route.ts exactly. If any drifts from route.ts the number
 // lies — so they are asserted against the route's own constants where possible.
-const MODEL = 'claude-sonnet-4-6'        // route.ts:17
-const TEMPERATURE = 0.2                   // route.ts:18
+const MODEL = 'claude-sonnet-5'          // route.ts:19
+const TEMPERATURE = 0.7                  // route.ts:30
 const SECTION = 'tropical' as const
 const HEAVY_PLANET_SECTIONS = ['sun', 'moon'] as const
 const RUNS_PER_SECTION = 3                 // fat-tail latency: worst run is what the ceiling cares about
@@ -248,6 +248,6 @@ describe('AXIS gate timing harness', () => {
       )
       console.log(`\nResults written to ${RESULTS_FILE}\n`)
     },
-    600_000 // 10-min vitest timeout: 2 sections × 3 runs × 3 sequential Sonnet calls
+    600_000 // 10-min vitest timeout: 2 sections × 3 runs × 2 Sonnet calls + 1 Opus call
   )
 })
