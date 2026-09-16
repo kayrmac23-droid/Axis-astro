@@ -184,7 +184,7 @@ describe('AXIS gate timing harness', () => {
 
       console.log(
         `\n=== AXIS TIME GATE ===\n` +
-        `model=${MODEL} temp=${TEMPERATURE} genMaxTokens=${MAX_TOKENS_HEAVY}\n` +
+        `model=${MODEL} thinking=${THINKING.type} genMaxTokens=${MAX_TOKENS_HEAVY}\n` +
         `declared maxDuration C = ${DECLARED_MAX_DURATION_S}s (route.ts:14)\n` +
         `runs/section=${RUNS_PER_SECTION}\n`
       )
