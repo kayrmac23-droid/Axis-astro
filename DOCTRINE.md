@@ -248,3 +248,14 @@ STATUS: Ratified as product law. NOT YET IMPLEMENTED. Phase-2 (paywall)
 decision; does not reorder phase-1 (foundations + gate) work. Supersedes the
 prior unratified "accounts = v2 / nothing stored product-wide" framing, which
 lived only in memory and was never canonical.
+
+## Evidence standard for The Divergence (September 2026)
+
+The Divergence compares two distinct frameworks; neither is a mask, essence, correction,
+or more authentic account. A changed placement is not by itself evidence of conflict,
+suffering, coping history, or permanent division. Concordance means consistency across
+frameworks, not independent proof of a psychological claim. Comparison prose must rely
+on the shared computed plan: system-specific placements, dignity and dispositors,
+computed relationships, unchanged factors, and explicit reliability limits. It may find
+conflict, different emphasis, conditional significance, or little significance, according
+to the evidence. Unknown birth time excludes angles, houses and angle-derived ranking.
