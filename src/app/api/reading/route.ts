@@ -18,15 +18,15 @@ export const maxDuration = 120
 // ── Model config ───────────────────────────────────────────────────────────────
 const MODEL       = 'claude-sonnet-5'
 
-// Generation temperature — env-tunable without a redeploy. The 0.7 default gives
-// the model enough latitude to avoid collapsing onto the repetitive aphoristic
-// cadence that the PROSE FAILURE MODES rules are designed to prevent.
-function readTemperature(raw: string | undefined, fallback: number): number {
-  if (raw == null || raw.trim() === '') return fallback
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback
-}
-const TEMPERATURE = readTemperature(process.env.AXIS_READING_TEMPERATURE, 0.7)
+// Sampling params (temperature/top_p/top_k) are REMOVED on Sonnet 5 / Opus 5 —
+// sending `temperature` returns a 400 invalid_request_error and fails the whole
+// generation. There is no temperature knob on these models; do not re-add one.
+//
+// Thinking is disabled explicitly: on Sonnet 5, omitting `thinking` runs adaptive
+// thinking, whose tokens count against `max_tokens` (truncating the per-section
+// prose budget) and add first-token latency to every one of the ~21 sequential
+// sections. The prior generator (sonnet-4-6) ran with no thinking; we keep that.
+const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
@@ -348,7 +348,7 @@ export async function POST(req: NextRequest) {
           const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
-            temperature: TEMPERATURE,
+            thinking:    THINKING,
             system:      systemBlocks,
             messages:    [{ role: 'user', content: userContent }],
           })
