@@ -41,8 +41,16 @@ describe('classifyGenerationError', () => {
     expect(classifyGenerationError('weird').fatal).toBe(false)
   })
 
-  it('does not mark an ordinary 400 fatal — only a billing one', () => {
-    expect(classifyGenerationError(apiError(400, 'max_tokens: must be >= 1')).fatal).toBe(false)
+  it('treats an ordinary 400 as fatal configuration because retrying is deterministic', () => {
+    expect(classifyGenerationError(apiError(400, '`temperature` is deprecated for this model.')))
+      .toEqual({ fatal: true, code: 'configuration' })
+  })
+
+  it('treats other non-rate-limit 4xx responses as fatal configuration', () => {
+    expect(classifyGenerationError(apiError(404, 'model not found')))
+      .toEqual({ fatal: true, code: 'configuration' })
+    expect(classifyGenerationError(apiError(413, 'request too large')))
+      .toEqual({ fatal: true, code: 'configuration' })
   })
 })
 
@@ -68,6 +76,12 @@ describe('detectStreamError', () => {
   it('handles the auth cause', () => {
     const f = detectStreamError('[AXIS_STREAM_ERROR: unavailable:auth]')!
     expect(f).toMatchObject({ fatal: true, code: 'auth' })
+  })
+
+  it('handles a configuration cause without inviting a retry', () => {
+    const f = detectStreamError('[AXIS_STREAM_ERROR: unavailable:configuration]')!
+    expect(f).toMatchObject({ fatal: true, code: 'configuration' })
+    expect(f.message).toMatch(/will not help/i)
   })
 
   it('stays fatal for an unknown future cause', () => {

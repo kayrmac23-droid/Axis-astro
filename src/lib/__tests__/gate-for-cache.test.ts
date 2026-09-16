@@ -165,6 +165,9 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     expect(r.modelCalls).toBe(3)
     // The reported scores are the repair's own re-score, not the failed first pass's.
     expect(r.scores?.falsifiability).toBe(5)
+    for (const [request] of create.mock.calls) {
+      expect(request).not.toHaveProperty('temperature')
+    }
   })
 
   it('passes the evaluator critique into the repair prompt', async () => {
@@ -197,6 +200,7 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     expect(repairCall.max_tokens).toBe(500)
     expect(repairCall.messages[0].content).toContain(BANNED_RESCUE_PHRASINGS[0])
     expect(repairCall.messages[0].content).not.toContain(GOOD_SECTION)
+    expect(repairCall).not.toHaveProperty('temperature')
     expect(create).toHaveBeenCalledTimes(2)
   })
 

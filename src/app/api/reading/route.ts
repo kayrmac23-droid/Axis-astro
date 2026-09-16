@@ -18,16 +18,6 @@ export const maxDuration = 120
 // ── Model config ───────────────────────────────────────────────────────────────
 const MODEL       = 'claude-sonnet-5'
 
-// Generation temperature — env-tunable without a redeploy. The 0.7 default gives
-// the model enough latitude to avoid collapsing onto the repetitive aphoristic
-// cadence that the PROSE FAILURE MODES rules are designed to prevent.
-function readTemperature(raw: string | undefined, fallback: number): number {
-  if (raw == null || raw.trim() === '') return fallback
-  const n = Number(raw)
-  return Number.isFinite(n) && n >= 0 && n <= 1 ? n : fallback
-}
-const TEMPERATURE = readTemperature(process.env.AXIS_READING_TEMPERATURE, 0.7)
-
 // Per-section token budgets. Keyed by planetSection; overlapping names
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
 // and sidereal readings. Falls back to 2000 for any unlisted key.
@@ -348,7 +338,6 @@ export async function POST(req: NextRequest) {
           const stream = anthropic.messages.stream({
             model:       MODEL,
             max_tokens:  maxTokens,
-            temperature: TEMPERATURE,
             system:      systemBlocks,
             messages:    [{ role: 'user', content: userContent }],
           })
