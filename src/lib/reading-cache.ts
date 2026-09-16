@@ -14,12 +14,17 @@ import type { BirthData } from '@/lib/astro-calc'
 
 // ── Version constant ───────────────────────────────────────────────────────────
 // Bump this whenever prompts are intentionally changed, or whenever what a cached
-// entry MEANS changes. v10.19 is the latter: the prompt text is identical to
+// entry MEANS changes. v10.19 was the latter: the prompt text was identical to
 // v10.18, but every v10.18 entry was written by an ungated pipeline. Without the
 // bump those entries would keep serving for the rest of their 30-day TTL and the
 // gate would only ever apply to charts nobody had cast yet.
+// v10.20: the per-section length instructions for the tropical/sidereal
+// secondaries, the nodes, and all six synastry sections were ported from
+// hand-synced literals ("300–400 words.") to the shared lengthClause() render,
+// so the prompt text those sections send the model changed. Bumped to invalidate
+// the prior cache.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
-export const READING_PROMPT_VERSION = 'v10.19'
+export const READING_PROMPT_VERSION = 'v10.20'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

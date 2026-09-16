@@ -151,23 +151,27 @@ describe('gateForCache — a passing section is cached as-is', () => {
 })
 
 describe('gateForCache — a failing section is repaired and the repair is cached', () => {
-  it('caches the repair, not the failed draft, for two calls', async () => {
+  it('caches a repair that passes its re-score, for three calls (eval + repair + re-eval)', async () => {
     const repairedText = sectionOfWords(IN_BAND_WORDS)
     create
-      .mockResolvedValueOnce(evalReply(2, 'Anchor the Barnum claims.'))
-      .mockResolvedValueOnce(textReply(repairedText))
+      .mockResolvedValueOnce(evalReply(2, 'Anchor the Barnum claims.'))  // first-pass eval: fail
+      .mockResolvedValueOnce(textReply(repairedText))                    // repair
+      .mockResolvedValueOnce(evalReply(5))                               // re-eval of repair: pass
 
     const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     expect(r.cacheText).toBe(repairedText)
     expect(r.repaired).toBe(true)
     expect(r.reason).toBe('repaired')
-    expect(r.modelCalls).toBe(2)
+    expect(r.modelCalls).toBe(3)
+    // The reported scores are the repair's own re-score, not the failed first pass's.
+    expect(r.scores?.falsifiability).toBe(5)
   })
 
   it('passes the evaluator critique into the repair prompt', async () => {
     create
       .mockResolvedValueOnce(evalReply(2, 'Anchor the Barnum claims.'))
       .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
 
     await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     const repairCall = create.mock.calls[1][0]
@@ -181,13 +185,14 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
     const clean = sectionOfWords(IN_BAND_WORDS)
     create
-      .mockResolvedValueOnce(evalReply(5))
-      .mockResolvedValueOnce(textReply(clean))
+      .mockResolvedValueOnce(evalReply(5))       // first-pass eval passes the rubric…
+      .mockResolvedValueOnce(textReply(clean))   // …but the doctrine scan forces a repair
+      .mockResolvedValueOnce(evalReply(5))       // re-eval of the clean repair: pass
 
     const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
     expect(r.cacheText).toBe(clean)
     expect(r.repaired).toBe(true)
-    expect(r.modelCalls).toBe(2)
+    expect(r.modelCalls).toBe(3)
     const repairCall = create.mock.calls[1][0]
     expect(repairCall.messages[0].content).toContain('DOCTRINE FAILURE')
   })
@@ -214,6 +219,38 @@ describe('gateForCache — an unusable repair is not cached', () => {
     const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     expect(r.cacheText).toBeNull()
     expect(r.reason).toBe('repair-truncated-or-empty')
+  })
+
+  it('refuses a complete, doctrine-clean repair that still fails its re-score', async () => {
+    // The core of finding #2: a repair can be complete and doctrine-clean yet
+    // regress across the prose criteria. Re-scoring catches it, and it is left
+    // uncached (reason repair-failed-recheck) rather than frozen for 30 days.
+    const cleanButWeak = sectionOfWords(IN_BAND_WORDS)
+    create
+      .mockResolvedValueOnce(evalReply(2, 'fix it'))     // first-pass eval: fail
+      .mockResolvedValueOnce(textReply(cleanButWeak))    // repair: complete + clean
+      .mockResolvedValueOnce(evalReply(2, 'still weak')) // re-eval: still below the bar
+
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBeNull()
+    expect(r.reason).toBe('repair-failed-recheck')
+    expect(r.modelCalls).toBe(3)
+  })
+
+  it('caches a re-scored repair when the re-score itself errors (fail-open)', async () => {
+    // Evaluator failure never blocks caching: the repair is complete and
+    // doctrine-clean, so a broken re-score falls open to caching it.
+    const cleanRepair = sectionOfWords(IN_BAND_WORDS)
+    create
+      .mockResolvedValueOnce(evalReply(2, 'fix it'))
+      .mockResolvedValueOnce(textReply(cleanRepair))
+      .mockResolvedValueOnce(textReply('not json at all'))  // re-eval unparseable
+
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBe(cleanRepair)
+    expect(r.repaired).toBe(true)
+    expect(r.reason).toBe('repaired-recheck-errored')
+    expect(r.modelCalls).toBe(3)
   })
 
   it('counts the call and caches nothing when the repair throws', async () => {

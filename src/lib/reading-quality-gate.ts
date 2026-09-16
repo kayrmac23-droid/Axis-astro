@@ -18,7 +18,12 @@
 //
 // What it does when it runs: scores a generated section against AXIS's elite-reading
 // criteria and, on failure, regenerates it once with the evaluator's critique as
-// repair instructions; the repaired text is what gets cached.
+// repair instructions. The repair is then re-scored against the same rubric and is
+// cached ONLY if it now passes — a repair that merely stopped tripping the
+// deterministic scan can regress across the prose criteria, and caching it unverified
+// would freeze sub-threshold prose for the 30-day TTL. When there is no wall-clock
+// budget left for the re-score, the repair is cached on its deterministic signals
+// alone (complete + doctrine-clean), matching the earlier behaviour.
 //
 // This is the load-bearing check the prompt alone cannot enforce: model output
 // is non-deterministic, and a strong prompt can still occasionally produce a
@@ -695,10 +700,9 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored' }
   }
 
-  // The repair is re-checked deterministically but NOT re-scored by the evaluator:
-  // a second eval call per repair is not worth the spend, and a repair that still
-  // trips the scan is simply not cached. So the cache holds either a rubric-passing
-  // first pass or a repair that is at minimum complete and doctrine-clean.
+  // First, the cheap deterministic gates on the repair — a repair that came back
+  // truncated or doctrine-breaching is never cached, and neither is worth an eval
+  // call to confirm.
   if (repaired.trim().length === 0 || isTruncated(repaired)) {
     logGateOutcome(label, 'repair-truncated-or-empty', gate.scores)
     return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty' }
@@ -710,6 +714,45 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit' }
   }
 
-  logGateOutcome(label, 'repaired', gate.scores)
-  return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired' }
+  // Then re-score the repair against the full rubric before caching it. A repair
+  // that merely stopped tripping the deterministic scan is NOT necessarily better
+  // than the first pass it replaced — it can regress across the prose criteria and
+  // still be complete and doctrine-clean. Caching it unverified freezes
+  // sub-threshold prose for the 30-day TTL, which is worse than caching nothing
+  // (the next request just regenerates). The re-eval costs one more model call, but
+  // only on the minority of sections that reached repair, and only when there is
+  // wall-clock budget for it. Out of budget → fall back to the prior behaviour and
+  // cache on the deterministic signals alone.
+  if (Date.now() - startedAt > EVAL_SKIP_AFTER_MS) {
+    logGateOutcome(label, 'repaired-recheck-skipped-budget', gate.scores)
+    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget' }
+  }
+
+  const recheck = await evaluateSection({
+    generatedText: repaired,
+    chartContext,
+    section,
+    planetSection,
+  })
+  modelCalls++
+
+  // Evaluator failure never blocks caching — the repair is complete and
+  // doctrine-clean, and the prompt's own constraints still held during the repair.
+  if (recheck.evaluatorErrored) {
+    logGateOutcome(label, 'repaired-recheck-errored', gate.scores)
+    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-errored' }
+  }
+
+  // The repair still fails the rubric — do not cache it. Leaving it uncached lets
+  // the next reader's request regenerate from scratch rather than serving prose the
+  // gate could not confirm for 30 days.
+  if (!recheck.pass) {
+    logGateOutcome(label, 'repair-failed-recheck', recheck.scores)
+    return { cacheText: null, modelCalls, scores: recheck.scores, repaired: false, reason: 'repair-failed-recheck' }
+  }
+
+  // The repair passes the rubric on its own re-score — cache it, and report the
+  // repair's own scores, not the failed first pass's.
+  logGateOutcome(label, 'repaired', recheck.scores)
+  return { cacheText: repaired, modelCalls, scores: recheck.scores, repaired: true, reason: 'repaired' }
 }
