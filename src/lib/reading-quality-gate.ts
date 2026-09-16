@@ -561,7 +561,7 @@ function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
   const needles = hits.map(hit => hit.toLowerCase())
   const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' })
   const targets: TextSpan[] = []
-  for (const segment of segmenter.segment(draft)) {
+  for (const segment of Array.from(segmenter.segment(draft))) {
     const text = segment.segment
     const lower = text.toLowerCase()
     if (!needles.some(needle => lower.includes(needle))) continue
