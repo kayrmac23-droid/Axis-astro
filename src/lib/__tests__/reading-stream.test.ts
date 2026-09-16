@@ -41,8 +41,16 @@ describe('classifyGenerationError', () => {
     expect(classifyGenerationError('weird').fatal).toBe(false)
   })
 
-  it('does not mark an ordinary 400 fatal — only a billing one', () => {
-    expect(classifyGenerationError(apiError(400, 'max_tokens: must be >= 1')).fatal).toBe(false)
+  it('treats a non-billing 4xx (request-shape error) as fatal configuration', () => {
+    // A removed/unsupported param (e.g. `temperature` on Sonnet 5 / Opus 5) or a
+    // bad model choice returns a deterministic 400 that no retry can fix. It must
+    // stop the ~21-section fan-out, not trigger ~42 doomed retries.
+    expect(classifyGenerationError(apiError(400, 'temperature: unsupported parameter')))
+      .toEqual({ fatal: true, code: 'configuration' })
+    expect(classifyGenerationError(apiError(404, 'model: not found')))
+      .toEqual({ fatal: true, code: 'configuration' })
+    // A billing 400 is still classified as billing, not configuration.
+    expect(classifyGenerationError(apiError(400, BILLING_MESSAGE)).code).toBe('billing')
   })
 })
 

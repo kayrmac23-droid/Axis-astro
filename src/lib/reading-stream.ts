@@ -28,7 +28,7 @@ export const STREAM_ERROR_PREFIX = '[AXIS_STREAM_ERROR:'
 export interface StreamFailure {
   /** True when retrying cannot help: stop the run rather than trying the next section. */
   fatal: boolean
-  /** Machine-readable cause: 'billing' | 'auth' | 'generation'. */
+  /** Machine-readable cause: 'billing' | 'auth' | 'configuration' | 'generation'. */
   code: string
   /** Reader-facing message. Says plainly whether retrying is worth it. */
   message: string
@@ -45,6 +45,9 @@ const FATAL_MESSAGES: Record<string, string> = {
   auth:
     'Readings are temporarily unavailable — AXIS cannot reach its interpretation service. ' +
     'Your chart is fine and already calculated; retrying will not help until the connection is restored.',
+  configuration:
+    'Readings are temporarily unavailable — AXIS cannot complete the interpretation request. ' +
+    'Your chart is fine and already calculated; retrying will not help until the service is restored.',
 }
 
 const FATAL_FALLBACK =
@@ -120,7 +123,16 @@ export function classifyGenerationError(err: unknown): GenerationFailure {
   if (status === 402) return { fatal: true, code: 'billing' }
   // Missing, invalid, or revoked key; or a key without access to the model.
   if (status === 401 || status === 403) return { fatal: true, code: 'auth' }
+  // Any other non-429 4xx is a deterministic request-shape rejection: a bad
+  // model choice, an unsupported/removed parameter (e.g. `temperature` on
+  // Sonnet 5 / Opus 5), a malformed body. Replaying the same section cannot
+  // change the outcome, so treat it as fatal and stop the ~21-section fan-out
+  // rather than spending ~42 doomed retries. This is the defence-in-depth that
+  // would have contained the temperature-400 outage instead of amplifying it.
+  if (status !== undefined && status >= 400 && status < 500 && status !== 429) {
+    return { fatal: true, code: 'configuration' }
+  }
 
-  // Everything else is this attempt's problem, not the account's.
+  // Rate limits, 5xx, network, and unknown failures may clear — retry is fair.
   return { fatal: false, code: 'generation' }
 }

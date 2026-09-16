@@ -78,10 +78,16 @@ const EVAL_MODEL = 'claude-opus-5'
 // is the backstop if a critique still truncates the JSON, so the verdict never
 // fails open regardless.
 const EVAL_MAX_TOKENS = 1200
-const EVAL_TEMPERATURE = 0
-
-const REPAIR_TEMPERATURE = 0.7
 const DOCTRINE_REPAIR_MAX_TOKENS = 500
+
+// Sonnet 5 / Opus 5 REMOVED the sampling params (temperature/top_p/top_k):
+// sending `temperature` returns a 400 and fails the call. These models also
+// default to adaptive thinking when `thinking` is omitted, whose tokens count
+// against `max_tokens` — on the evaluator that risks truncating the scores JSON
+// (EVAL_MAX_TOKENS is sized for JSON only), and it adds non-determinism the
+// gate does not want. Disable thinking to keep the deterministic, no-thinking
+// behaviour the former temperature-0 Sonnet-4-6 evaluator/repairer had.
+const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
 
 // The worked example the falsifiability criterion is calibrated against, and a
 // permanent regression fixture (see reading-quality-gate.test.ts). This claim
@@ -398,7 +404,7 @@ Score the generated section against the criteria and return the JSON object spec
     const msg = await getAnthropic().messages.create({
       model:       EVAL_MODEL,
       max_tokens:  EVAL_MAX_TOKENS,
-      temperature: EVAL_TEMPERATURE,
+      thinking:    THINKING,
       system:      EVAL_SYSTEM_PROMPT,
       messages:    [{ role: 'user', content: evalUserContent }],
     })
@@ -540,7 +546,7 @@ ${failedDraft}`
   const msg = await getAnthropic().messages.create({
     model,
     max_tokens:  maxTokens,
-    temperature: REPAIR_TEMPERATURE,
+    thinking:    THINKING,
     system:      systemBlocks,
     messages:    [{ role: 'user', content: repairUserContent }],
   })
@@ -585,7 +591,7 @@ export async function repairDoctrineSentences(
   const msg = await getAnthropic().messages.create({
     model,
     max_tokens: DOCTRINE_REPAIR_MAX_TOKENS,
-    temperature: 0,
+    thinking: THINKING,
     system: `You make surgical copy edits. Rewrite only the supplied sentences to remove the named AXIS doctrine violations. Preserve each sentence's concrete astrological meaning, tone, and approximate length. Do not add reassurance, rank Tropical above Sidereal or vice versa, or describe one identity as deeper, truer, masked, or underneath another. Return only a JSON array of replacement sentence strings, in the same order and with exactly the same number of items.`,
     messages: [{
       role: 'user',

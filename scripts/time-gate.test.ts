@@ -55,7 +55,9 @@ import Anthropic from '@anthropic-ai/sdk'
 // These four mirror route.ts exactly. If any drifts from route.ts the number
 // lies — so they are asserted against the route's own constants where possible.
 const MODEL = 'claude-sonnet-5'          // route.ts:19
-const TEMPERATURE = 0.7                  // route.ts:30
+// Sonnet 5 / Opus 5 rejects sampling params; the route sends no temperature and
+// disables thinking. Mirror that here or this harness 400s against the real API.
+const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
 const SECTION = 'tropical' as const
 const HEAVY_PLANET_SECTIONS = ['sun', 'moon'] as const
 const RUNS_PER_SECTION = 3                 // fat-tail latency: worst run is what the ceiling cares about
@@ -118,7 +120,7 @@ async function timeGeneration(planetSection: string): Promise<{ ms: number; text
   const stream = anthropic.messages.stream({
     model: MODEL,
     max_tokens: MAX_TOKENS_HEAVY,
-    temperature: TEMPERATURE,
+    thinking: THINKING,
     system: systemBlocks,
     messages: [{ role: 'user', content: userContent }],
   })
@@ -182,7 +184,7 @@ describe('AXIS gate timing harness', () => {
 
       console.log(
         `\n=== AXIS TIME GATE ===\n` +
-        `model=${MODEL} temp=${TEMPERATURE} genMaxTokens=${MAX_TOKENS_HEAVY}\n` +
+        `model=${MODEL} thinking=${THINKING.type} genMaxTokens=${MAX_TOKENS_HEAVY}\n` +
         `declared maxDuration C = ${DECLARED_MAX_DURATION_S}s (route.ts:14)\n` +
         `runs/section=${RUNS_PER_SECTION}\n`
       )
@@ -238,7 +240,7 @@ describe('AXIS gate timing harness', () => {
         RESULTS_FILE,
         JSON.stringify(
           {
-            model: MODEL, temperature: TEMPERATURE, genMaxTokens: MAX_TOKENS_HEAVY,
+            model: MODEL, thinking: THINKING.type, genMaxTokens: MAX_TOKENS_HEAVY,
             declaredMaxDurationS: DECLARED_MAX_DURATION_S, runsPerSection: RUNS_PER_SECTION,
             rows, maxHappyMs: maxHappy, maxFailMs: maxFail, ceilingMs: C, verdict,
           },
