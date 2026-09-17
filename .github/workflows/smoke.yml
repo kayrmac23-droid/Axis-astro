@@ -1,0 +1,38 @@
+name: Reading pipeline smoke test
+
+# Manual-only: this makes a real, billable call to the Anthropic API using
+# production's exact model/thinking/token config (src/lib/reading-model-config.ts)
+# to catch the live API rejecting the request shape — a class of failure the
+# mocked-SDK unit tests in the default `npm test` run cannot see (this is what
+# happened when Sonnet 5 / Opus 5 removed the `temperature` param and every
+# generation 400'd in production while the full mocked suite stayed green).
+#
+# Never runs on push/PR — only triggered deliberately, e.g. before merging a
+# change to the reading pipeline's model config, prompts, or request shape.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run live smoke test
+        run: npm run test:smoke
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
