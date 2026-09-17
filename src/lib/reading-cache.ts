@@ -25,8 +25,13 @@ import type { BirthData } from '@/lib/astro-calc'
 // the prior cache.
 // Format: v{major}.{minor}  (minor = small copy edits; major = structural changes)
 // v10.22: evidence-led, shared Divergence plan and aligned section instructions.
-// Invalidate earlier comparison inputs and generated prose.
-export const READING_PROMPT_VERSION = 'v10.22'
+// v10.23: Divergence restored to AXIS voice and THE LAW (ranked divergences worked
+// in depth, the rest named as still unresolved) while keeping the deterministic
+// evidence plan. The plan itself changed substantially — same-sign concordance,
+// degrees, retrogradation, nakshatras, outer planets, nodes, dasha and yogas are
+// all supplied now — so every prior cached Divergence was generated from a
+// materially different evidence base and must be invalidated.
+export const READING_PROMPT_VERSION = 'v10.23'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

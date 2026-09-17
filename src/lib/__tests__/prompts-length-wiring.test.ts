@@ -8,7 +8,14 @@
 // sections now render their band through lengthClause(). These tests fail if a
 // literal creeps back, or if a ported section drifts from its band.
 import { describe, it, expect } from 'vitest'
-import { SECTION_INSTRUCTIONS, SECTION_WORD_BANDS, wordBandFor } from '../prompts'
+import { SECTION_INSTRUCTIONS, SECTION_WORD_BANDS, wordBandFor, countPlanEvidence } from '../prompts'
+import { buildInterpretationContext } from '../interpretation-engine'
+import { calculateDualChart, type BirthData } from '../astro-calc'
+
+const WIRING_BIRTH: BirthData = {
+  year: 1990, month: 6, day: 15, hour: 14, minute: 30,
+  latitude: 51.5074, longitude: -0.1278, timezone: 1,
+}
 
 // lengthClause() renders "Acceptable range {fullMin}–{fullMax}" and
 // "Target {target} words" straight from the band, so their presence proves the
@@ -48,5 +55,46 @@ describe('length-band wiring — no hand-typed word-count literals remain', () =
         ).toBe(false)
       }
     }
+  })
+})
+
+describe('evidence-scaled Divergence bands', () => {
+  it('lowers the floor when the plan allocated little, so a quiet chart is not padded', () => {
+    const base  = wordBandFor('synthesis', 'agree')
+    const thin  = wordBandFor('synthesis', 'agree', undefined, 1)
+    const rich  = wordBandFor('synthesis', 'agree', undefined, 6)
+    expect(thin.hardMin).toBeLessThan(base.hardMin)
+    expect(thin.fullMin).toBeLessThan(base.fullMin)
+    expect(rich.fullMax).toBeGreaterThan(base.fullMax)
+    // A rich plan must not raise the hard floor — earned brevity stays legal.
+    expect(rich.hardMin).toBe(base.hardMin)
+  })
+
+  it('never lets a scaled floor collapse below a real section', () => {
+    for (const section of ['agree', 'diverge'] as const) {
+      const band = wordBandFor('synthesis', section, undefined, 0)
+      expect(band.hardMin).toBeGreaterThanOrEqual(90)
+      expect(band.hardMin).toBeLessThan(band.fullMin)
+      expect(band.fullMin).toBeLessThan(band.fullMax)
+    }
+  })
+
+  it('leaves every non-Divergence band untouched by evidence scaling', () => {
+    for (const [key] of Object.entries(SECTION_WORD_BANDS)) {
+      const [section, planetSection] = key.split(':')
+      if (section === 'synthesis' && (planetSection === 'agree' || planetSection === 'diverge')) continue
+      expect(wordBandFor(section, planetSection, undefined, 1))
+        .toEqual(wordBandFor(section, planetSection))
+    }
+  })
+
+  it('reads the plan weight the context block actually prints', () => {
+    const ctx = buildInterpretationContext(calculateDualChart(WIRING_BIRTH), 'synthesis', 'agree')
+    expect(ctx).toMatch(/^PLAN WEIGHT: \d+ concordance\(s\), \d+ divergence\(s\)/m)
+    expect(countPlanEvidence(ctx, 'agree')).toBeGreaterThan(0)
+    expect(countPlanEvidence(ctx, 'diverge')).toBeGreaterThan(0)
+    // Sections without a plan are left alone.
+    expect(countPlanEvidence('no plan here', 'agree')).toBeNull()
+    expect(countPlanEvidence(ctx, 'tension')).toBeNull()
   })
 })
