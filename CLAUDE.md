@@ -8,6 +8,7 @@ npm run build    # Production build
 npm start        # Start production server on port 5000
 npm run lint     # ESLint (eslint.config.mjs)
 npm run test     # Vitest unit tests (src/lib/__tests__/)
+npm run test:smoke  # Live reading-pipeline smoke test — real API call, real spend; see Tests below
 ```
 
 Requires `.env.local`: `ANTHROPIC_API_KEY=your_key_here`
@@ -61,7 +62,7 @@ Planet sections — **tropical**: sun, moon, ascendant, mercury, venus, mars, ju
 
 ## Tests
 
-`src/lib/__tests__/astro-calc.test.ts` — shape, ayanamsa, Whole Sign houses, leap years, extreme coords, JPL override, Rahu/Ketu. `src/lib/__tests__/readout.test.ts` — flip rows (`buildFlips`), body count, and the degree/longitude formatters. `src/lib/__tests__/gate-for-cache.test.ts` — the evaluate-and-recache orchestration (what gets cached, what does not, and the billable-call count for each outcome), with the Anthropic SDK mocked; kept in its own file so that mock cannot leak into the rest of the gate suite. `@` alias → `src/` (vitest.config.ts).
+`src/lib/__tests__/astro-calc.test.ts` — shape, ayanamsa, Whole Sign houses, leap years, extreme coords, JPL override, Rahu/Ketu. `src/lib/__tests__/readout.test.ts` — flip rows (`buildFlips`), body count, and the degree/longitude formatters. `src/lib/__tests__/gate-for-cache.test.ts` — the evaluate-and-recache orchestration (what gets cached, what does not, and the billable-call count for each outcome), with the Anthropic SDK mocked; kept in its own file so that mock cannot leak into the rest of the gate suite. `src/lib/__tests__/reading-pipeline-smoke.test.ts` — the one test that makes a REAL, billable Anthropic call, using production's exact model/thinking/token config from `lib/reading-model-config.ts` (imported, not copied, so it cannot silently drift from what the route actually sends). Exists because a mocked SDK cannot catch the live API rejecting the request shape itself — the failure mode behind the `temperature`-param outage, where every generation 400'd in production while the fully-mocked suite stayed green. Skipped by default (`describe.skipIf`); run deliberately with `npm run test:smoke`, which requires a real `ANTHROPIC_API_KEY` plus the `AXIS_LIVE_SMOKE=1` opt-in (both gates, so a key merely present in the shell doesn't spend money on an ordinary `npm test`). Also wired as a manual-only (`workflow_dispatch`) GitHub Actions job, `.github/workflows/smoke.yml` — never runs on push/PR, trigger it by hand before merging a change to the reading pipeline's model config, prompts, or request shape. `@` alias → `src/` (vitest.config.ts).
 
 ## Deployment
 
