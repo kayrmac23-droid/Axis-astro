@@ -60,7 +60,11 @@ import {
   BANNED_RESCUE_PHRASINGS,
   BANNED_HIERARCHY_LIST,
   BANNED_HIERARCHY_PHRASINGS,
+  countPlanEvidence,
   detectContextualHierarchy,
+  HIERARCHY_CONTEXTUAL_TERMS,
+  HIERARCHY_IDENTITY_TOKENS,
+  HIERARCHY_PROXIMITY_CHARS,
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
@@ -263,7 +267,7 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context? Generic claims with no chart anchor score low.
 2. specificity — Does the section describe recognisable lived patterns (concrete scenes, behavioural moments) from INSIDE the native's experience, rather than abstract trait labels? Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
-3. synthesis — Does this section perform its assigned analytical job and add insight beyond two separate placement descriptions? Reward progression: claims depend on this chart’s supplied differences, concordances, aspects, dignity and system-specific rulers, without counting an unchanged aspect twice. Score low for repetition, unsupported certainty, or a claimed conflict that is not earned by supplied relationship evidence. For dual-system sections, score low for depth-ranking either system as more true, deeper, essential, authentic, a mask or a surface; phrasings such as ${BANNED_HIERARCHY_LIST} are paradigm failures. Concordance is consistency across frameworks, not independent psychological proof. Do not require conflict: different emphasis, conditional significance, or limited significance may be the accurate synthesis.
+3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes? Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, more authentic, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension. Score LOW too for a claimed conflict the supplied evidence does not earn — a changed placement is a divergence, not proof of conflict, suffering, or a coping history — and for counting one unchanged angular relationship twice as if both frameworks produced it independently. Concordance is consistency across frameworks, not independent psychological proof. A divergence the chart shows as narrow, named at that size and left open, is correct: score that as accurate, not thin. Inflating it into drama and resolving it away are both failures.
 4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault. Score LOW too for the MIRROR move — the RESCUE CLAUSE on a strength (ease → hidden strength): a plain placement or soft aspect described accurately, then followed by a trailing value-assertion that adds no astrological information, only reassurance about how valuable, rare, or underrated it is. Apply the DELETION TEST: if removing the clause leaves the astrological claim fully intact, the clause is flattery and must be flagged. Phrasings such as ${BANNED_RESCUE_LIST} are paradigm failures. A strength is legitimate ONLY as plain function ("the Pluto trine gives access to transformative experience without a hard aspect's destabilisation") or as a load-bearing mechanism against a named difficulty ("the Moon trine is what keeps the identity from fragmenting under the Neptune pressure") — never as an appended reassurance about its worth. Score LOW for the THIRD member of the same family — MANUFACTURED SHADOW: a strength followed by a flaw that is not that strength under stress but an unrelated trait bolted on to make the paragraph look balanced ("Leo warmth, but also secretly anxious" — the anxiety is not the warmth). A genuine shadow is the SAME quality in its distorted or unconscious expression ("Leo warmth hardening into needing to be central"); anything else is an invented claim with no chart behind it and is worse than leaving the shadow unstated. Conversely, score LOW for one-sided praise: a quality presented as if it had no stress-state at all. Where a placement’s distorted expression is genuinely mild, stating it plainly and briefly is correct and must NOT be penalised as thin coverage.
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
@@ -442,7 +446,12 @@ Score the generated section against the criteria and return the JSON object spec
     // section, so earned depth on a densely aspected chart is not failed as if
     // it were padding — padding is still caught by the prose criteria and by the
     // (scaled) ceiling a sparse chart would not get.
-    const band       = wordBandFor(section, planetSection, countAspectsInContext(chartContext))
+    const band       = wordBandFor(
+      section,
+      planetSection,
+      countAspectsInContext(chartContext),
+      countPlanEvidence(chartContext, planetSection) ?? undefined,
+    )
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
     const rubricPass = computePassFromScores(scores)
@@ -566,14 +575,53 @@ interface TextSpan {
 function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
   const needles = hits.map(hit => hit.toLowerCase())
   const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' })
+  const segments = Array.from(segmenter.segment(draft)).map(seg => ({
+    start: seg.index,
+    end:   seg.index + seg.segment.length,
+    text:  seg.segment,
+  }))
   const targets: TextSpan[] = []
-  for (const segment of Array.from(segmenter.segment(draft))) {
-    const text = segment.segment
-    const lower = text.toLowerCase()
-    if (!needles.some(needle => lower.includes(needle))) continue
-    targets.push({ start: segment.index, end: segment.index + text.length, text })
+  const taken = new Set<number>()
+
+  // A CONTEXTUAL term breaches THE LAW only near identity/system language, so
+  // only those occurrences are at fault. A literal phrasing is at fault wherever
+  // it appears.
+  const contextual = new Set(HIERARCHY_CONTEXTUAL_TERMS.map(t => t.toLowerCase()))
+  const identity = new RegExp(`(?:${HIERARCHY_IDENTITY_TOKENS.join('|')})`, 'gi')
+  const lower = draft.toLowerCase()
+  const identityAt: number[] = []
+  for (const m of Array.from(draft.matchAll(identity))) if (m.index != null) identityAt.push(m.index)
+  const nearIdentity = (start: number, end: number) =>
+    identityAt.some(i => i <= end + HIERARCHY_PROXIMITY_CHARS && i + HIERARCHY_PROXIMITY_CHARS >= start)
+
+  for (const needle of needles) {
+    // Find every occurrence of this hit in the draft and take the sentence(s)
+    // it actually falls in. Matching on offsets rather than per-sentence
+    // substring matters twice over:
+    //   1. A CONTEXTUAL hit is a bare ordinary word ("underneath") flagged by
+    //      PROXIMITY to identity language somewhere in the section. Rewriting
+    //      every sentence containing that word — including the innocent ones
+    //      far from any identity claim — edits prose that was never at fault.
+    //   2. A literal phrase can straddle a sentence boundary, in which case a
+    //      per-sentence substring search finds nothing at all, the repair throws,
+    //      and the section is left permanently uncached — regenerating on every
+    //      page load, which is the exact hole the gate exists to close.
+    let from = 0
+    for (;;) {
+      const at = lower.indexOf(needle, from)
+      if (at < 0) break
+      const hitEnd = at + needle.length
+      if (contextual.has(needle) && !nearIdentity(at, hitEnd)) { from = at + Math.max(1, needle.length); continue }
+      for (let i = 0; i < segments.length; i++) {
+        if (segments[i].end > at && segments[i].start < hitEnd && !taken.has(i)) {
+          taken.add(i)
+          targets.push(segments[i])
+        }
+      }
+      from = at + Math.max(1, needle.length)
+    }
   }
-  return targets
+  return targets.sort((a, b) => a.start - b.start)
 }
 
 // A doctrine-only failure does not justify regenerating an otherwise passing
@@ -585,6 +633,10 @@ export async function repairDoctrineSentences(
   model: string,
 ): Promise<string> {
   const targets = doctrineRepairTargets(draft, hits)
+  // A hit the segmenter cannot localise (or one whose text has already been
+  // edited out) leaves nothing to splice. Fall back to the caller's full-repair
+  // path rather than caching nothing: an uncached section costs a model call on
+  // every subsequent page load.
   if (targets.length === 0) throw new Error('No sentence found for doctrine hit')
 
   const numbered = targets.map((target, index) => `${index + 1}. ${target.text.trim()}`).join('\n')
@@ -752,7 +804,11 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // If the rubric passes and only the deterministic doctrine scan objects, edit
   // only the offending sentence(s). A full regeneration spends far more tokens
   // and creates fresh regression risk in prose the evaluator already approved.
-  if (gate.rubricPass && bannedHits.length > 0) {
+  //
+  // Only on a verdict the evaluator actually produced: when it errored we
+  // defaulted `rubricPass` to true to fail open on the prose criteria, and that
+  // default is not evidence the rest of the section is sound.
+  if (gate.rubricPass && !gate.evaluatorErrored && gate.scores != null && bannedHits.length > 0) {
     if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
       logGateOutcome(label, 'failed-doctrine-repair-skipped-budget', gate.scores)
       return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-skipped-budget' }
@@ -761,17 +817,19 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
       modelCalls++
       const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model)
       const remainingHits = detectBannedPhrasings(repaired)
-      if (remainingHits.length > 0 || isTruncated(repaired)) {
-        logGateOutcome(label, 'doctrine-repair-invalid', gate.scores)
-        return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'doctrine-repair-invalid' }
+      if (remainingHits.length === 0 && !isTruncated(repaired)) {
+        logGateOutcome(label, 'doctrine-repaired', gate.scores)
+        return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'doctrine-repaired' }
       }
-      logGateOutcome(label, 'doctrine-repaired', gate.scores)
-      return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'doctrine-repaired' }
+      console.warn(`[AXIS_GATE] section=${label} surgical repair did not clear the scan — falling back to full repair`)
     } catch (err) {
-      console.error(`[AXIS_GATE] section=${label} doctrine repair failed:`, err instanceof Error ? err.message : err)
-      logGateOutcome(label, 'failed-doctrine-repair-errored', gate.scores)
-      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-errored' }
+      console.error(`[AXIS_GATE] section=${label} surgical doctrine repair failed:`, err instanceof Error ? err.message : err)
     }
+    // Fall through to the full repair below rather than returning uncached. A
+    // null here means the section is regenerated from scratch on EVERY
+    // subsequent page load — a permanent model call against the daily cap, for
+    // a section the ordinary repair path can still fix. The surgical pass is an
+    // optimisation; when it does not land, pay for the full repair once.
   }
 
   let critique = gate.critique

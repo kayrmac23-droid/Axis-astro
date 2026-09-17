@@ -312,3 +312,65 @@ describe('detectBannedPhrasings', () => {
     expect(hits.length).toBeGreaterThan(0)
   })
 })
+
+describe('gateForCache — surgical doctrine repair targeting', () => {
+  it('rewrites only the sentence near identity language, not every use of the word', async () => {
+    // "underneath" is a CONTEXTUAL hit: it breaches THE LAW only within
+    // HIERARCHY_PROXIMITY_CHARS of identity language. Uses well away from any
+    // identity claim are innocent and must survive byte-for-byte — rewriting
+    // them spends a repair on prose that was never at fault.
+    const filler     = Array.from({ length: 80 }, (_, i) => `word${i}`).join(' ')
+    const innocent1  = 'The Saturn return put a floor underneath the whole arrangement.'
+    const offending  = 'Underneath that identity, the Sidereal self is the essential one.'
+    const innocent2  = 'Something steady sits underneath the routine.'
+    const draft = `${GOOD_SECTION} ${innocent1} ${filler}. ${offending} ${filler}. ${innocent2}`
+    const replacement = 'The Sidereal account describes a simultaneous inward emphasis.'
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(JSON.stringify([replacement])))
+
+    const r = await gateForCache({ ...BASE, firstPassText: draft, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('doctrine-repaired')
+    expect(r.cacheText).toContain(innocent1)
+    expect(r.cacheText).toContain(innocent2)
+    expect(r.cacheText).not.toContain(offending)
+    // Exactly one sentence was sent for editing.
+    const sent = create.mock.calls[1][0].messages[0].content as string
+    expect(sent).toContain('Underneath that identity')
+    expect(sent).not.toContain(innocent1)
+    expect(sent).not.toContain(innocent2)
+  })
+
+  it('falls back to the full repair when the surgical pass does not clear the scan', async () => {
+    // Returning uncached here would regenerate the section on EVERY subsequent
+    // page load — a permanent model call for something the full repair can fix.
+    const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    const clean = sectionOfWords(IN_BAND_WORDS)
+    create
+      .mockResolvedValueOnce(evalReply(5))                       // rubric passes
+      .mockResolvedValueOnce(textReply(JSON.stringify([`Still ${BANNED_RESCUE_PHRASINGS[0]} here.`])))
+      .mockResolvedValueOnce(textReply(clean))                   // full repair
+      .mockResolvedValueOnce(evalReply(5))                       // re-score passes
+
+    const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBe(clean)
+    expect(r.repaired).toBe(true)
+    expect(create.mock.calls[2][0].messages[0].content).toContain('DOCTRINE FAILURE')
+  })
+
+  it('does not take the surgical path when the evaluator errored', async () => {
+    // evaluatorErrored defaults rubricPass to true to fail open on prose. That
+    // default is not a verdict, so a doctrine hit must go through full repair.
+    const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    const clean = sectionOfWords(IN_BAND_WORDS)
+    create
+      .mockRejectedValueOnce(new Error('evaluator exploded'))
+      .mockResolvedValueOnce(textReply(clean))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBe(clean)
+    const repairCall = create.mock.calls[1][0]
+    expect(repairCall.messages[0].content).toContain('DOCTRINE FAILURE')
+  })
+})

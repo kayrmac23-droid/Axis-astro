@@ -147,12 +147,12 @@ export const SYNTHESIS_DESCRIPTORS = {
   agree: {
     title: 'Where the Systems Agree',
     keywords: 'structural convergence · load-bearing truths',
-    description: `Concordance — where both charts point to the same psychological theme — is the most certain, least negotiable part of a person's character. These placements hold regardless of which astrological framework is used. They are the narrow, fixed ground: the things that cannot be explained away by system differences.`
+    description: `Concordance — where both charts point to the same psychological theme — is the least negotiable part of a person's character. It comes in two grades: a placement that holds its sign, dignity and house across both frameworks, and one that holds its sign and dignity while the life domain moves. Both are fixed ground; in the second, the quality is constant and only the arena changes.`
   },
   diverge: {
     title: 'Where They Part',
     keywords: 'layered contradictions · what the divergence means',
-    description: `Divergence is not error: it is the specific terrain this person must navigate. Where the Tropical layer names one orientation and the Sidereal layer names another, the divergence between them describes what it actually feels like to live from inside this chart — the friction between constructed identity and essential nature.`
+    description: `Divergence is not error: it is the specific terrain this person must navigate. Where the Tropical layer names one orientation and the Sidereal layer names another, the divergence between them describes what it actually feels like to live from inside this chart — the friction between the psychological architecture and the incarnational pattern it operates in. Neither framework ranks above the other; both are held at once.`
   },
   tension: {
     title: 'The Central Tension',
@@ -162,6 +162,6 @@ export const SYNTHESIS_DESCRIPTORS = {
   closing: {
     title: 'Living the Divergence',
     keywords: 'final precision · how the divergence is inhabited',
-    description: `The closing names how this person actually lives inside the divergence between the Tropical psychological architecture and the Sidereal karmic trajectory — a divergence that does not close. The final observation is the sharpest in the reading — something true that has probably been felt but never articulated.`
+    description: `The closing names how this person actually lives inside the divergence between the Tropical psychological architecture and the Sidereal karmic trajectory — a divergence that does not close. The final observation is precise and unsoftened, stated at the size the chart supports.`
   }
 }

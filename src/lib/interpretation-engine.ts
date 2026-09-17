@@ -791,9 +791,15 @@ function buildSituationalFrame(planet: PlanetPosition, aspects: Aspect[]): strin
 // ── FORMATTERS ────────────────────────────────────────────────────────────────
 
 // Formats degree as D°MM' (e.g. 14°22')
+// Arcminutes are rounded, so a degree just under the next whole one (19.9958°)
+// rounds to 60' and must carry into the degree — otherwise the block prints an
+// impossible "19°60'". The carry wraps at 30° because `degree` is the position
+// WITHIN a sign, and 30° in a sign is 0° of the next one.
 function fmtDeg(deg: number): string {
-  const d = Math.floor(deg)
-  const m = Math.round((deg - d) * 60)
+  let d = Math.floor(deg)
+  let m = Math.round((deg - d) * 60)
+  if (m === 60) { m = 0; d += 1 }
+  if (d === 30) d = 0
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
@@ -1121,7 +1127,7 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
 
 export interface DivergenceEvidence {
   id: string
-  kind: 'difference' | 'concordance' | 'aspect' | 'limitation'
+  kind: 'difference' | 'concordance' | 'aspect' | 'limitation' | 'timing' | 'yoga'
   role: 'supporting' | 'complicating' | 'context'
   planets: string[]
   summary: string
@@ -1130,7 +1136,8 @@ export interface DivergenceEvidence {
 export interface DivergenceCandidate {
   id: string
   subject: string
-  score: number
+  score: number       // ranking order: structural weight × interpretive weight of the body
+  structural: number  // size of the shift alone — what makes a divergence load-bearing
   reasons: string[]
   evidenceIds: string[]
 }
@@ -1138,15 +1145,44 @@ export interface DivergenceCandidate {
 export interface DivergencePlan {
   candidates: DivergenceCandidate[]
   evidence: DivergenceEvidence[]
+  // Ranked candidates that did NOT make the in-depth cut. THE LAW requires these
+  // be named as still unresolved rather than silently dropped, so the plan
+  // surfaces them explicitly instead of leaving the model to notice the absence.
+  remaining: string[]
   allocation: Record<'agree' | 'diverge' | 'tension' | 'closing', string[]>
 }
+
+// Interpretive weight of the body, restoring the ranking rule that used to live
+// in the diverge prompt as prose. It belongs here: ranking from chart facts is a
+// deterministic job, and a prompt-side ranking instruction cannot be verified.
+// Luminaries and angles outrank the personal planets, which outrank the outers.
+// The nodes sit with the personal planets — in Jyotish the Rahu/Ketu axis is
+// load-bearing, not peripheral.
+const DIVERGENCE_BODY_WEIGHT: Record<string, number> = {
+  Sun: 6, Moon: 6,
+  Mercury: 4, Venus: 4, Mars: 4,
+  Rahu: 4, Ketu: 4,
+  Jupiter: 2, Saturn: 2, Uranus: 2, Neptune: 2, Pluto: 2,
+}
+
+// Bodies walked by the plan. The outers and the nodes are included because the
+// synthesis sections no longer receive the full chart blocks: if a body is not
+// in the plan, the model has no placement for it at all and cannot say anything
+// about it without inventing one.
+const DIVERGENCE_BODIES = [
+  'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn',
+  'Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu',
+]
+
+// A divergence is load-bearing when the shift changes the INTERPRETATION — a
+// sign or house crossing, or a change of dignity — never by degree gap alone.
+const STRUCTURAL_CUTOFF = 4
 
 /** Deterministic evidence plan used unchanged by all four Divergence sections. */
 export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
   const evidence: DivergenceEvidence[] = []
   const candidates: DivergenceCandidate[] = []
   const unknown = chartData.birthData.birthTimeUnknown === true
-  const names = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
   const tropicalAspects = computeAspects(chartData.tropical.planets)
   const siderealAspects = computeAspects(chartData.sidereal.planets)
   const chartRulers = unknown ? [] : [
@@ -1154,49 +1190,134 @@ export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
     SIGN_RULERS_VEDIC[chartData.sidereal.ascendantSign],
   ]
 
-  for (const name of names) {
-    const t = chartData.tropical.planets.find(p => p.name === name)
-    const s = chartData.sidereal.planets.find(p => p.name === name)
-    if (!t || !s) continue
-    const signChanged = t.sign !== s.sign
-    const houseChanged = !unknown && t.house !== s.house
+  // One body's placement in both frames. Degree, retrogradation and the sidereal
+  // nakshatra are carried because the Divergence sections receive ONLY this plan:
+  // without the degree the cusp rule (±3° of a sign boundary) cannot be applied
+  // at all, and without the nakshatra the sidereal half loses its Jyotish grain.
+  const describe = (name: string, t: PlanetPosition, s: PlanetPosition): string => {
     const td = computeDignity(name, t.sign).status
     const sd = computeDignity(name, s.sign).status
     const tRuler = SIGN_RULERS_TRADITIONAL[t.sign]
     const sRuler = SIGN_RULERS_VEDIC[s.sign]
     const tDisp = chartData.tropical.planets.find(p => p.name === tRuler)
     const sDisp = chartData.sidereal.planets.find(p => p.name === sRuler)
-    const id = `D-${name.toUpperCase()}`
-    const placement = `Tropical ${name}: ${t.sign}${unknown ? '' : ` H${t.house}`} [${td}], ruled by ${tRuler}${tDisp ? ` in ${tDisp.sign}${unknown ? '' : ` H${tDisp.house}`} [${computeDignity(tRuler, tDisp.sign).status}]` : ''}; Sidereal ${name}: ${s.sign}${unknown ? '' : ` H${s.house}`} [${sd}], ruled by ${sRuler}${sDisp ? ` in ${sDisp.sign}${unknown ? '' : ` H${sDisp.house}`} [${computeDignity(sRuler, sDisp.sign).status}]` : ''}.`
-    if (!signChanged && !houseChanged && td === sd && tRuler === sRuler) {
-      const eid = `C-${name.toUpperCase()}`
-      evidence.push({ id: eid, kind: 'concordance', role: 'supporting', planets: [name], summary: `${placement} Consistent across the two frameworks; this is concordance, not independent proof of a psychological claim.` })
+    const house = (p: PlanetPosition) => unknown ? '' : ` H${p.house}`
+    const disp = (rulerName: string, p: PlanetPosition | undefined, vedic: boolean) =>
+      p ? `${rulerName} in ${p.sign}${house(p)} [${computeDignity(rulerName, p.sign).status}]${p.retrograde ? ' ℞' : ''}${vedic && p.nakshatra ? ` · ${p.nakshatra}` : ''}`
+        : `${rulerName} (not separately placed)`
+    return `Tropical ${name}: ${t.sign} ${fmtDeg(t.degree)}${house(t)} [${td}]${t.retrograde ? ' ℞' : ''}, sign ruler ${disp(tRuler, tDisp, false)}; ` +
+           `Sidereal ${name}: ${s.sign} ${fmtDeg(s.degree)}${house(s)} [${sd}]${s.retrograde ? ' ℞' : ''}` +
+           `${s.nakshatra ? ` · ${s.nakshatra} Pada ${s.nakshatraPada}` : ''}, sign ruler ${disp(sRuler, sDisp, true)}.`
+  }
+
+  for (const name of DIVERGENCE_BODIES) {
+    const t = chartData.tropical.planets.find(p => p.name === name)
+    const s = chartData.sidereal.planets.find(p => p.name === name)
+    if (!t || !s) continue
+    const signChanged  = t.sign !== s.sign
+    const houseChanged = !unknown && t.house !== s.house
+    const td = computeDignity(name, t.sign).status
+    const sd = computeDignity(name, s.sign).status
+    const onCusp = t.degree > 27 || t.degree < 3 || s.degree > 27 || s.degree < 3
+    const placement = describe(name, t, s)
+    const weight = DIVERGENCE_BODY_WEIGHT[name] ?? 2
+    const key = name.toUpperCase()
+
+    // CONCORDANCE, in two grades. The sign is the carrier of a placement's
+    // character, so a body that holds its sign across both frameworks is
+    // concordant EVEN WHEN Whole Sign houses renumber it — which they do on
+    // every chart whose Ascendant shifts, i.e. most of them. Requiring the house
+    // to match as well made concordance structurally unreachable and emptied the
+    // section on ~75% of charts.
+    if (!signChanged && td === sd) {
+      const eid = `C-${key}`
+      evidence.push({
+        id: eid, kind: 'concordance', role: 'supporting', planets: [name],
+        summary: houseChanged
+          ? `${placement} SAME-SIGN CONCORDANCE: ${name} holds ${t.sign} [${td}] in both frameworks — the character of this ${name} is fixed across both, and only the life domain moves (H${t.house} → H${s.house}). Concordance is consistency across frameworks, not independent proof of a psychological claim.`
+          : `${placement} FULL CONCORDANCE: sign, dignity${unknown ? '' : ' and house'} all hold across both frameworks. Concordance is consistency across frameworks, not independent proof of a psychological claim.`,
+      })
+      // A same-sign body whose house moves is concordant in character and
+      // divergent in domain. Both facts are true; neither cancels the other.
+      if (houseChanged) {
+        const hid = `D-${key}`
+        const tDom = HOUSE_DATA[t.house]?.domain ?? `H${t.house}`
+        const sDom = HOUSE_DATA[s.house]?.domain ?? `H${s.house}`
+        evidence.push({
+          id: hid, kind: 'difference', role: 'context', planets: [name],
+          summary: `${name} keeps ${t.sign} but the life domain moves: H${t.house} (${tDom}) → H${s.house} (${sDom}). The quality is unchanged; the arena it plays out in is not.`,
+        })
+        candidates.push({
+          id: hid, subject: name, score: 2 + weight, structural: 2,
+          reasons: [`house changes (H${t.house} → H${s.house}), sign held`],
+          evidenceIds: [hid, eid],
+        })
+      }
       continue
     }
+
     const reasons: string[] = []
-    let score = 0
-    if (signChanged) { score += 4; reasons.push('sign changes') }
-    if (houseChanged) { score += 2; reasons.push('reliable house changes') }
-    if (td !== sd) { score += 3; reasons.push(`dignity changes (${td} → ${sd})`) }
-    if (tRuler !== sRuler) { score += 2; reasons.push(`system-specific rulers differ (${tRuler} / ${sRuler})`) }
-    if (chartRulers.includes(name)) { score += 4; reasons.push('planet rules an Ascendant in this chart') }
+    let structural = 0
+    if (signChanged)  { structural += 4; reasons.push(`sign changes (${t.sign} → ${s.sign})`) }
+    if (houseChanged) { structural += 2; reasons.push(`house changes (H${t.house} → H${s.house})`) }
+    if (td !== sd)    { structural += 3; reasons.push(`dignity changes (${td} → ${sd})`) }
+
+    // The sign ruler is NOT system-specific: SIGN_RULERS_VEDIC is a copy of
+    // SIGN_RULERS_TRADITIONAL. A changed ruler is a CONSEQUENCE of the changed
+    // sign, already scored above — saying "the systems assign different rulers"
+    // would be a fabricated astrological claim. What IS independent information
+    // is the dispositor's own condition differing between the two frames.
+    const tRuler = SIGN_RULERS_TRADITIONAL[t.sign]
+    const sRuler = SIGN_RULERS_VEDIC[s.sign]
+    if (tRuler !== sRuler) {
+      const tDisp = chartData.tropical.planets.find(p => p.name === tRuler)
+      const sDisp = chartData.sidereal.planets.find(p => p.name === sRuler)
+      const tDispDig = tDisp ? computeDignity(tRuler, tDisp.sign).status : null
+      const sDispDig = sDisp ? computeDignity(sRuler, sDisp.sign).status : null
+      reasons.push(`sign ruler follows the sign (${tRuler} → ${sRuler})`)
+      if (tDispDig && sDispDig && tDispDig !== sDispDig) {
+        structural += 2
+        reasons.push(`dispositor condition differs (${tRuler} [${tDispDig}] / ${sRuler} [${sDispDig}])`)
+      }
+    }
+    if (chartRulers.includes(name)) { structural += 3; reasons.push('rules an Ascendant in this chart') }
+
     const tight = tropicalAspects.filter(a => (a.planet1 === name || a.planet2 === name) && a.orb <= 3)
-    if (tight.length) { score += Math.min(4, tight.length * 2); reasons.push(`${tight.length} tight major aspect${tight.length > 1 ? 's' : ''}`) }
-    if (name === 'Moon' && unknown) { score -= 4; reasons.push('Moon degree is timing-sensitive because birth time is unknown') }
-    evidence.push({ id, kind: 'difference', role: 'context', planets: [name], summary: `${placement} Changes: ${[signChanged && 'sign', houseChanged && 'house', td !== sd && 'dignity', tRuler !== sRuler && 'ruler'].filter(Boolean).join(', ') || 'degree only'}. This is evidence for comparison, not proof of conflict.` })
-    candidates.push({ id, subject: name, score, reasons, evidenceIds: [id] })
+    if (tight.length) reasons.push(`${tight.length} tight major aspect${tight.length > 1 ? 's' : ''}`)
+    if (onCusp) reasons.push('sits within 3° of a sign boundary in at least one framework — apply the cusp rule')
+    if (name === 'Moon' && unknown) { structural -= 3; reasons.push('Moon degree is timing-sensitive because birth time is unknown') }
+
+    evidence.push({
+      id: `D-${key}`, kind: 'difference', role: 'context', planets: [name],
+      summary: `${placement} Changes: ${[signChanged && 'sign', houseChanged && 'house', td !== sd && 'dignity'].filter(Boolean).join(', ') || 'degree only'}.${onCusp ? ' Near a sign boundary — the cusp rule applies.' : ''} This is a divergence to be held open, not proof of conflict, suffering, or a coping history.`,
+    })
+    candidates.push({ id: `D-${key}`, subject: name, score: structural + weight, structural, reasons, evidenceIds: [`D-${key}`] })
   }
 
   if (!unknown) {
     for (const angle of [
-      { subject: 'Ascendant', tSign: chartData.tropical.ascendantSign, sSign: chartData.sidereal.ascendantSign, id: 'D-ASC', base: 6 },
-      { subject: 'Midheaven', tSign: chartData.tropical.midheavenSign, sSign: chartData.sidereal.midheavenSign, id: 'D-MC', base: 5 },
+      // Structural weight, not just body weight: a Lagna shift renumbers EVERY
+      // house in a Whole Sign chart, which makes it the largest structural shift
+      // the ayanamsa can produce. It must never be ranked out of the depth set.
+      { subject: 'Ascendant', tSign: chartData.tropical.ascendantSign, tDeg: chartData.tropical.ascendantDegree, sSign: chartData.sidereal.ascendantSign, sDeg: chartData.sidereal.ascendantDegree, id: 'D-ASC', weight: 6, structural: 9 },
+      { subject: 'Midheaven', tSign: chartData.tropical.midheavenSign, tDeg: chartData.tropical.midheavenDegree, sSign: chartData.sidereal.midheavenSign, sDeg: chartData.sidereal.midheavenDegree, id: 'D-MC', weight: 5, structural: 5 },
     ]) {
+      const tData = SIGN_DATA[angle.tSign]
+      const sData = SIGN_DATA[angle.sSign]
       if (angle.tSign === angle.sSign) {
-        evidence.push({ id: angle.id.replace('D-', 'C-'), kind: 'concordance', role: 'supporting', planets: [], summary: `${angle.subject} remains ${angle.tSign} across both frameworks; consistent, not independent proof.` })
+        evidence.push({
+          id: angle.id.replace('D-', 'C-'), kind: 'concordance', role: 'supporting', planets: [],
+          summary: `${angle.subject} holds ${angle.tSign} ${fmtDeg(angle.tDeg)} across both frameworks (${tData?.element} ${tData?.modality}, core need: ${tData?.coreNeed}). Concordance is consistency across frameworks, not independent proof.`,
+        })
       } else {
-        evidence.push({ id: angle.id, kind: 'difference', role: 'context', planets: [], summary: `Tropical ${angle.subject}: ${angle.tSign}; Sidereal ${angle.subject}: ${angle.sSign}. Birth time is known, so this angular sign change is available for comparison.` })
-        candidates.push({ id: angle.id, subject: angle.subject, score: angle.base, reasons: ['reliable angular sign changes'], evidenceIds: [angle.id] })
+        const elementNote = tData?.element === sData?.element
+          ? `Both signs share the ${tData?.element} element — the register is continuous across the shift.`
+          : `Element shifts ${tData?.element} → ${sData?.element}.`
+        evidence.push({
+          id: angle.id, kind: 'difference', role: 'context', planets: [],
+          summary: `Tropical ${angle.subject}: ${angle.tSign} ${fmtDeg(angle.tDeg)} (${tData?.element} ${tData?.modality}, core need: ${tData?.coreNeed}); Sidereal ${angle.subject}: ${angle.sSign} ${fmtDeg(angle.sDeg)} (${sData?.element} ${sData?.modality}, core need: ${sData?.coreNeed}). ${elementNote} Birth time is known, so this angular sign change is available for comparison.`,
+        })
+        candidates.push({ id: angle.id, subject: angle.subject, score: angle.structural + angle.weight, structural: angle.structural, reasons: [`angular sign changes ${angle.tSign} → ${angle.sSign} (birth time known)`], evidenceIds: [angle.id] })
       }
     }
   }
@@ -1213,34 +1334,107 @@ export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
     evidence.push({ id: eid, kind: 'aspect', role: ['tense', 'polarizing'].includes(a.quality) ? 'complicating' : 'supporting', planets: [a.planet1, a.planet2], summary: `${a.planet1} ${a.glyph} ${a.planet2}, orb ${a.orb}° (${a.applying ? 'applying' : 'separating'}). ${sid ? 'Angular relationship is unchanged across frameworks; interpret it through each system’s signs, houses (when reliable), dignity and rulers rather than counting it twice.' : 'No matching Sidereal aspect was computed; do not infer one.'}` })
     for (const c of candidates) if (c.subject === a.planet1 || c.subject === a.planet2) c.evidenceIds.push(eid)
   }
+
+  // Karmic timing context. Restored: it was in the synthesis block before the
+  // plan replaced it, and the dasha is what says which of these divergences is
+  // live right now rather than merely true.
+  const dasha = unknown ? null : computeVimshottariDasha(chartData)
+  if (dasha) {
+    evidence.push({
+      id: 'T-DASHA', kind: 'timing', role: 'context', planets: [dasha.mahadasha, dasha.antardasha],
+      summary: `Active Vimshottari dasha: ${dasha.mahadasha} mahadasha (until ${dasha.mahaDashaEndDate}), ${dasha.antardasha} antardasha (until ${dasha.antarDashaEndDate}). This sets which themes are currently active — timing context, never a predictive verdict.`,
+    })
+  }
+  // Yogas are facts of the SIDEREAL chart, not cross-system concordance — they
+  // carry their own kind so they can never be allocated to the agree section as
+  // if both frameworks had independently produced them.
+  detectMajorYogas(chartData.sidereal).forEach((y, i) => {
+    evidence.push({ id: `Y-${i + 1}`, kind: 'yoga', role: 'supporting', planets: [], summary: `Sidereal yoga: ${y}` })
+  })
+
   if (unknown) evidence.push({ id: 'L-BIRTH-TIME', kind: 'limitation', role: 'complicating', planets: ['Moon'], summary: 'Birth time unknown: angles, houses, angle-derived ranking and dasha timing are excluded. Treat the Moon degree and any very tight Moon aspect as timing-sensitive.' })
+
   candidates.sort((a, b) => b.score - a.score || a.subject.localeCompare(b.subject))
-  const selected = candidates.filter(c => c.score >= 4).slice(0, 4)
+  // No quota. The chart decides how many divergences are load-bearing: a
+  // structural cutoff, then a ceiling so a dense chart cannot overrun the band.
+  // Fewer than three is a valid outcome; so is one.
+  const selected = candidates.filter(c => c.structural >= STRUCTURAL_CUTOFF).slice(0, 4)
+  const remaining = candidates.filter(c => !selected.includes(c))
   const concordances = evidence.filter(e => e.kind === 'concordance').map(e => e.id)
-  const aspects = evidence.filter(e => e.kind === 'aspect' && selected.some(c => e.planets.includes(c.subject))).map(e => e.id)
+
+  // The tension section is about the RELATIONSHIP between the leading
+  // divergences, so it is allocated the aspects that actually LINK two selected
+  // subjects — not a re-list of the candidates themselves, which is what made
+  // the same two placements the subject of three consecutive sections.
+  const subjects = new Set(selected.map(c => c.subject))
+  const links = evidence.filter(e =>
+    e.kind === 'aspect' && e.planets.filter(p => subjects.has(p)).length === 2
+  ).map(e => e.id)
+  const tensionEvidence = links.length > 0
+    ? links.slice(0, 4)
+    : evidence.filter(e => e.kind === 'aspect' && e.planets.some(p => subjects.has(p))).slice(0, 2).map(e => e.id)
+
   return {
     candidates,
     evidence,
+    remaining: remaining.map(c => c.id),
     allocation: {
-      agree: concordances,
+      agree:   concordances,
       diverge: selected.map(c => c.id),
-      tension: [...selected.slice(0, 2).map(c => c.id), ...aspects.slice(0, 2)],
-      closing: selected.slice(0, 2).map(c => c.id),
+      tension: [...tensionEvidence, ...selected.slice(0, 2).map(c => c.id)],
+      closing: selected.map(c => c.id),
     },
   }
 }
 
 function formatSynthesisBlock(chartData: DualChartData): string {
   const plan = buildDivergencePlan(chartData)
+  const byId = new Map(plan.evidence.map(e => [e.id, e]))
+  const subjectOf = (id: string) => plan.candidates.find(c => c.id === id)?.subject ?? id
   const lines: string[] = []
-  lines.push('SHARED DIVERGENCE PLAN (use only supplied evidence; do not calculate or invent relationships):')
-  lines.push('RANKED CANDIDATES:')
-  if (!plan.candidates.length) lines.push('  None: do not manufacture a major divergence.')
-  plan.candidates.forEach((c, i) => lines.push(`  ${i + 1}. [${c.id}] ${c.subject} (priority ${c.score}): ${c.reasons.join('; ')}. Evidence: ${c.evidenceIds.join(', ')}`))
+
+  lines.push('SHARED DIVERGENCE PLAN — the complete evidence base for all four Divergence sections.')
+  lines.push('Work from this plan. Do not recompute aspects, invent placements, or introduce bodies that are not listed here.')
+  lines.push('')
+  lines.push('RANKED DIVERGENCES (ranked by interpretive weight of the body and structural size of the shift — NOT by degree gap):')
+  if (!plan.candidates.length) {
+    lines.push('  None. The two frameworks do not part on any body in this chart. Say so plainly; do not manufacture a divergence.')
+  }
+  plan.candidates.forEach((c, i) => lines.push(`  ${i + 1}. [${c.id}] ${c.subject} — ${c.reasons.join('; ')}. Evidence: ${c.evidenceIds.join(', ')}`))
+  lines.push('')
   lines.push('EVIDENCE DOSSIER:')
-  plan.evidence.forEach(e => lines.push(`  [${e.id}] (${e.role}) ${e.summary}`))
-  lines.push('SECTION ALLOCATION (the same plan governs all four sections):')
-  for (const section of ['agree', 'diverge', 'tension', 'closing'] as const) lines.push(`  ${section}: ${plan.allocation[section].join(', ') || 'No allocated evidence; state the limitation rather than inventing material.'}`)
+  for (const e of plan.evidence) lines.push(`  [${e.id}] (${e.kind}/${e.role}) ${e.summary}`)
+  lines.push('')
+  lines.push('SECTION ALLOCATION (one plan, four different jobs — each section works its own allocation):')
+  const jobs: Record<string, string> = {
+    agree:   'what holds across both frameworks',
+    diverge: 'where the two frameworks part, in depth',
+    tension: 'how the leading divergences relate to each other',
+    closing: 'how this person lives inside the divergence',
+  }
+  for (const section of ['agree', 'diverge', 'tension', 'closing'] as const) {
+    const ids = plan.allocation[section]
+    lines.push(`  ${section} (${jobs[section]}): ${ids.join(', ') || 'NOTHING ALLOCATED — say so plainly and briefly; do not invent material to fill the section, and do not pad. A short, accurate section is correct here.'}`)
+  }
+
+  // THE LAW: the divergences that did not make the in-depth cut are still
+  // unresolved. They are named here so the diverge section can name them in one
+  // compressed clause rather than silently dropping them.
+  lines.push('')
+  if (plan.remaining.length) {
+    lines.push(`STILL UNRESOLVED (named, not walked — these did not make the in-depth cut but remain open): ${plan.remaining.map(id => `${subjectOf(id)} [${id}]`).join(', ')}`)
+  } else {
+    lines.push('STILL UNRESOLVED: none — every ranked divergence is allocated for depth.')
+  }
+
+  // Counts the gate reads back to size this chart's sections. Stated explicitly
+  // so the numbers the model works to and the numbers the gate scores against
+  // come from the same place.
+  const concordanceCount = plan.evidence.filter(e => e.kind === 'concordance').length
+  lines.push(`PLAN WEIGHT: ${concordanceCount} concordance(s), ${plan.allocation.diverge.length} divergence(s) allocated for depth, ${plan.remaining.length} named but unwalked.`)
+  lines.push('A thin plan means a shorter section, honestly. It never means padding, and it never means inventing a divergence or an agreement the chart does not show.')
+
+  if (!byId.has('T-DASHA')) lines.push('No dasha timing is available for this chart.')
 
   return lines.join('\n')
 }

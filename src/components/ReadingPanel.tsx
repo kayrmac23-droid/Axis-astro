@@ -76,12 +76,22 @@ function getDescriptorKey(heading: string, section: string): string | null {
   return null
 }
 
-function getSynthesisKey(heading: string): string | null {
+// Maps a Divergence prose heading to its descriptor. The model writes the
+// heading its section prompt specifies, so this must cover every heading those
+// prompts have used — a miss silently drops the descriptor box with no error.
+//
+// ORDER IS LOAD-BEARING, most specific first. "Living the Divergence" contains
+// the substring "diverge", so a diverge check placed above it swallows the
+// closing heading and renders the WRONG descriptor — which is what shipped for
+// as long as both headings have existed. Keep closing and tension above the
+// looser divergence matches, and keep every match anchored to a distinctive
+// phrase rather than a bare word.
+export function getSynthesisKey(heading: string): string | null {
   const h = heading.toLowerCase()
-  if (h.includes('agree') || h.includes('negotiable')) return 'agree'
-  if (h.includes('where they part') || h.includes('diverge')) return 'diverge'
-  if (h.includes('central tension')) return 'tension'
-  if (h.includes('living the') || h.includes('integration')) return 'closing'
+  if (h.includes('living the') || h.includes('comparison changes')) return 'closing'
+  if (h.includes('tension') || h.includes('differences relate')) return 'tension'
+  if (h.includes('agree') || h.includes('negotiable') || h.includes('common ground') || h.includes('concordance')) return 'agree'
+  if (h.includes('where they part') || h.includes('frameworks differ') || h.includes('diverge')) return 'diverge'
   return null
 }
 

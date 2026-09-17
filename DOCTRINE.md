@@ -249,13 +249,37 @@ decision; does not reorder phase-1 (foundations + gate) work. Supersedes the
 prior unratified "accounts = v2 / nothing stored product-wide" framing, which
 lived only in memory and was never canonical.
 
-## Evidence standard for The Divergence (September 2026)
+## Evidence standard for The Divergence (drafted September 2026 — NOT YET RATIFIED)
 
-The Divergence compares two distinct frameworks; neither is a mask, essence, correction,
-or more authentic account. A changed placement is not by itself evidence of conflict,
-suffering, coping history, or permanent division. Concordance means consistency across
-frameworks, not independent proof of a psychological claim. Comparison prose must rely
-on the shared computed plan: system-specific placements, dignity and dispositors,
-computed relationships, unchanged factors, and explicit reliability limits. It may find
-conflict, different emphasis, conditional significance, or little significance, according
-to the evidence. Unknown birth time excludes angles, houses and angle-derived ranking.
+STATUS: Drafted by an agent, scoped down by review, awaiting Kay's ratification.
+It governs MAGNITUDE only and does not touch THE LAW or the thesis at the top of
+this file: the divergence is still the terrain, and it still never closes.
+
+A changed placement is evidence of a divergence. It is NOT by itself evidence of
+conflict, suffering, coping history, or permanent inner division. A divergence is named
+at the size the chart gives it — a narrow one named narrowly and left open, never
+inflated into drama and never resolved to make it smaller. Both are failures; inflation
+is the more common one.
+
+There is no divergence quota. A prompt that demands a fixed number of divergences, a
+"most defining" tension, or a devastating final line on every chart is a coverage quota,
+and a coverage quota is an instruction to manufacture — the same defect that removed the
+blanket both-sides line from CONTRADICTIONS AND BOTH SIDES. The chart decides how many
+divergences are load-bearing.
+
+Comparison prose relies on the shared computed plan: placements with degree and
+retrogradation, dignity and dispositor condition, computed relationships, nakshatras,
+dasha timing, unchanged factors, and explicit reliability limits. Concordance means
+consistency across frameworks, not independent proof of a psychological claim, and it
+comes in two grades — sign-and-house, and same-sign-with-house-shift. Unknown birth time
+excludes angles, houses and angle-derived ranking.
+
+What this standard does NOT license: reframing The Divergence as a comparison of
+analytical methods, concluding that a divergence carries "limited interpretive
+significance" as a way of declining to name it, or any closing that asks what changes
+"when using one framework rather than the other". The divergence is lived, not observed.
+
+NOTE ON PROVENANCE: the first version of this section was written and dated by a coding
+agent inside a feature PR, and also changed the product thesis. Product law is ratified
+by Kay, not by an agent. Agents may draft a section here; it is marked NOT YET RATIFIED
+until she says otherwise.

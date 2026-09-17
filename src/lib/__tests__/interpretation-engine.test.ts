@@ -174,7 +174,7 @@ describe('interpretation context — does not model the banned rescue register',
 })
 
 describe('shared Divergence evidence plan', () => {
-  it('uses one symmetrical plan in every Divergence section and includes computed aspects', async () => {
+  it('uses one plan in every Divergence section and includes computed aspects', async () => {
     const { buildDivergencePlan } = await import('../interpretation-engine')
     const chart = calculateDualChart(MODERN_BIRTH)
     const plan = buildDivergencePlan(chart)
@@ -183,16 +183,106 @@ describe('shared Divergence evidence plan', () => {
     expect(new Set(contexts).size).toBe(1)
     expect(plan.evidence.some(e => e.kind === 'aspect' && /orb \d/.test(e.summary))).toBe(true)
     expect(contexts[0]).toContain('Angular relationship is unchanged across frameworks')
-    expect(contexts[0]).not.toMatch(/masking|essential \/ instinctive|constructed persona|load-bearing and certain/i)
     expect(contexts[0]).toContain('Tropical')
     expect(contexts[0]).toContain('Sidereal')
   })
 
-  it('ranks chart-specific ruler, dignity and tight-aspect evidence', async () => {
+  // THE REGRESSION THAT SHIPPED: concordance required the house to match as
+  // well as the sign. AXIS uses Whole Sign houses, so a shifted Ascendant
+  // renumbers every same-sign body — making concordance unreachable and leaving
+  // the agree section with nothing allocated on most charts.
+  it('allocates concordance on charts whose Ascendant shifts sign', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    let empty = 0, total = 0
+    for (let year = 1960; year <= 2005; year += 3) {
+      for (const hour of [3, 9, 15, 21]) {
+        const plan = buildDivergencePlan(calculateDualChart({
+          ...MODERN_BIRTH, year, month: (year % 12) + 1, day: (year % 27) + 1, hour,
+        }))
+        total++
+        if (plan.allocation.agree.length === 0) empty++
+      }
+    }
+    expect(total).toBeGreaterThan(50)
+    // Concordance is a property of real charts, not a rarity. Before the fix
+    // this was 48/64.
+    expect(empty).toBe(0)
+  })
+
+  it('grades concordance: a same-sign body whose house moves is both concordant and divergent', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const text = buildInterpretationContext(calculateDualChart(MODERN_BIRTH), 'synthesis', 'agree')
+    expect(text).toContain('SAME-SIGN CONCORDANCE')
+    expect(text).toMatch(/the character of this \w+ is fixed across both, and only the life domain moves/)
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
+    const sameSign = plan.evidence.filter(e => e.kind === 'concordance' && e.summary.includes('SAME-SIGN'))
+    expect(sameSign.length).toBeGreaterThan(0)
+    // Its house shift is still surfaced as a difference — both facts are true.
+    for (const c of sameSign) {
+      expect(plan.evidence.some(e => e.kind === 'difference' && e.planets[0] === c.planets[0])).toBe(true)
+    }
+  })
+
+  // The sign-ruler tables are IDENTICAL. Telling the model the systems assign
+  // different rulers is a fabricated astrological claim.
+  it('never claims the two systems assign different sign rulers', async () => {
     const { buildDivergencePlan } = await import('../interpretation-engine')
     const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
-    expect(plan.candidates.some(c => c.reasons.some(r => /rules an Ascendant|dignity changes|tight major aspect/.test(r)))).toBe(true)
+    const text = buildInterpretationContext(calculateDualChart(MODERN_BIRTH), 'synthesis', 'diverge')
+    expect(text).not.toMatch(/system-specific rulers differ/i)
+    expect(plan.candidates.flatMap(c => c.reasons).join(' ')).not.toMatch(/system-specific rulers/i)
+    // A changed ruler is described as a consequence of the changed sign.
+    const rulerReasons = plan.candidates.flatMap(c => c.reasons).filter(r => /sign ruler/.test(r))
+    expect(rulerReasons.length).toBeGreaterThan(0)
+    for (const r of rulerReasons) expect(r).toContain('follows the sign')
+  })
+
+  // The synthesis sections receive ONLY this plan, so anything absent from it
+  // is a fact the model does not have and cannot use.
+  it('supplies the facts the shared rules require: degree, retrogradation, nakshatra, outers and nodes', async () => {
+    const text = buildInterpretationContext(calculateDualChart(MODERN_BIRTH), 'synthesis', 'diverge')
+    expect(text).toMatch(/\d+°\d{2}'/)                      // cusp rule needs degrees
+    expect(text).toMatch(/Pada \d/)                          // Jyotish grain
+    for (const body of ['Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu']) {
+      expect(text).toContain(body)
+    }
+    expect(text).toMatch(/Vimshottari dasha|No dasha timing/)
+  })
+
+  it("never prints an impossible arcminute (fmtDeg's 60' carry)", async () => {
+    for (let year = 1955; year <= 2005; year += 2) {
+      const text = buildInterpretationContext(calculateDualChart({ ...MODERN_BIRTH, year }), 'synthesis', 'diverge')
+      expect(text).not.toMatch(/°60'/)
+    }
+  })
+
+  it('ranks by interpretive weight and structural size, never by degree gap', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
     expect(plan.candidates.map(c => c.score)).toEqual([...plan.candidates.map(c => c.score)].sort((a, b) => b - a))
+    // A Lagna sign change renumbers every house — it can never rank out of depth.
+    const asc = plan.candidates.find(c => c.subject === 'Ascendant')
+    if (asc) expect(plan.allocation.diverge).toContain(asc.id)
+  })
+
+  // THE LAW: divergences that did not make the depth cut stay named.
+  it('names the unwalked divergences rather than dropping them', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
+    const text = buildInterpretationContext(calculateDualChart(MODERN_BIRTH), 'synthesis', 'diverge')
+    expect(plan.allocation.diverge.length).toBeLessThanOrEqual(4)
+    expect(plan.remaining.length).toBeGreaterThan(0)
+    expect(text).toContain('STILL UNRESOLVED')
+    for (const id of plan.remaining) expect(text).toContain(id)
+  })
+
+  // Codex's allocation gave diverge, tension and closing the same top-2 ids, so
+  // the same placements were the subject of three consecutive sections while
+  // the rubric scored that as repetition.
+  it('gives the tension section the links between divergences, not a re-list', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
+    expect(plan.allocation.tension.some(id => id.startsWith('A-'))).toBe(true)
   })
 
   it('excludes time-dependent houses, angles and ranking when birth time is unknown', async () => {
@@ -201,17 +291,29 @@ describe('shared Divergence evidence plan', () => {
     const plan = buildDivergencePlan(chart)
     const text = buildInterpretationContext(chart, 'synthesis', 'diverge')
     expect(plan.evidence.find(e => e.id === 'L-BIRTH-TIME')?.summary).toContain('angles, houses, angle-derived ranking')
-    expect(plan.candidates.flatMap(c => c.reasons)).not.toContain('reliable house changes')
-    expect(text).not.toMatch(/Tropical ASC:|Sidereal Lagna:|MC SHIFT| H\d/)
+    expect(plan.candidates.flatMap(c => c.reasons).join(' ')).not.toMatch(/house changes/)
+    expect(plan.candidates.some(c => c.subject === 'Ascendant' || c.subject === 'Midheaven')).toBe(false)
+    expect(text).not.toMatch(/ H\d/)
     expect(text).toContain('Moon degree and any very tight Moon aspect as timing-sensitive')
   })
 
-  it('allows fewer than three substantial differences', async () => {
+  it('allows fewer than three substantial divergences, and manufactures none', async () => {
     const { buildDivergencePlan } = await import('../interpretation-engine')
     const chart = calculateDualChart(MODERN_BIRTH)
     const same = { ...chart, sidereal: { ...chart.tropical, system: 'sidereal' as const, planets: chart.tropical.planets.map(p => ({ ...p })) } }
     const plan = buildDivergencePlan(same)
     expect(plan.allocation.diverge).toHaveLength(0)
     expect(plan.evidence.filter(e => e.kind === 'concordance').length).toBeGreaterThan(3)
+  })
+
+  // Yogas are sidereal-chart facts. Allocating them to `agree` would present
+  // them as something both frameworks independently produced.
+  it('never allocates sidereal yogas as cross-system concordance', async () => {
+    const { buildDivergencePlan } = await import('../interpretation-engine')
+    const plan = buildDivergencePlan(calculateDualChart(MODERN_BIRTH))
+    for (const id of plan.allocation.agree) {
+      expect(plan.evidence.find(e => e.id === id)?.kind).toBe('concordance')
+    }
+    expect(plan.evidence.filter(e => e.kind === 'yoga').every(e => !plan.allocation.agree.includes(e.id))).toBe(true)
   })
 })

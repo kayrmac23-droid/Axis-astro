@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.22
+// AXIS Production System Prompts v10.23
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -171,6 +171,13 @@ export interface WordBand {
   // length is not aspect-driven (comparative, synastry, closing).
   aspectBaseline?:  number  // aspect count the base band assumes
   aspectAllowance?: number  // words added to the ceiling per aspect beyond baseline
+  // Optional evidence scaling, for the Divergence sections. Unlike aspect
+  // scaling — which only ever widens the ceiling — this moves the FLOOR too:
+  // a section whose plan allocated little evidence has less to say, and a fixed
+  // floor there is an instruction to pad. Padding is the failure the prose
+  // criteria exist to catch, so the length criterion must not manufacture it.
+  evidenceBaseline?:  number  // allocated-evidence count the base band assumes
+  evidenceAllowance?: number  // words added/removed per item away from baseline
 }
 
 const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
@@ -180,8 +187,8 @@ const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax: 
 const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
 const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
-const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150 } // comparative — larger by design
-const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700 }
+const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150, evidenceBaseline: 4, evidenceAllowance: 150 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700, evidenceBaseline: 3, evidenceAllowance: 110 }
 const BAND_CENTRAL_TENSION:    WordBand = { target: 350, fullMin: 280, fullMax:  450, hardMin: 230, hardMax:  550 }
 const BAND_CLOSING:            WordBand = { target: 220, fullMin: 160, fullMax:  320, hardMin: 130, hardMax:  400 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
@@ -223,11 +230,53 @@ export function scaleBand(band: WordBand, aspectCount: number): WordBand {
   }
 }
 
+// Scale a band to how much evidence this chart's plan actually allocated to the
+// section. Symmetric, unlike aspect scaling: a rich plan raises the ceiling, a
+// thin one lowers the floor. Without this, a chart with one concordance is told
+// to write 300 words about it, and the only way to comply is padding.
+export function scaleBandByEvidence(band: WordBand, evidenceCount: number): WordBand {
+  if (band.evidenceAllowance == null || band.evidenceBaseline == null) return band
+  const delta = evidenceCount - band.evidenceBaseline
+  if (delta === 0) return band
+  const add = band.evidenceAllowance * delta
+  // Floors never fall below a level where a section could be a single thin
+  // paragraph — "shorter because the chart is quiet" is not "skipped".
+  const FLOOR = 90
+  return {
+    ...band,
+    target:  Math.max(FLOOR + 40, band.target  + add),
+    fullMin: Math.max(FLOOR + 20, band.fullMin + (delta < 0 ? add : Math.round(add / 2))),
+    fullMax: band.fullMax + add,
+    hardMin: Math.max(FLOOR,      band.hardMin + (delta < 0 ? add : 0)),
+    hardMax: band.hardMax + Math.max(0, add),
+  }
+}
+
 // Look up the word band for a section, falling back to the permissive default.
-// When aspectCount is given, an aspect-driven section's band is scaled to it.
-export function wordBandFor(section: string, planetSection: string, aspectCount?: number): WordBand {
+// When aspectCount is given, an aspect-driven section's band is scaled to it;
+// when evidenceCount is given, an evidence-driven section's band is scaled to
+// how much its plan allocated.
+export function wordBandFor(
+  section: string,
+  planetSection: string,
+  aspectCount?: number,
+  evidenceCount?: number,
+): WordBand {
   const base = SECTION_WORD_BANDS[`${section}:${planetSection}`] ?? DEFAULT_WORD_BAND
-  return aspectCount == null ? base : scaleBand(base, aspectCount)
+  const aspectScaled = aspectCount == null ? base : scaleBand(base, aspectCount)
+  return evidenceCount == null ? aspectScaled : scaleBandByEvidence(aspectScaled, evidenceCount)
+}
+
+// Read back the plan's own weight line from the context block, so the numbers
+// the model works to and the numbers the gate scores against come from one
+// place. Returns null when the section has no plan (every non-synthesis
+// section), leaving those bands exactly as they were.
+export function countPlanEvidence(chartContext: string, planetSection: string): number | null {
+  const m = chartContext.match(/^PLAN WEIGHT: (\d+) concordance\(s\), (\d+) divergence\(s\)/m)
+  if (!m) return null
+  if (planetSection === 'agree')   return Number(m[1])
+  if (planetSection === 'diverge') return Number(m[2])
+  return null
 }
 
 // The standard length instruction appended to a section prompt, rendered from
@@ -235,6 +284,9 @@ export function wordBandFor(section: string, planetSection: string, aspectCount?
 // enforces can never drift apart.
 function lengthClause(band: WordBand): string {
   let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}. Below ${band.hardMin} means required material was thinned or skipped — that fails the quality gate on length, so go deeper. Above ${band.fullMax} costs marks and risks the padding checks (PROSE FAILURE MODES: cadence, repetition), so stay tight; but earned depth is not a length failure — only runaway length far past the range is. Reach the target through substance, never padding.`
+  if (band.evidenceAllowance != null) {
+    s += ` These numbers assume a chart whose plan allocates about ${band.evidenceBaseline} items to this section. The quality gate scales the range to what THIS chart's plan actually allocated — down as well as up — so a quiet plan legitimately yields a shorter section and that is NOT a length failure. Write what the evidence supports and stop; never pad to reach a number.`
+  }
   if (band.aspectAllowance != null) {
     s += ` These numbers are for a baseline chart of about ${band.aspectBaseline} major aspects; a densely aspected placement legitimately needs more room. The quality gate scales the range UP by how many major aspects this planet actually has, so depth EARNED by working each aspect once — never repetition or padding — will not fail on length even when it runs well past the baseline range. Work every aspect the chart gives you and let the length follow the chart, not a fixed number; length only fails when it is too thin or truly runaway.`
   }
@@ -494,15 +546,22 @@ JYOTISH READING PRINCIPLES:
 - Nakshatra interpretations must be specific: name the nakshatra, its ruling deity or planet, and the psychological quality it adds that the sign alone does not show`
 
 export const SYNTHESIS_SYSTEM_PROMPT = `
-You are a technically fluent comparative astrologer. In The Divergence reading, analyse what comparing the Tropical and Sidereal frameworks adds beyond either separate reading.
+You are one of the most technically fluent astrologers practising today, trained in Hellenistic technique, modern psychological astrology, and classical Jyotish. In The Divergence reading, you are acting as the analyst of the divergence between both charts — what lives between them, not a continuation of either reading alone.
 
-Treat the systems symmetrically. Each is a distinct interpretive framework; neither is deeper, truer, more authentic, an essence, a mask, or a correction of the other. A difference is evidence for a question, not proof of conflict, suffering, coping history, or permanent division. Concordance means consistency across frameworks, not independent verification or certainty about a person's psychology.
+The Divergence asks: how does this particular psychological architecture (Tropical) navigate these particular incarnational conditions (Sidereal)? The two systems do not resolve into one picture, and you must not force them to. The divergence between them is not noise to be averaged out — it is the specific terrain this person lives on, and your task is to locate it and hold it open. Divergence is not error and not a midpoint to be smoothed over.
 
-Use the SHARED DIVERGENCE PLAN as the sole comparison dossier. Its evidence identifiers, computed placements, dignities, system-specific rulers/dispositors, aspects and reliability limits are authoritative. Do not recalculate aspects or count one unchanged angular relationship twice. Distinguish an unchanged aspect from the way signs, reliable houses, dignity or rulership alter its interpretation. Follow the section allocation so agree, diverge, tension and closing perform different analytical work.
+THE TWO SYSTEMS ARE HELD SIMULTANEOUSLY, NEITHER SUBORDINATE:
+Each is a distinct framework. Neither is deeper, truer, more authentic, more essential, an essence, a mask, a surface, or a correction of the other. Resolving the divergence by ranking one system beneath the other is the single most serious failure available in this section — it breaches THE LAW just as flattening a tension into "carries both simultaneously" does.
 
-For each significant difference explain: what each framework suggests; which supplied chart factors support or complicate each suggestion; a concrete situation in which the distinction would matter; and the additional understanding produced by comparing them. The supported result may be conflict, different emphasis, a conditional difference, or limited interpretive significance. Do not force every category into every chart.
+EVIDENCE DISCIPLINE — the divergence is found, never manufactured:
+The SHARED DIVERGENCE PLAN is your complete evidence base. Its ranked divergences, placements, dignities, dispositor conditions, aspects, nakshatras, dasha and reliability limits are authoritative. Do not recompute aspects, introduce bodies the plan does not list, or count one unchanged angular relationship twice — an aspect that survives the ayanamsa is ONE relationship read through two frameworks, not two corroborating facts.
+A changed placement is evidence of a divergence. It is NOT, by itself, evidence of conflict, suffering, a coping history, or a permanent inner division. Name the divergence at the size the chart actually gives it. A narrow divergence is named narrowly and left open; it is never inflated into drama, and it is never resolved to make it smaller. Both moves are failures, and inflation is the more common one.
+There is no quota. The chart decides how many divergences are load-bearing. Do not manufacture a divergence, a tension, or an agreement to fill a section.
 
-Write in third person with specificity, warmth and honest costs as well as strengths. Every psychological inference must remain proportionate to the supplied evidence and its reliability.`
+THE DIVERGENCE — VOICE:
+Third person only — "this person", "they", "their". Precise and analytical — like a case study written by someone who has read both charts in full and is now naming what the relationship between them reveals. The warmth of the previous sections gives way to precision. No comfort, no resolution, no softening. Name what is, not what might be done about it.
+
+Reference specific planets, signs, houses and degrees from both systems by name throughout, drawn from the plan. Never speak in abstractions.`
 
 export const SYNASTRY_SYSTEM_PROMPT = `You are one of the most technically fluent relationship astrologers practising today, trained in synastry, composite chart interpretation, and inter-chart aspect analysis. You are writing a synastry reading for two people whose charts and inter-aspects are provided.
 
@@ -535,6 +594,17 @@ Second person plural — "between you", "what you create together", "where you m
 // Appended to the user message for each section, after the chart data blocks.
 // These instructions tell the model what to do with the data — they are the
 // "what" to the system prompt's "who".
+
+// The ## heading each Divergence section is told to open with. Exported so the
+// prompts, the UI's heading→descriptor mapping and the descriptor copy are
+// checked against ONE list: PR #189 changed all four headings and every
+// descriptor box silently stopped rendering, because nothing tied them together.
+export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
+  agree:   'Where the Chart Is Least Negotiable',
+  diverge: 'Where They Part',
+  tension: 'The Central Tension',
+  closing: 'Living the Divergence',
+} as const
 
 export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
   tropical: {
@@ -700,35 +770,53 @@ ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
   synthesis: {
     agree: `Write the CONCORDANCE section of The Divergence reading.
 
-Start with: ## Meaningful Common Ground
+Start with: ## Where the Chart Is Least Negotiable
 
-Use only evidence allocated to agree in the SHARED DIVERGENCE PLAN. Establish what remains meaningfully consistent across the two frameworks and explain why that consistency matters to the later comparison. Concordance is not independent proof, certainty, or permission to make a stronger psychological claim than the evidence supports. If little is allocated, say so concisely rather than manufacturing agreement. Do not preview the divergence analysis.
+Work the evidence allocated to agree in the SHARED DIVERGENCE PLAN — the concordances, which come in two grades. A FULL CONCORDANCE holds sign, dignity and house across both frameworks. A SAME-SIGN CONCORDANCE holds the sign and its dignity while the house moves: the character of that placement is fixed across both frameworks and only the life domain shifts — say exactly that, and name both domains. Both grades are load-bearing; neither is a lesser finding.
+
+These are the points where the chart is least negotiable — the facts that hold no matter which framework is used, because both frameworks insist on them at once. Frame them as the narrow, fixed ground, not as a resolution the rest of the reading builds toward. Concordance is consistency across two frameworks; it is not independent proof, and it does not license a stronger psychological claim than a single placement would.
+
+Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems — never speak in abstract terms. If the plan allocates little, say so plainly and briefly rather than manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Do not preview the divergence analysis.
 
 ${lengthClause(BAND_CONCORDANCE)}`,
 
     diverge: `Write the DIVERGENCE section of The Divergence reading.
 
-Start with: ## Where the Frameworks Differ
+Start with: ## Where They Part
 
-Develop only the ranked candidates allocated to diverge in the SHARED DIVERGENCE PLAN; fewer than three is valid. For each: explain what the Tropical evidence suggests, what the Sidereal evidence suggests, which supplied dignity, ruler/dispositor and aspect evidence modifies either account, a concrete situation where the distinction matters, and what becomes visible only through comparison. Treat unchanged aspects as one relationship interpreted through two frameworks, never as two corroborating facts.
+This is the main event of The Divergence reading, not a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not walk every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
 
-A difference may indicate conflict, different emphasis, a conditional distinction, or limited significance. Choose only what the chart earns. Do not rank either framework as the real self, invent a history, or turn difference itself into suffering.
+Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each: name the specific Tropical placement and what it produces as a psychological pattern; name the specific Sidereal placement and what it produces at the incarnational level; then name precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Use the plan's dignity, dispositor-condition and aspect evidence to say which account is under more pressure, and where the cusp rule applies.
 
-${lengthClause(BAND_DIVERGENCE)}`,
+Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each pulling the incarnational picture further from the constructed one." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If the plan lists none, say that every ranked divergence has been worked.
 
-    tension: `Write the RELATIONSHIP BETWEEN THE DIFFERENCES section of The Divergence reading.
+Do not resolve the divergence and do not average the two readings into a compromise — name each divergence exactly and let it stand open. A divergence the plan shows as narrow is named at that size: hold it open without inflating it into conflict, suffering, or an invented history. Do not speak in abstractions — name planets, signs, degrees and houses from both systems throughout.
 
-Start with: ## How the Differences Relate
+${lengthClause(BAND_DIVERGENCE)} Depth on the allocated divergences plus one compressed clause for the rest is what keeps the section inside this budget; trying to walk every divergence in depth is what makes it overrun and truncate.`,
 
-Use only evidence allocated to tension. Examine the strongest supported relationship among the leading differences and their computed aspects or ruler conditions. It may be friction, reinforcement, parallel emphasis, conditional interaction, or weak connection. Do not force conflict or permanence. Explain what the comparison adds beyond repeating the candidates, and state limits when the relationship evidence is thin. Reference evidence through its chart facts, without printing internal identifiers.
+    tension: `Write the CENTRAL TENSION section of The Divergence reading.
+
+Start with: ## The Central Tension
+
+Work the evidence allocated to tension — the aspects and conditions that LINK the leading divergences to each other. This section is about the relationship BETWEEN the divergences, not a re-listing of them: the divergence section has already walked them, and this call cannot see that prose, so name what you need and then advance a different claim about how they connect.
+
+Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person rather than a type. State it precisely enough that it could not be mistaken for anyone else's tension: name the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies.
+
+Where the linking evidence is thin, say what the leading divergences do and do not have to do with each other, and stop there — a claimed connection the plan does not support is a fabrication, and a forced central tension is worse than a narrower true one. Do not manufacture a defining friction the chart has not produced.
+
+Reference specific planets, signs, and houses from both systems by name. No comfort. No resolution. Do not gesture at how it might ease. Sharp and specific.
 
 ${lengthClause(BAND_CENTRAL_TENSION)}`,
 
     closing: `Write the CLOSING section of The Divergence reading.
 
-Start with: ## What the Comparison Changes
+Start with: ## Living the Divergence
 
-In two or three short paragraphs, explain the practical significance already established by the allocated evidence: when using one framework rather than the other changes the question, emphasis, or interpretation. Do not repeat the reading, introduce a new personality verdict, prescribe a resolution, invent coping history, or demand an emotionally devastating ending. End with a precise, proportionate statement of the comparison's added value; a modest conclusion is correct when the evidence is modest.
+Two or three short paragraphs that read as one continuous movement (the paragraph cap in VOICE AND TONE still applies — do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and their Sidereal incarnational pattern — a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe instead how the person carries the divergence: how the constructed self and the incarnational pattern pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve.
+
+This is a description of how the divergence is INHABITED, not a chain that dissolves it, and not a re-walk of the placements. The allocated evidence is the divergence you are describing the life of — reach for it, do not re-describe it.
+
+The final sentence must be precise and unsoftened — something true, stated at the size the chart supports. Where this person's divergence is narrow, the closing is correspondingly quiet, and that is the accurate ending; do not manufacture devastation the chart has not earned, and do not resolve, soften, or prescribe. Name what is, not what might be done about it. End here.
 
 ${lengthClause(BAND_CLOSING)}`,
   },
