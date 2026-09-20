@@ -11,7 +11,7 @@
     "test:smoke": "AXIS_LIVE_SMOKE=1 vitest run src/lib/__tests__/reading-pipeline-smoke.test.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.124.0",
+    "@anthropic-ai/sdk": "^0.126.0",
     "@upstash/redis": "^1.38.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
