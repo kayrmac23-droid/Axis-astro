@@ -1,7 +1,8 @@
 // Reading cache — deduplicates identical chart+section requests.
 //
 // Cache key includes: normalized birth data, reading section, planetSection,
-// READING_PROMPT_VERSION, and fixed methodology constants (ayanamsa, house system).
+// READING_PROMPT_VERSION, fixed methodology constants (ayanamsa, house system),
+// and a digest of the earlier sections the section was written after.
 // When prompts change, bump READING_PROMPT_VERSION to invalidate all prior entries.
 //
 // Storage: Upstash Redis (REST API). Requires UPSTASH_REDIS_REST_URL and
@@ -31,7 +32,12 @@ import type { BirthData } from '@/lib/astro-calc'
 // degrees, retrogradation, nakshatras, outer planets, nodes, dasha and yogas are
 // all supplied now — so every prior cached Divergence was generated from a
 // materially different evidence base and must be invalidated.
-export const READING_PROMPT_VERSION = 'v10.23'
+// v10.24: sections are no longer written in isolation. Each is generated after
+// the reading so far (reading-thread.ts) under the ONE CONTINUOUS READING rule,
+// which replaced SELF-COMPLETE SECTIONS; the Sidereal reading is written after
+// the whole Tropical one and The Divergence after both. Every prior entry was
+// written blind to the sections around it.
+export const READING_PROMPT_VERSION = 'v10.24'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
@@ -78,6 +84,10 @@ interface CacheKeyParams {
   // and the READOUT rail re-derived Pluto live on every visit — the exact
   // surface-to-surface drift readout.ts exists to prevent.
   plutoSource?:  string
+  // Digest of the earlier sections this one was written after (see
+  // reading-thread.ts priorDigest). A section is only reusable after the exact
+  // text it was written to follow; '' for the opening section or no thread.
+  priorDigest?:  string
 }
 
 export function makeSynastryCacheKey({
@@ -101,7 +111,7 @@ export function makeSynastryCacheKey({
   return 'axis:synastry:' + createHash('sha256').update(JSON.stringify(key)).digest('hex').slice(0, 40)
 }
 
-export function makeCacheKey({ birth, section, planetSection, plutoSource }: CacheKeyParams): string {
+export function makeCacheKey({ birth, section, planetSection, plutoSource, priorDigest }: CacheKeyParams): string {
   // Normalize birth data to ensure equivalent inputs produce identical keys.
   // - lat/lon: 2 decimal places (~1.1 km, sufficient for astrological precision)
   // - tz: 2 decimal places (handles half/quarter-hour offsets like IST +5.5)
@@ -122,6 +132,7 @@ export function makeCacheKey({ birth, section, planetSection, plutoSource }: Cac
     ayanamsa:         'lahiri',
     houseSystem:      'whole-sign',
     plutoSource:      plutoSource ?? 'local-meeus',
+    prior:            priorDigest ?? '',
   }
   return 'axis:reading:' + createHash('sha256')
     .update(JSON.stringify(normalized))

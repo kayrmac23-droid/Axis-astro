@@ -27,6 +27,7 @@ import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpr
 import { SHARED_RULES, TROPICAL_SYSTEM_PROMPT, SECTION_INSTRUCTIONS } from '@/lib/prompts'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import { isAnthropicKeyConfigured } from '@/lib/env'
+import { priorSectionBlocks, READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 
 const LIVE = process.env.AXIS_LIVE_SMOKE === '1' && isAnthropicKeyConfigured()
 
@@ -60,7 +61,15 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
         max_tokens: MAX_TOKENS_PER_SECTION.key_aspects,
         thinking:   THINKING,
         system:     systemBlocks,
-        messages:   [{ role: 'user', content: userContent }],
+        // The threaded shape the route sends for every section after the first:
+        // one block per earlier section (third cache breakpoint on the last),
+        // then this section's own context.
+        messages:   [{ role: 'user', content: [
+          ...priorSectionBlocks([
+            { section: 'tropical', planetSection: 'sun', text: '## The Sun\n\nA short stand-in for the Sun section the reader has already read.' },
+          ]),
+          { type: 'text', text: `${READING_SO_FAR_FOOTER}\n\n${userContent}` },
+        ] }],
       })
 
       // A request-shape rejection (unsupported param, bad model id, malformed

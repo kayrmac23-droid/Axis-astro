@@ -6,6 +6,20 @@ import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type 
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
 import { detectStreamError, ReadingUnavailableError } from '@/lib/reading-stream'
+import { NATAL_SECTION_ORDER } from '@/lib/reading-order'
+
+// A reading-thread id (see reading-thread.ts): one per cast chart, so each
+// section is written after the ones already read. crypto.randomUUID exists only
+// in secure contexts, and the dev server is often reached over plain http on a
+// LAN address, so fall back to a v4 UUID built from getRandomValues.
+function newThreadId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+  const b = crypto.getRandomValues(new Uint8Array(16))
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('')
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`
+}
 
 interface ReadingPanelProps {
   chartData: DualChartData
@@ -176,11 +190,8 @@ function parseReading(text: string, section: string): Block[] {
   return blocks
 }
 
-const PLANET_SECTIONS = {
-  tropical: ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
-  sidereal: ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
-  synthesis: ['agree', 'diverge', 'tension', 'closing']
-}
+type SystemSectionKey = keyof typeof NATAL_SECTION_ORDER
+const PLANET_SECTIONS: Record<SystemSectionKey, readonly string[]> = NATAL_SECTION_ORDER
 
 // A placement = one ## heading and the prose that follows it, until the next
 // heading. Blocks before the first heading (rare) form a lead group with no body.
@@ -267,6 +278,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const [liveStatus, setLiveStatus] = useState('')
 
   const abortRef = useRef<AbortController | null>(null)
+  // The reading thread for the chart currently on screen. Replaced whenever a new
+  // chart's reading starts; retries reuse it so they are written in continuity.
+  const threadIdRef = useRef<string>('')
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
 
@@ -323,6 +337,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
                 plutoSource: chartData.plutoSource,
                 section: sec,
                 planetSection: planetSec,
+                threadId: threadIdRef.current,
               }),
               signal: combinedSignal
             })
@@ -424,13 +439,16 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     }
   }, [chartData])
 
-  // Sequential generation: tropical → sidereal → synthesis
+  // Sequential generation: tropical → sidereal → synthesis. The order is what the
+  // reading thread follows: Sidereal is written after all of Tropical, and The
+  // Divergence after both.
   // Synchronous state resets happen in the effect body; async work is deferred
   // to setTimeout(0) so it runs outside the effect's synchronous frame.
   useEffect(() => {
     abortRef.current?.abort()
     const controller = new AbortController()
     abortRef.current = controller
+    threadIdRef.current = newThreadId()
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabStatus({ tropical: 'pending', sidereal: 'pending', synthesis: 'pending' })
@@ -505,6 +523,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             plutoSource: chartData.plutoSource,
             section: sec,
             planetSection: planetSec,
+            threadId: threadIdRef.current,
           }),
           signal: combinedSignal
         })
