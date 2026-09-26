@@ -13,6 +13,10 @@ import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-q
 import { classifyGenerationError } from '@/lib/reading-stream'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
+import {
+  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, priorSectionsText,
+  priorDigest, READING_SO_FAR_FOOTER, type ThreadScope, type PriorSection,
+} from '@/lib/reading-thread'
 
 export const maxDuration = 120
 
@@ -128,6 +132,9 @@ export async function POST(req: NextRequest) {
       plutoSourceB?: unknown
       section?: string
       planetSection?: string
+      // Reading-thread id (reading-thread.ts). Optional: without it the section is
+      // written as the opening of a reading, exactly as before threading existed.
+      threadId?: unknown
     }
 
     const { section, planetSection } = body
@@ -175,6 +182,18 @@ export async function POST(req: NextRequest) {
     const overrideA     = buildPlutoOverride(body.plutoLongitudeA, body.plutoSourceA)
     const overrideB     = buildPlutoOverride(body.plutoLongitudeB, body.plutoSourceB)
 
+    // ── Reading thread ─────────────────────────────────────────────────────────
+    // Natal sections only: synastry is not threaded. The earlier sections are
+    // loaded before the cache check because they are part of the cache key.
+    const threadId = section === 'synastry' ? null : parseThreadId(body.threadId)
+    const thread: ThreadScope | null = threadId
+      ? { threadId, birth: birthData!, plutoSource: plutoOverride?.plutoSource }
+      : null
+    const prior: PriorSection[] = thread ? await loadPriorSections(thread, section, planetSection) : []
+    const remember = async (text: string) => {
+      if (thread) await storeThreadSection(thread, section, planetSection, text)
+    }
+
     const systemPrompt      = SYSTEM_PROMPT_MAP[section]
     const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
     if (!systemPrompt || !sectionInstruction) {
@@ -196,7 +215,9 @@ export async function POST(req: NextRequest) {
       birthData?.birthTimeUnknown === true &&
       (planetSection === 'ascendant' || planetSection === 'lagna')
     ) {
-      return new Response(unknownTimeAngleNotice(planetSection), {
+      const notice = unknownTimeAngleNotice(planetSection)
+      await remember(notice)
+      return new Response(notice, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' },
       })
     }
@@ -211,9 +232,13 @@ export async function POST(req: NextRequest) {
           birthA: birthA!, birthB: birthB!, section, planetSection,
           plutoSourceA: overrideA?.plutoSource, plutoSourceB: overrideB?.plutoSource,
         })
-      : makeCacheKey({ birth: birthData!, section, planetSection, plutoSource: plutoOverride?.plutoSource })
+      : makeCacheKey({
+          birth: birthData!, section, planetSection, plutoSource: plutoOverride?.plutoSource,
+          priorDigest: priorDigest(prior),
+        })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
+      await remember(cached)
       return new Response(cached, {
         headers: { 'Content-Type': 'text/plain; charset=utf-8' }
       })
@@ -287,6 +312,16 @@ export async function POST(req: NextRequest) {
       userContent = `${ctxBlock}\n\n---\n\n${sectionInstruction}`
     }
 
+    // The reading so far goes in front of this section's chart context: one block
+    // per earlier section (prompt-cache friendly, see priorSectionBlocks), then
+    // this section's own context and instruction. The gate gets the same content
+    // as one string so it can judge repetition and repair in continuity.
+    const userBlocks: Anthropic.TextBlockParam[] = [
+      ...priorSectionBlocks(prior),
+      { type: 'text', text: prior.length > 0 ? `${READING_SO_FAR_FOOTER}\n\n${userContent}` : userContent },
+    ]
+    const gateContext = `${priorSectionsText(prior)}${userContent}`
+
     const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
     // Cache the per-section-type system prompt too: it is stable across every
     // request for a given section, so a second cache breakpoint here shaves
@@ -322,7 +357,7 @@ export async function POST(req: NextRequest) {
             max_tokens:  maxTokens,
             thinking:    THINKING,
             system:      systemBlocks,
-            messages:    [{ role: 'user', content: userContent }],
+            messages:    [{ role: 'user', content: userBlocks }],
           })
 
           let firstText = ''
@@ -340,6 +375,10 @@ export async function POST(req: NextRequest) {
           if (truncated) {
             controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
           }
+
+          // Into the thread BEFORE close: the client requests the next section
+          // the instant this stream ends, and that request must find this text.
+          await remember(firstText)
 
           // The reader has the whole section from here on. Everything below only
           // decides what lands in the 30-day cache.
@@ -368,13 +407,14 @@ export async function POST(req: NextRequest) {
               console.log(
                 `[AXIS_LEN] section=${section}/${planetSection} words=${countWords(firstText)} ` +
                 `band=${lenBand.fullMin}-${lenBand.fullMax} hardMax=${lenBand.hardMax} ` +
-                `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason}`
+                `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason} ` +
+                `prior=${prior.length}`
               )
 
               const verdict = await gateForCache({
                 firstPassText: firstText,
                 truncated,
-                chartContext:  userContent,
+                chartContext:  gateContext,
                 section,
                 planetSection,
                 systemBlocks,

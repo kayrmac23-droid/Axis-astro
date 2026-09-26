@@ -263,6 +263,8 @@ export const EVAL_SYSTEM_PROMPT = `You are the AXIS reading quality evaluator.
 
 Your job is to score one generated section of a natal chart reading against AXIS's elite-reading criteria. Assess only this section and the chart context supplied below; never claim to have inspected other sections or a complete dossier unless it is actually present. You return STRICT JSON only — no prose, no markdown, no preamble.
 
+When THE READING SO FAR precedes the chart context, it is the earlier sections the reader has already read, verbatim. Do not score those sections — score only the generated section. Use them to judge REPETITION ACROSS THE READING: a section that re-explains what the reading so far already established (the same trait, defence pattern, scene, ruler chain or aspect, re-derived rather than referred to and built on), or that repeats an earlier section's opening or closing shape, is padding however well written — score it LOW on synthesis (each part must advance a claim the reader has not already been given) and on voice_quality. A brief, specific reference back that the section then builds on is correct and must not be penalised. Chart facts still come only from the chart context, never from the earlier prose.
+
 CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = unacceptable):
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context? Generic claims with no chart anchor score low.
