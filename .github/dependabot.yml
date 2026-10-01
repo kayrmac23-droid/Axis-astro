@@ -3,8 +3,8 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 3
     # Major versions (React 19, TypeScript 7, ESLint 10, Vitest 5, ...) need a
     # deliberate migration, so they are skipped here and upgraded by hand.
     ignore:
@@ -25,5 +25,10 @@ updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-    open-pull-requests-limit: 3
+      interval: monthly
+    open-pull-requests-limit: 1
+    # One PR for all workflow actions. Ungrouped, github/codeql-action/init and
+    # /analyze arrive as two separate PRs for what must be a single version bump.
+    groups:
+      github-actions:
+        patterns: ['*']
