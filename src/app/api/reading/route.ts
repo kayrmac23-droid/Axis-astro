@@ -3,7 +3,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor } from '@/lib/prompts'
-import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
+import { buildInterpretationContext, formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
@@ -14,7 +14,7 @@ import { classifyGenerationError } from '@/lib/reading-stream'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import {
-  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, priorSectionsText,
+  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, priorSectionsText, phrasesAlreadyUsedBlock,
   priorDigest, READING_SO_FAR_FOOTER, type ThreadScope, type PriorSection,
 } from '@/lib/reading-thread'
 
@@ -227,6 +227,12 @@ export async function POST(req: NextRequest) {
     // the reading was generated against, and JPL vs the Meeus fallback can differ
     // by enough to change Pluto's sign near a boundary. Keying on it stops a
     // Meeus-era reading being served for 30 days beside a JPL wheel.
+    // The natal chart is computed here, ahead of the cache check, because the
+    // Sidereal and Divergence keys carry the current dasha period — computed
+    // from today's date — so a cached section can never name a period that has
+    // since ended. The calculation is pure and fast; it is reused below.
+    const dual = section === 'synastry' ? null : calculateDualChart(birthData!, plutoOverride)
+    const dasha = dual && (section === 'sidereal' || section === 'synthesis') ? currentDashaKey(dual) : ''
     const cacheKey = section === 'synastry'
       ? makeSynastryCacheKey({
           birthA: birthA!, birthB: birthB!, section, planetSection,
@@ -234,7 +240,7 @@ export async function POST(req: NextRequest) {
         })
       : makeCacheKey({
           birth: birthData!, section, planetSection, plutoSource: plutoOverride?.plutoSource,
-          priorDigest: priorDigest(prior),
+          priorDigest: priorDigest(prior), dasha,
         })
     const cached = await getCachedReading(cacheKey)
     if (cached) {
@@ -270,12 +276,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Recalculate chart server-side ──────────────────────────────────────────
-    // Pluto: the canonical JPL longitude is consumed from the caller when present
-    // and validated (see buildPlutoOverride) so the reading interprets the exact
-    // Pluto the user sees; otherwise it falls back to local Meeus (no outbound JPL
-    // call in this hot path). Every other planet position, plus angles and houses,
-    // is computed server-side from birthData and is never client-supplied.
+    // ── Assemble the prompt from the server-side chart ─────────────────────────
+    // The natal chart (`dual`, computed above ahead of the cache check) and the
+    // synastry charts below are computed server-side from birthData and never
+    // client-supplied. Pluto: the canonical JPL longitude is consumed from the
+    // caller when present and validated (see buildPlutoOverride) so the reading
+    // interprets the exact Pluto the user sees; otherwise it falls back to local
+    // Meeus (no outbound JPL call in this hot path).
+    //
+    // Refrains and verbal tics the reading so far already leans on are named so
+    // this section is told not to repeat them (empty for an opening section).
+    const repeatBlock = phrasesAlreadyUsedBlock(prior)
+    const priorText = prior.map(p => p.text).join('\n\n')
     let userContent: string
     if (section === 'synastry') {
       const dualA      = calculateDualChart(birthA!, overrideA)
@@ -292,24 +304,21 @@ export async function POST(req: NextRequest) {
         userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
       }
     } else if (section === 'tropical') {
-      const dual       = calculateDualChart(birthData!, plutoOverride)
-      const ctxBlock   = buildInterpretationContext(dual, 'tropical', planetSection)
-      const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
-      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
+      const ctxBlock   = buildInterpretationContext(dual!, 'tropical', planetSection, { priorText })
+      const chartBlock = formatEliteChartBlock(dual!.tropical, 'tropical')
+      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
     } else if (section === 'sidereal') {
-      const dual       = calculateDualChart(birthData!, plutoOverride)
-      const ctxBlock   = buildInterpretationContext(dual, 'sidereal', planetSection)
-      const chartBlock = formatEliteChartBlock(dual.sidereal, 'sidereal')
-      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
+      const ctxBlock   = buildInterpretationContext(dual!, 'sidereal', planetSection, { priorText })
+      const chartBlock = formatEliteChartBlock(dual!.sidereal, 'sidereal')
+      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
     } else {
       // synthesis — needs both chart systems
-      const dual          = calculateDualChart(birthData!, plutoOverride)
-      const ctxBlock      = buildInterpretationContext(dual, 'synthesis', planetSection)
+      const ctxBlock      = buildInterpretationContext(dual!, 'synthesis', planetSection)
       // The shared plan is deliberately the sole comparison dossier. Appending
       // two full chart blocks here used to reintroduce unreliable houses/angles
       // for unknown birth times and invited two parallel readings rather than a
       // comparison of computed evidence.
-      userContent = `${ctxBlock}\n\n---\n\n${sectionInstruction}`
+      userContent = `${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
     }
 
     // The reading so far goes in front of this section's chart context: one block

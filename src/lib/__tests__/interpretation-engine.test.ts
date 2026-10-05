@@ -102,7 +102,7 @@ describe('computeAscendantAspects', () => {
 describe('Ascendant interpretation context', () => {
   const chart = calculateDualChart(MODERN_BIRTH)
 
-  for (const [section, planetSection] of [['tropical', 'ascendant'], ['sidereal', 'lagna']] as const) {
+  for (const [section, planetSection] of [['tropical', 'ascendant']] as const) {
     it(`emits an aspect block for ${section}:${planetSection}`, () => {
       const ctx = buildInterpretationContext(chart, section, planetSection)
       // The header must be present whether or not the chart yields aspects: an
@@ -123,6 +123,18 @@ describe('Ascendant interpretation context', () => {
       if (listed > 0) expect(countAspectsInContext(ctx)).toBe(listed)
     })
   }
+
+  // The Lagna is read in the Jyotish frame: drishti and occupants, not Western
+  // degree aspects (those are frame-invariant and belong to the Tropical reading).
+  it('gives the Lagna Jyotish relationships, not Western aspects', () => {
+    const ctx = buildInterpretationContext(chart, 'sidereal', 'lagna')
+    expect(ctx).not.toContain('ASPECTS (tightest first):')
+    expect(ctx).toContain('GRAHA RELATIONSHIPS RECEIVED')
+    expect(ctx).toContain('HOUSE LORDS (from this Lagna')
+    const listed = (ctx.match(/^• (The Lagna receives|\w+ occupies the Lagna)/gm) ?? []).length
+    if (listed === 0) expect(ctx).toMatch(/^• None — no planet occupies the Lagna/m)
+    expect(countAspectsInContext(ctx)).toBe(listed)
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
