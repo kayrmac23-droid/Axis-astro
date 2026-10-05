@@ -76,6 +76,21 @@ describe('countAspectsInContext ↔ interpretation-engine format coupling', () =
     // Sidereal Lagna matters more: BAND_SIDEREAL_PRIMARY declares
     // aspectBaseline/aspectAllowance, so this count actually scales the band.
     // (BAND_PRIMARY, the tropical Ascendant band, still declares no scaling.)
-    expect(countAspectsInContext(chartContext('sidereal', 'lagna'))).toBeGreaterThan(0)
+    // The Lagna is read through Jyotish drishti and occupants, emitted under
+    // GRAHA RELATIONSHIPS RECEIVED in the same bullet shape; a "• None" line is
+    // an absence and must count as zero.
+    const lagna = chartContext('sidereal', 'lagna')
+    expect(lagna).toContain('GRAHA RELATIONSHIPS RECEIVED')
+    const lagnaBullets = lagna.split('\n').filter(l => /^• (The Lagna receives|\w+ occupies the Lagna)/.test(l)).length
+    expect(countAspectsInContext(lagna)).toBe(lagnaBullets)
+  })
+
+  it('counts Sidereal planet relationships from the Jyotish block', () => {
+    for (const s of ['sun', 'moon', 'venus', 'mars', 'jupiter_saturn'] as const) {
+      const ctx = chartContext('sidereal', s)
+      expect(ctx).not.toContain('ASPECTS (tightest first):')
+      const bullets = ctx.split('\n').filter(l => /^• (Conjunct \(same sign\)|Receives the )/.test(l)).length
+      expect(countAspectsInContext(ctx)).toBe(bullets)
+    }
   })
 })

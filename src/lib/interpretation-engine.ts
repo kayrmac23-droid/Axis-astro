@@ -337,10 +337,20 @@ export interface DashaInfo {
   mahadasha: string
   mahaDashaEndDate: string  // YYYY-MM
   antardasha: string
+  antarDashaStartDate: string // YYYY-MM
   antarDashaEndDate: string // YYYY-MM
+  // Whole days since the antardasha began / until it ends. A reading that names
+  // "the current antardasha" days after a boundary is technically right and
+  // practically fragile: one arcminute of Moon moves a boundary by ~9 days.
+  daysSinceAntarStart: number
+  daysToAntarEnd: number
 }
 
-export function computeVimshottariDasha(chartData: DualChartData): DashaInfo | null {
+// Within this many days of an antardasha boundary, the context flags the
+// sub-period as transitional so the reading names it as such.
+export const DASHA_TRANSITION_DAYS = 60
+
+export function computeVimshottariDasha(chartData: DualChartData, now: number = Date.now()): DashaInfo | null {
   const moon = chartData.sidereal.planets.find(p => p.name === 'Moon')
   if (!moon || !moon.nakshatra) return null
 
@@ -366,7 +376,6 @@ export function computeVimshottariDasha(chartData: DualChartData): DashaInfo | n
 
   // When the starting dasha actually began (before birth by elapsedYears)
   const firstDashaStartMS = birthMS - elapsedYears * MS_PER_YEAR
-  const now = Date.now()
 
   let t      = firstDashaStartMS
   let lordI  = dashaLordIdx
@@ -415,12 +424,41 @@ export function computeVimshottariDasha(chartData: DualChartData): DashaInfo | n
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   }
 
+  const MS_PER_DAY = 24 * 3600 * 1000
   return {
     mahadasha,
-    mahaDashaEndDate:  fmtDate(mahaDashaEndMS),
+    mahaDashaEndDate:    fmtDate(mahaDashaEndMS),
     antardasha,
-    antarDashaEndDate: fmtDate(antarEndMS),
+    antarDashaStartDate: fmtDate(at),
+    antarDashaEndDate:   fmtDate(antarEndMS),
+    daysSinceAntarStart: Math.floor((now - at) / MS_PER_DAY),
+    daysToAntarEnd:      Math.floor((antarEndMS - now) / MS_PER_DAY),
   }
+}
+
+// The dasha context block, shared by every sidereal section that carries it.
+// The current period is computed from today's date, so it is also folded into
+// the reading cache key (see reading-cache.ts) — a cached section must never
+// name a period that has since ended.
+function formatDashaBlock(dasha: DashaInfo): string[] {
+  const lines = [
+    'ACTIVE VIMSHOTTARI DASHA:',
+    `Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`,
+    `Antardasha: ${dasha.antardasha} (from ${dasha.antarDashaStartDate} until ${dasha.antarDashaEndDate})`,
+  ]
+  if (dasha.daysSinceAntarStart <= DASHA_TRANSITION_DAYS) {
+    lines.push(`⚠ TRANSITION: the ${dasha.antardasha} antardasha began only ~${dasha.daysSinceAntarStart} days ago. If you name it, say the sub-period has just changed; do not describe it as long-established. Dasha boundaries are sensitive to the Moon's exact degree (one arcminute moves them by about nine days).`)
+  } else if (dasha.daysToAntarEnd <= DASHA_TRANSITION_DAYS) {
+    lines.push(`⚠ TRANSITION: the ${dasha.antardasha} antardasha ends in ~${dasha.daysToAntarEnd} days. If you name it, say it is closing; do not describe it as the settled current chapter.`)
+  }
+  lines.push('Note: reference this dasha where it genuinely illuminates the current chapter; do not force it into every section.')
+  return lines
+}
+
+// The current period as a short stable string, for the reading cache key.
+export function currentDashaKey(chartData: DualChartData, now: number = Date.now()): string {
+  const d = computeVimshottariDasha(chartData, now)
+  return d ? `${d.mahadasha}/${d.antardasha}` : ''
 }
 
 // ── YOGA DETECTION ────────────────────────────────────────────────────────────
@@ -480,22 +518,269 @@ export function detectMajorYogas(chart: ChartData): string[] {
     }
   }
 
-  // Viparita Raja Yoga — 6th/8th/12th lords placed in dusthana houses
+  // Viparita Raja Yogas — each is formed by ONE dusthana lord placed in a
+  // dusthana: Harsha (6th lord), Sarala (8th lord), Vimala (12th lord). The
+  // former check demanded two such lords at once, which silently dropped every
+  // chart that has exactly one — the common case.
+  const VIPARITA: Array<[number, string]> = [[6, 'Harsha'], [8, 'Sarala'], [12, 'Vimala']]
   const DUSTHANAS = [6, 8, 12]
-  const dusthanaLords = DUSTHANAS.map(h => signLord(houseSign(h))).filter(Boolean)
-  const placed: string[] = []
-
-  for (const dl of dusthanaLords) {
-    const p = chart.planets.find(pl => pl.name === dl)
-    if (p && DUSTHANAS.includes(p.house)) {
-      placed.push(`${dl} in House ${p.house}`)
-    }
-  }
-  if (placed.length >= 2) {
-    yogas.push(`Viparita Raja Yoga: ${placed.join(', ')} — difficulty-house lords confined in difficulty houses; potential for unexpected advancement through adversity`)
+  for (const [h, name] of VIPARITA) {
+    const lord = signLord(houseSign(h))
+    const p = chart.planets.find(pl => pl.name === lord)
+    if (!p || !DUSTHANAS.includes(p.house)) continue
+    const otherHouses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].filter(x => x !== h && signLord(houseSign(x)) === lord)
+    const also = otherHouses.length > 0 ? ` (${lord} also rules House ${otherHouses.join(' and ')}, which the placement colours too)` : ''
+    yogas.push(`${name} Yoga (a Viparita Raja Yoga): ${lord}, lord of House ${h}, placed in House ${p.house}${also} — a difficulty-house lord confined in a difficulty house; classically, adversity in that domain turns to advantage. Name it at that size; it is not a promise of ease`)
   }
 
   return yogas
+}
+
+// ── JYOTISH TECHNIQUE ─────────────────────────────────────────────────────────
+// The Sidereal reading is labelled as Jyotish, so its evidence must be Jyotish:
+// graha drishti (whole-sign planetary aspect), same-sign conjunction, house
+// lordship from the Lagna, sign relationship by natural friendship, and the
+// classical neecha-bhanga checks. Western degree aspects are frame-invariant
+// (the same angles in both zodiacs), so feeding them to the Sidereal sections
+// only produced a second telling of the Tropical aspects.
+
+const GRAHAS = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] as const
+
+// Naisargika maitri — Parashara's natural friendships.
+const NATURAL_RELATIONS: Record<string, { friends: string[]; enemies: string[] }> = {
+  Sun:     { friends: ['Moon', 'Mars', 'Jupiter'],  enemies: ['Venus', 'Saturn'] },
+  Moon:    { friends: ['Sun', 'Mercury'],           enemies: [] },
+  Mars:    { friends: ['Sun', 'Moon', 'Jupiter'],   enemies: ['Mercury'] },
+  Mercury: { friends: ['Sun', 'Venus'],             enemies: ['Moon'] },
+  Jupiter: { friends: ['Sun', 'Moon', 'Mars'],      enemies: ['Mercury', 'Venus'] },
+  Venus:   { friends: ['Mercury', 'Saturn'],        enemies: ['Sun', 'Moon'] },
+  Saturn:  { friends: ['Mercury', 'Venus'],         enemies: ['Sun', 'Moon', 'Mars'] },
+}
+
+const VEDIC_EXALTATION: Record<string, string> = {
+  Sun: 'Aries', Moon: 'Taurus', Mars: 'Capricorn', Mercury: 'Virgo',
+  Jupiter: 'Cancer', Venus: 'Pisces', Saturn: 'Libra',
+}
+const VEDIC_DEBILITATION: Record<string, string> = {
+  Sun: 'Libra', Moon: 'Scorpio', Mars: 'Cancer', Mercury: 'Pisces',
+  Jupiter: 'Capricorn', Venus: 'Virgo', Saturn: 'Aries',
+}
+// Moolatrikona sign and degree range within it.
+const MOOLATRIKONA: Record<string, { sign: string; from: number; to: number }> = {
+  Sun: { sign: 'Leo', from: 0, to: 20 },        Moon: { sign: 'Taurus', from: 4, to: 30 },
+  Mars: { sign: 'Aries', from: 0, to: 12 },     Mercury: { sign: 'Virgo', from: 16, to: 20 },
+  Jupiter: { sign: 'Sagittarius', from: 0, to: 10 }, Venus: { sign: 'Libra', from: 0, to: 15 },
+  Saturn: { sign: 'Aquarius', from: 0, to: 20 },
+}
+
+// Special drishti, counted inclusively from the planet's own house (the 7th
+// is universal). The nodes are given none: classical sources disagree on
+// whether Rahu/Ketu cast drishti at all, so the engine does not assert one.
+const SPECIAL_DRISHTI: Record<string, number[]> = { Mars: [4, 8], Jupiter: [5, 9], Saturn: [3, 10] }
+
+const KENDRA_OFFSETS = [0, 3, 6, 9]  // 1st, 4th, 7th, 10th counted from a reference
+
+function houseFromLagna(chart: ChartData, house: number): string {
+  const lagnaIdx = SIGNS_ORDERED.indexOf(chart.ascendantSign)
+  return SIGNS_ORDERED[(lagnaIdx + house - 1) % 12]
+}
+
+// Houses this planet's drishti falls on, in the order the counts are named.
+export function drishtiHouses(planetName: string, house: number): Array<{ count: number; house: number }> {
+  if (planetName === 'Rahu' || planetName === 'Ketu') return []
+  const counts = [7, ...(SPECIAL_DRISHTI[planetName] ?? [])].sort((a, b) => a - b)
+  return counts.map(count => ({ count, house: ((house - 1 + count - 1) % 12) + 1 }))
+}
+
+// Jyotish sign status: exaltation / moolatrikona / own / debilitation, else
+// the natural relationship between the planet and the sign's lord.
+export function jyotishSignStatus(planet: PlanetPosition): string {
+  const name = planet.name
+  if (!(GRAHAS as readonly string[]).includes(name)) {
+    return 'nodal dignity is contested in classical sources — not scored; read the node through its sign lord and nakshatra lord'
+  }
+  if (VEDIC_EXALTATION[name] === planet.sign) return `exalted (uccha) in ${planet.sign}`
+  if (VEDIC_DEBILITATION[name] === planet.sign) return `debilitated (neecha) in ${planet.sign}`
+  const mt = MOOLATRIKONA[name]
+  if (mt.sign === planet.sign && planet.degree >= mt.from && planet.degree < mt.to) return `moolatrikona in ${planet.sign}`
+  const lord = SIGN_RULERS_VEDIC[planet.sign]
+  if (lord === name) return `own sign (swakshetra) in ${planet.sign}`
+  const rel = NATURAL_RELATIONS[name]
+  if (rel.friends.includes(lord)) return `friend's sign — ${planet.sign} is ruled by ${lord}, a natural friend of ${name}`
+  if (rel.enemies.includes(lord)) return `enemy's sign — ${planet.sign} is ruled by ${lord}, a natural enemy of ${name}`
+  return `neutral sign — ${planet.sign} is ruled by ${lord}, neutral to ${name}`
+}
+
+// Houses this planet rules from the Lagna.
+export function lordshipsOf(chart: ChartData, planetName: string): number[] {
+  const out: number[] = []
+  for (let h = 1; h <= 12; h++) if (SIGN_RULERS_VEDIC[houseFromLagna(chart, h)] === planetName) out.push(h)
+  return out
+}
+
+function isKendraFrom(refHouse: number, house: number): boolean {
+  return KENDRA_OFFSETS.includes(((house - refHouse) % 12 + 12) % 12)
+}
+
+// Classical neecha-bhanga (cancellation of debilitation) conditions, checked
+// from both the Lagna and the Moon. Reported as conditions met — never as a
+// verdict, because sources weigh them differently.
+export function neechaBhangaConditions(chart: ChartData, planet: PlanetPosition): string[] {
+  const debSign = VEDIC_DEBILITATION[planet.name]
+  if (!debSign || debSign !== planet.sign) return []
+  const moon = chart.planets.find(p => p.name === 'Moon')
+  const met: string[] = []
+  const where = (p: PlanetPosition | undefined): string | null => {
+    if (!p) return null
+    const refs: string[] = []
+    if (isKendraFrom(1, p.house)) refs.push('the Lagna')
+    if (moon && isKendraFrom(moon.house, p.house)) refs.push('the Moon')
+    return refs.length > 0 ? refs.join(' and from ') : null
+  }
+  const debLord = chart.planets.find(p => p.name === SIGN_RULERS_VEDIC[debSign])
+  const w1 = where(debLord)
+  if (debLord && w1) met.push(`${debLord.name}, lord of the debilitation sign ${debSign}, is in a kendra from ${w1} (${debLord.sign}, H${debLord.house})`)
+  const exSign = VEDIC_EXALTATION[planet.name]
+  const exLord = chart.planets.find(p => p.name === SIGN_RULERS_VEDIC[exSign])
+  const w2 = where(exLord)
+  if (exLord && w2) met.push(`${exLord.name}, lord of ${planet.name}'s exaltation sign ${exSign}, is in a kendra from ${w2} (${exLord.sign}, H${exLord.house})`)
+  const exaltedHere = GRAHAS.find(g => VEDIC_EXALTATION[g] === debSign)
+  const exP = exaltedHere ? chart.planets.find(p => p.name === exaltedHere) : undefined
+  const w3 = where(exP)
+  if (exP && w3) met.push(`${exP.name}, the planet exalted in ${debSign}, is in a kendra from ${w3} (${exP.sign}, H${exP.house})`)
+  return met
+}
+
+// The Jyotish evidence block for one sidereal body.
+function formatJyotishPlanetBlock(planet: PlanetPosition, chart: ChartData): string[] {
+  const lines: string[] = []
+  const others = chart.planets.filter(p => p.name !== planet.name)
+
+  lines.push(`JYOTISH SIGN STATUS: ${jyotishSignStatus(planet)}`)
+  const rules = lordshipsOf(chart, planet.name)
+  if (rules.length > 0) {
+    lines.push(`HOUSE LORDSHIP (from the ${chart.ascendantSign} Lagna): ${planet.name} rules ${rules.map(h => `H${h} (${houseFromLagna(chart, h)})`).join(' and ')} and sits in H${planet.house} — what those houses signify is carried into H${planet.house}.`)
+  }
+  const nb = neechaBhangaConditions(chart, planet)
+  if (nb.length > 0) {
+    lines.push(`NEECHA BHANGA CONDITIONS MET (classical cancellation of debilitation — sources weigh these differently; name the condition, do not declare the debilitation erased):`)
+    nb.forEach(c => lines.push(`  · ${c}`))
+  }
+  lines.push('')
+
+  // Bulleted so countAspectsInContext scales the band by the relationships
+  // actually received — the Jyotish equivalent of the Tropical aspect list.
+  lines.push(GRAHA_RELATIONS_HEADER)
+  const received: string[] = []
+  for (const o of others) {
+    if (o.name === 'Ketu' && planet.name === 'Rahu') continue
+    if (o.name === 'Rahu' && planet.name === 'Ketu') continue
+    if (o.sign === planet.sign) received.push(`• Conjunct (same sign) ${o.name} — ${o.sign} ${fmtDeg(o.degree)}, H${o.house}`)
+    for (const d of drishtiHouses(o.name, o.house)) {
+      if (d.house === planet.house) received.push(`• Receives the ${ordinal(d.count)}-house drishti of ${o.name} (from ${o.sign}, H${o.house})`)
+    }
+  }
+  if (received.length === 0) lines.push('• None — no planet shares this sign or casts drishti onto this house. Do not assert one.')
+  else lines.push(...received)
+  lines.push('')
+
+  const cast = drishtiHouses(planet.name, planet.house)
+  if (cast.length > 0) {
+    lines.push(`DRISHTI CAST BY ${planet.name.toUpperCase()}:`)
+    for (const d of cast) {
+      const tenants = chart.planets.filter(p => p.house === d.house && p.name !== planet.name).map(p => p.name)
+      lines.push(`  · ${ordinal(d.count)} from itself → H${d.house} (${houseFromLagna(chart, d.house)})${tenants.length > 0 ? `: ${tenants.join(', ')}` : ': no tenants'}`)
+    }
+    lines.push('')
+  } else if (planet.name === 'Rahu' || planet.name === 'Ketu') {
+    lines.push('DRISHTI CAST: none asserted — classical sources disagree on nodal drishti.')
+    lines.push('')
+  }
+  return lines
+}
+
+// What the Lagna itself receives, plus the full lordship table.
+function formatJyotishLagnaBlock(chart: ChartData): string[] {
+  const lines: string[] = []
+  lines.push(GRAHA_RELATIONS_HEADER)
+  const received: string[] = []
+  for (const o of chart.planets) {
+    if (o.house === 1) received.push(`• ${o.name} occupies the Lagna — ${o.sign} ${fmtDeg(o.degree)}`)
+    for (const d of drishtiHouses(o.name, o.house)) {
+      if (d.house === 1) received.push(`• The Lagna receives the ${ordinal(d.count)}-house drishti of ${o.name} (from ${o.sign}, H${o.house})`)
+    }
+  }
+  if (received.length === 0) lines.push('• None — no planet occupies the Lagna or casts drishti onto it. Do not assert one.')
+  else lines.push(...received)
+  lines.push('')
+  lines.push('HOUSE LORDS (from this Lagna — where each lord sits):')
+  for (let h = 1; h <= 12; h++) {
+    const sign = houseFromLagna(chart, h)
+    const lord = SIGN_RULERS_VEDIC[sign]
+    const lp = chart.planets.find(p => p.name === lord)
+    lines.push(`  · H${h} ${sign}: lord ${lord}${lp ? ` in H${lp.house} (${lp.sign})` : ''}`)
+  }
+  lines.push('')
+  return lines
+}
+
+export const GRAHA_RELATIONS_HEADER = 'GRAHA RELATIONSHIPS RECEIVED (Jyotish — whole-sign drishti and same-sign conjunction; Western degree aspects are NOT used in this frame):'
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return `${n}${s[(v - 20) % 10] ?? s[v] ?? s[0]}`
+}
+
+// ── CHART FACT HELPERS ────────────────────────────────────────────────────────
+
+// The model asserts weight from orbs, so it is told the weight class rather
+// than left to decide that a 7° square has "real force" or that 2.4° is "wide".
+export function orbTier(orb: number): 'tight' | 'close' | 'moderate' | 'wide' {
+  if (orb <= 2) return 'tight'
+  if (orb <= 4) return 'close'
+  if (orb <= 6) return 'moderate'
+  return 'wide'
+}
+
+// Typical daily speed per body. A planet moving at under a quarter of this is
+// near a station: an aspect it "applies" to by today's motion may never perfect.
+const TYPICAL_SPEED: Record<string, number> = {
+  Mercury: 1.2, Venus: 1.2, Mars: 0.52, Jupiter: 0.083, Saturn: 0.034,
+  Uranus: 0.012, Neptune: 0.006, Pluto: 0.004,
+}
+export function isNearStation(p: PlanetPosition): boolean {
+  const typical = TYPICAL_SPEED[p.name]
+  return typical != null && Math.abs(p.dailyMotion ?? typical) < typical * 0.25
+}
+
+// The cusp rule: within 3° of a sign boundary, the neighbouring sign is still
+// live in the placement. Returns the neighbour, or null away from a boundary.
+export function cuspNeighbour(sign: string, degree: number): string | null {
+  const i = SIGNS_ORDERED.indexOf(sign)
+  if (i < 0) return null
+  if (degree < 3) return SIGNS_ORDERED[(i + 11) % 12]
+  if (degree >= 27) return SIGNS_ORDERED[(i + 1) % 12]
+  return null
+}
+
+function cuspLine(body: string, sign: string, degree: number): string | null {
+  const n = cuspNeighbour(sign, degree)
+  if (!n) return null
+  const side = degree < 3 ? `the first 3° of ${sign}, just past ${n}` : `the last 3° of ${sign}, just short of ${n}`
+  return `⚠ CUSP: ${body} at ${sign} ${fmtDeg(degree)} sits in ${side}. Apply the CUSP RULE: read ${sign} as the placement, with ${n} still live in it. Never describe this placement as "pure", "unmixed", "uncomplicated" or "undiluted" ${sign}.`
+}
+
+// The sentence-level test for whether the reading so far already worked an
+// aspect: both planet names and an aspect word in one sentence or heading.
+const ASPECT_WORD_RE = /\b(square|squares|squaring|trine|trines|sextile|opposite|opposition|opposes|conjunct|conjunction|conjoined)\b/i
+export function aspectAlreadyWorked(priorText: string, p1: string, p2: string): boolean {
+  if (!priorText) return false
+  const n1 = new RegExp(`\\b${p1}\\b`)
+  const n2 = new RegExp(`\\b${p2}\\b`)
+  return priorText
+    .split(/(?<=[.!?])\s+|\n+/)
+    .some(s => n1.test(s) && n2.test(s) && ASPECT_WORD_RE.test(s))
 }
 
 // ── ENGINE FUNCTIONS ──────────────────────────────────────────────────────────
@@ -680,7 +965,7 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
       const other = sq.planet1 === planet.name ? sq.planet2 : sq.planet1
       const otherData = PLANET_CORE[other]
       if (otherData) {
-        conflicts.push(`${planet.name} square ${other} (orb ${sq.orb}°, ${sq.applying ? 'applying' : 'separating'}): ${planet.name}'s drive (${pData.drives}) in ongoing incompatible tension with ${other}'s function (${otherData.coreFunction}). This conflict recurs without clean resolution — generative but perpetually unresolved`)
+        conflicts.push(`${planet.name} square ${other} (orb ${sq.orb}°, ${orbTier(sq.orb)}, ${sq.applying ? 'applying' : 'separating'}): ${planet.name}'s drive (${pData.drives}) in ongoing incompatible tension with ${other}'s function (${otherData.coreFunction}). This conflict recurs without clean resolution — generative but perpetually unresolved`)
       }
     })
 
@@ -690,7 +975,7 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
       const other = opp.planet1 === planet.name ? opp.planet2 : opp.planet1
       const otherData = PLANET_CORE[other]
       if (otherData) {
-        conflicts.push(`${planet.name} opposite ${other} (orb ${opp.orb}°, ${opp.applying ? 'applying' : 'separating'}): polarisation dynamic — person tends to over-identify with ${planet.name}'s function and project ${other}'s (${otherData.coreFunction}) onto partners or external situations`)
+        conflicts.push(`${planet.name} opposite ${other} (orb ${opp.orb}°, ${orbTier(opp.orb)}, ${opp.applying ? 'applying' : 'separating'}): polarisation dynamic — person tends to over-identify with ${planet.name}'s function and project ${other}'s (${otherData.coreFunction}) onto partners or external situations`)
       }
     })
 
@@ -702,7 +987,7 @@ function buildConflicts(planet: PlanetPosition, aspects: Aspect[], _allPlanets: 
       const other = conj.planet1 === planet.name ? conj.planet2 : conj.planet1
       const otherData = PLANET_CORE[other]
       if (otherData && MALEFICS.has(other) && !MALEFICS.has(planet.name)) {
-        conflicts.push(`${planet.name} conjunct ${other} (orb ${conj.orb}°, ${conj.applying ? 'applying' : 'separating'}): close fusion with a natural malefic — ${planet.name}'s function (${pData.coreFunction}) is intensified and complicated by ${other}'s character (${otherData.coreFunction}); the energies merge rather than simply conflict, making modulation harder`)
+        conflicts.push(`${planet.name} conjunct ${other} (orb ${conj.orb}°, ${orbTier(conj.orb)}, ${conj.applying ? 'applying' : 'separating'}): close fusion with a natural malefic — ${planet.name}'s function (${pData.coreFunction}) is intensified and complicated by ${other}'s character (${otherData.coreFunction}); the energies merge rather than simply conflict, making modulation harder`)
       }
     })
 
@@ -738,10 +1023,13 @@ function buildStrengths(planet: PlanetPosition, aspects: Aspect[]): string[] {
       const otherData = PLANET_CORE[other]
       if (!otherData) return
       const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
+      // Deliberately no stock caveat ("seldom deliberately deployed", "dormant
+      // otherwise"): attached to every trine and sextile, it became a clause
+      // the model pasted onto each one, which is recital, not interpretation.
       const flavour = a.aspectName === 'Trine'
-        ? 'the two functions coordinate without effort, which is also why the combination is seldom deliberately deployed'
-        : 'the two functions coordinate only when deliberately engaged, and stay dormant otherwise'
-      strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another`)
+        ? 'the two functions coordinate without friction — say what that coordination concretely produces in this chart'
+        : 'cooperation between the two functions is available but not automatic — name the specific situation in this chart that switches it on'
+      strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°, ${orbTier(a.orb)}): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another`)
     })
 
   aspects
@@ -782,7 +1070,7 @@ function buildSituationalFrame(planet: PlanetPosition, aspects: Aspect[]): strin
     const otherData = PLANET_CORE[other]
     if (!otherData) continue
     const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
-    lines.push(`Trigger — ${a.aspectName} ${other} (orb ${a.orb}°): this pattern comes live in situations involving ${otherArena}; the ${other} contact is what activates it in lived experience, ${a.applying ? 'and the pull is intensifying (applying)' : 'as a recurring, settled-in dynamic (separating)'}.`)
+    lines.push(`Trigger — ${a.aspectName} ${other} (orb ${a.orb}°, ${orbTier(a.orb)}): this pattern comes live in situations involving ${otherArena}; the ${other} contact is what activates it in lived experience, ${a.applying ? 'and the pull is intensifying (applying)' : 'as a recurring, settled-in dynamic (separating)'}.`)
   }
 
   return lines
@@ -821,7 +1109,8 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
   const lines: string[] = []
 
   lines.push(`${system.toUpperCase()} CHART`)
-  lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1`)
+  const ascCusp = cuspNeighbour(chart.ascendantSign, chart.ascendantDegree)
+  lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1${ascCusp ? ` · CUSP (${ascCusp} boundary within 3°)` : ''}`)
   lines.push(`MC (Midheaven): ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)} · career/public axis (not the Whole Sign 10th-house cusp)`)
   lines.push('')
 
@@ -830,6 +1119,9 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
     const dig  = dignityLabel(p.name, p.sign)
     const dir  = p.retrograde ? 'retrograde ℞' : 'direct'
     let line   = `${p.name}: ${p.sign} ${fmtDeg(p.degree)} · House ${p.house} · ${dig} · ${dir}`
+    if (isNearStation(p)) line += ' · near station (barely moving)'
+    const cusp = cuspNeighbour(p.sign, p.degree)
+    if (cusp) line += ` · CUSP (${cusp} boundary within 3°)`
     if (vedic && p.nakshatra) {
       line += ` · ${p.nakshatra} Pada ${p.nakshatraPada}`
     }
@@ -942,8 +1234,10 @@ function computeMoonEvidence(moon: PlanetPosition, allAspects: Aspect[]): MoonEv
   return { attachmentIndicators, detachmentIndicators, complicatingFactors, netBalance }
 }
 
-function formatMoonEvidenceBlock(moon: PlanetPosition, chart: ChartData, focalPlanetName: string): string {
-  const allAspects  = computeAspects(chart.planets)
+function formatMoonEvidenceBlock(moon: PlanetPosition, chart: ChartData, focalPlanetName: string, withAspects = true): string {
+  // The Sidereal frame takes no Western aspects (see formatPlanetBlock): its
+  // Moon evidence is sign, house and dignity only.
+  const allAspects  = withAspects ? computeAspects(chart.planets) : []
   const evidence    = computeMoonEvidence(moon, allAspects)
   const moonDig     = computeDignity('Moon', moon.sign)
   const lines: string[] = []
@@ -977,20 +1271,30 @@ function formatMoonEvidenceBlock(moon: PlanetPosition, chart: ChartData, focalPl
   return lines.join('\n')
 }
 
-function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tropical' | 'sidereal'): string {
+function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tropical' | 'sidereal', tropical?: ChartData): string {
   const pData = PLANET_CORE[planet.name]
   const sData = SIGN_DATA[planet.sign]
   const hData = HOUSE_DATA[planet.house]
   const vedic = system === 'sidereal'
 
   const dignity  = computeDignity(planet.name, planet.sign)
-  const aspects  = computeAspects(chart.planets, [planet.name])
+  // Western degree aspects are the same angles in both zodiacs, so they belong
+  // to the Tropical reading only. The Sidereal frame gets graha drishti and
+  // same-sign conjunction instead (formatJyotishPlanetBlock) — re-feeding the
+  // Western list here is what made every Sidereal section re-walk the Tropical
+  // aspects ("square Mars still…, square Jupiter still…").
+  const aspects  = vedic ? [] : computeAspects(chart.planets, [planet.name])
   const dispositorChain = getDispositor(planet, chart.planets, vedic)
   const conflicts = buildConflicts(planet, aspects, chart.planets)
 
   const lines: string[] = []
   lines.push(`── ${planet.name.toUpperCase()} ──────────────────────────────`)
   lines.push(`Placement: ${planet.sign} ${planet.degree.toFixed(1)}° | House ${planet.house}${planet.retrograde ? ' (Retrograde ℞)' : ' (Direct)'}`)
+  if (isNearStation(planet)) {
+    lines.push(`⚠ NEAR STATION: ${planet.name} is barely moving (${Math.abs(planet.dailyMotion).toFixed(3)}°/day) — it is about to turn ${planet.retrograde ? 'direct' : 'retrograde'} or has just turned. A station is itself significant: the function is concentrated and slow to change. An aspect it "applies" to by today's motion may never perfect; do not call such an aspect intensifying or tightening.`)
+  }
+  const cusp = cuspLine(planet.name, planet.sign, planet.degree)
+  if (cusp) lines.push(cusp)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
 
   // Evidence-weighted Moon cross-reference for Sun and Mars
@@ -998,7 +1302,7 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
     const moon = chart.planets.find(p => p.name === 'Moon')
     if (moon) {
       lines.push('')
-      lines.push(formatMoonEvidenceBlock(moon, chart, planet.name))
+      lines.push(formatMoonEvidenceBlock(moon, chart, planet.name, !vedic))
     }
   }
   lines.push('')
@@ -1019,15 +1323,19 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   lines.push(dispositorChain)
   lines.push('')
 
-  if (aspects.length > 0) {
+  if (vedic) {
+    lines.push(...formatJyotishPlanetBlock(planet, chart))
+  } else if (aspects.length > 0) {
     lines.push('ASPECTS (tightest first):')
     aspects.forEach(a => {
       const other  = a.planet1 === planet.name ? a.planet2 : a.planet1
-      const appSep = a.applying ? 'applying' : 'separating'
       const otherP = chart.planets.find(p => p.name === other)
+      const stalled = a.applying && ((otherP && isNearStation(otherP)) || isNearStation(planet))
+      const appSep = stalled ? 'applying by today\'s motion but a station is near — may never perfect' : a.applying ? 'applying' : 'separating'
       const hInfo  = otherP ? ` | ${other} H${otherP.house}` : ''
-      lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${appSep}, ${a.quality})${hInfo}`)
+      lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})${hInfo}`)
     })
+    lines.push('ORB WEIGHT: tight ≤2°, close ≤4°, moderate ≤6°, wide >6°. A wide aspect gets at most a clause: it never carries "real force" and never anchors a theme the reading returns to.')
     lines.push('')
   }
 
@@ -1051,19 +1359,42 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
     lines.push('')
   }
 
-  // Nakshatra block for sidereal
+  // Nakshatra block for sidereal. Lord and deity are labelled apart because the
+  // model conflated them ("Vishnu-ruled" Shravana — its lord is the Moon).
   if (vedic && planet.nakshatra) {
     const nData = NAKSHATRA_DATA[planet.nakshatra]
-    if (nData) {
-      lines.push(`NAKSHATRA CONTEXT — ${planet.nakshatra.toUpperCase()} (Pada ${planet.nakshatraPada}):`)
-      lines.push(`Ruler: ${nData.ruler} | Deity: ${nData.deity}`)
-      lines.push(`Theme: ${nData.theme}`)
-      lines.push(`Psychological quality: ${nData.psychologicalQuality}`)
-      lines.push('')
-    }
+    if (nData) lines.push(...formatNakshatraLines(planet.nakshatra, planet.nakshatraPada, nData))
   }
 
+  if (vedic && tropical) lines.push(...formatSignShiftLine(planet, tropical))
+
   return lines.join('\n')
+}
+
+function formatNakshatraLines(name: string, pada: number | undefined, nData: { ruler: string; deity: string; theme: string; psychologicalQuality: string }): string[] {
+  return [
+    `NAKSHATRA CONTEXT — ${name.toUpperCase()} (Pada ${pada}):`,
+    `Planetary lord (its Vimshottari ruler): ${nData.ruler} | Presiding deity: ${nData.deity}`,
+    `Name these as what they are: "${name}, ruled by ${nData.ruler}" and "presided over by ${nData.deity.split(' (')[0]}". A deity is never the nakshatra's ruler.`,
+    `Theme: ${nData.theme}`,
+    `Psychological quality: ${nData.psychologicalQuality}`,
+    '',
+  ]
+}
+
+// States the Sidereal shift as a fact instead of leaving the model to infer its
+// direction (it wrote "shifted forward a sign" for a move that, under any
+// ayanamsa, is always backward) or whether the house moved.
+function formatSignShiftLine(planet: PlanetPosition, tropical: ChartData): string[] {
+  const t = tropical.planets.find(p => p.name === planet.name)
+  if (!t) return []
+  if (t.sign === planet.sign) {
+    return [`FRAME SHIFT: same sign in both frames (${planet.sign}); Tropical H${t.house} → Sidereal H${planet.house}${t.house === planet.house ? ' (house unchanged)' : ''}.`, '']
+  }
+  return [
+    `FRAME SHIFT: Tropical ${t.sign} ${fmtDeg(t.degree)} H${t.house} → Sidereal ${planet.sign} ${fmtDeg(planet.degree)} H${planet.house}. The ayanamsa moves every position BACKWARD, so this is a move back one sign (${t.sign} → the sign before it, ${planet.sign}) — never "forward". House ${t.house === planet.house ? `is unchanged (H${planet.house} in both frames) — say so once, plainly` : `changes, H${t.house} → H${planet.house}`}.`,
+    '',
+  ]
 }
 
 function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'): string {
@@ -1078,6 +1409,8 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   const lines: string[] = []
   lines.push(`── ${vedic ? 'LAGNA' : 'ASCENDANT'} ──────────────────────────────`)
   lines.push(`${signName} ${chart.ascendantDegree.toFixed(1)}°`)
+  const cusp = cuspLine(vedic ? 'The Lagna' : 'The Ascendant', signName, chart.ascendantDegree)
+  if (cusp) lines.push(cusp)
   lines.push('')
 
   if (sData) {
@@ -1090,7 +1423,8 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   if (rulerPlanet) {
     const rulerDig   = computeDignity(rulerName, rulerPlanet.sign)
     const rulerHData = HOUSE_DATA[rulerPlanet.house]
-    lines.push(`${rulerName} is placed in ${rulerPlanet.sign} H${rulerPlanet.house}${rulerPlanet.retrograde ? ' (R)' : ''} [${rulerDig.status}]`)
+    lines.push(`${rulerName} is placed in ${rulerPlanet.sign} H${rulerPlanet.house}${rulerPlanet.retrograde ? ' (R)' : ''} [${rulerDig.status}] — that is, in the ${ordinal(rulerPlanet.house)} house counted from the ${vedic ? 'Lagna' : 'Ascendant'} as the 1st. Use this house number as given; never restate it as a distance ("N houses away").`)
+    if (vedic) lines.push(`Lagna lord's Jyotish sign status: ${jyotishSignStatus(rulerPlanet)}`)
     lines.push(`Ruler dignity: ${rulerDig.description}`)
     if (rulerHData) lines.push(`Ruler operates in: ${rulerHData.domain}`)
   }
@@ -1106,19 +1440,26 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
     lines.push('')
   }
 
+  // The Lagna takes Jyotish evidence (drishti on the 1st, occupants, the house
+  // lords), not Western degree aspects — see formatPlanetBlock.
+  if (vedic) {
+    lines.push(...formatJyotishLagnaBlock(chart))
+    return lines.join('\n')
+  }
+
   // Aspects TO the Ascendant. Uses the same 'ASPECTS (tightest first):' header and
   // bullet shape as formatPlanetBlock so countAspectsInContext() scales this
   // section's word band to what the chart actually gives it.
   const ascAspects = computeAscendantAspects(chart.ascendant, chart.planets)
   lines.push('ASPECTS (tightest first):')
   if (ascAspects.length === 0) {
-    lines.push(`• None within ${ANGLE_ORB}° orb. The ${vedic ? 'Lagna' : 'Ascendant'} is unaspected by any planet at this orb — interpret it through its sign, its ruler's condition, and any 1st-house tenants alone. Do NOT assert an aspect that is not listed here.`)
+    lines.push(`• None within ${ANGLE_ORB}° orb. The Ascendant is unaspected by any planet at this orb — interpret it through its sign, its ruler's condition, and any 1st-house tenants alone. Do NOT assert an aspect that is not listed here.`)
   } else {
     ascAspects.forEach(a => {
       const pData = PLANET_CORE[a.planet]
-      lines.push(`• ${vedic ? 'Lagna' : 'Ascendant'} ${a.glyph} ${a.planet} (orb ${a.orb}°, ${a.quality}): ${pData ? `${a.planet} — ${pData.coreFunction}. ` : ''}${a.nature}`)
+      lines.push(`• Ascendant ${a.glyph} ${a.planet} (orb ${a.orb}°, ${orbTier(a.orb)}, ${a.quality}): ${pData ? `${a.planet} — ${pData.coreFunction}. ` : ''}Aspect-type definition (reference only — derive the dynamic from this planet's sign and house, do not paraphrase the definition): ${a.nature}`)
     })
-    lines.push(`These are the ONLY aspects to the ${vedic ? 'Lagna' : 'Ascendant'}; every other planet is outside the ${ANGLE_ORB}° orb an angle carries. Work these and do not assert any other.`)
+    lines.push(`These are the ONLY aspects to the Ascendant; every other planet is outside the ${ANGLE_ORB}° orb an angle carries. Work these and do not assert any other.`)
   }
   lines.push('')
 
@@ -1465,11 +1806,21 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
   }
 }
 
+export interface InterpretationContextOptions {
+  // The reading so far (verbatim earlier sections). Lets the key-aspects
+  // section be told which aspects an earlier section already worked.
+  priorText?: string
+  // Clock for the dasha period; defaults to now. Injected by tests.
+  now?: number
+}
+
 export function buildInterpretationContext(
   chartData: DualChartData,
   section: 'tropical' | 'sidereal' | 'synthesis',
-  planetSection: string
+  planetSection: string,
+  options: InterpretationContextOptions = {},
 ): string {
+  const now = options.now ?? Date.now()
   const divider = '═'.repeat(60)
   const birthTimeUnknown = chartData.birthData.birthTimeUnknown === true
 
@@ -1506,18 +1857,15 @@ export function buildInterpretationContext(
     const sidAsc  = chartData.sidereal.ascendantSign
     if (tropAsc !== sidAsc) {
       lines.push('CROSS-CHART NOTE:')
-      lines.push(`Tropical ASC: ${tropAsc} | Sidereal Lagna: ${sidAsc} — sign differs between systems`)
+      lines.push(`Tropical ASC: ${tropAsc} ${fmtDeg(chartData.tropical.ascendantDegree)} | Sidereal Lagna: ${sidAsc} ${fmtDeg(chartData.sidereal.ascendantDegree)} — sign differs between systems (the ayanamsa moves it BACKWARD, ${tropAsc} → ${sidAsc}). Because houses are Whole Sign, every house number is counted from a different sign in each frame.`)
     }
 
     // Dasha and yogas for lagna section (most relevant)
     if (section === 'sidereal') {
-      const dasha = computeVimshottariDasha(chartData)
+      const dasha = computeVimshottariDasha(chartData, now)
       if (dasha) {
         lines.push('')
-        lines.push('ACTIVE VIMSHOTTARI DASHA:')
-        lines.push(`Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
-        lines.push(`Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
-        lines.push('Note: reference this dasha period where it genuinely illuminates the current life chapter; do not force it into the interpretation.')
+        lines.push(...formatDashaBlock(dasha))
       }
       const yogas = detectMajorYogas(chart)
       if (yogas.length > 0) {
@@ -1531,17 +1879,34 @@ export function buildInterpretationContext(
 
   if (planetSection === 'key_aspects') {
     const allAspects = computeAspects(chart.planets)
+    // Superlatives are computed, never left to the model: it called a 0.3°
+    // square "the tightest aspect in the entire chart" beside a 0.0° trine it
+    // had itself quoted twice.
+    if (allAspects.length > 0) {
+      const t = allAspects[0]
+      lines.push(`TIGHTEST ASPECT IN THE CHART: ${t.planet1} ${t.aspectName.toLowerCase()} ${t.planet2} (orb ${t.orb}°). No other aspect may be called the tightest, closest or most exact.`)
+      lines.push('')
+    }
     lines.push('ALL MAJOR ASPECTS (tightest first):')
     lines.push('')
     allAspects.forEach(a => {
       const p1Data = PLANET_CORE[a.planet1]
       const p2Data = PLANET_CORE[a.planet2]
       const appSep = a.applying ? 'applying' : 'separating'
-      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${a.orb}°, ${appSep}, ${a.quality})`)
+      const p1 = chart.planets.find(p => p.name === a.planet1)
+      const p2 = chart.planets.find(p => p.name === a.planet2)
+      const worked = options.priorText ? aspectAlreadyWorked(options.priorText, a.planet1, a.planet2) : false
+      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})`)
+      if (options.priorText) {
+        lines.push(worked
+          ? '  ALREADY WORKED in the reading so far — do NOT interpret it again; at most refer to it in a clause.'
+          : '  NOT YET WORKED in the reading so far — eligible for this section.')
+      }
+      if (p1 && p2) lines.push(`  Placements: ${a.planet1} ${p1.sign} H${p1.house} · ${a.planet2} ${p2.sign} H${p2.house}`)
       if (p1Data && p2Data) {
         lines.push(`  ${a.planet1}: ${p1Data.coreFunction}`)
         lines.push(`  ${a.planet2}: ${p2Data.coreFunction}`)
-        lines.push(`  Dynamic: ${a.nature}`)
+        lines.push(`  Aspect-type definition (reference only — do not paraphrase it into the prose): ${a.nature}`)
       }
       lines.push('')
     })
@@ -1553,7 +1918,7 @@ export function buildInterpretationContext(
   targetPlanets.forEach(pName => {
     const planet = chart.planets.find(p => p.name === pName)
     if (!planet) return
-    lines.push(formatPlanetBlock(planet, chart, system))
+    lines.push(formatPlanetBlock(planet, chart, system, chartData.tropical))
     lines.push('')
   })
 
@@ -1565,14 +1930,15 @@ export function buildInterpretationContext(
       const ketuCore  = PLANET_CORE['Ketu']
       lines.push('── KETU (SOUTH NODE) ─────────────────────────────')
       lines.push(`Placement: ${ketu.sign} ${ketu.degree.toFixed(1)}° | House ${ketu.house}`)
+      const ketuCusp = cuspLine('Ketu', ketu.sign, ketu.degree)
+      if (ketuCusp) lines.push(ketuCusp)
       if (ketu.nakshatra) {
-        lines.push(`Nakshatra: ${ketu.nakshatra} Pada ${ketu.nakshatraPada}`)
         const nData = NAKSHATRA_DATA[ketu.nakshatra]
-        if (nData) {
-          lines.push(`Nakshatra ruler: ${nData.ruler} | Deity: ${nData.deity}`)
-          lines.push(`Theme: ${nData.theme}`)
-          lines.push(`Quality: ${nData.psychologicalQuality}`)
-        }
+        if (nData) lines.push(...formatNakshatraLines(ketu.nakshatra, ketu.nakshatraPada, nData))
+      }
+      if (system === 'sidereal') {
+        lines.push(...formatJyotishPlanetBlock(ketu, chart))
+        lines.push(...formatSignShiftLine(ketu, chartData.tropical))
       }
       if (ketuSData) {
         lines.push('')
@@ -1609,13 +1975,10 @@ export function buildInterpretationContext(
 
   // Sidereal sections: include dasha and yoga data
   if (section === 'sidereal' && targetPlanets.length > 0) {
-    const dasha = computeVimshottariDasha(chartData)
+    const dasha = computeVimshottariDasha(chartData, now)
     if (dasha) {
       lines.push('─'.repeat(40))
-      lines.push('ACTIVE VIMSHOTTARI DASHA:')
-      lines.push(`Mahadasha: ${dasha.mahadasha} (until ${dasha.mahaDashaEndDate})`)
-      lines.push(`Antardasha: ${dasha.antardasha} (until ${dasha.antarDashaEndDate})`)
-      lines.push('Note: reference this dasha where it genuinely illuminates the current chapter; do not force it.')
+      lines.push(...formatDashaBlock(dasha))
       lines.push('')
     }
     const yogas = detectMajorYogas(chart)
