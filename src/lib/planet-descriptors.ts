@@ -63,7 +63,7 @@ export const TROPICAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
   Nodes: {
     name: 'The Lunar Nodes',
     keywords: 'developmental axis · what the self reaches into · what it learns to set down',
-    description: `The lunar nodes describe the psychological direction of growth in this lifetime — not a karmic verdict, but a structural pull along which the constructed identity stretches and matures. Rahu (North Node) names the unfamiliar territory the self is drawn toward, often awkwardly and with risk of overreach; Ketu (South Node) names the over-developed competence the self leans on by default. The nodal axis is the one psychological coordinate that names a direction inside the chart rather than a static placement.`
+    description: `The lunar nodes describe the psychological direction of growth in this lifetime — not a karmic verdict, but a structural pull along which the self stretches and matures. Rahu (North Node) names the unfamiliar territory the self is drawn toward, often awkwardly and with risk of overreach; Ketu (South Node) names the over-developed competence the self leans on by default. The nodal axis is the one psychological coordinate that names a direction inside the chart rather than a static placement.`
   }
 }
 
@@ -76,7 +76,7 @@ export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
   Sun: {
     name: 'The Sun',
     keywords: 'atma · soul-level identity · the consciousness you were handed',
-    description: `In Jyotish, the Sun represents the atma — the seat of consciousness the constructed identity forms around. Where the Tropical Sun maps how identity is organized through experience, the Sidereal Sun maps what was structurally present alongside what experience organized. The Sun's Nakshatra placement adds psychological precision the sign alone cannot provide, specifying the quality and character of the inner light rather than simply its direction.`
+    description: `In Jyotish, the Sun represents the atma — the seat of consciousness. Read with Jyotish technique — its sign status, the houses it rules, the grahas that aspect it — the Sidereal Sun gives a second account of identity, held beside the Tropical one rather than ranked against it. The Sun's Nakshatra placement adds psychological precision the sign alone cannot provide, specifying the quality and character of the inner light rather than simply its direction.`
   },
   Moon: {
     name: 'The Moon',
@@ -152,7 +152,7 @@ export const SYNTHESIS_DESCRIPTORS = {
   diverge: {
     title: 'Where They Part',
     keywords: 'layered contradictions · what the divergence means',
-    description: `Divergence is not error: it is the specific terrain this person must navigate. Where the Tropical layer names one orientation and the Sidereal layer names another, the divergence between them describes what it actually feels like to live from inside this chart — the friction between the psychological architecture and the incarnational pattern it operates in. Neither framework ranks above the other; both are held at once.`
+    description: `Divergence is not error: it is the specific terrain this person must navigate. Where the Tropical layer names one orientation and the Sidereal layer names another, the divergence between them describes what it actually feels like to live from inside this chart — the friction between the psychological architecture and the conditions the person lives inside. Neither framework ranks above the other; both are held at once.`
   },
   tension: {
     title: 'The Central Tension',

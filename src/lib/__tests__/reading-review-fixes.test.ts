@@ -12,7 +12,8 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, BANNED_META_PHRASINGS } from '@/lib/prompts'
+import { SHARED_RULES, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS } from '@/lib/prompts'
+import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 
 const BIRTH: BirthData = {
   year: 1999, month: 7, day: 23, hour: 23, minute: 45,
@@ -205,6 +206,19 @@ describe('prompt framing that produced the defects', () => {
     }
   })
 
+  it('no longer frames the two systems as a constructed self against an incarnational pattern', () => {
+    // v10.25 removed this built-vs-handed metaphor from the Sidereal prompt but it
+    // survived in the Divergence prompts and the reader-facing descriptors, where
+    // the model copies it straight into the closing section.
+    const synthesis = [SYNTHESIS_SYSTEM_PROMPT, ...Object.values(SECTION_INSTRUCTIONS.synthesis)].join('\n')
+    const descriptors = [TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS]
+      .flatMap(d => Object.values(d)).map(d => `${d.title} ${d.keywords} ${d.description}`).join('\n')
+    for (const text of [synthesis, descriptors]) {
+      expect(text).not.toMatch(/incarnational/i)
+      expect(text).not.toMatch(/constructed (self|identity|one)/i)
+    }
+  })
+
   it('no longer asks the Ascendant section for the first impression others receive', () => {
     expect(SECTION_INSTRUCTIONS.tropical.ascendant).not.toContain('first impression')
     expect(SECTION_INSTRUCTIONS.tropical.ascendant).toContain('Do not open on what other people notice')
@@ -214,5 +228,26 @@ describe('prompt framing that produced the defects', () => {
     const ctx = buildInterpretationContext(chart, 'tropical', 'moon')
     expect(ctx).not.toContain('seldom deliberately deployed')
     expect(ctx).not.toContain('stay dormant otherwise')
+  })
+})
+
+// The calibration chart in the axis-output-quality and tropical-sidereal-framework
+// skills once put this Moon in the 8th house — a quadrant-system figure AXIS never
+// computes. Pin the facts the skills quote so neither can drift from the engine.
+describe('reference chart facts quoted by the AXIS skills', () => {
+  it('places the Sun in the 5th and the Moon in the 9th in both frames (Whole Sign)', () => {
+    expect([planet('tropical', 'Sun').sign, planet('tropical', 'Sun').house]).toEqual(['Leo', 5])
+    expect([planet('sidereal', 'Sun').sign, planet('sidereal', 'Sun').house]).toEqual(['Cancer', 5])
+    expect([planet('tropical', 'Moon').sign, planet('tropical', 'Moon').house]).toEqual(['Sagittarius', 9])
+    expect([planet('sidereal', 'Moon').sign, planet('sidereal', 'Moon').house]).toEqual(['Scorpio', 9])
+  })
+
+  it('has an Aries Ascendant ruled by Mars and a Pisces Lagna whose lord is Jupiter', () => {
+    expect(formatEliteChartBlock(chart.tropical, 'tropical')).toMatch(/CHART RULER: Ascendant Aries · Ruler: Mars/)
+    expect(formatEliteChartBlock(chart.sidereal, 'sidereal')).toMatch(/LAGNA LORD: Ascendant Pisces · Ruler: Jupiter/)
+  })
+
+  it('reads the Sidereal Moon as debilitated', () => {
+    expect(jyotishSignStatus(planet('sidereal', 'Moon'))).toMatch(/debilitated/)
   })
 })
