@@ -6,7 +6,7 @@ import type { BirthData } from '@/lib/astro-calc'
 import { priorSectionsFor, NATAL_SECTION_ORDER } from '@/lib/reading-order'
 import {
   parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks,
-  priorSectionsText, priorDigest, _resetThreadMemoryForTests, READING_SO_FAR_HEADER,
+  priorDigest, _resetThreadMemoryForTests, READING_SO_FAR_HEADER,
   type ThreadScope,
 } from '@/lib/reading-thread'
 import { makeCacheKey } from '@/lib/reading-cache'
@@ -125,7 +125,6 @@ describe('prompt rendering', () => {
 
   it('renders nothing for the opening section', () => {
     expect(priorSectionBlocks([])).toEqual([])
-    expect(priorSectionsText([])).toBe('')
     expect(priorDigest([])).toBe('')
   })
 

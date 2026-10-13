@@ -14,7 +14,7 @@ import { classifyGenerationError } from '@/lib/reading-stream'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import {
-  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, priorSectionsText, phrasesAlreadyUsedBlock,
+  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, phrasesAlreadyUsedBlock,
   priorDigest, READING_SO_FAR_FOOTER, type ThreadScope, type PriorSection,
 } from '@/lib/reading-thread'
 
@@ -323,13 +323,16 @@ export async function POST(req: NextRequest) {
 
     // The reading so far goes in front of this section's chart context: one block
     // per earlier section (prompt-cache friendly, see priorSectionBlocks), then
-    // this section's own context and instruction. The gate gets the same content
-    // as one string so it can judge repetition and repair in continuity.
+    // this section's own context and instruction. The gate is handed the same
+    // prior blocks rather than a flattened string, so its evaluator and repair
+    // calls read the reading so far from the prompt cache instead of paying full
+    // price for it on every section (it judges repetition and repairs in
+    // continuity from exactly the same text).
+    const priorBlocks = priorSectionBlocks(prior)
     const userBlocks: Anthropic.TextBlockParam[] = [
-      ...priorSectionBlocks(prior),
+      ...priorBlocks,
       { type: 'text', text: prior.length > 0 ? `${READING_SO_FAR_FOOTER}\n\n${userContent}` : userContent },
     ]
-    const gateContext = `${priorSectionsText(prior)}${userContent}`
 
     const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
     // Cache the per-section-type system prompt too: it is stable across every
@@ -423,7 +426,8 @@ export async function POST(req: NextRequest) {
               const verdict = await gateForCache({
                 firstPassText: firstText,
                 truncated,
-                chartContext:  gateContext,
+                chartContext:  userContent,
+                priorBlocks,
                 section,
                 planetSection,
                 systemBlocks,

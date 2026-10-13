@@ -54,6 +54,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
+import { READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 import {
   BANNED_BARNUM_LIST,
   BANNED_RESCUE_LIST,
@@ -308,8 +309,35 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
   "falsifiability_inversion": "<constructed claim + negation when falsifiability < 3, else empty string>"
 }`
 
+// One client per instance, created on first use: a fresh client per call threw
+// away its keep-alive connection pool, so every eval/repair paid a new TLS
+// handshake. Lazy so a module import never reads the key.
+let anthropicClient: Anthropic | null = null
 function getAnthropic(): Anthropic {
-  return new Anthropic({ apiKey: getAnthropicKey() ?? undefined })
+  anthropicClient ??= new Anthropic({ apiKey: getAnthropicKey() ?? undefined })
+  return anthropicClient
+}
+
+// The evaluator's system prompt is identical on every call, so it is sent as a
+// cached block: a natal reading evaluates ~21 sections within minutes of each
+// other, and only the first should pay full price for it.
+const EVAL_SYSTEM_BLOCKS: Anthropic.TextBlockParam[] = [
+  { type: 'text', text: EVAL_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+]
+
+// The user turn for an evaluator or repair call. With no reading so far it is
+// the plain string the gate has always sent. With one, the earlier sections go
+// first as the SAME blocks the generation request sent (priorSectionBlocks, cache
+// breakpoint on the last), so the reading so far — the bulk of the input by the
+// later sections — is a cache read rather than full-price input on every call.
+function userTurn(priorBlocks: Anthropic.TextBlockParam[] | undefined, ...texts: string[]): string | Anthropic.TextBlockParam[] {
+  if (!priorBlocks || priorBlocks.length === 0) return texts.join('\n\n')
+  const [first, ...rest] = texts
+  return [
+    ...priorBlocks,
+    { type: 'text', text: `${READING_SO_FAR_FOOTER}\n\n${first}` },
+    ...rest.map((text): Anthropic.TextBlockParam => ({ type: 'text', text })),
+  ]
 }
 
 function extractText(message: Anthropic.Message): string {
@@ -381,13 +409,18 @@ export function computePassFromScores(scores: GateScores): boolean {
 
 export interface EvaluateInput {
   generatedText: string
+  // This section's own chart context and instruction. When priorBlocks is set it
+  // must NOT also carry the reading so far — that travels in priorBlocks.
   chartContext:  string
   section:       string
   planetSection: string
+  // The reading so far as cacheable blocks (priorSectionBlocks). Optional: an
+  // opening section, or a caller with no thread, sends none.
+  priorBlocks?:  Anthropic.TextBlockParam[]
 }
 
 export async function evaluateSection({
-  generatedText, chartContext, section, planetSection,
+  generatedText, chartContext, section, planetSection, priorBlocks,
 }: EvaluateInput): Promise<GateResult> {
   // Truncation is a hard, pre-scoring failure: a section that carries the
   // truncation sentinel or ends mid-sentence is incomplete and must never be
@@ -418,8 +451,8 @@ Score the generated section against the criteria and return the JSON object spec
       model:       EVAL_MODEL,
       max_tokens:  EVAL_MAX_TOKENS,
       thinking:    THINKING,
-      system:      EVAL_SYSTEM_PROMPT,
-      messages:    [{ role: 'user', content: evalUserContent }],
+      system:      EVAL_SYSTEM_BLOCKS,
+      messages:    [{ role: 'user', content: userTurn(priorBlocks, evalUserContent) }],
     })
 
     const raw = extractText(msg)
@@ -533,6 +566,9 @@ Score the generated section against the criteria and return the JSON object spec
 export interface RepairInput {
   // Same content that produced the failed first draft — chart blocks + section instructions.
   originalUserContent: string
+  // The reading so far, exactly as the generation request sent it. Passing the
+  // same blocks lets the repair read the generation's prompt cache.
+  priorBlocks?:        Anthropic.TextBlockParam[]
   systemBlocks:        Anthropic.TextBlockParam[]
   failedDraft:         string
   critique:            string
@@ -541,11 +577,9 @@ export interface RepairInput {
 }
 
 export async function repairSection({
-  originalUserContent, systemBlocks, failedDraft, critique, maxTokens, model,
+  originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model,
 }: RepairInput): Promise<string> {
-  const repairUserContent = `${originalUserContent}
-
-──────────── QUALITY-GATE REPAIR PASS ────────────
+  const repairInstruction = `──────────── QUALITY-GATE REPAIR PASS ────────────
 The first draft of this section did not meet the AXIS quality threshold. The evaluator's critique follows. Rewrite the section from scratch, addressing every point in the critique while keeping the same structure, sub-headers, and depth target.
 
 CRITIQUE TO ADDRESS:
@@ -566,7 +600,7 @@ ${failedDraft}`
     max_tokens:  maxTokens,
     thinking:    THINKING,
     system:      systemBlocks,
-    messages:    [{ role: 'user', content: repairUserContent }],
+    messages:    [{ role: 'user', content: userTurn(priorBlocks, originalUserContent, repairInstruction) }],
   })
 
   return extractText(msg)
@@ -711,7 +745,11 @@ const REPAIR_SKIP_AFTER_MS = 70_000  // a repair is a full regeneration, ~20–4
 
 export interface GateForCacheInput {
   firstPassText: string
-  chartContext:  string   // the same user content the first pass was generated from
+  // The same user content the first pass was generated from — its final block
+  // when priorBlocks is set (the reading so far is NOT repeated in here).
+  chartContext:  string
+  // The reading so far, exactly as the first pass was sent it (priorSectionBlocks).
+  priorBlocks?:  Anthropic.TextBlockParam[]
   section:       string
   planetSection: string
   systemBlocks:  Anthropic.TextBlockParam[]
@@ -762,7 +800,7 @@ function cacheIfClean(text: string, reason: string, label: string, modelCalls: n
 // Never throws: a gating failure must not surface anywhere near the request.
 export async function gateForCache(input: GateForCacheInput): Promise<GateForCacheResult> {
   const {
-    firstPassText, chartContext, section, planetSection,
+    firstPassText, chartContext, priorBlocks, section, planetSection,
     systemBlocks, maxTokens, model, startedAt, truncated,
   } = input
   const label = `${section}/${planetSection}`
@@ -792,6 +830,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   const gate = await evaluateSection({
     generatedText: firstPassText,
     chartContext,
+    priorBlocks,
     section,
     planetSection,
   })
@@ -857,6 +896,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     modelCalls++  // count the attempt: a call that throws late can still have billed
     repaired = await repairSection({
       originalUserContent: chartContext,
+      priorBlocks,
       systemBlocks,
       failedDraft: firstPassText,
       critique,
@@ -900,6 +940,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   const recheck = await evaluateSection({
     generatedText: repaired,
     chartContext,
+    priorBlocks,
     section,
     planetSection,
   })
