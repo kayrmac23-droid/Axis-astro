@@ -43,7 +43,13 @@ import type { BirthData } from '@/lib/astro-calc'
 // placement; FACT DISCIPLINE, APPLY THE RULES SILENTLY and the stacking form of
 // resolution-by-hierarchy were added to the shared rules. Every prior entry was
 // generated from a different context block and different rules.
-export const READING_PROMPT_VERSION = 'v10.25'
+// v10.26: the Divergence prompts still framed the two systems as "the constructed
+// self" versus "the incarnational pattern" — the built-vs-handed stacking metaphor
+// v10.25 removed from the Sidereal prompt, and a pairing the doctrine scan treats as
+// identity language. They now name the Sidereal frame as the conditions the person
+// lives inside, matching the Sidereal system prompt. Cached Divergence prose was
+// written to the old framing.
+export const READING_PROMPT_VERSION = 'v10.26'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
