@@ -18,6 +18,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 import { gateForCache, detectBannedPhrasings } from '../reading-quality-gate'
 import { BANNED_RESCUE_PHRASINGS, wordBandFor } from '../prompts'
+import { READING_SO_FAR_FOOTER } from '../reading-thread'
 
 // A section long enough to sit inside the tropical/sun word band, so the
 // deterministic `length` criterion is not what decides these tests.
@@ -372,5 +373,55 @@ describe('gateForCache — surgical doctrine repair targeting', () => {
     expect(r.cacheText).toBe(clean)
     const repairCall = create.mock.calls[1][0]
     expect(repairCall.messages[0].content).toContain('DOCTRINE FAILURE')
+  })
+})
+
+describe('gateForCache — the reading so far is sent cache-ready, never flattened', () => {
+  // The evaluator and the repair used to receive the reading so far as one
+  // uncached string: full-price Opus input on every section, growing with each
+  // one. They must now send the generation's own prior blocks, breakpoint intact.
+  const PRIOR: Anthropic.TextBlockParam[] = [
+    { type: 'text', text: 'THE READING SO FAR …\n\nSUN-PROSE.' },
+    { type: 'text', text: 'MOON-PROSE.', cache_control: { type: 'ephemeral' } },
+  ]
+  type Block = { type: string; text: string; cache_control?: unknown }
+
+  it('sends the evaluator a cached system prompt and the prior blocks byte-for-byte', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, priorBlocks: PRIOR, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+
+    const evalCall = create.mock.calls[0][0]
+    expect(evalCall.system).toEqual([expect.objectContaining({ cache_control: { type: 'ephemeral' } })])
+    const blocks = evalCall.messages[0].content as Block[]
+    expect(blocks.slice(0, 2)).toEqual(PRIOR)
+    // The reading so far is not repeated after the breakpoint.
+    const tail = blocks.slice(2).map(b => b.text).join('\n')
+    expect(tail).toContain('END OF THE READING SO FAR')
+    expect(tail).toContain(BASE.chartContext)
+    expect(tail).toContain(GOOD_SECTION)
+    expect(tail).not.toContain('SUN-PROSE.')
+  })
+
+  it('sends the repair the same prefix the first pass was generated from', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(2, 'Anchor the Barnum claims.'))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, priorBlocks: PRIOR, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+
+    const repairCall = create.mock.calls[1][0]
+    expect(repairCall.system).toBe(BASE.systemBlocks)
+    const blocks = repairCall.messages[0].content as Block[]
+    expect(blocks.slice(0, 2)).toEqual(PRIOR)
+    expect(blocks[2].text).toBe(`${READING_SO_FAR_FOOTER}\n\n${BASE.chartContext}`)
+    expect(blocks.slice(3).map(b => b.text).join('\n')).toContain('Anchor the Barnum claims.')
+    // The re-score of the repair rides the same cached prefix.
+    expect((create.mock.calls[2][0].messages[0].content as Block[]).slice(0, 2)).toEqual(PRIOR)
+  })
+
+  it('an opening section (no prior blocks) still sends a plain string', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, priorBlocks: [], firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(typeof create.mock.calls[0][0].messages[0].content).toBe('string')
   })
 })

@@ -169,13 +169,6 @@ export function priorSectionBlocks(prior: PriorSection[]): Anthropic.TextBlockPa
   return blocks
 }
 
-// The same content as one string, for the quality gate: its evaluator judges
-// repetition against it, and its repair pass must continue the same document.
-export function priorSectionsText(prior: PriorSection[]): string {
-  if (prior.length === 0) return ''
-  return `${READING_SO_FAR_HEADER}\n\n${prior.map(p => `${sectionHeading(p)}\n${p.text.trim()}`).join('\n\n')}\n\n${READING_SO_FAR_FOOTER}\n\n`
-}
-
 // ── Repeated phrasing ────────────────────────────────────────────────────────
 // A refrain survives "do not repeat yourself" because the model does not count:
 // one live reading said "chosen" eleven times across both frames (lifted from the
