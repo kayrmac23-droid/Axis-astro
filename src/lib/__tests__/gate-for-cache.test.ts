@@ -425,3 +425,37 @@ describe('gateForCache — the reading so far is sent cache-ready, never flatten
     expect(typeof create.mock.calls[0][0].messages[0].content).toBe('string')
   })
 })
+
+describe('gateForCache — every model call is logged with its token usage', () => {
+  const withUsage = <T extends object>(reply: T, input: number) => ({
+    ...reply,
+    stop_reason: 'end_turn',
+    usage: { input_tokens: input, output_tokens: 50, cache_read_input_tokens: 4_000, cache_creation_input_tokens: 0 },
+  })
+  const usageLines = () => (console.log as unknown as { mock: { calls: unknown[][] } }).mock.calls
+    .map(c => String(c[0])).filter(l => l.startsWith('[AXIS_USAGE]'))
+
+  it('logs the evaluation, the repair and the re-score, each under its own call kind', async () => {
+    create
+      .mockResolvedValueOnce(withUsage(evalReply(2, 'Anchor the Barnum claims.'), 101))
+      .mockResolvedValueOnce(withUsage(textReply(sectionOfWords(IN_BAND_WORDS)), 202))
+      .mockResolvedValueOnce(withUsage(evalReply(5), 303))
+
+    await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    const lines = usageLines()
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toMatch(/section=tropical\/sun call=evaluate model=claude-opus-5 in=101 cache_read=4000/)
+    expect(lines[1]).toMatch(/section=tropical\/sun call=repair model=claude-sonnet-5 in=202/)
+    expect(lines[2]).toMatch(/section=tropical\/sun call=recheck model=claude-opus-5 in=303/)
+  })
+
+  it('logs the surgical doctrine repair', async () => {
+    const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    create
+      .mockResolvedValueOnce(withUsage(evalReply(5), 10))
+      .mockResolvedValueOnce(withUsage(textReply(JSON.stringify(['A plain replacement sentence.'])), 20))
+
+    await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
+    expect(usageLines()[1]).toMatch(/section=tropical\/sun call=doctrine-repair model=claude-sonnet-5 in=20/)
+  })
+})

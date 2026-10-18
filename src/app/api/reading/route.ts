@@ -11,6 +11,7 @@ import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
 import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { classifyGenerationError } from '@/lib/reading-stream'
+import { logUsage } from '@/lib/usage-log'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import {
@@ -381,6 +382,9 @@ export async function POST(req: NextRequest) {
           }
           const firstMessage = await stream.finalMessage()
           modelCalls = 1  // first-pass generation completed; gating adds its own below
+          logUsage(`${section}/${planetSection}`, 'generate', MODEL, firstMessage.usage, {
+            stop: firstMessage.stop_reason ?? 'none', prior: prior.length,
+          })
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
           // Truncated drafts ship with the marker so the client can surface it.
