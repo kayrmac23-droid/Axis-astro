@@ -21,7 +21,10 @@ vi.mock('@anthropic-ai/sdk', () => {
           async *[Symbol.asyncIterator]() {
             yield { type: 'content_block_delta', delta: { type: 'text_delta', text } }
           },
-          finalMessage: async () => ({ stop_reason: 'end_turn' }),
+          finalMessage: async () => ({
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 1200, output_tokens: 600, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+          }),
         }
       },
       create: async () => { throw new Error('gate is not under test here') },
@@ -109,6 +112,16 @@ describe('/api/reading — sections are written after the reading so far', () =>
     await read('tropical', 'sun', '## The Sun\n\nSUN-PROSE.')
     await read('tropical', 'moon', '## The Moon\n\nMOON-PROSE.', { threadId: undefined })
     expect(lastUserBlocks()).toHaveLength(1)
+  })
+
+  it('logs the generation call with its token usage and its position in the reading', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    await read('tropical', 'sun', '## The Sun\n\nSUN-PROSE.')
+    await read('tropical', 'moon', '## The Moon\n\nMOON-PROSE.')
+    const lines = log.mock.calls.map(c => String(c[0])).filter(l => l.startsWith('[AXIS_USAGE]'))
+    expect(lines).toHaveLength(2)
+    expect(lines[1]).toMatch(/section=tropical\/moon call=generate model=\S+ in=1200 cache_read=0 cache_write=0 out=600 stop=end_turn prior=1/)
+    log.mockRestore()
   })
 
   it('a malformed thread id is ignored rather than trusted', async () => {

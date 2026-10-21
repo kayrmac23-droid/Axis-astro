@@ -55,6 +55,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
 import { READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
+import { logUsage } from '@/lib/usage-log'
 import {
   BANNED_BARNUM_LIST,
   BANNED_RESCUE_LIST,
@@ -417,10 +418,13 @@ export interface EvaluateInput {
   // The reading so far as cacheable blocks (priorSectionBlocks). Optional: an
   // opening section, or a caller with no thread, sends none.
   priorBlocks?:  Anthropic.TextBlockParam[]
+  // How this call is labelled in the [AXIS_USAGE] log: the first-pass score or
+  // the re-score of a repair.
+  usageCall?:    'evaluate' | 'recheck'
 }
 
 export async function evaluateSection({
-  generatedText, chartContext, section, planetSection, priorBlocks,
+  generatedText, chartContext, section, planetSection, priorBlocks, usageCall = 'evaluate',
 }: EvaluateInput): Promise<GateResult> {
   // Truncation is a hard, pre-scoring failure: a section that carries the
   // truncation sentinel or ends mid-sentence is incomplete and must never be
@@ -454,6 +458,7 @@ Score the generated section against the criteria and return the JSON object spec
       system:      EVAL_SYSTEM_BLOCKS,
       messages:    [{ role: 'user', content: userTurn(priorBlocks, evalUserContent) }],
     })
+    logUsage(`${section}/${planetSection}`, usageCall, EVAL_MODEL, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
     const raw = extractText(msg)
 
@@ -574,10 +579,11 @@ export interface RepairInput {
   critique:            string
   maxTokens:           number
   model:               string
+  label?:              string   // section/planetSection, for the [AXIS_USAGE] log
 }
 
 export async function repairSection({
-  originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model,
+  originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model, label = 'unknown',
 }: RepairInput): Promise<string> {
   const repairInstruction = `──────────── QUALITY-GATE REPAIR PASS ────────────
 The first draft of this section did not meet the AXIS quality threshold. The evaluator's critique follows. Rewrite the section from scratch, addressing every point in the critique while keeping the same structure, sub-headers, and depth target.
@@ -602,6 +608,7 @@ ${failedDraft}`
     system:      systemBlocks,
     messages:    [{ role: 'user', content: userTurn(priorBlocks, originalUserContent, repairInstruction) }],
   })
+  logUsage(label, 'repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
   return extractText(msg)
 }
@@ -674,6 +681,7 @@ export async function repairDoctrineSentences(
   draft: string,
   hits: string[],
   model: string,
+  label = 'unknown',   // section/planetSection, for the [AXIS_USAGE] log
 ): Promise<string> {
   const targets = doctrineRepairTargets(draft, hits)
   // A hit the segmenter cannot localise (or one whose text has already been
@@ -693,6 +701,7 @@ export async function repairDoctrineSentences(
       content: `Banned phrasing or hierarchy terms: ${hits.map(hit => `"${hit}"`).join(', ')}\n\nSentences:\n${numbered}`,
     }],
   })
+  logUsage(label, 'doctrine-repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
   const raw = extractText(msg).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
   const replacements: unknown = JSON.parse(raw)
@@ -863,7 +872,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     }
     try {
       modelCalls++
-      const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model)
+      const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model, label)
       const remainingHits = detectBannedPhrasings(repaired)
       if (remainingHits.length === 0 && !isTruncated(repaired)) {
         logGateOutcome(label, 'doctrine-repaired', gate.scores)
@@ -902,6 +911,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
       critique,
       maxTokens,
       model,
+      label,
     })
   } catch (err) {
     console.error(`[AXIS_GATE] section=${label} repair pass failed:`, err instanceof Error ? err.message : err)
@@ -943,6 +953,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     priorBlocks,
     section,
     planetSection,
+    usageCall: 'recheck',
   })
   modelCalls++
 
