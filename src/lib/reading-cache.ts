@@ -49,7 +49,13 @@ import type { BirthData } from '@/lib/astro-calc'
 // identity language. They now name the Sidereal frame as the conditions the person
 // lives inside, matching the Sidereal system prompt. Cached Divergence prose was
 // written to the old framing.
-export const READING_PROMPT_VERSION = 'v10.26'
+// v10.27: the Sun, Moon, Mercury, Venus and Mars sections each converged on the
+// same "There is a particular kind of…" opener and the same struck-fragment close.
+// Each now carries its own OPENING MODE and CLOSING MODE (per frame), the
+// existential opener is banned as a first sentence and scanned by the gate, and
+// the Moon and Venus sections are told not to share a concrete image. Cached
+// sections were written without any of that.
+export const READING_PROMPT_VERSION = 'v10.27'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

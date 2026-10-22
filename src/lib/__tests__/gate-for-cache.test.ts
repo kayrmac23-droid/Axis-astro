@@ -17,7 +17,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 }))
 
 import { gateForCache, detectBannedPhrasings } from '../reading-quality-gate'
-import { BANNED_RESCUE_PHRASINGS, wordBandFor } from '../prompts'
+import { BANNED_RESCUE_PHRASINGS, OPENER_MODES, wordBandFor } from '../prompts'
 import { READING_SO_FAR_FOOTER } from '../reading-thread'
 
 // A section long enough to sit inside the tropical/sun word band, so the
@@ -457,5 +457,61 @@ describe('gateForCache — every model call is logged with its token usage', () 
 
     await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
     expect(usageLines()[1]).toMatch(/section=tropical\/sun call=doctrine-repair model=claude-sonnet-5 in=20/)
+  })
+})
+
+describe('gateForCache — banned existential opener', () => {
+  // GOOD_SECTION with its first sentence opened on the convergent frame.
+  const OPENS_ON_FRAME = GOOD_SECTION.replace('## The Sun\n\n', '## The Sun\n\nThere is a particular kind of ')
+
+  it('fails a rubric-passing draft on the opener and sends it to the full repair with the section\'s mode', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))                                 // rubric passes on its own…
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))     // full repair
+      .mockResolvedValueOnce(evalReply(5))                                 // re-score passes
+
+    const r = await gateForCache({ ...BASE, firstPassText: OPENS_ON_FRAME, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('repaired')
+    expect(r.modelCalls).toBe(3)
+    const repairCall = create.mock.calls[1][0]
+    expect(repairCall.max_tokens).toBe(BASE.maxTokens)
+    const content = JSON.stringify(repairCall.messages[0].content)
+    expect(content).toContain('OPENER FAILURE')
+    expect(content).toContain(OPENER_MODES.tropical.sun.slice(0, 40))
+  })
+
+  it('does not take the surgical doctrine edit when an opener hit rides alongside a doctrine hit', async () => {
+    // The surgical edit only rewrites the doctrine sentence. Taken here, it would
+    // clear the scan and cache the section with the banned opener intact.
+    const dirty = `${OPENS_ON_FRAME} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('repaired')
+    expect(create.mock.calls[1][0].max_tokens).not.toBe(500)
+  })
+
+  it('does not cache a repair that still opens on the frame', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(OPENS_ON_FRAME))
+      .mockResolvedValueOnce(evalReply(5))   // the evaluator misses it; the scan does not
+
+    const r = await gateForCache({ ...BASE, firstPassText: OPENS_ON_FRAME, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBeNull()
+    expect(r.reason).toBe('repair-failed-recheck')
+    expect(r.scores?.specificity).toBeLessThan(3)
+  })
+
+  it('leaves the frame alone mid-body', async () => {
+    const midBody = `${GOOD_SECTION} There is a particular kind of quiet in the 4th house.`
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: midBody, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('passed')
+    expect(r.modelCalls).toBe(1)
   })
 })
