@@ -10,6 +10,7 @@ import {
   isTruncated,
   countAspectsInContext,
   detectRescuePhrasings,
+  detectBannedOpeners,
   evaluateSection,
   TRUNCATION_SENTINEL,
   FALSIFIABILITY_DIVERGENCE_EXAMPLE,
@@ -28,6 +29,13 @@ import {
   detectContextualHierarchy,
   SHARED_RULES,
   SHADOW_RULES,
+  SECTION_INSTRUCTIONS,
+  BANNED_OPENER_PATTERNS,
+  BANNED_OPENER_LIST,
+  OPENER_MODES,
+  CLOSER_MODES,
+  PERSONAL_PLANET_SECTIONS,
+  openerModeFor,
   wordBandFor,
   scaleBand,
 } from '../prompts'
@@ -564,5 +572,114 @@ describe('countAspectsInContext — both emitted block shapes', () => {
 
   it('returns 0 when no aspect block is present', () => {
     expect(countAspectsInContext('SIGN CHARACTER: Fire Fixed\nKeywords: warm')).toBe(0)
+  })
+})
+
+describe('detectBannedOpeners — the convergent existential opener', () => {
+  it('flags the frame as the first sentence, past both heading levels', () => {
+    const text = '## The Sun\n\n### The Sun in Leo\n\nThere is a particular kind of warmth that waits to be asked for.'
+    expect(detectBannedOpeners(text)).toEqual(['There is a particular'])
+  })
+
+  it('flags every listed variant, including the contraction and a curly apostrophe', () => {
+    expect(detectBannedOpeners('## Venus\n\nThere is a kind of attention you pay.')).toHaveLength(1)
+    expect(detectBannedOpeners("## Mars\n\nThere's something about a closed door.")).toHaveLength(1)
+    expect(detectBannedOpeners('## Mars\n\nThere’s a specific way you push.')).toHaveLength(1)
+    expect(detectBannedOpeners('## The Moon\n\nThere are moments when the room goes quiet.')).toHaveLength(1)
+  })
+
+  it('ignores the frame mid-body', () => {
+    const text = '## The Sun\n\nYou take the hard decision first. There is a particular kind of quiet after it.'
+    expect(detectBannedOpeners(text)).toEqual([])
+  })
+
+  it('ignores the frame opening a later paragraph', () => {
+    const text = '## Mercury\n\nMercury in fall slows the reply.\n\nThere is a kind of patience in that.'
+    expect(detectBannedOpeners(text)).toEqual([])
+  })
+
+  it('ignores a plain existential statement of a chart fact', () => {
+    // The Divergence legitimately counts what the plan allocated.
+    expect(detectBannedOpeners('## Where the Chart Is Least Negotiable\n\nThere is one full concordance in this chart.')).toEqual([])
+  })
+})
+
+describe('banned opener — prompt and gate parity', () => {
+  it('every example the prompt states is caught by its own pattern', () => {
+    for (const { pattern, example } of BANNED_OPENER_PATTERNS) {
+      expect(example.replace('…', ' x')).toMatch(pattern)
+    }
+  })
+
+  it('renders every example into the list, and the list into the shared rules and the evaluator', () => {
+    for (const { example } of BANNED_OPENER_PATTERNS) expect(BANNED_OPENER_LIST).toContain(example)
+    expect(SHARED_RULES).toContain(BANNED_OPENER_LIST)
+    expect(EVAL_SYSTEM_PROMPT).toContain(BANNED_OPENER_LIST)
+  })
+
+  it('a detected opener drives specificity below the pass bar', () => {
+    const scores = allScores(5)
+    expect(detectBannedOpeners('## Mars\n\nThere is something restless here.').length).toBeGreaterThan(0)
+    scores.specificity = Math.min(scores.specificity, 2)
+    expect(computePassFromScores(scores)).toBe(false)
+  })
+})
+
+describe('opening and closing modes — personal-planet sections', () => {
+  const frames = ['tropical', 'sidereal'] as const
+
+  for (const [name, modes] of [['OPENER_MODES', OPENER_MODES], ['CLOSER_MODES', CLOSER_MODES]] as const) {
+    it(`${name} gives every personal-planet section, in both frames, a distinct mode`, () => {
+      const all = frames.flatMap(f => PERSONAL_PLANET_SECTIONS.map(p => modes[f][p]))
+      expect(all.every(m => typeof m === 'string' && m.length > 0)).toBe(true)
+      expect(new Set(all).size).toBe(all.length)
+      // Distinct in substance, not only in wording: no two share a lead term.
+      for (const f of frames) {
+        const leads = PERSONAL_PLANET_SECTIONS.map(p => modes[f][p].split(' — ')[0])
+        expect(new Set(leads).size).toBe(leads.length)
+      }
+    })
+
+    it(`${name}: each section instruction carries its own mode and no other section's`, () => {
+      for (const f of frames) {
+        for (const p of PERSONAL_PLANET_SECTIONS) {
+          const instr = SECTION_INSTRUCTIONS[f][p]
+          expect(instr).toContain(modes[f][p])
+          for (const f2 of frames) for (const p2 of PERSONAL_PLANET_SECTIONS) {
+            if (f2 === f && p2 === p) continue
+            expect(instr).not.toContain(modes[f2][p2])
+          }
+        }
+      }
+    })
+  }
+
+  it('is a pure function of frame and planet, and absent elsewhere', () => {
+    expect(openerModeFor('tropical', 'venus')).toBe(OPENER_MODES.tropical.venus)
+    expect(openerModeFor('tropical', 'venus')).toBe(openerModeFor('tropical', 'venus'))
+    expect(openerModeFor('sidereal', 'mars')).toBe(OPENER_MODES.sidereal.mars)
+    expect(openerModeFor('tropical', 'ascendant')).toBeUndefined()
+    expect(openerModeFor('synthesis', 'sun')).toBeUndefined()
+  })
+
+  it('never sends a Sidereal section a Western-aspect opening or close', () => {
+    // The Sidereal frame bans Western degree aspects; a mode built on one would
+    // order the model to break that rule.
+    for (const p of PERSONAL_PLANET_SECTIONS) {
+      expect(OPENER_MODES.sidereal[p]).not.toMatch(/\b(aspect|orb|trine|square|sextile|opposition)\b/i)
+      expect(CLOSER_MODES.sidereal[p]).not.toMatch(/\b(aspect|orb|trine|square|sextile|opposition)\b/i)
+    }
+  })
+
+  it('no longer asks the secondaries to distil one observation, the instruction that produced the struck close', () => {
+    for (const p of ['mercury', 'venus', 'mars'] as const) {
+      expect(SECTION_INSTRUCTIONS.tropical[p]).not.toContain('most specific and honest observation')
+      expect(SECTION_INSTRUCTIONS.tropical[p]).not.toContain('most honest observation')
+    }
+  })
+
+  it('separates the Moon (needed for safety) from Venus (worth giving and having)', () => {
+    expect(SHARED_RULES).toContain('The Moon and Venus sections describe different things')
+    expect(SECTION_INSTRUCTIONS.tropical.venus).not.toContain('needs from intimacy')
   })
 })

@@ -64,11 +64,14 @@ import {
   BANNED_HIERARCHY_PHRASINGS,
   BANNED_META_LIST,
   BANNED_META_PHRASINGS,
+  BANNED_OPENER_LIST,
+  BANNED_OPENER_PATTERNS,
   countPlanEvidence,
   detectContextualHierarchy,
   HIERARCHY_CONTEXTUAL_TERMS,
   HIERARCHY_IDENTITY_TOKENS,
   HIERARCHY_PROXIMITY_CHARS,
+  openerModeFor,
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
@@ -252,6 +255,27 @@ export function detectRescuePhrasings(text: string): string[] {
   return hits
 }
 
+// Deterministic backstop for the convergent opener: every personal-planet
+// section independently opening on "There is a particular kind of…". Scans ONLY
+// the section's first sentence — leading "#"-heading lines and blank lines are
+// stripped — because "there is a" mid-paragraph is ordinary English. Returns the
+// matched opening text (at most one entry per pattern). A hit forces
+// `specificity` below the pass bar in evaluateSection, the same mechanism as the
+// rescue-clause backstop.
+// Exported for unit testing — pure, no behaviour change.
+export function detectBannedOpeners(text: string): string[] {
+  const lines = text.split('\n')
+  let i = 0
+  while (i < lines.length && (lines[i].trim() === '' || lines[i].trimStart().startsWith('#'))) i++
+  const opening = lines.slice(i).join('\n').trimStart().replace(/^["'“‘]+/, '')
+  const hits: string[] = []
+  for (const { pattern } of BANNED_OPENER_PATTERNS) {
+    const m = opening.match(pattern)
+    if (m) hits.push(m[0])
+  }
+  return hits
+}
+
 // A section is truncated if it carries the truncation sentinel or its prose ends
 // mid-sentence — the final non-whitespace character is not terminal punctuation.
 // Truncated sections hard-fail the gate and must never be cached.
@@ -277,7 +301,7 @@ When THE READING SO FAR precedes the chart context, it is the earlier sections t
 CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = unacceptable):
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context? Generic claims with no chart anchor score low. Score LOW for a factual claim the context contradicts: a superlative the context does not state ("the tightest aspect in the chart"), a house restated as a distance, a Sidereal shift called "forward", a wide (>6°) aspect given "real force" or made a recurring theme, a nakshatra's deity called its ruler, a cusp placement (marked ⚠ CUSP) called pure or unmixed, or Western aspects re-walked in a Sidereal section.
-2. specificity — Does the section describe recognisable lived patterns (concrete scenes, behavioural moments) from INSIDE the native's experience, rather than abstract trait labels? Score LOW for opening on what other people notice first, and for measuring the native against other people ("the gap that plagues so many people"). Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
+2. specificity — Does the section describe recognisable lived patterns (concrete scenes, behavioural moments) from INSIDE the native's experience, rather than abstract trait labels? Score LOW for opening on what other people notice first, and for measuring the native against other people ("the gap that plagues so many people"). Score LOW too for opening the section on the existential frame (${BANNED_OPENER_LIST}): it announces that a quality exists instead of naming it. Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
 3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes? Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, more authentic, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The same breach made with STACKING language counts identically: one frame built "on top of" the other, one as the "core", "engine" or "foundation", one as what the person "actually" wants, one as a defence against the other. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension. Score LOW too for a claimed conflict the supplied evidence does not earn — a changed placement is a divergence, not proof of conflict, suffering, or a coping history — and for counting one unchanged angular relationship twice as if both frameworks produced it independently. Concordance is consistency across frameworks, not independent psychological proof. A divergence the chart shows as narrow, named at that size and left open, is correct: score that as accurate, not thin. Inflating it into drama and resolving it away are both failures.
 4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault. Score LOW too for the MIRROR move — the RESCUE CLAUSE on a strength (ease → hidden strength): a plain placement or soft aspect described accurately, then followed by a trailing value-assertion that adds no astrological information, only reassurance about how valuable, rare, or underrated it is. Apply the DELETION TEST: if removing the clause leaves the astrological claim fully intact, the clause is flattery and must be flagged. Phrasings such as ${BANNED_RESCUE_LIST} are paradigm failures. A strength is legitimate ONLY as plain function ("the Pluto trine gives access to transformative experience without a hard aspect's destabilisation") or as a load-bearing mechanism against a named difficulty ("the Moon trine is what keeps the identity from fragmenting under the Neptune pressure") — never as an appended reassurance about its worth. Score LOW for the THIRD member of the same family — MANUFACTURED SHADOW: a strength followed by a flaw that is not that strength under stress but an unrelated trait bolted on to make the paragraph look balanced ("Leo warmth, but also secretly anxious" — the anxiety is not the warmth). A genuine shadow is the SAME quality in its distorted or unconscious expression ("Leo warmth hardening into needing to be central"); anything else is an invented claim with no chart behind it and is worse than leaving the shadow unstated. Conversely, score LOW for one-sided praise: a quality presented as if it had no stress-state at all. Where a placement’s distorted expression is genuinely mild, stating it plainly and briefly is correct and must NOT be penalised as thin coverage.
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
@@ -501,6 +525,16 @@ Score the generated section against the criteria and return the JSON object spec
     )
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
+
+    // Deterministic opener backstop. Applied BEFORE rubricPass, unlike the
+    // rescue clamp below: rubricPass is what routes a doctrine-only failure to
+    // the surgical sentence edit, and that edit cannot fix an opening. Left
+    // after, a section with both a doctrine hit and a banned opener would be
+    // spliced, pass the scan, and be cached with the opener intact.
+    const openerHits = detectBannedOpeners(generatedText)
+    if (openerHits.length > 0) {
+      scores.specificity = Math.min(scores.specificity, MIN_INDIVIDUAL - 1)
+    }
     const rubricPass = computePassFromScores(scores)
 
     // Deterministic rescue-clause backstop (ease → hidden strength). A literal
@@ -536,6 +570,18 @@ Score the generated section against the criteria and return the JSON object spec
     if (!pass && rescueHits.length > 0) {
       console.warn(`Reading quality gate: rescue-clause phrasing(s) detected for ${section}/${planetSection}: ${rescueHits.join('; ')}`)
       critique = `RESCUE-CLAUSE FAILURE — the section appends value-asserting reassurance to a strength instead of naming it plainly. The following phrasing(s) add no astrological information: ${rescueHits.map(p => `"${p}"`).join(', ')}. Apply the deletion test: if removing the clause leaves the astrological claim intact, cut it. Replace each with either the strength's plain function or the load-bearing mechanism it performs against a named difficulty — never reassurance about how rare, valuable, or underrated it is.\n\n${critique}`.trim()
+    }
+
+    // Name the opener and the opening this section was given, so the repair
+    // rewrites the first sentence to its mode instead of swapping in a synonym
+    // for the same frame.
+    if (!pass && openerHits.length > 0) {
+      console.warn(`Reading quality gate: banned opener detected for ${section}/${planetSection}: ${openerHits.join('; ')}`)
+      const mode = openerModeFor(section, planetSection)
+      const instead = mode
+        ? `Rewrite the opening to this section's OPENING MODE: open on ${mode}`
+        : 'Open instead on a named chart factor or the concrete moment it produces.'
+      critique = `OPENER FAILURE — the section's first sentence opens on the banned existential frame ("${openerHits[0]}…"). It announces that a quality exists instead of naming it, and every section reaching for it makes the assembled reading open the same way repeatedly. Do not substitute another existential opener (${BANNED_OPENER_LIST}). ${instead}\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater

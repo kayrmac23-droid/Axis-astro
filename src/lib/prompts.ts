@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.26
+// AXIS Production System Prompts v10.27
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -172,6 +172,96 @@ export const BANNED_META_PHRASINGS = [
 ] as const
 
 export const BANNED_META_LIST = BANNED_META_PHRASINGS.map(p => `"${p}"`).join('; ')
+
+// ── OPENING AND CLOSING SHAPE (personal-planet sections) ──────────────────────
+// Left to choose, the Sun, Moon, Mercury, Venus and Mars sections each reached
+// for the same opening — "There is a particular kind of…" — and closed on the
+// same struck aphoristic fragment. Each section is fine on its own; the
+// collision only shows once the reader reads them in a row, so no per-section
+// critic catches it. The fix is structural, not a plea to vary: every
+// personal-planet section is assigned its own opening mode and closing mode,
+// as a pure function of frame and planet, so no two can converge.
+//
+// Keyed by frame as well as planet because the frames have different evidence:
+// a Sidereal section may not name Western aspects, so the Tropical Venus mode
+// (its tightest aspect) cannot be reused there. Every mode is something the
+// context supplies for every chart; the ones that may be absent (an aspect, a
+// graha relationship) carry their fallback.
+
+export const PERSONAL_PLANET_SECTIONS = ['sun', 'moon', 'mercury', 'venus', 'mars'] as const
+export type PersonalPlanetSection = typeof PERSONAL_PLANET_SECTIONS[number]
+type NatalFrame = 'tropical' | 'sidereal'
+
+export const OPENER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, string>> = {
+  tropical: {
+    sun:     'a concrete behavioural moment — one recurring situation in which this Sun acts, told from the inside: what the person does and what sets it off. Build it from chart factors you can name; invent no durations, counts or circumstances the chart does not supply.',
+    moon:    'the need itself — the one condition this person must have in place to feel emotionally safe, stated plainly as a need. Not a scene and not a trait list; what happens when the need goes unmet comes after.',
+    mercury: "Mercury's condition — its dignity, or its sign ruler's state where the dignity is peregrine — stated as what that condition does to this person's thinking in a live exchange. Lead with the effect, never with a definition of the dignity.",
+    venus:   "the strongest modifier of this Venus — the aspect it receives with the smallest orb the context gives, naming the aspecting planet (choose it by the orbs; do not call it the tightest unless the context does), or, if it receives none, the condition of its sign ruler — stated as what that modifier does to what this person finds worth giving and worth having.",
+    mars:    'a contradiction — the pull between this Mars and one other named placement, stated as the two impulses meeting in one moment. Name the other placement; then work Mars itself.',
+  },
+  sidereal: {
+    sun:     'the nakshatra — the specific instinct it adds to this Sun that the sign alone does not show, stated as what the person does when it is active.',
+    moon:    "the Moon's Jyotish sign status, with any NEECHA BHANGA CONDITION listed, as the condition the emotional life runs inside — what it makes easy or costly about feeling safe. Not a scene.",
+    mercury: 'house lordship — the houses Mercury rules from the Lagna and the house it carries them into, stated as the concrete arenas of life its thinking is bound to.',
+    venus:   "a graha relationship — the drishti or same-sign conjunction Venus receives, naming the planet that casts it and what it does to what this person values. If the context lists none, open on Venus standing unaspected in this frame and what that leaves it to do alone.",
+    mars:    'the drishti Mars casts — the houses its sight reaches (DRISHTI CAST) — stated as what this drive does to those arenas of life.',
+  },
+}
+
+export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, string>> = {
+  tropical: {
+    sun:     "a consequence — what the Sun's central tension costs or makes possible in a situation the section has already drawn.",
+    moon:    'a misreading — something this person believes about their own emotional nature that the chart shows differently (a capacity they discount as readily as a need they misname), named through the situation in which the gap shows.',
+    mercury: 'the condition — the kind of exchange or problem in which this cognitive style works best and the kind in which it fails, as two concrete situations.',
+    venus:   'the repeat — the relational sequence most likely to recur, told as a sequence: what starts it, what the person does, where it leaves them.',
+    mars:    'practice — what this drive does the next time something is at stake, followed through to its outcome.',
+  },
+  sidereal: {
+    sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
+    moon:    "the nakshatra — its instinct named as the condition under which the Moon's emotional pattern surfaces.",
+    mercury: "the drishti — how the graha relationships Mercury receives or casts shape where its thinking is tested; if it has none, what working unaspected means for it in this frame.",
+    venus:   'lordship — the houses Venus rules from the Lagna and what valuing them costs or gives in a concrete situation.',
+    mars:    "sign status — what Mars's Jyotish sign status means functionally the next time this drive is called on.",
+  },
+}
+
+function isPersonalPlanet(planetSection: string): planetSection is PersonalPlanetSection {
+  return (PERSONAL_PLANET_SECTIONS as readonly string[]).includes(planetSection)
+}
+
+// The opening mode for a section, or undefined for a section without one. The
+// gate uses it to tell a repair how the section was supposed to open.
+export function openerModeFor(section: string, planetSection: string): string | undefined {
+  if ((section !== 'tropical' && section !== 'sidereal') || !isPersonalPlanet(planetSection)) return undefined
+  return OPENER_MODES[section][planetSection]
+}
+
+function openingClause(frame: NatalFrame, planet: PersonalPlanetSection): string {
+  const shift = frame === 'sidereal'
+    ? ' Where the sign shifted, the FRAME SHIFT is still stated first, as required above; this opening shapes the sentence that follows it.'
+    : ''
+  return `OPENING MODE — this section, and only this section, opens on ${OPENER_MODES[frame][planet]} The other personal-planet sections each open a different way; do not borrow their shape.${shift}`
+}
+
+function closingClause(frame: NatalFrame, planet: PersonalPlanetSection): string {
+  return `CLOSING MODE — the section's final paragraph closes on ${CLOSER_MODES[frame][planet]} Write it in full, fully loaded sentences; never end on a single aphoristic line or a struck fragment after a dash. The other personal-planet sections each close a different way.`
+}
+
+// The existential opener every personal-planet section converged on. Matched
+// ONLY against a section's first sentence (headings stripped): "There is a"
+// mid-paragraph is ordinary English and stays legal. Each entry pairs the
+// pattern the gate scans with the example the prompt states, so the rendered
+// ban and the scan cannot drift (the parity test matches every example against
+// its own pattern).
+export const BANNED_OPENER_PATTERNS: readonly { pattern: RegExp; example: string }[] = [
+  { pattern: /^there(?:\s+is|['’]s)\s+an?\s+(?:specific|particular|certain|distinct|distinctive|peculiar)\b/i, example: 'There is a particular…' },
+  { pattern: /^there(?:\s+is|['’]s)\s+an?\s+(?:kind|sort|type|way|quality|texture|mode)\s+of\b/i,             example: 'There is a kind of…' },
+  { pattern: /^there(?:\s+is|['’]s)\s+something\b/i,                                                          example: 'There is something…' },
+  { pattern: /^there\s+are\s+(?:moments|times|days)\b/i,                                                      example: 'There are moments…' },
+]
+
+export const BANNED_OPENER_LIST = BANNED_OPENER_PATTERNS.map(p => `"${p.example}"`).join('; ')
 
 // ── PER-SECTION WORD BUDGETS ──────────────────────────────────────────────────
 // Single source of truth for how long each section should run, shared by the
@@ -420,7 +510,7 @@ VOICE AND TONE — NON-NEGOTIABLE:
 - British spelling throughout: favour, colour, recognised, emphasise, analyse, practise (verb), licence (noun), centre, honour
 - Paragraphs must be 3–4 sentences maximum for mobile readability. One idea per paragraph, fully developed, then stop. Never accumulate observations into a dense block.
 - Concrete: show what a pattern looks like in real life, what it feels like from the inside, and what the person registers of its effect on the people around them — their reading of the room, never the room's verdict on them (PROSE FAILURE MODES #3)
-- Open each planet section with something immediately recognisable — not a definition, not a trait list, but a moment or quality that makes the reader feel seen in the first sentence. Recognition before analysis
+- Open each planet section with something immediately recognisable — not a definition, not a trait list, but a moment or quality that makes the reader feel seen in the first sentence. Recognition before analysis. Where the section instruction names an OPENING MODE, that mode decides what the first sentence is built from; it still lands as something recognisable, never as a textbook definition
 - Lead with emotional texture first, then mechanism
 - Allow one carefully chosen phrase or image per section that gives a quality its exact name — not mystical, not decorative, but precise. One. Not a pattern. If a metaphor lands once, move on — do not vary it, extend it, or echo it again in the same section. One precise image is elegant; two versions of it are redundancy.
 - Let observations flow into each other. The reading should move like a conversation, not a structured report
@@ -438,7 +528,7 @@ VOICE AND TONE — NON-NEGOTIABLE:
 PROSE FAILURE MODES — NON-NEGOTIABLE:
 These are the specific ways an AXIS reading rots from the inside. Each is a hard error, not a stylistic preference. A section can satisfy every other rule and still fail here — and when it does, it reads as prose performing depth rather than delivering it.
 
-1. CADENCE OVER CONTENT. Do not let a sentence arrive at a shape before it arrives at information. The clearest symptom is the weighted fragment dropped after a dash to close a paragraph — "…not a consolation, but a fact.", "…it already has it.", "…the wound, when it comes, is proportional." Used once, it lands. Used as a rhythm, the reader predicts it by the third instance, and predictability is the opposite of depth. Across an entire section you may close on a short aphoristic fragment AT MOST once. Vary how your paragraphs end; most should resolve on an ordinary, fully-loaded sentence, not a struck chord. If you cannot say what new information the fragment carries, cut it.
+1. CADENCE OVER CONTENT. Do not let a sentence arrive at a shape before it arrives at information. The clearest symptom is the weighted fragment dropped after a dash to close a paragraph — "…not a consolation, but a fact.", "…it already has it.", "…the wound, when it comes, is proportional." Used once, it lands. Used as a rhythm, the reader predicts it by the third instance, and predictability is the opposite of depth. Across an entire section you may close on a short aphoristic fragment AT MOST once. Vary how your paragraphs end; most should resolve on an ordinary, fully-loaded sentence, not a struck chord. If you cannot say what new information the fragment carries, cut it. The same rhythm repeats across sections as well as within one: the struck fragment is never the default way a section ends. Where the section instruction names a CLOSING MODE, the section ends that way.
 
 2. REPETITION DRESSED AS DEVELOPMENT. The chart's central quality is NAMED once. It may not be re-introduced as if freshly discovered in a later subsection. If warmth (or whatever the core note is) anchors the sign paragraph, the house paragraph and the closing must not each re-arrive at warmth as their insight wearing new clothes — that makes the subsections indistinguishable and collapses the whole reading onto a single note. Each subsection advances a DIFFERENT claim: a new mechanism, a new consequence, a new cost. Recurrence is permitted only as genuine development, never as restatement.
 
@@ -493,7 +583,9 @@ The reading is written one section at a time, in order, and every section is the
 - Never attribute to the reading so far anything it does not actually contain. Only what is in that block has been said. With no such block, nothing has been said yet: never imply otherwise.
 - Never contradict a behavioural claim the reading so far has made. If this placement complicates it, name the condition under which each holds ("when nothing is at stake…; when something is…") — never assert the opposite as a flat claim. Two flat, opposite descriptions of the same behaviour leave the reader unable to tell which is meant, and a reading that can explain any behaviour explains none.
 - Never reuse a phrase. The knowledge base and the context blocks are reference, not copy: do not lift their wording into the prose (the Leo entry's "the people they have chosen" must not become a refrain). A distinctive phrase, image or motif the reading so far has already used may not be used again; find what THIS placement adds instead. When the context lists PHRASES ALREADY USED, none of them may appear in this section.
-- Vary the shape. If earlier sections opened on a lived scene, do not open on the same kind of scene; if they closed on a certain cadence, do not close on it again. The reader is reading straight through, and a repeated shape reads as a template.
+- Vary the shape. If earlier sections opened on a lived scene, do not open on the same kind of scene; if they closed on a certain cadence, do not close on it again. The reader is reading straight through, and a repeated shape reads as a template. The Sun, Moon, Mercury, Venus and Mars sections each carry their own OPENING MODE and CLOSING MODE so that no two share a shape: follow the one given, not the shape an earlier section used.
+- Never open a section on the existential frame — banned as a first sentence: ${BANNED_OPENER_LIST}. It announces that a quality exists instead of naming it, and when every section reaches for it the reading opens the same way five times. Mid-paragraph, "there is" is ordinary English; the ban is on the opening.
+- The Moon and Venus sections describe different things. The Moon section describes what this person needs in order to feel emotionally safe; the Venus section describes what they find worth giving and worth having. They must not share a concrete image: a scene of noticing small domestic details, remembering the coffee order or quietly fixing the small thing belongs to at most one of them, and if the reading so far has already used it, to neither.
 - Continuity is not abbreviation. This section's own subject still receives its full treatment at its required depth — the Sun, Moon and Ascendant/Lagna each get the full primary portrait described in DEPTH REQUIREMENTS. Depth comes from going further into THIS placement, never from re-covering earlier ones.
 - The reading so far is what has been SAID, never a source of chart facts. Every placement, degree, house, aspect, dignity and ruler still comes only from this section's own chart data and STRUCTURED INTERPRETATION CONTEXT. In particular, a Sidereal section never imports a Tropical sign, house or ruler from the Tropical prose as if it applied in its own frame.
 
@@ -667,8 +759,10 @@ export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
 } as const
 
 // Shared by the Sidereal section prompts: the Jyotish evidence each must work,
-// and the close each must write. The close is spelled out because the v10.24
-// secondaries each ended on one aphoristic line (PROSE FAILURE MODES #1).
+// and the close Jupiter/Saturn must write. The close is spelled out because the
+// v10.24 secondaries each ended on one aphoristic line (PROSE FAILURE MODES #1);
+// the personal planets now take their own CLOSER_MODES instead, so the four
+// Sidereal secondaries no longer all close on the same mechanism.
 const SIDEREAL_EVIDENCE_TAIL = `the houses this planet rules from the Lagna and what it carries into the house it occupies (HOUSE LORDSHIP); the graha relationships it receives — drishti and same-sign conjunction — and the drishti it casts. Do not re-describe the Tropical aspects.`
 const SIDEREAL_EVIDENCE_CLAUSE = `Work the Jyotish evidence in the context: ${SIDEREAL_EVIDENCE_TAIL}`
 const SIDEREAL_CLOSE = `End with ### Putting It Together: two to four full sentences naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
@@ -681,19 +775,23 @@ Internally identify the chart's dominant story: which placements are strongest (
 
 Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
+${openingClause('tropical', 'sun')}
+
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement. This is an EVIDENCE CHECK, not a Moon interpretation. You may name the Moon's net effect on the Sun's impulse in one or two sentences — whether it confirms the Sun's reach toward relationship or overrides it toward withholding — stated as a behavioural fact ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity, or aspects here — no "Virgo Moon grounds through constancy", no unpacking the 4th-house domain, no characterising the Moon's emotional operating mode. The Moon has its own full section and has NOT been interpreted yet; building its portrait here pre-empts that section and is a scope violation. Reference the Moon only as it bears on the Sun; the moment a sentence is about the Moon rather than about the Sun-Moon behavioural cross-purpose, it belongs in the Moon section, not here.
 
-This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated — a consequence, a cost, or a capacity the preceding paragraphs set up — which may be a real strength this person undervalues, just as readily as something they misread about themselves. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
+This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
 Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
+${openingClause('tropical', 'moon')}
+
 This is the emotional architecture. Cover: the sign's emotional operating mode and what it produces in terms of instinctive trust (does this Moon extend benefit of the doubt or guard? — name both the gift and the cost); the house as the domain where emotional life plays out most intensely; every major aspect (name the aspecting planet's house, rulership, and how the dynamic shows up in close relationships and under stress); and what this Moon produces that this person believes about their own emotional nature that may not be fully accurate.
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-${lengthClause(BAND_MAJOR)} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated — an emotional gift they overlook in themselves, or something they misread about their own emotional nature — named through the kind of situation in which it actually shows up. Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
+${lengthClause(BAND_MAJOR)} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -707,29 +805,35 @@ This is a full primary portrait. ${lengthClause(BAND_PRIMARY)} Develop every sub
 
 Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
 
+${openingClause('tropical', 'mercury')}
+
 Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
-End with ### Putting It Together: 1–2 paragraphs distilling the most specific and honest observation about this cognitive style. ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'mercury')} ${lengthClause(BAND_SECONDARY)}`,
 
     venus: `Interpret Venus.
 
 Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
 
-Cover sign, house, dignity, the condition of Venus's sign ruler, and every key aspect. Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person needs from intimacy versus what they think they need, and where the relational pattern creates problems.
+${openingClause('tropical', 'venus')}
+
+Cover sign, house, dignity, the condition of Venus's sign ruler, and every key aspect. Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person finds worth giving and worth having in intimacy versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
 
 Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
 
-End with ### Putting It Together: the relational pattern most likely to repeat. ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'venus')} ${lengthClause(BAND_SECONDARY)}`,
 
     mars: `Interpret Mars.
 
 Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
 
+${openingClause('tropical', 'mars')}
+
 Cover sign, house, dignity, the condition of Mars's sign ruler, and every key aspect. Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 
-End with ### Putting It Together: the most honest observation about how this drive actually operates in practice. ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'mars')} ${lengthClause(BAND_SECONDARY)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
 
@@ -779,9 +883,11 @@ Start with: ## The Sun
 
 If the sign shifted from Tropical, open the first paragraph with the shift as its FRAME SHIFT line states it, and say what the Sidereal sign produces in its own right, beside what the Tropical sign produced — not as a correction of the Tropical reading and not as what the Tropical one was covering (resolution-by-hierarchy is banned).
 
+${openingClause('sidereal', 'sun')}
+
 ${SIDEREAL_EVIDENCE_CLAUSE} Name the Nakshatra and the specific psychological quality it adds that the sign alone does not show, using its lord, deity and theme from the context. Reference the active dasha where it illuminates the current Sun chapter.
 
-${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
+${closingClause('sidereal', 'sun')} ${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
     moon: `Interpret the Moon in the Sidereal chart.
 
@@ -789,11 +895,13 @@ Start with: ## The Moon
 
 If the sign shifted from Tropical, open with the shift as its FRAME SHIFT line states it, and read the Sidereal sign in its own right, beside the Tropical Moon — not beneath it, not truer than it, not what the Tropical Moon was protecting against (resolution-by-hierarchy is banned).
 
+${openingClause('sidereal', 'moon')}
+
 Cover: the sign's emotional orientation; the house as the domain where the instinctive life operates most intensely; Jyotish sign status, and if debilitated, any NEECHA BHANGA CONDITIONS listed (name the condition met; do not declare the debilitation erased); the Nakshatra — its lord, its deity and the quality it adds; ${SIDEREAL_EVIDENCE_TAIL}
 
 If the Tropical reading already made a behavioural claim about this Moon — how it extends or withholds trust, how it handles loss — do NOT issue the opposite claim as a flat verdict. Name the specific condition in which the Sidereal pattern surfaces, so the two accounts describe different situations rather than contradict each other. Reference the dasha where it speaks to the current emotional chapter, honouring any TRANSITION note.
 
-${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
+${closingClause('sidereal', 'moon')} ${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
     mercury: `Interpret Mercury in the Sidereal chart.
 
@@ -801,7 +909,9 @@ Start with: ## Mercury
 
 Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra and what precision it adds. Cover sign, house and Jyotish sign status — the instinctive cognitive style. ${SIDEREAL_EVIDENCE_CLAUSE}
 
-${SIDEREAL_CLOSE} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+${openingClause('sidereal', 'mercury')}
+
+End with ### Putting It Together. ${closingClause('sidereal', 'mercury')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     venus: `Interpret Venus in the Sidereal chart.
 
@@ -809,7 +919,9 @@ Start with: ## Venus
 
 Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra and its specific quality. Cover sign, house and Jyotish sign status — the relational nature this frame describes, beside the Tropical Venus rather than beneath it (resolution-by-hierarchy is banned). ${SIDEREAL_EVIDENCE_CLAUSE}
 
-${SIDEREAL_CLOSE} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+${openingClause('sidereal', 'venus')}
+
+End with ### Putting It Together. ${closingClause('sidereal', 'venus')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     mars: `Interpret Mars in the Sidereal chart.
 
@@ -817,7 +929,9 @@ Start with: ## Mars
 
 Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra. Cover sign, house and Jyotish sign status — if own sign, exalted or debilitated, state it and what it means functionally for how this drive operates. ${SIDEREAL_EVIDENCE_CLAUSE}
 
-${SIDEREAL_CLOSE} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+${openingClause('sidereal', 'mars')}
+
+End with ### Putting It Together. ${closingClause('sidereal', 'mars')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 
