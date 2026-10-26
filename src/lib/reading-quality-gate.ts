@@ -826,6 +826,12 @@ export interface GateForCacheResult {
   scores:     GateScores | null
   repaired:   boolean
   reason:     string
+  // The evaluator's verdict on the FIRST PASS, before any repair — null when no
+  // evaluation ran (truncated, gate disabled, out of budget). `scores` above is
+  // the repair's re-score on the repaired / repair-failed-recheck paths, so this
+  // is the only record of how the first pass itself scored. Read by the batch
+  // eval harness (scripts/eval-readings.mjs); the route ignores it.
+  firstPass:  GateResult | null
 }
 
 // One greppable line per gated section. This is the only place gate scores are
@@ -845,9 +851,9 @@ function cacheIfClean(text: string, reason: string, label: string, modelCalls: n
   const hits = detectBannedPhrasings(text)
   if (hits.length > 0) {
     console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} hits=${hits.join('|')}`)
-    return { cacheText: null, modelCalls, scores: null, repaired: false, reason: `${reason}+doctrine-hit` }
+    return { cacheText: null, modelCalls, scores: null, repaired: false, reason: `${reason}+doctrine-hit`, firstPass: null }
   }
-  return { cacheText: text, modelCalls, scores: null, repaired: false, reason }
+  return { cacheText: text, modelCalls, scores: null, repaired: false, reason, firstPass: null }
 }
 
 // Decide what — if anything — this section should leave behind in the cache.
@@ -864,7 +870,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // place — it has to be regenerated in full, so spending an eval call on it
   // would buy nothing.
   if (truncated || firstPassText.trim().length === 0 || isTruncated(firstPassText)) {
-    return { cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'truncated-or-empty' }
+    return { cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'truncated-or-empty', firstPass: null }
   }
 
   // Kill switch, mirroring AXIS_READINGS_ENABLED: gating roughly doubles the model
@@ -901,7 +907,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   if (!needsRepair) {
     const reason = gate.evaluatorErrored ? 'passed-evaluator-errored' : 'passed'
     logGateOutcome(label, reason, gate.scores)
-    return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason }
+    return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason, firstPass: gate }
   }
 
   // If the rubric passes and only the deterministic doctrine scan objects, edit
@@ -914,7 +920,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   if (gate.rubricPass && !gate.evaluatorErrored && gate.scores != null && bannedHits.length > 0) {
     if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
       logGateOutcome(label, 'failed-doctrine-repair-skipped-budget', gate.scores)
-      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-skipped-budget' }
+      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-doctrine-repair-skipped-budget', firstPass: gate }
     }
     try {
       modelCalls++
@@ -922,7 +928,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
       const remainingHits = detectBannedPhrasings(repaired)
       if (remainingHits.length === 0 && !isTruncated(repaired)) {
         logGateOutcome(label, 'doctrine-repaired', gate.scores)
-        return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'doctrine-repaired' }
+        return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'doctrine-repaired', firstPass: gate }
       }
       console.warn(`[AXIS_GATE] section=${label} surgical repair did not clear the scan — falling back to full repair`)
     } catch (err) {
@@ -943,7 +949,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
     console.warn(`[AXIS_GATE] section=${label} repair skipped — ${Date.now() - startedAt}ms elapsed`)
     logGateOutcome(label, 'failed-repair-skipped-budget', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-skipped-budget' }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-skipped-budget', firstPass: gate }
   }
 
   let repaired: string
@@ -962,7 +968,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   } catch (err) {
     console.error(`[AXIS_GATE] section=${label} repair pass failed:`, err instanceof Error ? err.message : err)
     logGateOutcome(label, 'failed-repair-errored', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored' }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored', firstPass: gate }
   }
 
   // First, the cheap deterministic gates on the repair — a repair that came back
@@ -970,13 +976,13 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // call to confirm.
   if (repaired.trim().length === 0 || isTruncated(repaired)) {
     logGateOutcome(label, 'repair-truncated-or-empty', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty' }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty', firstPass: gate }
   }
   const repairedHits = detectBannedPhrasings(repaired)
   if (repairedHits.length > 0) {
     console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} hits=${repairedHits.join('|')} (after repair)`)
     logGateOutcome(label, 'repair-doctrine-hit', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit' }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit', firstPass: gate }
   }
 
   // Then re-score the repair against the full rubric before caching it. A repair
@@ -990,7 +996,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // cache on the deterministic signals alone.
   if (Date.now() - startedAt > EVAL_SKIP_AFTER_MS) {
     logGateOutcome(label, 'repaired-recheck-skipped-budget', gate.scores)
-    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget' }
+    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget', firstPass: gate }
   }
 
   const recheck = await evaluateSection({
@@ -1007,7 +1013,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // doctrine-clean, and the prompt's own constraints still held during the repair.
   if (recheck.evaluatorErrored) {
     logGateOutcome(label, 'repaired-recheck-errored', gate.scores)
-    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-errored' }
+    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-errored', firstPass: gate }
   }
 
   // The repair still fails the rubric — do not cache it. Leaving it uncached lets
@@ -1015,11 +1021,11 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // gate could not confirm for 30 days.
   if (!recheck.pass) {
     logGateOutcome(label, 'repair-failed-recheck', recheck.scores)
-    return { cacheText: null, modelCalls, scores: recheck.scores, repaired: false, reason: 'repair-failed-recheck' }
+    return { cacheText: null, modelCalls, scores: recheck.scores, repaired: false, reason: 'repair-failed-recheck', firstPass: gate }
   }
 
   // The repair passes the rubric on its own re-score — cache it, and report the
   // repair's own scores, not the failed first pass's.
   logGateOutcome(label, 'repaired', recheck.scores)
-  return { cacheText: repaired, modelCalls, scores: recheck.scores, repaired: true, reason: 'repaired' }
+  return { cacheText: repaired, modelCalls, scores: recheck.scores, repaired: true, reason: 'repaired', firstPass: gate }
 }

@@ -14,6 +14,7 @@ import { classifyGenerationError } from '@/lib/reading-stream'
 import { logUsage } from '@/lib/usage-log'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
+import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
 import {
   parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, phrasesAlreadyUsedBlock,
   priorDigest, READING_SO_FAR_FOOTER, type ThreadScope, type PriorSection,
@@ -74,20 +75,6 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
   return validLon !== undefined && validSource
     ? { plutoLongitude: validLon, plutoSource: validSource }
     : undefined
-}
-
-// Deterministic stand-in for the Ascendant/Lagna section when the birth time is
-// unknown. Starts with the same ## heading the model section would, so the client
-// renders it in place (and attaches the Ascendant readout card via bodiesForHeading).
-// It states the limitation plainly instead of interpreting an angle that is, at
-// noon, uniform across the whole zodiac.
-function unknownTimeAngleNotice(planetSection: string): string {
-  const heading = planetSection === 'lagna' ? '## The Lagna (Ascendant)' : '## The Ascendant'
-  return `${heading}
-
-Birth time is unknown for this chart, so noon has been used as a placeholder. The Ascendant — and every house placement that follows from it — depends on the exact minute of birth: it advances a full sign roughly every two hours, so across a single day it can land in any of the twelve signs. With no time to anchor it, no honest reading of the rising sign, the chart ruler, the houses, or the Midheaven can be given here.
-
-This section is deliberately left uninterpreted rather than filled with claims the data cannot support. The rest of the reading stands on firmer ground: planetary signs, dignities, and the sign-based aspects between planets do not depend on birth time and remain accurate. If you can recover even an approximate birth time, re-casting the chart will unlock this section and sharpen the Moon and the houses throughout.`
 }
 
 export async function POST(req: NextRequest) {

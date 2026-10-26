@@ -136,6 +136,7 @@ describe('gateForCache — a passing section is cached as-is', () => {
     expect(r.reason).toBe('passed')
     expect(r.modelCalls).toBe(1)
     expect(r.scores?.falsifiability).toBe(5)
+    expect(r.firstPass?.pass).toBe(true)
     expect(create).toHaveBeenCalledTimes(1)
   })
 
@@ -166,6 +167,10 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     expect(r.modelCalls).toBe(3)
     // The reported scores are the repair's own re-score, not the failed first pass's.
     expect(r.scores?.falsifiability).toBe(5)
+    // The first pass's own verdict survives alongside it, for the eval harness.
+    expect(r.firstPass?.pass).toBe(false)
+    expect(r.firstPass?.scores?.falsifiability).toBe(2)
+    expect(r.firstPass?.critique).toContain('Anchor the Barnum claims.')
   })
 
   it('passes the evaluator critique into the repair prompt', async () => {
@@ -254,6 +259,7 @@ describe('gateForCache — an unusable repair is not cached', () => {
     expect(r.cacheText).toBeNull()
     expect(r.reason).toBe('repair-failed-recheck')
     expect(r.modelCalls).toBe(3)
+    expect(r.firstPass?.critique).toContain('fix it')
   })
 
   it('caches a re-scored repair when the re-score itself errors (fail-open)', async () => {
