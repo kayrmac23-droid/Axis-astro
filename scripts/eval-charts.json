@@ -1,0 +1,89 @@
+{
+  "_about": "Chart set for scripts/eval-readings.mjs. Each chart targets one axis the 23 Jul 1999 Epping reference chart does not cover. `birth` is passed through parseBirthDataInput (tzName resolved DST/LMT-aware, exactly as /api/calculate does). `expect` is checked by `npm run eval -- --verify`, which recomputes every chart with calculateDualChart and fails if a chart no longer hits its axis. `verified` records the placements that verify printed when the set was chosen (tropical, local-Meeus Pluto). Incidental features (a second cusp planet, a near-station planet) are listed by --verify for every chart, so a failure on one axis can be told apart from another.",
+  "charts": [
+    {
+      "id": "unknown-time-glasgow-1996",
+      "axis": "unknown birth time",
+      "birth": { "year": 1996, "month": 7, "day": 4, "latitude": 55.8642, "longitude": -4.2518, "tzName": "Europe/London", "birthTimeUnknown": true },
+      "expect": { "birthTimeUnknown": true },
+      "verified": "Noon placeholder. Sun Cancer 12°44′. Moon Aquarius 29°19′ at noon — the Moon moves ~13°/day, so its sign is itself unresolved without a birth time (Pisces for any birth after roughly 13:10 — verify prints this). Venus near station (incidental)."
+    },
+    {
+      "id": "sun-cusp-toronto-1977",
+      "axis": "Sun within 1° of a sign cusp",
+      "birth": { "year": 1977, "month": 9, "day": 23, "hour": 9, "minute": 0, "latitude": 43.6532, "longitude": -79.3832, "tzName": "America/Toronto" },
+      "expect": { "sunWithinDegOfCusp": 1 },
+      "verified": "Sun Libra 0°23′ (Virgo boundary 0.39° away). ASC Libra 21°. No near-station planets."
+    },
+    {
+      "id": "stellium-delhi-1962",
+      "axis": "stellium (Feb 1962 Aquarius cluster)",
+      "birth": { "year": 1962, "month": 2, "day": 4, "hour": 12, "minute": 0, "latitude": 28.6139, "longitude": 77.209, "tzName": "Asia/Kolkata" },
+      "expect": { "stellium": { "frame": "tropical", "sign": "Aquarius", "min": 7 } },
+      "verified": "Sun, Moon, Mercury (R), Venus, Mars, Jupiter, Saturn all in tropical Aquarius, plus Ketu — 7 planets + node. Every member sits below 23°20′ Aquarius, so in the sidereal frame the whole cluster moves into Capricorn intact — the stellium survives the frame change with its sign changed. Mars 1°48′ is on the tropical cusp. ASC Taurus 21°."
+    },
+    {
+      "id": "far-south-ushuaia-1991",
+      "axis": "far-southern latitude (54.8°S)",
+      "birth": { "year": 1991, "month": 3, "day": 14, "hour": 16, "minute": 25, "latitude": -54.8019, "longitude": -68.303, "tzName": "America/Argentina/Ushuaia" },
+      "expect": { "absLatitudeAtLeast": 54 },
+      "verified": "Ushuaia, further south than the suggested Hobart (42.9°S) / Invercargill (46.4°S). ASC Gemini 27°14′, MC Taurus 7°. Sun Pisces 23°43′."
+    },
+    {
+      "id": "far-north-tromso-1990",
+      "axis": "far-northern latitude (69.6°N, inside the Arctic circle)",
+      "birth": { "year": 1990, "month": 1, "day": 15, "hour": 10, "minute": 0, "latitude": 69.6492, "longitude": 18.9553, "tzName": "Europe/Oslo" },
+      "expect": { "absLatitudeAtLeast": 66.6 },
+      "verified": "Chosen inside the window where the computed Ascendant runs BACKWARD through the zodiac (241° at 08:00 → 119° at 12:00 local): ASC Libra 9°31′ with MC Sagittarius 28°38′, i.e. the MC falls in whole-sign house 3. Stresses angle/house derivation at its most degenerate."
+    },
+    {
+      "id": "equatorial-quito-1983",
+      "axis": "equatorial latitude (0.18°S)",
+      "birth": { "year": 1983, "month": 10, "day": 7, "hour": 9, "minute": 40, "latitude": -0.1807, "longitude": -78.4678, "tzName": "America/Guayaquil" },
+      "expect": { "absLatitudeAtMost": 1 },
+      "verified": "ASC Sagittarius 8°59′, MC Virgo 5°24′. Sun Libra 13°46′. Moon Libra 29°08′ and Pluto Libra 29°04′ on a cusp (incidental)."
+    },
+    {
+      "id": "retrograde-johannesburg-1984",
+      "axis": "retrograde-heavy (7 planets retrograde)",
+      "birth": { "year": 1984, "month": 5, "day": 1, "hour": 3, "minute": 30, "latitude": -26.2041, "longitude": 28.0473, "tzName": "Africa/Johannesburg" },
+      "expect": { "minRetrograde": 7 },
+      "verified": "Mercury, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto all retrograde (the maximum found scanning 1950–2025 at 10-day steps), plus both nodes. Jupiter near station (incidental). ASC Pisces 29°45′."
+    },
+    {
+      "id": "near-station-barcelona-2020",
+      "axis": "near-station planet (Mars stationing retrograde)",
+      "birth": { "year": 2020, "month": 9, "day": 9, "hour": 22, "minute": 10, "latitude": 41.3874, "longitude": 2.1686, "tzName": "Europe/Madrid" },
+      "expect": { "nearStation": "Mars" },
+      "verified": "Mars Aries 28°08′ flagged NEAR STATION (stationed retrograde that day); Jupiter also near station (it stationed direct 13 Sep). ASC Taurus 9°50′."
+    },
+    {
+      "id": "early-1900s-dublin-1903",
+      "axis": "early-1900s date (pre-standard-time LMT offset)",
+      "birth": { "year": 1903, "month": 8, "day": 14, "hour": 7, "minute": 20, "latitude": 53.3498, "longitude": -6.2603, "tzName": "Europe/Dublin" },
+      "expect": { "yearBefore": 1910 },
+      "verified": "Dublin Mean Time — tzName resolves to a fractional offset (−0.4167 h). Native would be 123: past the 120-year Vimshottari cycle, so the current-dasha computation wraps (Ketu/Saturn). Sun Leo 20°20′, ASC Virgo 17°18′."
+    },
+    {
+      "id": "control-chicago-1987",
+      "axis": "control",
+      "birth": { "year": 1987, "month": 11, "day": 2, "hour": 6, "minute": 15, "latitude": 41.8781, "longitude": -87.6298, "tzName": "America/Chicago" },
+      "expect": {},
+      "verified": "Sun Scorpio 9°32′, ASC Scorpio 6°57′, Moon Pisces 29°10′."
+    },
+    {
+      "id": "control-mumbai-1972",
+      "axis": "control",
+      "birth": { "year": 1972, "month": 5, "day": 9, "hour": 21, "minute": 40, "latitude": 19.076, "longitude": 72.8777, "tzName": "Asia/Kolkata" },
+      "expect": {},
+      "verified": "Sun Taurus 19°07′, ASC Sagittarius 24°49′. Half-hour UTC offset (+5.5)."
+    },
+    {
+      "id": "control-sao-paulo-2001",
+      "axis": "control",
+      "birth": { "year": 2001, "month": 11, "day": 27, "hour": 13, "minute": 5, "latitude": -23.5505, "longitude": -46.6333, "tzName": "America/Sao_Paulo" },
+      "expect": {},
+      "verified": "Sun Sagittarius 5°26′, ASC Pisces 8°17′. Southern-hemisphere DST in force (−2)."
+    }
+  ]
+}
