@@ -14,6 +14,7 @@ import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-qual
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
 import { SHARED_RULES, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS } from '@/lib/prompts'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
+import { NATAL_SECTION_ORDER } from '@/lib/reading-order'
 
 const BIRTH: BirthData = {
   year: 1999, month: 7, day: 23, hour: 23, minute: 45,
@@ -40,7 +41,7 @@ describe('cusp rule — Sun at 0°17′ Leo was read as "unmixed" Leo', () => {
   })
 
   it('does not flag a placement away from a boundary', () => {
-    expect(buildInterpretationContext(chart, 'tropical', 'mercury')).not.toContain('⚠ CUSP: Mercury')
+    expect(buildInterpretationContext(chart, 'tropical', 'mercury_venus_mars')).not.toContain('⚠ CUSP: Mercury')
   })
 
   it('is defined in the shared rules (it was referenced but never stated)', () => {
@@ -59,9 +60,22 @@ describe('orb weight and motion', () => {
 
   it('marks Venus near station (it stations retrograde a week after this birth)', () => {
     expect(isNearStation(planet('tropical', 'Venus'))).toBe(true)
-    const ctx = buildInterpretationContext(chart, 'tropical', 'venus')
+    // Venus is read inside the Mercury, Venus and Mars section since v10.28; its
+    // own block, station flag included, must still reach the model there.
+    const ctx = buildInterpretationContext(chart, 'tropical', 'mercury_venus_mars')
     expect(ctx).toContain('⚠ NEAR STATION: Venus')
     expect(ctx).toMatch(/• Square Pluto \([^)]*may never perfect/)
+    // …and only Venus: Mercury and Mars are moving at speed on this date.
+    expect(ctx).not.toContain('⚠ NEAR STATION: Mercury')
+    expect(ctx).not.toContain('⚠ NEAR STATION: Mars')
+  })
+
+  it('composes all three planet blocks into the one section, each with its own evidence', () => {
+    const ctx = buildInterpretationContext(chart, 'tropical', 'mercury_venus_mars')
+    for (const p of ['MERCURY', 'VENUS', 'MARS']) expect(ctx).toContain(`── ${p} `)
+    // One ASPECTS block per body, and one CROSS-CHART line per body.
+    expect(ctx.match(/^ASPECTS \(tightest first\):/gm)).toHaveLength(3)
+    for (const p of ['Mercury', 'Venus', 'Mars']) expect(ctx).toMatch(new RegExp(`^${p}: Tropical `, 'm'))
   })
 })
 
@@ -84,15 +98,18 @@ describe('key aspects — superlatives and re-covered aspects', () => {
 
 describe('Sidereal frame — Jyotish evidence instead of re-walked Western aspects', () => {
   it('states the Venus shift as backward with the house unchanged', () => {
-    const ctx = buildInterpretationContext(chart, 'sidereal', 'venus')
+    const ctx = buildInterpretationContext(chart, 'sidereal', 'mercury_venus_mars')
     expect(ctx).toContain("FRAME SHIFT: Tropical Virgo 4°21' H6 → Sidereal Leo")
     expect(ctx).toContain('never "forward"')
     expect(ctx).toContain('House is unchanged (H6 in both frames)')
   })
 
   it('gives no Western aspect list to any Sidereal section', () => {
-    for (const s of ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']) {
-      expect(buildInterpretationContext(chart, 'sidereal', s)).not.toContain('ASPECTS (tightest first):')
+    for (const s of NATAL_SECTION_ORDER.sidereal) {
+      const ctx = buildInterpretationContext(chart, 'sidereal', s)
+      expect(ctx).not.toContain('ASPECTS (tightest first):')
+      // Not vacuous: every section carries real context.
+      expect(ctx.length).toBeGreaterThan(500)
     }
   })
 
@@ -125,9 +142,15 @@ describe('Sidereal frame — Jyotish evidence instead of re-walked Western aspec
   })
 
   it('scales Sidereal bands by the Jyotish relationships actually received', () => {
-    const ctx = buildInterpretationContext(chart, 'sidereal', 'venus')
+    const ctx = buildInterpretationContext(chart, 'sidereal', 'mercury_venus_mars')
+    // Venus's one relationship is still there, inside the combined section.
     expect(ctx).toContain('• Receives the 5th-house drishti of Jupiter (from Aries, H2)')
-    expect(countAspectsInContext(ctx)).toBe(1)
+    // The combined section's count is the sum of its three bodies' blocks, so
+    // the band scales by what all three actually receive.
+    const venusBlock = ctx.slice(ctx.indexOf('── VENUS '), ctx.indexOf('── MARS '))
+    expect(countAspectsInContext(venusBlock)).toBe(1)
+    const bullets = ctx.split('\n').filter(l => /^• (Conjunct \(same sign\)|Receives the )/.test(l)).length
+    expect(countAspectsInContext(ctx)).toBe(bullets)
   })
 })
 

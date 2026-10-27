@@ -68,7 +68,7 @@ describe('thread storage (in-memory fallback)', () => {
   it('loads earlier sections in reading order, skipping ones never written', async () => {
     await storeThreadSection(scope, 'tropical', 'moon', '## The Moon\n\nMoon text.')
     await storeThreadSection(scope, 'tropical', 'sun', '## The Sun\n\nSun text.')
-    const prior = await loadPriorSections(scope, 'tropical', 'mercury')
+    const prior = await loadPriorSections(scope, 'tropical', 'mercury_venus_mars')
     // ascendant was never stored (e.g. it failed) — the reading continues without it
     expect(prior.map(p => p.planetSection)).toEqual(['sun', 'moon'])
     expect(prior[0].text).toContain('Sun text.')

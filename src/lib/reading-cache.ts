@@ -55,7 +55,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // existential opener is banned as a first sentence and scanned by the gate, and
 // the Moon and Venus sections are told not to share a concrete image. Cached
 // sections were written without any of that.
-export const READING_PROMPT_VERSION = 'v10.27'
+export const READING_PROMPT_VERSION = 'v10.28'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

@@ -1,5 +1,5 @@
 // The reading thread — what makes a natal reading one continuous document
-// instead of ~21 disconnected essays.
+// instead of ~17 disconnected essays.
 //
 // Every section is still its own /api/reading request (so no single request
 // carries the whole reading's generation time), but each one is now written
@@ -138,8 +138,8 @@ const FRAME_LABEL: Record<string, string> = {
   tropical: 'Tropical reading', sidereal: 'Sidereal reading', synthesis: 'The Divergence',
 }
 const PART_LABEL: Record<string, string> = {
-  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', lagna: 'Lagna', mercury: 'Mercury',
-  venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', rahu_ketu: 'Rahu & Ketu',
+  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', lagna: 'Lagna',
+  mercury_venus_mars: 'Mercury, Venus & Mars', jupiter_saturn: 'Jupiter & Saturn', rahu_ketu: 'Rahu & Ketu',
   key_aspects: 'Key aspects', agree: 'Concordance', diverge: 'Where they part',
   tension: 'The central tension', closing: 'Living the divergence',
 }

@@ -8,8 +8,8 @@
 // sees all of it; The Divergence comes after both.
 
 export const NATAL_SECTION_ORDER = {
-  tropical:  ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
-  sidereal:  ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
+  tropical:  ['sun', 'moon', 'ascendant', 'mercury_venus_mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
+  sidereal:  ['lagna', 'sun', 'moon', 'mercury_venus_mars', 'jupiter_saturn', 'rahu_ketu'],
   synthesis: ['agree', 'diverge', 'tension', 'closing'],
 } as const
 

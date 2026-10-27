@@ -14,18 +14,21 @@ export const MODEL = 'claude-sonnet-5'
 //
 // Thinking is disabled explicitly: on Sonnet 5, omitting `thinking` runs adaptive
 // thinking, whose tokens count against `max_tokens` (truncating the per-section
-// prose budget) and add first-token latency to every one of the ~21 sequential
+// prose budget) and add first-token latency to every one of the ~17 sequential
 // sections. The prior generator (sonnet-4-6) ran with no thinking; we keep that.
 export const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
 
 // Per-section token budgets. Keyed by planetSection; overlapping names
-// (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
+// (sun, moon, mercury_venus_mars, jupiter_saturn) apply to both tropical
 // and sidereal readings. Falls back to 2000 for any unlisted key.
+// mercury_venus_mars matches the Sun's budget: its Tropical band (650 target,
+// aspect-scaled ceiling ~1000 words on the densest eval chart) is a primary-
+// sized section, and a truncated section is never cached.
 export const MAX_TOKENS_PER_SECTION: Record<string, number> = {
   // Tropical + sidereal primaries
   sun: 2500, moon: 2500, ascendant: 2500, lagna: 2000,
   // Secondaries (shared names across systems)
-  mercury: 1500, venus: 1500, mars: 1500,
+  mercury_venus_mars: 2500,
   jupiter_saturn: 1800, rahu_ketu: 1500,
   key_aspects: 1200,
   // The Divergence (legacy 'synthesis' key)

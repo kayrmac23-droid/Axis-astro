@@ -51,6 +51,7 @@ The two systems often put the same planet in different signs. That is not an err
 - The **sign ruler is never an independent difference**: it changes only because the sign changed. What can genuinely differ is the dispositor's *condition* in each frame.
 - Never import one frame's chart ruler into the other. Never claim a placement is "the same in both" unless the numbers show it.
 - **Cusp rule.** A placement within 3° of a sign boundary is read as its sign with the neighbouring sign still live in it. A Tropical cusp does not mean the two systems agree; the Sidereal sign is a separate account.
+- **Mercury, Venus and Mars are one section in each frame** (AXIS v10.28). In the Sidereal frame the section states each planet's sign shift in one clause, then works the three through Jyotish technique: house lordship (where two of the three rule or occupy the same arena), graha relationships among them, and the drishti Mars casts. It is held beside the Tropical account of the same three planets, never ranked against it, and a Tropical behavioural claim is never contradicted flatly: name the condition under which the Sidereal pattern surfaces.
 
 ## Kay's Chart Reference
 
@@ -61,6 +62,7 @@ Born 23 July 1999, 11:45 PM AEST (UTC+10), Epping VIC, Australia. Values as AXIS
 | Sun | 0°17′ Leo · 5th · domicile · **⚠ cusp** (Cancer live) | 6°26′ Cancer · 5th · friend's sign · Pushya pada 1 |
 | Moon | 5°24′ Sagittarius · **9th** · peregrine | 11°34′ Scorpio · **9th** · debilitated · Anuradha pada 3 |
 | Ascendant | 18°02′ Aries · ruler Mars (Scorpio, 8th, domicile) | 24°12′ Pisces · lord Jupiter (Aries, 2nd, friend's sign) |
+| Venus | 4°21′ Virgo · 6th · **near station** (stations retrograde a week after birth) | Leo · 6th (house unchanged) · enemy's sign |
 
 **The Moon is in the 9th house in both frames, not the 8th.** With Whole Sign houses, Sagittarius is the 9th from Aries and Scorpio is the 9th from Pisces. Earlier versions of this skill gave the 8th, which came from a different house system, not from AXIS. Because the Sun, the Moon and the Ascendant each move back one sign, the Sun and Moon keep their house numbers (5th and 9th) in both frames, but every house is counted from a different sign.
 

@@ -33,7 +33,7 @@
 //   CI never collect it; and generate/gate modes refuse to start without a real
 //   ANTHROPIC_API_KEY. Do not set AXIS_GATE_ENABLED=false with --gate.
 //
-//   Cost: generate-only is ~21 Sonnet calls per chart. --gate adds one Opus
+//   Cost: generate-only is ~17 Sonnet calls per chart. --gate adds one Opus
 //   evaluation per generated section, plus a repair (Sonnet) and an Opus re-score
 //   wherever a repair fires. The printed summary prices every call at list price.
 //   Start with --charts=<one id> to see one chart's cost before running all 12.
