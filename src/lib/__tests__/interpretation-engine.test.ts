@@ -253,7 +253,7 @@ describe('shared Divergence evidence plan', () => {
   // is a fact the model does not have and cannot use.
   it('supplies the facts the shared rules require: degree, retrogradation, nakshatra, outers and nodes', async () => {
     const text = buildInterpretationContext(calculateDualChart(MODERN_BIRTH), 'synthesis', 'diverge')
-    expect(text).toMatch(/\d+°\d{2}'/)                      // cusp rule needs degrees
+    expect(text).toMatch(/\d+°\d{2}'/)                      // position claims need degrees
     expect(text).toMatch(/Pada \d/)                          // Jyotish grain
     for (const body of ['Uranus', 'Neptune', 'Pluto', 'Rahu', 'Ketu']) {
       expect(text).toContain(body)

@@ -1,5 +1,7 @@
 # AXIS DOCTRINE
 
+> **Canonical for:** product law, meaning what the product, its copy and its prompts may say or do. Every section above the *SUPERSEDED / NON-BINDING DRAFTS* appendix at the bottom is binding. Nothing in that appendix is. Only Kay ratifies law; agents may draft, but a draft stays in the appendix until she ratifies it. **Lives elsewhere:** how the code implements this → `CLAUDE.md`; overview and methodology → `README.md`.
+
 The product thesis: the ~23.85° gap between Tropical and Sidereal **is the deliverable**.
 It is never resolved, merged, averaged, or closed. Every line of copy serves that thesis.
 
@@ -102,12 +104,6 @@ line max); motion reads as telemetry (≤400ms, degrades under reduced-motion).
 No invented testimonials, user counts, ratings, or quotes anywhere in the product,
 including placeholders. Proof sections ship empty until real data exists.
 
-## WHEEL DIRECTION (forward-looking — superseded July 2026, see amendment)
-
-The functional chart becomes a single concentric dual-ring wheel: outer ring Tropical,
-inner ring Sidereal, rotated against each other by the true ayanamsa, so the gap is
-visible as geometry. This replaces side-by-side wheels in a later pass.
-
 ## AMENDMENT — FRAME-SHIFT WHEEL (ratified July 2026)
 
 This amendment records a ratified product decision and governs the results page. It
@@ -117,7 +113,7 @@ Future runs must not "correct" the single-panel layout back to two columns.
 1. **The frame-shift wheel is the reading wheel.** One wheel; a Tropical/Sidereal
    toggle rotates the zodiac band by the live Lahiri ayanamsa. The rotation IS the
    divergence, rendered kinetically. The earlier **dual-ring (two concentric rings)**
-   commitment above is **retired**, as is the **two-wheels-side-by-side** layout.
+   commitment (Appendix A1) is **retired**, as is the **two-wheels-side-by-side** layout.
 
 2. **One reading panel, driven by the toggle.** The two-column Tropical/Sidereal
    reading layout is superseded: a single reading panel shows the active frame's
@@ -249,7 +245,23 @@ decision; does not reorder phase-1 (foundations + gate) work. Supersedes the
 prior unratified "accounts = v2 / nothing stored product-wide" framing, which
 lived only in memory and was never canonical.
 
-## Evidence standard for The Divergence (drafted September 2026 — NOT YET RATIFIED)
+---
+
+## SUPERSEDED / NON-BINDING DRAFTS
+
+**Nothing below this line is law.** It is kept so the history of each ruling stays in the record. A1 is retired: the ruling that replaced it is above. A2 is a draft written by an agent and has not been ratified. If an agent finds a rule only here, it does not apply.
+
+### A1. WHEEL DIRECTION — SUPERSEDED (July 2026)
+
+*Retired by AMENDMENT — FRAME-SHIFT WHEEL (ratified July 2026). It is kept for history only. Do not implement it.*
+
+The functional chart becomes a single concentric dual-ring wheel: outer ring Tropical,
+inner ring Sidereal, rotated against each other by the true ayanamsa, so the gap is
+visible as geometry. This replaces side-by-side wheels in a later pass.
+
+### A2. Evidence standard for The Divergence — UNRATIFIED DRAFT (September 2026)
+
+*Non-binding and awaiting Kay's ratification. Do not cite it as law, and do not ratify it on her behalf. It was moved here from the body of this file in October 2026 without changing a word.*
 
 STATUS: Drafted by an agent, scoped down by review, awaiting Kay's ratification.
 It governs MAGNITUDE only and does not touch THE LAW or the thesis at the top of
