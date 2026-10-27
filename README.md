@@ -1,5 +1,7 @@
 # AXIS — Dual-System Astrology
 
+> **Canonical for:** what AXIS is, methodology, calculation accuracy, design tokens, setup and deployment basics. **Lives elsewhere:** architecture, core libs, the reading pipeline (models, quality gate, cost) and tests → [`CLAUDE.md`](CLAUDE.md); product law → [`DOCTRINE.md`](DOCTRINE.md). If this file and `CLAUDE.md` disagree about code, `CLAUDE.md` and the code win. Fix this file, don't follow it.
+
 > *Tropical maps the psychological architecture of a self. Sidereal maps the incarnational conditions it navigates. The divergence is where this chart actually lives — AXIS holds both open.*
 
 Live: [axis-astro.vercel.app](https://axis-astro.vercel.app)
@@ -114,55 +116,15 @@ AXIS uses a restrained dark-void palette. **Copper is the primary accent, ratifi
 
 ## Architecture
 
+Per-file architecture, every core lib and component, the reading pipeline and the test suite are documented in **[`CLAUDE.md`](CLAUDE.md)**. They are not repeated here, because a second copy drifts. The top-level layout:
+
 ```
 src/
-├── app/
-│   ├── page.tsx                 — main app shell, form → chart → reading flow
-│   ├── layout.tsx               — root layout
-│   ├── globals.css              — design system tokens
-│   ├── page.module.css          — layout styles
-│   ├── method/                  — methodology page (dual-system rationale)
-│   ├── guides/                  — how-to-read guides page
-│   ├── sample/                  — static sample reading page
-│   ├── synastry/                — two-chart synastry page
-│   └── api/
-│       ├── geocode/             — Nominatim proxy for birth location coordinates
-│       ├── timezone/            — offline IANA timezone lookup (tz-lookup), rate-limited
-│       ├── calculate/           — chart calculation endpoint (Tropical + Sidereal)
-│       ├── reading/             — Claude streaming endpoint (natal reading)
-│       └── synastry/            — synastry calculation endpoint (inter-aspects + composite)
-├── components/
-│   ├── BirthForm.tsx            — date/time/location input with birth-time-unknown toggle
-│   ├── ChartWheel.tsx           — SVG chart wheel (Whole Sign, clickable planets, MC marker)
-│   ├── DualChartWheel.tsx       — side-by-side tropical + sidereal wheels
-│   ├── FrameShiftWheel.tsx      — animated tropical↔sidereal frame-shift wheel
-│   ├── ChartFactsPanel.tsx      — tropical vs sidereal comparison table (hidden in print)
-│   ├── ReadingPanel.tsx         — streaming reading display with per-section retry
-│   ├── SynastryReadingPanel.tsx — streaming reading display for synastry sections
-│   ├── SynastryAspectsPanel.tsx — inter-aspect table for two charts
-│   ├── AxisTensionSummary.tsx   — central-tension callout panel for The Divergence
-│   ├── DossierHeader.tsx        — per-chart dossier header with key placements
-│   ├── SiteHeader.tsx           — top navigation bar
-│   ├── MethodologyStrip.tsx     — compact methodology disclosure strip
-│   ├── MethodPremise.tsx        — explanatory premise block (AXIS dual-system rationale)
-│   ├── SampleDossier.tsx        — static sample reading for the landing page
-│   ├── AstrolabeDecor.tsx       — decorative astrolabe SVG element
-│   ├── HeroWheel.tsx            — decorative hero SVG (purely presentational)
-│   └── landing/                 — PreviewLanding landing-page composition
-└── lib/
-    ├── astro-calc.ts            — full VSOP87 + ELP2000 calculation engine
-    ├── synastry-calc.ts         — inter-aspect computation + composite chart builder
-    ├── interpretation-engine.ts — structured reasoning layer between calc and Claude
-    ├── prompts.ts               — system prompts (v10.15; SHARED_RULES prompt-cached)
-    ├── reading-cache.ts         — Upstash Redis KV cache (30-day TTL)
-    ├── reading-quality-gate.ts  — post-generation evaluator (retained off the request path; exports isTruncated to the live route)
-    ├── route-rate-limiter.ts    — Redis-backed per-route rate limiter (falls back to in-memory)
-    ├── cusps.ts                 — astrological cusp data and detection
-    ├── jpl-horizons.ts          — JPL Horizons DE440 Pluto fetch with module-level cache
-    ├── planet-descriptors.ts   — planet descriptor text for all reading types (incl. synastry)
-    ├── zodiac-constants.ts      — centralised ZODIAC_SIGNS array (shared source of truth)
-    ├── analytics.ts             — PostHog thin wrapper (no-op when key absent)
-    └── tz.ts                    — DST-aware UTC offset from IANA timezone name
+├── app/            — pages: / (main app), /method, /guides, /sample, /synastry; globals.css holds the design tokens
+│   └── api/        — calculate · synastry · geocode · timezone · reading (streaming Claude endpoint)
+├── components/     — the dossier (DossierHeader, FrameControl, FrameShiftWheel, ReadoutRail, ReadingPanel), BirthForm, synastry panels, site chrome, landing/
+└── lib/            — calculation engine, interpretation engine, prompts, quality gate, cache, reading thread
+scripts/            — benchmark, eval harness, state checks
 ```
 
 ### Chart Calculation
@@ -179,7 +141,7 @@ The evidence-weighted approach (rather than categorical rules) means Claude rece
 
 Four reading types, each composed of sequential per-planet streaming requests to the Claude API. Per-section retry (2 attempts) prevents a single failed request from blocking the rest of the reading. Failed sections produce a visible placeholder so the readable portions remain intact.
 
-The LLM **quality gate** (`lib/reading-quality-gate.ts`) is **not on the request path.** The evaluate + repair passes were taken off the synchronous `/api/reading` route to stay under the 60 s `maxDuration` ceiling; the module is retained (and exercised by its unit tests) for a future async/sampled redesign. On the live route, `/api/reading` imports only `isTruncated` from it, and caching is guarded deterministically: output is written to the cache only when it is non-empty, non-truncated (`isTruncated`), and free of banned phrasings (`detectBannedPhrasings`). Truncated text never reaches the cache or ships as final.
+Every generated section then goes through the LLM **quality gate** (`lib/reading-quality-gate.ts`), which is **live**. It runs as evaluate-and-recache after the section has finished streaming (`gateForCache()`, registered with Next's `after()`), so it adds no latency for the reader. It decides only what gets cached: the first reader of an uncached section sees the first pass, and every later reader gets the gated (and, where needed, repaired) text. The mechanics, thresholds and guards are in [`CLAUDE.md`](CLAUDE.md) under `/api/reading` and `lib/reading-quality-gate.ts`.
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects, Rahu/Ketu.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
@@ -195,6 +157,8 @@ The LLM **quality gate** (`lib/reading-quality-gate.ts`) is **not on the request
 | `ANTHROPIC_API_KEY` | Required. Set in Vercel dashboard → Environment Variables. |
 | `UPSTASH_REDIS_REST_URL` | Recommended. Upstash Redis REST endpoint for the reading cache. Create a free database at [console.upstash.com](https://console.upstash.com). Falls back to no-op (no caching) when absent. |
 | `UPSTASH_REDIS_REST_TOKEN` | Recommended. Upstash Redis REST token (paired with the URL above). |
+
+Operational switches for the reading pipeline (`AXIS_READINGS_ENABLED`, `AXIS_GATE_ENABLED`, `AXIS_READING_RATE_LIMIT_MAX`, …) are described in [`CLAUDE.md`](CLAUDE.md).
 
 ---
 
@@ -226,7 +190,7 @@ App runs at `http://localhost:5000`.
 
 Deployed via Vercel connected to this GitHub repo. Every push to `main` triggers an automatic production deployment.
 
-Both API routes set their `maxDuration` via `export const` in the route file itself — `/api/reading` declares 60 s (the Vercel Hobby ceiling), `/api/calculate` declares 30 s (covers the Horizons API call plus chart computation). This is the canonical Next.js App Router pattern; `vercel.json` only declares the framework.
+Each API route sets its `maxDuration` via `export const` in the route file itself (the canonical Next.js App Router pattern; `vercel.json` only declares the framework). The route files hold the current values, and [`CLAUDE.md`](CLAUDE.md) lists them.
 
 ---
 
@@ -253,7 +217,7 @@ This section describes what is hardened now and what requires distributed infras
 - **Rate limiter:** Redis-backed fixed window via Upstash (same connection as the reading cache). All serverless instances share a single counter per IP, so the 20 req / 60s limit is enforced globally. Falls back to the previous in-memory behaviour when Redis env vars are absent.
 
 **External service dependencies:**
-- Anthropic API — one call per planet section, 8–9 calls per full reading. Each full reading costs approximately 8–9 × (Claude output tokens × price per token). API key must be set in Vercel environment variables.
+- Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs a generation call plus an evaluation call, and more when the gate repairs it, so a fully uncached natal reading is **42–84 calls**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
 - JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to the local Meeus Ch. 37 polynomial (~15–60 arcmin vs DE440 across 1930–2025; see [BENCHMARK.md](BENCHMARK.md)) if unreachable.
 - OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s, no bulk use).
 

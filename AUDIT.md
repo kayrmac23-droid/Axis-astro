@@ -24,7 +24,7 @@ detailed sections are the original assessment and remain as the rationale.
 |---|----------|------|---------|--------|
 | 1 | **High** | Dependencies | Known-vulnerable deps (Next.js, postcss, sharp, nanoid) — 6 high advisories | ✅ Fixed — `npm audit fix`, next→16.3.2, 0 vulns |
 | 2 | **Medium** | Correctness | DST-edge timezone offset is wrong by 1h for births just after a transition | ✅ Fixed — iterative offset resolution + regression tests |
-| 3 | **Medium** | Architecture / Docs | Reading quality gate is dead code at runtime, but docs claim it runs | ✅ Docs corrected — CLAUDE.md + both module headers now state it's off the request path. Product decision (re-enable / async / retire) left to the team (see note) |
+| 3 | **Medium** | Architecture / Docs | Reading quality gate is dead code at runtime, but docs claim it runs | ✅ Docs corrected — CLAUDE.md + both module headers now state it's off the request path. Product decision (re-enable / async / retire) left to the team (see note). **SUPERSEDED (2026-10-27): gate re-enabled async, see CLAUDE.md.** |
 | 4 | **Low** | Correctness | Julian Day uses proleptic Gregorian for all dates (wrong pre-1582) | ✅ Fixed — Julian-calendar branch for pre-1582 + tests |
 | 5 | **Low** | Docs | Synastry section-name drift: docs say `integration`, code uses `central_dynamic` | ✅ Fixed — CLAUDE.md corrected |
 | 6 | **Low** | Code quality | Dead keep-alive / `gating` scaffolding in the reading route | ✅ Fixed — removed |
@@ -38,6 +38,8 @@ detailed sections are the original assessment and remain as the rationale.
 > so this pass corrected the *documentation* rather than re-adding it — whether to run
 > it async/sampled or formally retire it is a product call. #10 is an accepted design
 > tradeoff (rate-limit + daily cap + kill switch); no code change was warranted.
+>
+> *(2026-10-27) The #3 half of this note is SUPERSEDED: the gate now runs async through `after()`. See finding 3 and CLAUDE.md.*
 
 ## Summary of findings (original assessment)
 
@@ -129,6 +131,14 @@ Add the NY spring-forward case above as a regression test (see finding 8).
 ---
 
 ### 3. [Medium] Reading quality gate is dead code at runtime
+
+> **SUPERSEDED (noted 2026-10-27): the gate was re-enabled async. See CLAUDE.md.** The finding below
+> describes the code at `2ae17a8`. The gate went back into the request lifecycle as
+> evaluate-and-recache in `c58e619` (2026-09-13), and since `fc6714d` (2026-09-16) it runs
+> inside Next's `after()` once the stream has closed (`gateForCache()` in
+> `src/lib/reading-quality-gate.ts`, called from `src/app/api/reading/route.ts`). It decides what
+> gets cached and adds no latency for the reader. Both "Fix" paragraphs below are historical.
+> Option (b) is the one that shipped. The rest of this audit is still a snapshot of `2ae17a8`.
 
 **Files:** `src/app/api/reading/route.ts`, `src/lib/reading-quality-gate.ts`, `CLAUDE.md`
 
