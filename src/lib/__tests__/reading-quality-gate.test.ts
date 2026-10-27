@@ -38,7 +38,10 @@ import {
   openerModeFor,
   wordBandFor,
   scaleBand,
+  SECTION_WORD_BANDS,
 } from '../prompts'
+import { NATAL_SECTION_ORDER } from '../reading-order'
+import { MAX_TOKENS_PER_SECTION } from '../reading-model-config'
 
 // The nine model-scored criteria, all equal to `v`.
 function allLlm(v: number): LlmScores {
@@ -655,9 +658,10 @@ describe('opening and closing modes — personal-planet sections', () => {
   }
 
   it('is a pure function of frame and planet, and absent elsewhere', () => {
-    expect(openerModeFor('tropical', 'venus')).toBe(OPENER_MODES.tropical.venus)
-    expect(openerModeFor('tropical', 'venus')).toBe(openerModeFor('tropical', 'venus'))
-    expect(openerModeFor('sidereal', 'mars')).toBe(OPENER_MODES.sidereal.mars)
+    expect(openerModeFor('tropical', 'mercury_venus_mars')).toBe(OPENER_MODES.tropical.mercury_venus_mars)
+    expect(openerModeFor('tropical', 'mercury_venus_mars')).toBe(openerModeFor('tropical', 'mercury_venus_mars'))
+    expect(openerModeFor('sidereal', 'mercury_venus_mars')).toBe(OPENER_MODES.sidereal.mercury_venus_mars)
+    expect(openerModeFor('tropical', 'jupiter_saturn')).toBeUndefined()
     expect(openerModeFor('tropical', 'ascendant')).toBeUndefined()
     expect(openerModeFor('synthesis', 'sun')).toBeUndefined()
   })
@@ -672,14 +676,86 @@ describe('opening and closing modes — personal-planet sections', () => {
   })
 
   it('no longer asks the secondaries to distil one observation, the instruction that produced the struck close', () => {
-    for (const p of ['mercury', 'venus', 'mars'] as const) {
-      expect(SECTION_INSTRUCTIONS.tropical[p]).not.toContain('most specific and honest observation')
-      expect(SECTION_INSTRUCTIONS.tropical[p]).not.toContain('most honest observation')
+    for (const f of frames) {
+      expect(SECTION_INSTRUCTIONS[f].mercury_venus_mars).not.toContain('most specific and honest observation')
+      expect(SECTION_INSTRUCTIONS[f].mercury_venus_mars).not.toContain('most honest observation')
     }
   })
 
   it('separates the Moon (needed for safety) from Venus (worth giving and having)', () => {
-    expect(SHARED_RULES).toContain('The Moon and Venus sections describe different things')
-    expect(SECTION_INSTRUCTIONS.tropical.venus).not.toContain('needs from intimacy')
+    expect(SHARED_RULES).toContain('The Moon and Venus describe different things')
+    expect(SHARED_RULES).toContain('Venus, inside the Mercury, Venus and Mars section, describes what they find worth giving and worth having')
+    for (const f of frames) {
+      expect(SECTION_INSTRUCTIONS[f].mercury_venus_mars).not.toContain('needs from intimacy')
+      expect(SECTION_INSTRUCTIONS[f].mercury_venus_mars).toContain("is the Moon's subject")
+    }
+  })
+})
+
+// v10.28: Mercury, Venus and Mars are one section per frame, built like
+// jupiter_saturn. A half-done merge ships a broken reading (a dead key the
+// route rejects, a section with no band, no mode, or no token budget), so the
+// whole coupled touch-list is pinned here.
+describe('Mercury, Venus and Mars — one section per frame', () => {
+  const frames = ['tropical', 'sidereal'] as const
+  const dead = ['mercury', 'venus', 'mars'] as const
+
+  it('replaces the three per-planet sections everywhere they were keyed', () => {
+    for (const f of frames) {
+      expect(NATAL_SECTION_ORDER[f]).toContain('mercury_venus_mars')
+      expect(SECTION_INSTRUCTIONS[f].mercury_venus_mars).toBeTruthy()
+      expect(SECTION_WORD_BANDS[`${f}:mercury_venus_mars`]).toBeTruthy()
+      expect(openerModeFor(f, 'mercury_venus_mars')).toBe(OPENER_MODES[f].mercury_venus_mars)
+      expect(CLOSER_MODES[f].mercury_venus_mars).toBeTruthy()
+      for (const p of dead) {
+        expect(NATAL_SECTION_ORDER[f] as readonly string[]).not.toContain(p)
+        expect(SECTION_INSTRUCTIONS[f][p]).toBeUndefined()
+        expect(SECTION_WORD_BANDS[`${f}:${p}`]).toBeUndefined()
+        expect(openerModeFor(f, p)).toBeUndefined()
+      }
+    }
+    expect(MAX_TOKENS_PER_SECTION.mercury_venus_mars).toBeGreaterThan(0)
+    for (const p of dead) expect(MAX_TOKENS_PER_SECTION[p]).toBeUndefined()
+  })
+
+  it('takes the natal reading from 21 sections to 17', () => {
+    const total = Object.values(NATAL_SECTION_ORDER).reduce((n, s) => n + s.length, 0)
+    expect(total).toBe(17)
+  })
+
+  it('budgets well under the three bands it replaced (3 × 350 Tropical, 3 × 275 Sidereal)', () => {
+    expect(wordBandFor('tropical', 'mercury_venus_mars').target).toBeLessThanOrEqual(0.65 * 1050)
+    expect(wordBandFor('sidereal', 'mercury_venus_mars').target).toBeLessThanOrEqual(0.6 * 825)
+    // Even aspect-scaled to the densest eval chart (14 Tropical, 21 Sidereal
+    // relationships), the ceiling stays below the old summed ceiling.
+    expect(wordBandFor('tropical', 'mercury_venus_mars', 14).hardMax).toBeLessThan(3 * 500)
+    expect(wordBandFor('sidereal', 'mercury_venus_mars', 21).hardMax).toBeLessThan(3 * 400)
+  })
+
+  it('asks for one portrait, cross-referenced, not three stapled entries', () => {
+    expect(SECTION_INSTRUCTIONS.tropical.mercury_venus_mars).toContain('It is not three short essays placed end to end')
+    expect(SECTION_INSTRUCTIONS.sidereal.mercury_venus_mars).toContain('not three entries placed end to end')
+    // Each planet keeps its own sub-header, so the dossier still pins each
+    // body's positions beside its prose.
+    for (const p of ['Mercury', 'Venus', 'Mars']) {
+      expect(SECTION_INSTRUCTIONS.tropical.mercury_venus_mars).toContain(`### ${p} in [Sign], House [N]`)
+      expect(SECTION_INSTRUCTIONS.sidereal.mercury_venus_mars).toContain(`### ${p}`)
+    }
+  })
+
+  it('keeps the doctrine the per-planet prompts carried', () => {
+    const trop = SECTION_INSTRUCTIONS.tropical.mercury_venus_mars
+    expect(trop).toContain('Cross-reference the Moon')
+    expect(trop).toContain('Do not default to emotional coldness or reserve')
+    expect(trop).toContain('FACT DISCIPLINE')
+    const sid = SECTION_INSTRUCTIONS.sidereal.mercury_venus_mars
+    expect(sid).toContain('resolution-by-hierarchy is banned')
+    expect(sid).toContain('FRAME SHIFT')
+    expect(sid).toContain('NEECHA BHANGA')
+  })
+
+  it('leaves the leftover aspects to Key Aspects instead of re-covering them', () => {
+    expect(SECTION_INSTRUCTIONS.tropical.mercury_venus_mars).toContain('left to the Key Aspects section')
+    expect(SECTION_INSTRUCTIONS.tropical.key_aspects).toContain('Mercury/Venus/Mars (one section)')
   })
 })

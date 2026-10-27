@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.27
+// AXIS Production System Prompts v10.28
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -180,15 +180,21 @@ export const BANNED_META_LIST = BANNED_META_PHRASINGS.map(p => `"${p}"`).join(';
 // collision only shows once the reader reads them in a row, so no per-section
 // critic catches it. The fix is structural, not a plea to vary: every
 // personal-planet section is assigned its own opening mode and closing mode,
-// as a pure function of frame and planet, so no two can converge.
+// as a pure function of frame and section, so no two can converge.
 //
-// Keyed by frame as well as planet because the frames have different evidence:
-// a Sidereal section may not name Western aspects, so the Tropical Venus mode
-// (its tightest aspect) cannot be reused there. Every mode is something the
-// context supplies for every chart; the ones that may be absent (an aspect, a
-// graha relationship) carry their fallback.
+// As of v10.28 Mercury, Venus and Mars are ONE section per frame
+// (mercury_venus_mars, built like jupiter_saturn), so there are three
+// personal-planet sections, not five. The combined section gets its own mode
+// pair — one opening and one closing for the section, not one per planet.
+//
+// Keyed by frame as well as section because the frames have different
+// evidence: a Sidereal section may not name Western aspects, so the Tropical
+// mode for the combined section (the closest aspect among the three) cannot be
+// reused there. Every mode is something the context supplies for every chart;
+// the ones that may be absent (an aspect, a graha relationship) carry their
+// fallback.
 
-export const PERSONAL_PLANET_SECTIONS = ['sun', 'moon', 'mercury', 'venus', 'mars'] as const
+export const PERSONAL_PLANET_SECTIONS = ['sun', 'moon', 'mercury_venus_mars'] as const
 export type PersonalPlanetSection = typeof PERSONAL_PLANET_SECTIONS[number]
 type NatalFrame = 'tropical' | 'sidereal'
 
@@ -196,16 +202,12 @@ export const OPENER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
   tropical: {
     sun:     'a concrete behavioural moment — one recurring situation in which this Sun acts, told from the inside: what the person does and what sets it off. Build it from chart factors you can name; invent no durations, counts or circumstances the chart does not supply.',
     moon:    'the need itself — the one condition this person must have in place to feel emotionally safe, stated plainly as a need. Not a scene and not a trait list; what happens when the need goes unmet comes after.',
-    mercury: "Mercury's condition — its dignity, or its sign ruler's state where the dignity is peregrine — stated as what that condition does to this person's thinking in a live exchange. Lead with the effect, never with a definition of the dignity.",
-    venus:   "the strongest modifier of this Venus — the aspect it receives with the smallest orb the context gives, naming the aspecting planet (choose it by the orbs; do not call it the tightest unless the context does), or, if it receives none, the condition of its sign ruler — stated as what that modifier does to what this person finds worth giving and worth having.",
-    mars:    'a contradiction — the pull between this Mars and one other named placement, stated as the two impulses meeting in one moment. Name the other placement; then work Mars itself.',
+    mercury_venus_mars: "the link between two of the three — the aspect between any two of Mercury, Venus and Mars with the smallest orb the context lists, naming both planets (choose it by the orbs; do not call it the tightest unless the context does), or, if none of the three aspects another, the plainest contrast between two of their placements (element, sign or house) — stated as one moment in which this person's thinking, valuing and wanting meet. Then work each planet on its own terms.",
   },
   sidereal: {
     sun:     'the nakshatra — the specific instinct it adds to this Sun that the sign alone does not show, stated as what the person does when it is active.',
     moon:    "the Moon's Jyotish sign status, with any NEECHA BHANGA CONDITION listed, as the condition the emotional life runs inside — what it makes easy or costly about feeling safe. Not a scene.",
-    mercury: 'house lordship — the houses Mercury rules from the Lagna and the house it carries them into, stated as the concrete arenas of life its thinking is bound to.',
-    venus:   "a graha relationship — the drishti or same-sign conjunction Venus receives, naming the planet that casts it and what it does to what this person values. If the context lists none, open on Venus standing unaspected in this frame and what that leaves it to do alone.",
-    mars:    'the drishti Mars casts — the houses its sight reaches (DRISHTI CAST) — stated as what this drive does to those arenas of life.',
+    mercury_venus_mars: 'house lordship — the houses Mercury, Venus and Mars rule from the Lagna and the houses they carry them into, stated as the concrete arenas of life this person\'s thinking, valuing and wanting are bound to; where two of the three are bound to the same arena, open there.',
   },
 }
 
@@ -213,16 +215,12 @@ export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
   tropical: {
     sun:     "a consequence — what the Sun's central tension costs or makes possible in a situation the section has already drawn.",
     moon:    'a misreading — something this person believes about their own emotional nature that the chart shows differently (a capacity they discount as readily as a need they misname), named through the situation in which the gap shows.',
-    mercury: 'the condition — the kind of exchange or problem in which this cognitive style works best and the kind in which it fails, as two concrete situations.',
-    venus:   'the repeat — the relational sequence most likely to recur, told as a sequence: what starts it, what the person does, where it leaves them.',
-    mars:    'practice — what this drive does the next time something is at stake, followed through to its outcome.',
+    mercury_venus_mars: 'the sequence — one situation in which something this person wants is at stake, followed through in the order the three act in it: what they make of it (Mercury), what they decide it is worth (Venus), what they do about it (Mars), and where agreement or friction between those three leaves them.',
   },
   sidereal: {
     sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
     moon:    "the nakshatra — its instinct named as the condition under which the Moon's emotional pattern surfaces.",
-    mercury: "the drishti — how the graha relationships Mercury receives or casts shape where its thinking is tested; if it has none, what working unaspected means for it in this frame.",
-    venus:   'lordship — the houses Venus rules from the Lagna and what valuing them costs or gives in a concrete situation.',
-    mars:    "sign status — what Mars's Jyotish sign status means functionally the next time this drive is called on.",
+    mercury_venus_mars: "the drishti — the drishti Mars casts (DRISHTI CAST) and any graha relationship among Mercury, Venus and Mars themselves, stated as the situation in which the drive reaches into the arenas the thinking and the valuing are bound to; if none of the three shares a sign with or casts drishti on another, the arena each one's drishti reaches on its own and what working alone there costs or allows.",
   },
 }
 
@@ -299,8 +297,21 @@ export interface WordBand {
 const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
 const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
 const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700, aspectBaseline: 2, aspectAllowance: 60 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500, aspectBaseline: 2, aspectAllowance: 60 } // Mercury, Venus, Mars, Jup/Sat
+const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500, aspectBaseline: 2, aspectAllowance: 60 } // Jup/Sat
 const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }
+// Mercury, Venus and Mars as one section (v10.28). Deliberately well under the
+// three separate bands it replaces (3 × 350 = 1050 Tropical, 3 × 275 = 825
+// Sidereal): one portrait of how the person engages, not three essays end to
+// end, so the cross-references replace three sets of restatement. The aspect
+// count is the sum of the three planets' ASPECTS / GRAHA RELATIONSHIPS blocks —
+// an aspect between two of the three is listed in both blocks and so counted
+// twice — and the baselines are the medians of that count over the
+// scripts/eval-charts.json set (Tropical 6–14, median 9; Sidereal 3–21,
+// median 6). The allowance per aspect is lower than a single planet's because
+// a three-body block lists more of them and most are not worked at length:
+// FACT DISCIPLINE gives a wide aspect a clause, never a paragraph.
+const BAND_MVM:                WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 480, hardMax:  850, aspectBaseline: 9, aspectAllowance: 30 }
+const BAND_SIDEREAL_MVM:       WordBand = { target: 450, fullMin: 380, fullMax:  520, hardMin: 320, hardMax:  620, aspectBaseline: 6, aspectAllowance: 15 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
 const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
 const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150, evidenceBaseline: 4, evidenceAllowance: 150 } // comparative — larger by design; scales with how many divergences the plan allocated
@@ -317,10 +328,10 @@ export const DEFAULT_WORD_BAND: WordBand = { target: 400, fullMin: 250, fullMax:
 
 export const SECTION_WORD_BANDS: Record<string, WordBand> = {
   'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
-  'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
+  'tropical:mercury_venus_mars': BAND_MVM,
   'tropical:jupiter_saturn': BAND_SECONDARY, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
   'sidereal:lagna': BAND_SIDEREAL_PRIMARY, 'sidereal:sun': BAND_SIDEREAL_PRIMARY, 'sidereal:moon': BAND_SIDEREAL_PRIMARY,
-  'sidereal:mercury': BAND_SIDEREAL_SECONDARY, 'sidereal:venus': BAND_SIDEREAL_SECONDARY, 'sidereal:mars': BAND_SIDEREAL_SECONDARY,
+  'sidereal:mercury_venus_mars': BAND_SIDEREAL_MVM,
   'sidereal:jupiter_saturn': BAND_SIDEREAL_SECONDARY, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
   'synthesis:agree': BAND_CONCORDANCE, 'synthesis:diverge': BAND_DIVERGENCE, 'synthesis:tension': BAND_CENTRAL_TENSION, 'synthesis:closing': BAND_CLOSING,
   'synastry:luminaries': BAND_SYN_LARGE, 'synastry:venus_mars': BAND_SYN_MED, 'synastry:outer_planets': BAND_SYN_MED,
@@ -571,7 +582,7 @@ Do not reach for textbook sun-sign archetypes or clichéd sign behaviours. The s
 DEPTH REQUIREMENTS:
 Major planet sections (Sun, Moon, Ascendant/Lagna) require a complete psychological portrait, not a catalogue. Adequate depth means covering, in full: sign in this specific house; dignity and how it modulates expression; every major aspect with the aspecting planet named and its specific psychological dynamic shown (in the Sidereal frame: every graha relationship received — drishti and same-sign conjunction — plus the house lordships, in place of Western aspects); how this person registers and handles being perceived through this planet (their experience of it, not the audience's verdict — see PROSE FAILURE MODES #3); what the person believes about themselves that may not be accurate. The stated word range is a BAND with a real floor AND a real ceiling — a major section short of its lower bound has thinned or skipped required material and must go deeper, but a section past its upper bound has almost always padded, repeated, or slipped into cadence (see PROSE FAILURE MODES) and must be cut back, not indulged. Brevity for its own sake is not a virtue here, but neither is length: the target is the most complete portrait that fits the band, and the quality gate now scores length and fails a section that runs past its hard cap. But the length must be EARNED through substance, never padding: reach the depth by working through more of the chart — every aspect followed to its specific psychological dynamic, the dispositor chain pursued, the situational scene drawn more precisely, the contradiction between two placements opened and held — and never through the cadence, repetition, or restatement banned in PROSE FAILURE MODES. Thorough AND dense is the target; the failure modes are how a section pads to length, depth is how it earns the same length honestly. If a subsection (the sign, the house, an aspect) is only two or three sentences, it has almost certainly under-delivered — develop it: name the mechanism, the lived behaviour, what it costs, the condition that activates it. None of these planets may be shortened on the assumption it is covered elsewhere; each is interpreted in full here.
 
-Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn, Rahu/Ketu): sufficient to cover sign, house, key aspects, and the specific dynamic this creates — not padded, not abbreviated. Depth comes from specificity, not length. An accurate observation in four sentences is worth more than a generic paragraph.
+Secondary planets (Mercury, Venus, Mars, Jupiter, Saturn, Rahu/Ketu): sufficient to cover sign, house, key aspects, and the specific dynamic this creates — not padded, not abbreviated. Depth comes from specificity, not length. An accurate observation in four sentences is worth more than a generic paragraph. Mercury, Venus and Mars share ONE section, as Jupiter and Saturn do: each of the three is still read on its own placement, dignity, ruler and aspects, but the section is one account of how this person thinks, values and acts, and its words go to how the three meet — not to three summaries placed end to end.
 
 Always interpret a planet's sign expression through its house placement first. The house modifies and directs the sign's energy more than the sign description alone. A Leo Sun in the 4th house is not a theatrical public Leo — the 4th house privatises the Leo drive entirely. Never apply a sign's most visible archetypal expression if the house placement contradicts it.
 
@@ -583,9 +594,9 @@ The reading is written one section at a time, in order, and every section is the
 - Never attribute to the reading so far anything it does not actually contain. Only what is in that block has been said. With no such block, nothing has been said yet: never imply otherwise.
 - Never contradict a behavioural claim the reading so far has made. If this placement complicates it, name the condition under which each holds ("when nothing is at stake…; when something is…") — never assert the opposite as a flat claim. Two flat, opposite descriptions of the same behaviour leave the reader unable to tell which is meant, and a reading that can explain any behaviour explains none.
 - Never reuse a phrase. The knowledge base and the context blocks are reference, not copy: do not lift their wording into the prose (the Leo entry's "the people they have chosen" must not become a refrain). A distinctive phrase, image or motif the reading so far has already used may not be used again; find what THIS placement adds instead. When the context lists PHRASES ALREADY USED, none of them may appear in this section.
-- Vary the shape. If earlier sections opened on a lived scene, do not open on the same kind of scene; if they closed on a certain cadence, do not close on it again. The reader is reading straight through, and a repeated shape reads as a template. The Sun, Moon, Mercury, Venus and Mars sections each carry their own OPENING MODE and CLOSING MODE so that no two share a shape: follow the one given, not the shape an earlier section used.
-- Never open a section on the existential frame — banned as a first sentence: ${BANNED_OPENER_LIST}. It announces that a quality exists instead of naming it, and when every section reaches for it the reading opens the same way five times. Mid-paragraph, "there is" is ordinary English; the ban is on the opening.
-- The Moon and Venus sections describe different things. The Moon section describes what this person needs in order to feel emotionally safe; the Venus section describes what they find worth giving and worth having. They must not share a concrete image: a scene of noticing small domestic details, remembering the coffee order or quietly fixing the small thing belongs to at most one of them, and if the reading so far has already used it, to neither.
+- Vary the shape. If earlier sections opened on a lived scene, do not open on the same kind of scene; if they closed on a certain cadence, do not close on it again. The reader is reading straight through, and a repeated shape reads as a template. The Sun section, the Moon section and the Mercury, Venus and Mars section each carry their own OPENING MODE and CLOSING MODE so that no two share a shape: follow the one given, not the shape an earlier section used.
+- Never open a section on the existential frame — banned as a first sentence: ${BANNED_OPENER_LIST}. It announces that a quality exists instead of naming it, and when every section reaches for it the reading opens the same way every time. Mid-paragraph, "there is" is ordinary English; the ban is on the opening.
+- The Moon and Venus describe different things. The Moon section describes what this person needs in order to feel emotionally safe; Venus, inside the Mercury, Venus and Mars section, describes what they find worth giving and worth having. They must not share a concrete image: a scene of noticing small domestic details, remembering the coffee order or quietly fixing the small thing belongs to at most one of them, and if the reading so far has already used it, to neither.
 - Continuity is not abbreviation. This section's own subject still receives its full treatment at its required depth — the Sun, Moon and Ascendant/Lagna each get the full primary portrait described in DEPTH REQUIREMENTS. Depth comes from going further into THIS placement, never from re-covering earlier ones.
 - The reading so far is what has been SAID, never a source of chart facts. Every placement, degree, house, aspect, dignity and ruler still comes only from this section's own chart data and STRUCTURED INTERPRETATION CONTEXT. In particular, a Sidereal section never imports a Tropical sign, house or ruler from the Tropical prose as if it applied in its own frame.
 
@@ -761,8 +772,8 @@ export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
 // Shared by the Sidereal section prompts: the Jyotish evidence each must work,
 // and the close Jupiter/Saturn must write. The close is spelled out because the
 // v10.24 secondaries each ended on one aphoristic line (PROSE FAILURE MODES #1);
-// the personal planets now take their own CLOSER_MODES instead, so the four
-// Sidereal secondaries no longer all close on the same mechanism.
+// the personal-planet sections now take their own CLOSER_MODES instead, so
+// the Sidereal secondaries no longer all close on the same mechanism.
 const SIDEREAL_EVIDENCE_TAIL = `the houses this planet rules from the Lagna and what it carries into the house it occupies (HOUSE LORDSHIP); the graha relationships it receives — drishti and same-sign conjunction — and the drishti it casts. Do not re-describe the Tropical aspects.`
 const SIDEREAL_EVIDENCE_CLAUSE = `Work the Jyotish evidence in the context: ${SIDEREAL_EVIDENCE_TAIL}`
 const SIDEREAL_CLOSE = `End with ### Putting It Together: two to four full sentences naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
@@ -781,7 +792,7 @@ Integrate: sign and what it produces in this specific house; dignity status and 
 
 This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
 
-    moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
+    moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun section (and, later, where Mars meets it), but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
 Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
 
@@ -801,39 +812,22 @@ Cover: what this rising sign produces as the person's instinctive way of enterin
 
 This is a full primary portrait. ${lengthClause(BAND_PRIMARY)} Develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. Being perceived may appear here, but only routed through the native's own experience — what they notice of how they land, what they brace for or are surprised by (PROSE FAILURE MODES #3) — never as the section's lens. Any concrete scene must be built from chart factors you can name; do not invent specifics (durations, counts, exact circumstances) the chart does not supply. Do NOT end on a struck aphoristic fragment.`,
 
-    mercury: `Interpret Mercury.
+    mercury_venus_mars: `Interpret Mercury, Venus and Mars together.
 
-Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+Start with: ## Mercury, Venus and Mars → then ### Mercury in [Sign], House [N] → ### Venus in [Sign], House [N] → ### Mars in [Sign], House [N] → ### Putting It Together. Use ## only for the section header and ### for every sub-header; never use ####.
 
-${openingClause('tropical', 'mercury')}
+This is ONE portrait of how this person engages: how they think and speak (Mercury), what they find worth giving and worth having (Venus), and how they go after it (Mars). It is not three short essays placed end to end. Each planet's subsection reads that planet on its own placement, and names how it meets at least one of the other two — where the thinking serves, argues with or talks the person out of what they value; where the drive acts on the valuing, outruns the thinking or stalls against it. If two of the three are in aspect, that aspect is the section's spine: work it once, where it first matters, with its orb class and applying/separating status, and do not work it again in the other planet's subsection.
 
-Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
+${openingClause('tropical', 'mercury_venus_mars')}
 
-End with ### Putting It Together. ${closingClause('tropical', 'mercury')} ${lengthClause(BAND_SECONDARY)}`,
+For each planet cover sign, house, dignity, the condition of its sign ruler, and the aspects it receives. Weight the aspects by their orb class (FACT DISCIPLINE): a tight or close aspect is worked to its specific dynamic, naming the aspecting planet's house and rulership; a moderate one gets a sentence; a wide one a clause at most. Aspects to the outer planets that this section does not work are left to the Key Aspects section, which comes later and works only what the reading has left untouched.
+- Mercury: what it produces in conversation, in analytical process, and under disagreement; what the dignity says about the ease or difficulty of mental expression; how the house directs the sign's cognitive style.
+- Venus: how this Venus actually expresses affection — not what the sign is known for, but what this combination of sign, house, dignity and aspects produces; what this person finds worth giving and worth having versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's. Do not default to emotional coldness or reserve from sign reputation alone: Venus in an earth sign shows love through reliability and practical devotion, a different love language, not coldness; name reserve only where challenging aspects genuinely indicate it.
+- Mars: how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want. Cross-reference the Moon: state the Mars impulse, then whether the Moon's sign and house let it complete, override it, or set up an internal conflict — never describe Mars's behaviour as the full picture without accounting for what the Moon is doing.
 
-    venus: `Interpret Venus.
+Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context. Show the strengths of all three with the same weight as their costs (WHOLE-PERSON PORTRAIT); a planet that works easily is stated plainly, not rescued or inflated.
 
-Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
-
-${openingClause('tropical', 'venus')}
-
-Cover sign, house, dignity, the condition of Venus's sign ruler, and every key aspect. Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person finds worth giving and worth having in intimacy versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
-
-Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
-
-End with ### Putting It Together. ${closingClause('tropical', 'venus')} ${lengthClause(BAND_SECONDARY)}`,
-
-    mars: `Interpret Mars.
-
-Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
-
-${openingClause('tropical', 'mars')}
-
-Cover sign, house, dignity, the condition of Mars's sign ruler, and every key aspect. Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
-
-Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
-
-End with ### Putting It Together. ${closingClause('tropical', 'mars')} ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'mercury_venus_mars')} ${lengthClause(BAND_MVM)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
 
@@ -845,7 +839,7 @@ End with ### Putting It Together: what Jupiter and Saturn together actually prod
 
     key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
-The reading also has dedicated sections for the Sun, Moon, Ascendant, Mercury, Venus, Mars, and Jupiter/Saturn — each of which interprets the aspects to its own planet. So an aspect between two of those planets (e.g. Sun square Saturn, Venus trine Mars) has its natural home in those sections and should NOT be re-interpreted here. This section exists to surface the significant aspects that fall between the cracks of that planet-by-planet structure — for example, aspects involving the outer planets (Uranus, Neptune, Pluto) to a personal planet, which no single earlier section is built around. The lunar nodes have their own dedicated section and are NOT covered here. Select from the ALL MAJOR ASPECTS list in the context on that basis. The planet sections are in THE READING SO FAR: do not re-interpret any aspect they already worked — choose what they left untouched. The context marks each aspect ALREADY WORKED or NOT YET WORKED: choose ONLY from NOT YET WORKED. If none of the significant ones are left, say so in a sentence and stop short rather than re-working a covered aspect.
+The reading also has dedicated sections for the Sun, Moon, Ascendant, Mercury/Venus/Mars (one section), and Jupiter/Saturn — each of which interprets the aspects to its own planets. So an aspect between two of those planets (e.g. Sun square Saturn, Venus trine Mars) has its natural home in those sections and should NOT be re-interpreted here. This section exists to surface the significant aspects that fall between the cracks of that planet-by-planet structure — for example, aspects involving the outer planets (Uranus, Neptune, Pluto) to a personal planet, which no single earlier section is built around. The lunar nodes have their own dedicated section and are NOT covered here. Select from the ALL MAJOR ASPECTS list in the context on that basis. The planet sections are in THE READING SO FAR: do not re-interpret any aspect they already worked — choose what they left untouched. The context marks each aspect ALREADY WORKED or NOT YET WORKED: choose ONLY from NOT YET WORKED. If none of the significant ones are left, say so in a sentence and stop short rather than re-working a covered aspect.
 
 For each aspect you include: name both planets with their houses and rulerships; name the orb and applying/separating status; describe the psychological dynamic with full specificity — not a one-line summary but a precise account of what this tension actually produces in a person's life. Each aspect included should reveal a structurally distinct dynamic, not a variation of one already evident from the planet sections.
 
@@ -903,35 +897,19 @@ If the Tropical reading already made a behavioural claim about this Moon — how
 
 ${closingClause('sidereal', 'moon')} ${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
 
-    mercury: `Interpret Mercury in the Sidereal chart.
+    mercury_venus_mars: `Interpret Mercury, Venus and Mars in the Sidereal chart.
 
-Start with: ## Mercury
+Start with: ## Mercury, Venus and Mars → then ### Mercury → ### Venus → ### Mars → ### Putting It Together. Use ## only for the section header and ### for every sub-header; never use ####.
 
-Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra and what precision it adds. Cover sign, house and Jyotish sign status — the instinctive cognitive style. ${SIDEREAL_EVIDENCE_CLAUSE}
+Open with the sign shifts from Tropical, as their FRAME SHIFT lines state them — one clause per planet whose sign shifted, not a paragraph each — and read each Sidereal sign in its own right, beside the Tropical account rather than beneath or above it (resolution-by-hierarchy is banned).
 
-${openingClause('sidereal', 'mercury')}
+${openingClause('sidereal', 'mercury_venus_mars')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'mercury')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+For each planet: the Nakshatra and the quality it adds, using its lord, deity and theme from the context; sign, house and Jyotish sign status — if own sign, exalted or debilitated, state it and what it means functionally, with any NEECHA BHANGA CONDITIONS listed (name the condition met; do not declare the debilitation erased). For each planet, also work ${SIDEREAL_EVIDENCE_TAIL}
 
-    venus: `Interpret Venus in the Sidereal chart.
+This is ONE account of the conditions this person's thinking (Mercury), valuing (Venus) and drive (Mars) operate inside, not three entries placed end to end. Spend the words where the three meet in this frame: a house that two of them rule or occupy, a drishti one casts on another's house, a shared sign. Venus here is what the person finds worth giving and having in this frame; what they need in order to feel safe is the Moon's subject. If the Tropical reading already made a behavioural claim about one of these planets, do NOT issue the opposite claim as a flat verdict — name the condition under which the Sidereal pattern surfaces.
 
-Start with: ## Venus
-
-Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra and its specific quality. Cover sign, house and Jyotish sign status — the relational nature this frame describes, beside the Tropical Venus rather than beneath it (resolution-by-hierarchy is banned). ${SIDEREAL_EVIDENCE_CLAUSE}
-
-${openingClause('sidereal', 'venus')}
-
-End with ### Putting It Together. ${closingClause('sidereal', 'venus')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
-
-    mars: `Interpret Mars in the Sidereal chart.
-
-Start with: ## Mars
-
-Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name the Nakshatra. Cover sign, house and Jyotish sign status — if own sign, exalted or debilitated, state it and what it means functionally for how this drive operates. ${SIDEREAL_EVIDENCE_CLAUSE}
-
-${openingClause('sidereal', 'mars')}
-
-End with ### Putting It Together. ${closingClause('sidereal', 'mars')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('sidereal', 'mercury_venus_mars')} ${lengthClause(BAND_SIDEREAL_MVM)}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 

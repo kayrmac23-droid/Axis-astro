@@ -1787,9 +1787,9 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
     sun:            ['Sun'],
     moon:           ['Moon'],
     ascendant:      [],
-    mercury:        ['Mercury'],
-    venus:          ['Venus'],
-    mars:           ['Mars'],
+    // One section for the three (v10.28), composed exactly as jupiter_saturn
+    // composes its two: each body keeps its own full planet block.
+    mercury_venus_mars: ['Mercury', 'Venus', 'Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
     key_aspects:    [],
     rahu_ketu:      ['Rahu']
@@ -1798,9 +1798,7 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
     lagna:          [],
     sun:            ['Sun'],
     moon:           ['Moon'],
-    mercury:        ['Mercury'],
-    venus:          ['Venus'],
-    mars:           ['Mars'],
+    mercury_venus_mars: ['Mercury', 'Venus', 'Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
     rahu_ketu:      ['Rahu']
   }

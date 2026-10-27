@@ -344,7 +344,7 @@ function getAnthropic(): Anthropic {
 }
 
 // The evaluator's system prompt is identical on every call, so it is sent as a
-// cached block: a natal reading evaluates ~21 sections within minutes of each
+// cached block: a natal reading evaluates ~17 sections within minutes of each
 // other, and only the first should pay full price for it.
 const EVAL_SYSTEM_BLOCKS: Anthropic.TextBlockParam[] = [
   { type: 'text', text: EVAL_SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },

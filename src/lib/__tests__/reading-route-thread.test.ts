@@ -99,6 +99,33 @@ describe('/api/reading — sections are written after the reading so far', () =>
     expect(prior).toContain('MOON-PROSE.')
   })
 
+  it('serves the combined Mercury, Venus and Mars section and threads it in both frames', async () => {
+    await read('tropical', 'sun', '## The Sun\n\nSUN-PROSE.')
+    await read('tropical', 'mercury_venus_mars', '## Mercury, Venus and Mars\n\nMVM-TROP-PROSE.')
+    // The model is sent the combined instruction and all three planet blocks.
+    const own = lastUserBlocks().at(-1)!.text
+    expect(own).toContain('Interpret Mercury, Venus and Mars together.')
+    for (const p of ['MERCURY', 'VENUS', 'MARS']) expect(own).toContain(`── ${p} `)
+    await read('sidereal', 'mercury_venus_mars', '## Mercury, Venus and Mars\n\nMVM-SID-PROSE.')
+    const prior = lastUserBlocks().slice(0, -1).map(b => b.text).join('\n')
+    expect(prior).toContain('ALREADY READ · Tropical reading · Mercury, Venus & Mars')
+    expect(prior).toContain('MVM-TROP-PROSE.')
+    expect(lastUserBlocks().at(-1)!.text).toContain('Interpret Mercury, Venus and Mars in the Sidereal chart.')
+  })
+
+  it('rejects the retired per-planet section keys', async () => {
+    for (const [section, planetSection] of [['tropical', 'mercury'], ['tropical', 'venus'], ['sidereal', 'mars']]) {
+      const res = await POST(new NextRequest('https://x/api/reading', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.0.1.1' },
+        body: JSON.stringify({ birthData: BIRTH, section, planetSection, threadId: THREAD }),
+      }))
+      expect(res.status).toBe(400)
+      expect((await res.json()).error).toBe('Invalid planetSection for this section')
+    }
+    expect(streamCalls).toHaveLength(0)
+  })
+
   it('The Divergence is sent both readings', async () => {
     await read('tropical', 'sun', '## The Sun\n\nSUN-PROSE.')
     await read('sidereal', 'lagna', '## The Lagna\n\nLAGNA-PROSE.')

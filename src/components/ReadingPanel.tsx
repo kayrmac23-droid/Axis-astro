@@ -38,8 +38,8 @@ const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
 }
 
 const SECTION_DISPLAY: Record<string, string> = {
-  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', mercury: 'Mercury',
-  venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
+  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant',
+  mercury_venus_mars: 'Mercury, Venus & Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
@@ -78,6 +78,9 @@ function getDescriptorKey(heading: string, section: string): string | null {
   }
   if (h.includes('sun')) return 'Sun'
   if (h.includes('moon')) return 'Moon'
+  // The combined section (mercury_venus_mars) before the single-planet matches,
+  // which would otherwise give its heading Mercury's descriptor alone.
+  if (h.includes('mercury') && h.includes('venus') && h.includes('mars')) return 'MercuryVenusMars'
   if (h.includes('mercury')) return 'Mercury'
   if (h.includes('venus')) return 'Venus'
   if (h.includes('mars')) return 'Mars'
@@ -111,8 +114,9 @@ export function getSynthesisKey(heading: string): string | null {
 
 // Which readout-row id(s) a placement heading describes, so the per-section data
 // block beside the prose shows exactly the bodies that prose discusses. Returns
-// row ids (from buildReadoutRows). Combined sections resolve to BOTH bodies
-// (Jupiter & Saturn → [jupiter, saturn]; Rahu & Ketu / nodes → [rahu, ketu]).
+// row ids (from buildReadoutRows). Combined sections resolve to every body they
+// name (Mercury, Venus and Mars → [mercury, venus, mars]; Jupiter & Saturn →
+// [jupiter, saturn]; Rahu & Ketu / nodes → [rahu, ketu]).
 // Aspects and the Divergence sub-sections resolve to none — they stay prose-only.
 function bodiesForHeading(content: string): string[] {
   const h = content.toLowerCase()

@@ -38,7 +38,7 @@ describe('countAspectsInContext ↔ interpretation-engine format coupling', () =
 
     // Every section routed through formatPlanetBlock must produce a count —
     // these are the sections whose bands actually consume it.
-    for (const s of ['moon', 'mercury', 'venus', 'mars', 'jupiter_saturn'] as const) {
+    for (const s of ['moon', 'mercury_venus_mars', 'jupiter_saturn'] as const) {
       expect(countAspectsInContext(chartContext('tropical', s))).toBeGreaterThan(0)
     }
   })
@@ -86,8 +86,9 @@ describe('countAspectsInContext ↔ interpretation-engine format coupling', () =
   })
 
   it('counts Sidereal planet relationships from the Jyotish block', () => {
-    for (const s of ['sun', 'moon', 'venus', 'mars', 'jupiter_saturn'] as const) {
+    for (const s of ['sun', 'moon', 'mercury_venus_mars', 'jupiter_saturn'] as const) {
       const ctx = chartContext('sidereal', s)
+      expect(ctx).toContain('GRAHA RELATIONSHIPS RECEIVED')
       expect(ctx).not.toContain('ASPECTS (tightest first):')
       const bullets = ctx.split('\n').filter(l => /^• (Conjunct \(same sign\)|Receives the )/.test(l)).length
       expect(countAspectsInContext(ctx)).toBe(bullets)

@@ -152,8 +152,8 @@ describe('interpretation context — does not model the banned rescue register',
 
   const SECTIONS: Array<['tropical' | 'sidereal' | 'synthesis', string]> = [
     ['tropical', 'sun'], ['tropical', 'moon'], ['tropical', 'ascendant'],
-    ['tropical', 'venus'], ['tropical', 'jupiter_saturn'], ['tropical', 'key_aspects'],
-    ['sidereal', 'lagna'], ['sidereal', 'sun'], ['sidereal', 'venus'],
+    ['tropical', 'mercury_venus_mars'], ['tropical', 'jupiter_saturn'], ['tropical', 'key_aspects'],
+    ['sidereal', 'lagna'], ['sidereal', 'sun'], ['sidereal', 'mercury_venus_mars'],
     ['synthesis', 'diverge'],
   ]
 

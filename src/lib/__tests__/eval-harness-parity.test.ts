@@ -97,11 +97,12 @@ describe('eval harness ↔ /api/reading parity', () => {
 
   it('every section of a known-time reading sends exactly the harness request', async () => {
     await readWholeReading(KNOWN)
-    expect(streamCalls).toHaveLength(21)
+    // 17 sections since v10.28 (Mercury, Venus and Mars are one section per frame).
+    expect(streamCalls).toHaveLength(17)
   })
 
   it('an unknown-time reading matches too, with the angle sections answered deterministically', async () => {
     await readWholeReading(UNKNOWN)
-    expect(streamCalls).toHaveLength(19)
+    expect(streamCalls).toHaveLength(15)
   })
 })

@@ -30,6 +30,13 @@ export const TROPICAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
     keywords: 'drive · assertion · will in motion · anger as information',
     description: `Mars describes the will in action — the quality of drive, the form assertion takes, and the physiological and behavioural response when something is at stake. Sign characterizes the quality of that impulse; house reveals the primary arena. Anger, in Mars's framework, is not a problem to be managed but information about where the will has been blocked or violated.`
   },
+  // The descriptor for the combined section (heading "Mercury, Venus and Mars").
+  // The single-planet entries above stay for any heading naming one of them.
+  MercuryVenusMars: {
+    name: 'Mercury, Venus & Mars',
+    keywords: 'how the mind moves · what is worth having · how it is pursued',
+    description: `Mercury, Venus and Mars are read together as one account of how a person engages: Mercury the cognitive style, how perception becomes language; Venus the value structure, what is worth giving and worth having; Mars the will in motion, how what is valued is pursued when something is at stake. Each is read on its own sign, house and dignity. The interpretation lives where they meet — where the thinking serves or argues with the valuing, and where the drive acts on both, outruns them, or stalls.`
+  },
   Jupiter: {
     name: 'Jupiter',
     keywords: 'expansion · belief · overreach · the framework that makes life legible',
@@ -97,6 +104,11 @@ export const SIDEREAL_DESCRIPTORS: Record<string, PlanetDescriptor> = {
     name: 'Mars',
     keywords: 'courage · instinctive will · directed energy · action before reflection',
     description: `In Jyotish, Mars governs courage, vitality, and the instinctive will before it passes through reflection. A well-dignified Mars produces decisive, directed energy; a strained Mars produces either impulsiveness or chronically blocked drive that seeks expression elsewhere. The Nakshatra placement specifies the precise quality and direction of this assertive force — the character of how it characteristically moves.`
+  },
+  MercuryVenusMars: {
+    name: 'Mercury, Venus & Mars',
+    keywords: 'discriminating intellect · what satisfies · courage and directed will',
+    description: `In Jyotish, Mercury governs the discriminating intellect, Venus what is found genuinely satisfying, and Mars the courage that acts before reflection. Read together, each on its own sign status, Nakshatra and lordships, they describe the conditions a person's thinking, valuing and drive operate inside: the houses each rules from the Lagna, where those arenas coincide, and where one graha's drishti reaches another's ground.`
   },
   Jupiter: {
     name: 'Jupiter',
