@@ -754,21 +754,17 @@ export function isNearStation(p: PlanetPosition): boolean {
   return typical != null && Math.abs(p.dailyMotion ?? typical) < typical * 0.25
 }
 
-// The cusp rule: within 3° of a sign boundary, the neighbouring sign is still
-// live in the placement. Returns the neighbour, or null away from a boundary.
+// Geometry only: the neighbouring sign when a placement is within 3° of a sign
+// boundary, or null away from one. Not a reading instruction — DOCTRINE.md
+// (SIGN-BOUNDARY CUSPS — DEREGISTERED) reads such a placement as a normal
+// placement in its sign. Used for the Divergence plan's cross-system boundary
+// note and by the eval harness's chart annotations.
 export function cuspNeighbour(sign: string, degree: number): string | null {
   const i = SIGNS_ORDERED.indexOf(sign)
   if (i < 0) return null
   if (degree < 3) return SIGNS_ORDERED[(i + 11) % 12]
   if (degree >= 27) return SIGNS_ORDERED[(i + 1) % 12]
   return null
-}
-
-function cuspLine(body: string, sign: string, degree: number): string | null {
-  const n = cuspNeighbour(sign, degree)
-  if (!n) return null
-  const side = degree < 3 ? `the first 3° of ${sign}, just past ${n}` : `the last 3° of ${sign}, just short of ${n}`
-  return `⚠ CUSP: ${body} at ${sign} ${fmtDeg(degree)} sits in ${side}. Apply the CUSP RULE: read ${sign} as the placement, with ${n} still live in it. Never describe this placement as "pure", "unmixed", "uncomplicated" or "undiluted" ${sign}.`
 }
 
 // The sentence-level test for whether the reading so far already worked an
@@ -1109,8 +1105,7 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
   const lines: string[] = []
 
   lines.push(`${system.toUpperCase()} CHART`)
-  const ascCusp = cuspNeighbour(chart.ascendantSign, chart.ascendantDegree)
-  lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1${ascCusp ? ` · CUSP (${ascCusp} boundary within 3°)` : ''}`)
+  lines.push(`Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)} · House 1`)
   lines.push(`MC (Midheaven): ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)} · career/public axis (not the Whole Sign 10th-house cusp)`)
   lines.push('')
 
@@ -1120,8 +1115,6 @@ export function formatEliteChartBlock(chart: ChartData, system: 'tropical' | 'si
     const dir  = p.retrograde ? 'retrograde ℞' : 'direct'
     let line   = `${p.name}: ${p.sign} ${fmtDeg(p.degree)} · House ${p.house} · ${dig} · ${dir}`
     if (isNearStation(p)) line += ' · near station (barely moving)'
-    const cusp = cuspNeighbour(p.sign, p.degree)
-    if (cusp) line += ` · CUSP (${cusp} boundary within 3°)`
     if (vedic && p.nakshatra) {
       line += ` · ${p.nakshatra} Pada ${p.nakshatraPada}`
     }
@@ -1293,8 +1286,6 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
   if (isNearStation(planet)) {
     lines.push(`⚠ NEAR STATION: ${planet.name} is barely moving (${Math.abs(planet.dailyMotion).toFixed(3)}°/day) — it is about to turn ${planet.retrograde ? 'direct' : 'retrograde'} or has just turned. A station is itself significant: the function is concentrated and slow to change. An aspect it "applies" to by today's motion may never perfect; do not call such an aspect intensifying or tightening.`)
   }
-  const cusp = cuspLine(planet.name, planet.sign, planet.degree)
-  if (cusp) lines.push(cusp)
   if (planet.nakshatra) lines.push(`Nakshatra: ${planet.nakshatra} Pada ${planet.nakshatraPada}`)
 
   // Evidence-weighted Moon cross-reference for Sun and Mars
@@ -1409,8 +1400,6 @@ function formatAscendantBlock(chart: ChartData, section: 'tropical' | 'sidereal'
   const lines: string[] = []
   lines.push(`── ${vedic ? 'LAGNA' : 'ASCENDANT'} ──────────────────────────────`)
   lines.push(`${signName} ${chart.ascendantDegree.toFixed(1)}°`)
-  const cusp = cuspLine(vedic ? 'The Lagna' : 'The Ascendant', signName, chart.ascendantDegree)
-  if (cusp) lines.push(cusp)
   lines.push('')
 
   if (sData) {
@@ -1533,8 +1522,8 @@ export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
 
   // One body's placement in both frames. Degree, retrogradation and the sidereal
   // nakshatra are carried because the Divergence sections receive ONLY this plan:
-  // without the degree the cusp rule (±3° of a sign boundary) cannot be applied
-  // at all, and without the nakshatra the sidereal half loses its Jyotish grain.
+  // without the degree no position claim (or the one-frame boundary note) can be
+  // checked at all, and without the nakshatra the sidereal half loses its Jyotish grain.
   const describe = (name: string, t: PlanetPosition, s: PlanetPosition): string => {
     const td = computeDignity(name, t.sign).status
     const sd = computeDignity(name, s.sign).status
@@ -1559,7 +1548,12 @@ export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
     const houseChanged = !unknown && t.house !== s.house
     const td = computeDignity(name, t.sign).status
     const sd = computeDignity(name, s.sign).status
-    const onCusp = t.degree > 27 || t.degree < 3 || s.degree > 27 || s.degree < 3
+    // DOCTRINE.md retains one boundary observation, and only as divergence
+    // content: a body boundary-ambiguous in one frame but settled in the other.
+    const tNearBoundary = cuspNeighbour(t.sign, t.degree) !== null
+    const sNearBoundary = cuspNeighbour(s.sign, s.degree) !== null
+    const boundaryNote  = tNearBoundary === sNearBoundary ? null
+      : `within 3° of a sign boundary in the ${tNearBoundary ? 'Tropical' : 'Sidereal'} frame (${tNearBoundary ? t.sign : s.sign} ${fmtDeg(tNearBoundary ? t.degree : s.degree)}), settled away from a boundary in the ${tNearBoundary ? 'Sidereal' : 'Tropical'}`
     const placement = describe(name, t, s)
     const weight = DIVERGENCE_BODY_WEIGHT[name] ?? 2
     const key = name.toUpperCase()
@@ -1625,12 +1619,12 @@ export function buildDivergencePlan(chartData: DualChartData): DivergencePlan {
 
     const tight = tropicalAspects.filter(a => (a.planet1 === name || a.planet2 === name) && a.orb <= 3)
     if (tight.length) reasons.push(`${tight.length} tight major aspect${tight.length > 1 ? 's' : ''}`)
-    if (onCusp) reasons.push('sits within 3° of a sign boundary in at least one framework — apply the cusp rule')
+    if (boundaryNote) reasons.push(`boundary-ambiguous in one frame only: ${boundaryNote}`)
     if (name === 'Moon' && unknown) { structural -= 3; reasons.push('Moon degree is timing-sensitive because birth time is unknown') }
 
     evidence.push({
       id: `D-${key}`, kind: 'difference', role: 'context', planets: [name],
-      summary: `${placement} Changes: ${[signChanged && 'sign', houseChanged && 'house', td !== sd && 'dignity'].filter(Boolean).join(', ') || 'degree only'}.${onCusp ? ' Near a sign boundary — the cusp rule applies.' : ''} This is a divergence to be held open, not proof of conflict, suffering, or a coping history.`,
+      summary: `${placement} Changes: ${[signChanged && 'sign', houseChanged && 'house', td !== sd && 'dignity'].filter(Boolean).join(', ') || 'degree only'}.${boundaryNote ? ` Boundary-ambiguous in one frame only: ${boundaryNote}.` : ''} This is a divergence to be held open, not proof of conflict, suffering, or a coping history.`,
     })
     candidates.push({ id: `D-${key}`, subject: name, score: structural + weight, structural, reasons, evidenceIds: [`D-${key}`] })
   }
@@ -1930,8 +1924,6 @@ export function buildInterpretationContext(
       const ketuCore  = PLANET_CORE['Ketu']
       lines.push('── KETU (SOUTH NODE) ─────────────────────────────')
       lines.push(`Placement: ${ketu.sign} ${ketu.degree.toFixed(1)}° | House ${ketu.house}`)
-      const ketuCusp = cuspLine('Ketu', ketu.sign, ketu.degree)
-      if (ketuCusp) lines.push(ketuCusp)
       if (ketu.nakshatra) {
         const nData = NAKSHATRA_DATA[ketu.nakshatra]
         if (nData) lines.push(...formatNakshatraLines(ketu.nakshatra, ketu.nakshatraPada, nData))

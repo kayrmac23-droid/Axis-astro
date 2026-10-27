@@ -50,7 +50,7 @@ The two systems often put the same planet in different signs. That is not an err
 - Per-system: the sign, degree-within-sign, dignity, nakshatra, the chart ruler / Lagna lord, and (with Whole Sign houses) the house when the Ascendant changes sign.
 - The **sign ruler is never an independent difference**: it changes only because the sign changed. What can genuinely differ is the dispositor's *condition* in each frame.
 - Never import one frame's chart ruler into the other. Never claim a placement is "the same in both" unless the numbers show it.
-- **Cusp rule.** A placement within 3° of a sign boundary is read as its sign with the neighbouring sign still live in it. A Tropical cusp does not mean the two systems agree; the Sidereal sign is a separate account.
+- **Sign boundaries.** A placement within 3° of a sign boundary is a normal placement in its sign: no neighbouring sign is "live" in it (DOCTRINE.md: SIGN-BOUNDARY CUSPS — DEREGISTERED). What is retained is cross-system: a body boundary-ambiguous in one frame and settled in the other is divergence content. Being near a boundary in one frame does not mean the two systems agree; the other frame's sign is a separate account.
 
 ## Kay's Chart Reference
 
@@ -58,7 +58,7 @@ Born 23 July 1999, 11:45 PM AEST (UTC+10), Epping VIC, Australia. Values as AXIS
 
 | Body | Tropical | Sidereal (Lahiri) |
 |---|---|---|
-| Sun | 0°17′ Leo · 5th · domicile · **⚠ cusp** (Cancer live) | 6°26′ Cancer · 5th · friend's sign · Pushya pada 1 |
+| Sun | 0°17′ Leo · 5th · domicile · within 3° of the boundary (this frame only) | 6°26′ Cancer · 5th · friend's sign · Pushya pada 1 |
 | Moon | 5°24′ Sagittarius · **9th** · peregrine | 11°34′ Scorpio · **9th** · debilitated · Anuradha pada 3 |
 | Ascendant | 18°02′ Aries · ruler Mars (Scorpio, 8th, domicile) | 24°12′ Pisces · lord Jupiter (Aries, 2nd, friend's sign) |
 
@@ -70,7 +70,7 @@ These are the two accounts in each case, not conclusions. Read them through the 
 
 **Sun: Leo (Tropical) / Cancer (Sidereal), 5th house in both**
 - **Both:** the arena is the same, creativity, romance, play and self-expression.
-- **Tropical:** the Sun is in its own sign, so the drive to matter to the people she has chosen has full access to its function. Cancer is still live in it because of the cusp.
+- **Tropical:** the Sun is in its own sign, so the drive to matter to the people she has chosen has full access to its function. It sits 17′ into Leo, near the boundary in this frame only, which is a divergence fact rather than a Cancer colouring.
 - **Sidereal:** the Sun is in a friend's sign. Its dispositor is a debilitated Moon, so the Moon's difficulty modifies what the Sun can deliver. As lord of the 6th, the Sun also carries the 6th house's effort and friction into the 5th.
 - **The gap she navigates:** in one account, self-expression runs at full strength. In the other, the same expression depends on emotional ground that the dispositor does not reliably supply.
 

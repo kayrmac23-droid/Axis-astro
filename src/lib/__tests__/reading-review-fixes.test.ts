@@ -24,27 +24,39 @@ const OCT_5_2026 = Date.UTC(2026, 9, 5)
 const planet = (system: 'tropical' | 'sidereal', name: string) =>
   chart[system].planets.find(p => p.name === name)!
 
-describe('cusp rule — Sun at 0°17′ Leo was read as "unmixed" Leo', () => {
-  it('finds the neighbour sign within 3° of either boundary, and nowhere else', () => {
+// v10.25 answered the "unmixed Leo" review by mandating that the model name the
+// neighbouring sign at every placement within 3° of a boundary. That contradicted
+// the ratified DOCTRINE.md ruling SIGN-BOUNDARY CUSPS — DEREGISTERED (a boundary
+// placement is a normal placement in its sign), so v10.28 removed it. Pin the
+// ruling: no within-system boundary instruction anywhere the model reads, and only
+// the cross-system note the ruling retains, in the Divergence plan.
+describe('sign-boundary placements — DOCTRINE.md: SIGN-BOUNDARY CUSPS — DEREGISTERED', () => {
+  it('finds the neighbour sign within 3° of either boundary, and nowhere else (geometry only)', () => {
     expect(cuspNeighbour('Leo', 0.28)).toBe('Cancer')
     expect(cuspNeighbour('Virgo', 28.5)).toBe('Libra')
     expect(cuspNeighbour('Leo', 3)).toBeNull()
     expect(cuspNeighbour('Leo', 15)).toBeNull()
   })
 
-  it('flags the Sun in its own section context and in the chart block', () => {
-    const ctx = buildInterpretationContext(chart, 'tropical', 'sun')
-    expect(ctx).toMatch(/⚠ CUSP: Sun at Leo 0°17' .*just past Cancer/)
-    expect(ctx).toContain('Never describe this placement as "pure", "unmixed"')
-    expect(formatEliteChartBlock(chart.tropical, 'tropical')).toMatch(/^Sun: Leo 0°17'.*CUSP \(Cancer boundary/m)
+  it('states no boundary rule in the shared rules', () => {
+    expect(SHARED_RULES).not.toMatch(/cusp\s+(rule|note)/i)
+    expect(SHARED_RULES).not.toContain('⚠ CUSP')
   })
 
-  it('does not flag a placement away from a boundary', () => {
-    expect(buildInterpretationContext(chart, 'tropical', 'mercury')).not.toContain('⚠ CUSP: Mercury')
+  it('flags no within-system boundary in any section context or chart block', () => {
+    for (const [system, planetSection] of [['tropical', 'sun'], ['tropical', 'ascendant'], ['sidereal', 'sun'], ['sidereal', 'lagna'], ['tropical', 'rahu_ketu']] as const) {
+      const ctx = buildInterpretationContext(chart, system, planetSection)
+      expect(ctx).not.toContain('⚠ CUSP')
+      expect(ctx).not.toMatch(/still live in it/)
+    }
+    expect(formatEliteChartBlock(chart.tropical, 'tropical')).not.toMatch(/CUSP \(/)
+    expect(formatEliteChartBlock(chart.sidereal, 'sidereal')).not.toMatch(/CUSP \(/)
   })
 
-  it('is defined in the shared rules (it was referenced but never stated)', () => {
-    expect(SHARED_RULES).toContain('CUSP RULE — NON-NEGOTIABLE')
+  it('keeps the cross-system note in the Divergence plan: Sun at 0°17′ Leo, settled in Sidereal Cancer', () => {
+    const plan = buildInterpretationContext(chart, 'synthesis', 'diverge')
+    expect(plan).toMatch(/Boundary-ambiguous in one frame only: within 3° of a sign boundary in the Tropical frame \(Leo 0°17'\), settled away from a boundary in the Sidereal/)
+    expect(plan).not.toMatch(/cusp\s+rule/i)
   })
 })
 

@@ -39,8 +39,8 @@ import type { BirthData } from '@/lib/astro-calc'
 // written blind to the sections around it.
 // v10.25: review of a live v10.24 reading. The Sidereal frame now reads through
 // Jyotish technique (drishti, lordship, sign status, neecha bhanga) instead of
-// re-walking the Tropical aspects; the cusp rule is defined and flagged per
-// placement; FACT DISCIPLINE, APPLY THE RULES SILENTLY and the stacking form of
+// re-walking the Tropical aspects; a ±3° sign-boundary reading instruction is
+// defined and flagged per placement (removed again in v10.28); FACT DISCIPLINE, APPLY THE RULES SILENTLY and the stacking form of
 // resolution-by-hierarchy were added to the shared rules. Every prior entry was
 // generated from a different context block and different rules.
 // v10.26: the Divergence prompts still framed the two systems as "the constructed
@@ -55,7 +55,14 @@ import type { BirthData } from '@/lib/astro-calc'
 // existential opener is banned as a first sentence and scanned by the gate, and
 // the Moon and Venus sections are told not to share a concrete image. Cached
 // sections were written without any of that.
-export const READING_PROMPT_VERSION = 'v10.27'
+// v10.28: the ±3° sign-boundary instruction added in v10.25 contradicted the
+// ratified DOCTRINE.md ruling SIGN-BOUNDARY CUSPS — DEREGISTERED (a placement
+// within 3° of a boundary is a normal placement in its sign). It is removed from
+// SHARED_RULES, and the per-placement ⚠ flag and chart-block tag are removed from
+// the context. The Divergence plan keeps only the cross-system note the ruling
+// retains: a body boundary-ambiguous in one frame and settled in the other.
+// Cached sections were written telling the model to name the neighbouring sign.
+export const READING_PROMPT_VERSION = 'v10.28'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days

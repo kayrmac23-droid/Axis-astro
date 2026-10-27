@@ -57,7 +57,7 @@ Write from inside the native looking out. Other people's perception may appear o
 - No superlatives the data doesn't state.
 - No house-distance arithmetic ("four houses away").
 - Orb class sets the weight: a wide aspect gets a clause, never a theme.
-- A placement within 3° of a sign boundary is a cusp. Name the neighbouring sign and say what it colours; never call it pure or unmixed.
+- A placement within 3° of a sign boundary is a normal placement in its sign (DOCTRINE.md: SIGN-BOUNDARY CUSPS — DEREGISTERED). Do not name the neighbouring sign or read it into the placement. The only boundary point a reading may make is the cross-system one: a body near a boundary in one frame and away from one in the other, which belongs in The Divergence.
 
 **Prose failure modes** (each makes prose perform depth instead of delivering it):
 1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once.
@@ -101,7 +101,7 @@ Born 23 July 1999, 11:45 PM AEST (UTC+10), Epping VIC, Australia. Positions belo
 
 | | Tropical | Sidereal (Lahiri) |
 |---|---|---|
-| Sun | 0°17′ Leo, 5th house — **⚠ cusp**: Cancer is still live in it | 6°26′ Cancer, 5th house |
+| Sun | 0°17′ Leo, 5th house (within 3° of the boundary in this frame only) | 6°26′ Cancer, 5th house |
 | Moon | 5°24′ Sagittarius, **9th house** | 11°34′ Scorpio, 9th house |
 | Ascendant | 18°02′ Aries | 24°12′ Pisces |
 
