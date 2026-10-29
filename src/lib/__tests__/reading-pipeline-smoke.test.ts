@@ -24,12 +24,34 @@ import { describe, it, expect } from 'vitest'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { SHARED_RULES, TROPICAL_SYSTEM_PROMPT, SECTION_INSTRUCTIONS } from '@/lib/prompts'
+import { SHARED_RULES, TROPICAL_SYSTEM_PROMPT, renderSectionInstruction, LENGTH_CLAUSE_SLOT } from '@/lib/prompts'
+import { countAspectsInContext } from '@/lib/reading-quality-gate'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import { isAnthropicKeyConfigured } from '@/lib/env'
 import { priorSectionBlocks, READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 
-const LIVE = process.env.AXIS_LIVE_SMOKE === '1' && isAnthropicKeyConfigured()
+// AXIS_LIVE_SMOKE=1 is an explicit statement of intent to spend. If the key is
+// missing when it is set, that is an ERROR, not a reason to skip: a skip here
+// exits 0, and `npm run test:smoke` (and the workflow that runs it) then report
+// success having made no call at all. That false green is worse than no test —
+// it is indistinguishable from a pass to anyone checking before a merge, on the
+// one test whose entire job is to catch what the mocked suite cannot see.
+// Without the opt-in the file still skips silently, so an ordinary `npm test`
+// with a real key in the shell spends nothing.
+const OPTED_IN = process.env.AXIS_LIVE_SMOKE === '1'
+const LIVE     = OPTED_IN && isAnthropicKeyConfigured()
+
+describe.skipIf(!OPTED_IN)('reading pipeline — live smoke test preconditions', () => {
+  it('AXIS_LIVE_SMOKE=1 was set, so a real ANTHROPIC_API_KEY must be configured', () => {
+    expect(
+      isAnthropicKeyConfigured(),
+      'AXIS_LIVE_SMOKE=1 but ANTHROPIC_API_KEY is absent, blank, or a docs placeholder. ' +
+      'The live smoke test did NOT run. In CI, set the ANTHROPIC_API_KEY repository secret ' +
+      '(.github/workflows/smoke.yml passes it through); locally, put a real key in .env.local ' +
+      'or export it. Nothing about the live request shape has been verified by this run.',
+    ).toBe(true)
+  })
+})
 
 const FIXED_BIRTH: BirthData = {
   year: 1990, month: 6, day: 15, hour: 14, minute: 30,
@@ -48,8 +70,15 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
       const dual        = calculateDualChart(FIXED_BIRTH)
       const chartBlock   = formatEliteChartBlock(dual.tropical, 'tropical')
       const ctxBlock     = buildInterpretationContext(dual, 'tropical', 'key_aspects')
-      const instruction  = SECTION_INSTRUCTIONS.tropical.key_aspects
+      // Through renderSectionInstruction, exactly as the route does: reading
+      // SECTION_INSTRUCTIONS raw would send the unsubstituted LENGTH_CLAUSE_SLOT
+      // and this test would no longer be exercising production's request shape,
+      // which is its whole reason to exist.
+      const instruction  = renderSectionInstruction('tropical', 'key_aspects', {
+        aspectCount: countAspectsInContext(`${chartBlock}\n${ctxBlock}`),
+      })!
       const userContent  = `${chartBlock}\n${ctxBlock}\n\n---\n\n${instruction}`
+      expect(userContent).not.toContain(LENGTH_CLAUSE_SLOT)
 
       const systemBlocks: Anthropic.TextBlockParam[] = [
         { type: 'text', text: SHARED_RULES, cache_control: { type: 'ephemeral' } },

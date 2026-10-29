@@ -45,9 +45,9 @@ import { tmpdir } from 'node:os'
 const RESULTS_FILE = process.env.RUN_TIME_GATE_OUT || join(tmpdir(), 'axis-time-gate-result.json')
 
 // Real production surface — every import is a symbol confirmed exported.
-import { evaluateSection, repairSection } from '@/lib/reading-quality-gate'
+import { evaluateSection, repairSection, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { TROPICAL_SYSTEM_PROMPT, SHARED_RULES, SECTION_INSTRUCTIONS } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SHARED_RULES, renderSectionInstruction } from '@/lib/prompts'
 import { calculateDualChart, type BirthData } from '@/lib/astro-calc'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -82,8 +82,12 @@ function buildUserContent(planetSection: string): string {
   const dual = calculateDualChart(BIRTH, undefined) // route passes plutoOverride; undefined = local Meeus fallback, fine for timing
   const ctxBlock = buildInterpretationContext(dual, 'tropical', planetSection)
   const chartBlock = formatEliteChartBlock(dual.tropical, 'tropical')
-  const sectionInstruction = SECTION_INSTRUCTIONS[SECTION]?.[planetSection]
-  if (!sectionInstruction) throw new Error(`no SECTION_INSTRUCTIONS[${SECTION}][${planetSection}]`)
+  // Via renderSectionInstruction, as the route does — a raw SECTION_INSTRUCTIONS
+  // read sends the unsubstituted length slot and stops mirroring production.
+  const sectionInstruction = renderSectionInstruction(SECTION, planetSection, {
+    aspectCount: countAspectsInContext(`${chartBlock}\n${ctxBlock}`),
+  })
+  if (!sectionInstruction) throw new Error(`no section instruction for ${SECTION}/${planetSection}`)
   return `${chartBlock}\n${ctxBlock}\n\n---\n\n${sectionInstruction}`
 }
 

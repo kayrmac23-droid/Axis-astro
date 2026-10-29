@@ -23,6 +23,7 @@
 // charts and asserts the number the model reads IS the number scoreLength acts on.
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
+import { execSync } from 'child_process'
 import {
   SECTION_INSTRUCTIONS, SECTION_WORD_BANDS, LENGTH_CLAUSE_SLOT, renderSectionInstruction,
   wordBandFor, countPlanEvidence,
@@ -69,23 +70,59 @@ describe('length-band wiring — the clause is a per-request slot, not a baked s
   })
 
   it('renderSectionInstruction is the only supported reader of SECTION_INSTRUCTIONS', () => {
-    // A caller that reads the map directly would send the raw slot to the model.
-    // prompts.ts itself and the tests are allowed to name it.
+    // Scans the WHOLE tree, not a hand-listed set of files. The first version of
+    // this test checked three paths by name and so missed two real callers that
+    // make live API calls — the smoke test and the time-gate harness — which
+    // both went on sending the unsubstituted slot to the model. A hand-listed
+    // scan only ever covers the callers you already thought of.
+    //
+    // Reading the map to CHECK a section exists is fine, and so is asserting on
+    // its prompt TEXT (several suites do). What is banned is binding its value
+    // to a name and then building a request out of it.
+    const ASSERTION_ONLY = new Set([
+      // These read the text to assert a phrase is present or absent. They never
+      // send it anywhere.
+      'src/lib/__tests__/reading-quality-gate.test.ts',
+      'src/lib/__tests__/reading-review-fixes.test.ts',
+      'src/lib/__tests__/divergence-prompts.test.ts',
+    ])
+
+    const files = execSync(
+      "git ls-files 'src/**/*.ts' 'src/**/*.tsx' 'scripts/**/*.ts'", { encoding: 'utf8' },
+    ).trim().split('\n').filter(Boolean)
+    // The scan must actually see files, or it passes by looking at nothing.
+    expect(files.length).toBeGreaterThan(20)
+
     const offenders: string[] = []
-    for (const file of [
-      'src/app/api/reading/route.ts',
-      'scripts/eval-readings.request.ts',
-      'scripts/eval-readings.harness.ts',
-    ]) {
-      const src = readFileSync(file, 'utf8')
-      for (const line of src.split('\n')) {
-        // Reading the map to CHECK a section exists is fine; using its value is not.
-        if (/SECTION_INSTRUCTIONS\[[^\]]+\]\??\.?\[[^\]]+\]/.test(line) && !/^\s*(\/\/|\*)/.test(line) && !/if \(!/.test(line)) {
-          offenders.push(`${file}: ${line.trim()}`)
+    for (const file of files) {
+      if (file === 'src/lib/prompts.ts' || file.endsWith('prompts-length-wiring.test.ts')) continue
+      if (ASSERTION_ONLY.has(file)) continue
+      const lines = readFileSync(file, 'utf8').split('\n')
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]
+        if (/^\s*(\/\/|\*)/.test(line)) continue
+        // `= SECTION_INSTRUCTIONS…` / `of Object.values(SECTION_INSTRUCTIONS…)`
+        // — binding the value, as opposed to `if (!SECTION_INSTRUCTIONS[a]?.[b])`.
+        if (/[=(]\s*(Object\.(values|entries)\()?SECTION_INSTRUCTIONS\s*[[.]/.test(line)) {
+          offenders.push(`${file}:${i + 1}: ${line.trim()}`)
         }
       }
     }
     expect(offenders, 'use renderSectionInstruction() instead').toEqual([])
+  })
+
+  it('every file that builds a model request renders the slot away', () => {
+    // The failure the scan above exists to prevent, stated as its consequence:
+    // no assembled user content may still carry the slot.
+    const dual = calculateDualChart(WIRING_BIRTH)
+    for (const [section, planetSections] of Object.entries(NATAL_SECTION_ORDER)) {
+      for (const planetSection of planetSections) {
+        const req = buildSectionRequest(dual, section as NatalFrame, planetSection, [])
+        for (const block of req.params.messages[0].content) {
+          expect(block.text, `${section}/${planetSection}`).not.toContain(LENGTH_CLAUSE_SLOT)
+        }
+      }
+    }
   })
 })
 
