@@ -15,7 +15,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { DualChartData } from '@/lib/astro-calc'
 import {
   TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES,
+  renderSectionInstruction, countPlanEvidence, wordBandFor, type WordBand,
 } from '@/lib/prompts'
+import { countAspectsInContext } from '@/lib/reading-quality-gate'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import {
@@ -42,6 +44,9 @@ export interface SectionRequest {
   // What the route hands gateForCache alongside the first pass.
   userContent: string
   priorBlocks: Anthropic.TextBlockParam[]
+  // The chart-scaled band the instruction's length clause was rendered from —
+  // the same band the gate scores against. Reported per section by the harness.
+  band:        WordBand
 }
 
 export function buildSectionRequest(
@@ -50,20 +55,27 @@ export function buildSectionRequest(
   planetSection: string,
   prior: PriorSection[],
 ): SectionRequest {
-  const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
-  if (!sectionInstruction) throw new Error(`No section instruction for ${section}/${planetSection}`)
+  if (!SECTION_INSTRUCTIONS[section]?.[planetSection]) throw new Error(`No section instruction for ${section}/${planetSection}`)
 
   const repeatBlock = phrasesAlreadyUsedBlock(prior)
   const priorText = prior.map(p => p.text).join('\n\n')
-  let userContent: string
+
+  let contextBlock: string
   if (section === 'synthesis') {
-    const ctxBlock = buildInterpretationContext(dual, 'synthesis', planetSection)
-    userContent = `${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
+    contextBlock = buildInterpretationContext(dual, 'synthesis', planetSection)
   } else {
     const ctxBlock   = buildInterpretationContext(dual, section, planetSection, { priorText })
     const chartBlock = formatEliteChartBlock(dual[section], section)
-    userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
+    contextBlock = `${chartBlock}\n${ctxBlock}`
   }
+
+  // The length clause is substituted from the band THIS chart is scored against.
+  const aspectCount   = countAspectsInContext(contextBlock)
+  const evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
+  const band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
+  const sectionInstruction = renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!
+
+  const userContent = `${contextBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
 
   const priorBlocks = priorSectionBlocks(prior)
   const userBlocks: Anthropic.TextBlockParam[] = [
@@ -84,5 +96,6 @@ export function buildSectionRequest(
     },
     userContent,
     priorBlocks,
+    band,
   }
 }

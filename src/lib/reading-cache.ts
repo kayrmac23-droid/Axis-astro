@@ -62,7 +62,18 @@ import type { BirthData } from '@/lib/astro-calc'
 // the context. The Divergence plan keeps only the cross-system note the ruling
 // retains: a body boundary-ambiguous in one frame and settled in the other.
 // Cached sections were written telling the model to name the neighbouring sign.
-export const READING_PROMPT_VERSION = 'v10.28'
+// v10.29: three changes to what a cached entry means. (1) The per-section length
+// clause is no longer rendered at import from the base band — it is substituted
+// per request from the chart-scaled band (prompts.ts LENGTH_CLAUSE_SLOT), so the
+// numbers the model is given now match the numbers the gate scores, and the
+// prompt text differs from every v10.28 entry. (2) The concordance/divergence
+// evidence scaling is capped upward (evidenceUpCap), changing the target a
+// concordance-rich chart is written to. (3) The key itself changed shape: it
+// carries the canonical Pluto LONGITUDE, not just its source, and `prior` is now
+// a digest of which earlier sections preceded this one rather than of their
+// prose. Entries written under the old key shape are unreachable anyway; the
+// bump keeps the version honest about the prompt change.
+export const READING_PROMPT_VERSION = 'v10.29'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
@@ -109,6 +120,14 @@ interface CacheKeyParams {
   // and the READOUT rail re-derived Pluto live on every visit — the exact
   // surface-to-surface drift readout.ts exists to prevent.
   plutoSource?:  string
+  // The canonical Pluto longitude the reading was generated against. plutoSource
+  // alone is NOT enough: /api/reading accepts the longitude as a client hint (it
+  // is the one position the hot path does not recompute, to avoid a JPL call) and
+  // only range-checks it. Without the value in the key, any caller could send a
+  // valid-looking source with an arbitrary 0–360 longitude and write prose about a
+  // fabricated Pluto into the row every honest client then reads for 30 days.
+  // Keyed on, a bad hint can only poison its own key.
+  plutoLongitude?: number
   // The Vimshottari period current when the section was generated
   // ("Ketu/Rahu"). The dasha is computed from today's date and named in the
   // Sidereal and Divergence prose, so without it in the key a section cached
@@ -123,8 +142,8 @@ interface CacheKeyParams {
 }
 
 export function makeSynastryCacheKey({
-  birthA, birthB, section, planetSection, plutoSourceA, plutoSourceB,
-}: { birthA: BirthData; birthB: BirthData; section: string; planetSection: string; plutoSourceA?: string; plutoSourceB?: string }): string {
+  birthA, birthB, section, planetSection, plutoSourceA, plutoSourceB, plutoLongitudeA, plutoLongitudeB,
+}: { birthA: BirthData; birthB: BirthData; section: string; planetSection: string; plutoSourceA?: string; plutoSourceB?: string; plutoLongitudeA?: number; plutoLongitudeB?: number }): string {
   const norm = (b: BirthData) => ({
     year: b.year, month: b.month, day: b.day,
     hour:   b.birthTimeUnknown ? 12 : b.hour,
@@ -139,11 +158,14 @@ export function makeSynastryCacheKey({
     promptVersion: READING_PROMPT_VERSION,
     plutoSourceA:  plutoSourceA ?? 'local-meeus',
     plutoSourceB:  plutoSourceB ?? 'local-meeus',
+    // See plutoLongitude on CacheKeyParams — the client hint is keyed on, per person.
+    plutoLonA:     plutoLongitudeA == null ? '' : Math.round(plutoLongitudeA * 100) / 100,
+    plutoLonB:     plutoLongitudeB == null ? '' : Math.round(plutoLongitudeB * 100) / 100,
   }
   return 'axis:synastry:' + createHash('sha256').update(JSON.stringify(key)).digest('hex').slice(0, 40)
 }
 
-export function makeCacheKey({ birth, section, planetSection, plutoSource, priorDigest, dasha }: CacheKeyParams): string {
+export function makeCacheKey({ birth, section, planetSection, plutoSource, plutoLongitude, priorDigest, dasha }: CacheKeyParams): string {
   // Normalize birth data to ensure equivalent inputs produce identical keys.
   // - lat/lon: 2 decimal places (~1.1 km, sufficient for astrological precision)
   // - tz: 2 decimal places (handles half/quarter-hour offsets like IST +5.5)
@@ -164,6 +186,7 @@ export function makeCacheKey({ birth, section, planetSection, plutoSource, prior
     ayanamsa:         'lahiri',
     houseSystem:      'whole-sign',
     plutoSource:      plutoSource ?? 'local-meeus',
+    plutoLon:         plutoLongitude == null ? '' : Math.round(plutoLongitude * 100) / 100,
     prior:            priorDigest ?? '',
     dasha:            dasha ?? '',
   }
