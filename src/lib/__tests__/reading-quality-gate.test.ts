@@ -214,19 +214,26 @@ describe('countWords', () => {
 })
 
 describe('scoreLength — deterministic length criterion', () => {
-  const band = wordBandFor('tropical', 'sun') // BAND_MAJOR: full 550–750, hard 500–800
+  // Derived from the band rather than hardcoded. These assertions are about
+  // scoreLength's SHAPE (full marks inside, partial in the margin, 1 only for
+  // under-delivery or runaway), not about any particular band's numbers — the
+  // v10.30 length reset broke the hardcoded form of every case below while the
+  // function itself was unchanged, which is a test asserting the wrong thing.
+  const band = wordBandFor('tropical', 'sun') // BAND_MAJOR
 
   it('full marks inside the band', () => {
-    expect(scoreLength(650, band)).toBe(5)
+    expect(scoreLength(band.target, band)).toBe(5)
+    expect(scoreLength(band.fullMin, band)).toBe(5)
+    expect(scoreLength(band.fullMax, band)).toBe(5)
   })
   it('partial when a bit short, or over the band but not yet runaway', () => {
-    expect(scoreLength(520, band)).toBe(3) // 500–550, a bit short
-    expect(scoreLength(780, band)).toBe(3) // just over the 750 full max
-    expect(scoreLength(1000, band)).toBe(3) // over the 800 cap but within the runaway margin
+    expect(scoreLength(band.fullMin - 20, band)).toBe(3)  // inside the hard floor, short of full marks
+    expect(scoreLength(band.fullMax + 20, band)).toBe(3)  // just over the full max
+    expect(scoreLength(band.hardMax + 100, band)).toBe(3) // past the cap, inside the runaway margin
   })
   it('hard-fails only genuine under-delivery or runaway length', () => {
-    expect(scoreLength(480, band)).toBe(1)  // below the 500 hard floor
-    expect(scoreLength(1100, band)).toBe(1) // beyond 800 cap + 250 runaway margin
+    expect(scoreLength(band.hardMin - 20, band)).toBe(1)  // below the hard floor
+    expect(scoreLength(band.hardMax + 251, band)).toBe(1) // beyond cap + the 250 runaway margin
   })
 
   it('an 1800-word Sun section fails the aggregate as runaway', () => {
@@ -270,18 +277,21 @@ describe('countAspectsInContext', () => {
 
 describe('scaleBand — earned depth on densely aspected charts', () => {
   it('leaves the band unchanged at or below the baseline aspect count', () => {
-    const base = wordBandFor('tropical', 'sun') // baseline 3, allowance 80
-    expect(scaleBand(base, 3)).toEqual(base)
-    expect(scaleBand(base, 2)).toEqual(base)
+    const base = wordBandFor('tropical', 'sun')
+    expect(scaleBand(base, base.aspectBaseline!)).toEqual(base)
+    expect(scaleBand(base, base.aspectBaseline! - 1)).toEqual(base)
   })
 
   it('widens the ceiling and floor for aspect counts above the baseline', () => {
-    const base = wordBandFor('tropical', 'sun')
-    const scaled = scaleBand(base, 6) // extra 3 × 80 = +240 ceiling, +120 floor
-    expect(scaled.fullMax).toBe(base.fullMax + 240)
-    expect(scaled.hardMax).toBe(base.hardMax + 240)
-    expect(scaled.fullMin).toBe(base.fullMin + 120)
-    expect(scaled.hardMin).toBe(base.hardMin) // hard floor unchanged
+    const base   = wordBandFor('tropical', 'sun')
+    const extra  = 3
+    const add    = base.aspectAllowance! * extra
+    const scaled = scaleBand(base, base.aspectBaseline! + extra)
+    expect(scaled.fullMax).toBe(base.fullMax + add)
+    expect(scaled.hardMax).toBe(base.hardMax + add)
+    expect(scaled.fullMin).toBe(base.fullMin + Math.round(add / 2))
+    expect(scaled.target).toBe(base.target + Math.round(add / 2)) // target tracks the floor
+    expect(scaled.hardMin).toBe(base.hardMin)                     // hard floor unchanged
   })
 
   it('does not scale a band with no aspect allowance (comparative section)', () => {
@@ -290,21 +300,29 @@ describe('scaleBand — earned depth on densely aspected charts', () => {
     expect(wordBandFor('synthesis', 'diverge', 8)).toEqual(diverge)
   })
 
-  it('gives a 944-word Sun full length marks on a 6-aspect chart', () => {
-    // Earned depth on a densely aspected chart lands inside the scaled band.
-    expect(scoreLength(944, wordBandFor('tropical', 'sun', 6))).toBe(5)
+  it('gives a densely aspected Sun its earned length at full marks', () => {
+    // The ceiling of the SCALED band scores 5 on a dense chart, while the same
+    // word count on a sparse chart is over its band and only scores 3. That is
+    // the whole point of aspect scaling, stated without hardcoding either band.
+    const dense  = wordBandFor('tropical', 'sun', 6)
+    const sparse = wordBandFor('tropical', 'sun', 3)
+    expect(dense.fullMax).toBeGreaterThan(sparse.fullMax)
+    expect(scoreLength(dense.fullMax, dense)).toBe(5)
+    expect(scoreLength(dense.fullMax, sparse)).toBe(3)
   })
 
   it('the runaway threshold itself scales with aspect count', () => {
-    // Same 1250 words: tolerated on a 6-aspect chart (earned depth), but runaway
-    // on a 3-aspect chart where it can only be padding.
+    // One word count, two charts: tolerated on a 6-aspect chart (earned depth),
+    // runaway on a 3-aspect chart where that length can only be padding.
     const dense  = wordBandFor('tropical', 'sun', 6)
     const sparse = wordBandFor('tropical', 'sun', 3)
-    expect(scoreLength(1250, dense)).toBe(3)
-    expect(scoreLength(1250, sparse)).toBe(1)
+    const words  = sparse.hardMax + 251 // just past the sparse chart's runaway edge
+    expect(words).toBeLessThanOrEqual(dense.hardMax + 250)
+    expect(scoreLength(words, dense)).toBe(3)
+    expect(scoreLength(words, sparse)).toBe(1)
 
-    const denseScores  = allScores(5); denseScores.length  = scoreLength(1250, dense)
-    const sparseScores = allScores(5); sparseScores.length = scoreLength(1250, sparse)
+    const denseScores  = allScores(5); denseScores.length  = scoreLength(words, dense)
+    const sparseScores = allScores(5); sparseScores.length = scoreLength(words, sparse)
     expect(computePassFromScores(denseScores)).toBe(true)
     expect(computePassFromScores(sparseScores)).toBe(false)
   })
