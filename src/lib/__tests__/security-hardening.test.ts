@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { parseBirthDataInput } from '../birth-data-validation'
 import { readLimitedJsonBody } from '../request-security'
 import { checkRateLimit, getClientIp } from '../route-rate-limiter'
+import { makeCacheKey, makeSynastryCacheKey } from '../reading-cache'
+import type { BirthData } from '../astro-calc'
 
 function post(body: string, headers: Record<string, string> = {}): NextRequest {
   return new Request('https://axis.example/api/test', {
@@ -130,5 +132,49 @@ describe('rate limiter hardening', () => {
 
     // The first identity was evicted, so it starts a fresh window instead of being blocked.
     expect((await checkRateLimit('198.51.0.0', config)).allowed).toBe(true)
+  })
+})
+
+// ── Cache-key integrity for the one client-supplied position ─────────────────
+// /api/reading recomputes the whole chart server-side EXCEPT Pluto, whose
+// canonical longitude it accepts as a client hint (so the prose interprets the
+// exact Pluto the wheel shows without a JPL call in the hot path) and only
+// range-checks. While the key carried plutoSource but not the value, any caller
+// could pair a valid-looking source with an arbitrary 0–360 longitude and write
+// prose about a fabricated Pluto into the row every honest client then read for
+// the full 30-day TTL. Keyed on, a bad hint can only poison its own key.
+describe('reading cache key — client-supplied Pluto cannot poison a shared row', () => {
+  const BIRTH: BirthData = {
+    year: 1990, month: 6, day: 15, hour: 14, minute: 30,
+    latitude: 51.5074, longitude: -0.1278, timezone: 1,
+  }
+  const base = { birth: BIRTH, section: 'tropical', planetSection: 'sun' } as const
+
+  it('a different longitude under the same source is a different key', () => {
+    const honest = makeCacheKey({ ...base, plutoSource: 'jpl-horizons-de440', plutoLongitude: 272.31 })
+    const forged = makeCacheKey({ ...base, plutoSource: 'jpl-horizons-de440', plutoLongitude: 15.0 })
+    expect(honest).not.toBe(forged)
+  })
+
+  it('an absent hint is distinct from any supplied longitude', () => {
+    expect(makeCacheKey({ ...base }))
+      .not.toBe(makeCacheKey({ ...base, plutoLongitude: 272.31 }))
+  })
+
+  it('rounds to 0.01° so float noise does not fragment the cache', () => {
+    expect(makeCacheKey({ ...base, plutoLongitude: 272.311 }))
+      .toBe(makeCacheKey({ ...base, plutoLongitude: 272.314 }))
+  })
+
+  it('synastry keys the hint per person', () => {
+    const syn = (a?: number, b?: number) => makeSynastryCacheKey({
+      birthA: BIRTH, birthB: { ...BIRTH, year: 1992 },
+      section: 'synastry', planetSection: 'luminaries',
+      plutoSourceA: 'jpl-horizons-de440', plutoSourceB: 'jpl-horizons-de440',
+      plutoLongitudeA: a, plutoLongitudeB: b,
+    })
+    expect(syn(272.31, 280.00)).not.toBe(syn(15.0, 280.00))
+    expect(syn(272.31, 280.00)).not.toBe(syn(272.31, 15.0))
+    expect(syn(272.31, 280.00)).toBe(syn(272.31, 280.00))
   })
 })

@@ -128,13 +128,41 @@ describe('prompt rendering', () => {
     expect(priorDigest([])).toBe('')
   })
 
-  it('the digest moves with the earlier text, and so does the cache key', () => {
-    const edited = [prior[0], { ...prior[1], text: 'Moon text, repaired.' }]
-    expect(priorDigest(prior)).not.toBe(priorDigest(edited))
+  // The digest keys on WHICH sections came before, not on their prose. See
+  // priorDigest for why: the route threads the first pass while the gate caches
+  // the repair, so a text digest forked the cache chain at the first repaired
+  // section and never rejoined — every later section regenerated for every
+  // reader, forever, including the same person reloading their own dossier.
+  it('the digest is stable when an earlier section is repaired', () => {
+    const repaired = [prior[0], { ...prior[1], text: 'Moon text, repaired.' }]
+    expect(priorDigest(prior)).toBe(priorDigest(repaired))
     const key = (d: string) => makeCacheKey({ birth: BIRTH, section: 'tropical', planetSection: 'ascendant', priorDigest: d })
-    expect(key(priorDigest(prior))).not.toBe(key(priorDigest(edited)))
-    // An unthreaded request and the opening section of a thread share a key.
+    expect(key(priorDigest(prior))).toBe(key(priorDigest(repaired)))
+  })
+
+  it('the digest moves when the SET of earlier sections changes', () => {
+    // A reading where an earlier section failed or expired genuinely followed
+    // different material, and must not reuse the full chain's cached text.
+    expect(priorDigest(prior)).not.toBe(priorDigest([prior[0]]))
+    expect(priorDigest(prior)).not.toBe(priorDigest([prior[1], prior[0]]))
+    expect(priorDigest(prior)).not.toBe(
+      priorDigest([prior[0], { ...prior[1], planetSection: 'mercury' }]),
+    )
+  })
+
+  it('an unthreaded request and the opening section of a thread share a key', () => {
     expect(makeCacheKey({ birth: BIRTH, section: 'tropical', planetSection: 'sun' }))
       .toBe(makeCacheKey({ birth: BIRTH, section: 'tropical', planetSection: 'sun', priorDigest: '' }))
+  })
+
+  it('two readers of one chart converge on the same key at every section', () => {
+    // Reader 1 threads the first-pass text; reader 2 is served the gated text
+    // from the cache and threads that. Same chart, same section list → same key.
+    const readerOne = prior
+    const readerTwo = prior.map(p => ({ ...p, text: `${p.text} (gated rewrite)` }))
+    const keyFor = (p: typeof prior) => makeCacheKey({
+      birth: BIRTH, section: 'tropical', planetSection: 'ascendant', priorDigest: priorDigest(p),
+    })
+    expect(keyFor(readerOne)).toBe(keyFor(readerTwo))
   })
 })

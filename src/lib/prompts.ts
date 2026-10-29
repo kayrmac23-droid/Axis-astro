@@ -294,6 +294,14 @@ export interface WordBand {
   // criteria exist to catch, so the length criterion must not manufacture it.
   evidenceBaseline?:  number  // allocated-evidence count the base band assumes
   evidenceAllowance?: number  // words added/removed per item away from baseline
+  // Cap on how far ABOVE the baseline the evidence count may push the band.
+  // Downward scaling is deliberately uncapped (a chart with one concordance has
+  // one concordance's worth to say), but upward it is not: concordance items are
+  // individually small — same sign, same dignity — and an uncapped allowance told
+  // a chart with eight of them to write more about where the systems AGREE than
+  // The Divergence itself gets. Past the cap the extra items are named, not
+  // developed, which is what the section instruction asks for anyway.
+  evidenceUpCap?:     number  // max (evidenceCount - evidenceBaseline) applied upward
 }
 
 const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
@@ -303,8 +311,8 @@ const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax: 
 const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
 const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
-const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150, evidenceBaseline: 4, evidenceAllowance: 150 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700, evidenceBaseline: 3, evidenceAllowance: 110 }
+const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150, evidenceBaseline: 4, evidenceAllowance: 150, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700, evidenceBaseline: 3, evidenceAllowance: 110, evidenceUpCap: 3 }
 const BAND_CENTRAL_TENSION:    WordBand = { target: 350, fullMin: 280, fullMax:  450, hardMin: 230, hardMax:  550 }
 const BAND_CLOSING:            WordBand = { target: 220, fullMin: 160, fullMax:  320, hardMin: 130, hardMax:  400 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
@@ -340,6 +348,15 @@ export function scaleBand(band: WordBand, aspectCount: number): WordBand {
   const add = band.aspectAllowance * extra
   return {
     ...band,
+    // The target moves with the floor, not independently of it. Left behind, a
+    // scaled band states a target BELOW its own acceptable range (BAND_SECONDARY
+    // at 4 aspects: "Target 350 words. Acceptable range 360–520"), so a section
+    // written to the stated target scores 3/5 on length by construction. That was
+    // invisible while the prompt quoted the unscaled band and only the gate
+    // scaled; rendering the clause from the scaled band makes it a contradiction
+    // the model reads. prompts-length-wiring.test.ts asserts the target always
+    // scores 5 against its own band.
+    target:  band.target  + Math.round(add / 2),
     fullMin: band.fullMin + Math.round(add / 2),
     fullMax: band.fullMax + add,
     hardMax: band.hardMax + add,
@@ -352,7 +369,9 @@ export function scaleBand(band: WordBand, aspectCount: number): WordBand {
 // to write 300 words about it, and the only way to comply is padding.
 export function scaleBandByEvidence(band: WordBand, evidenceCount: number): WordBand {
   if (band.evidenceAllowance == null || band.evidenceBaseline == null) return band
-  const delta = evidenceCount - band.evidenceBaseline
+  const raw   = evidenceCount - band.evidenceBaseline
+  // Upward only: a thin plan still scales all the way down (see evidenceUpCap).
+  const delta = band.evidenceUpCap != null ? Math.min(raw, band.evidenceUpCap) : raw
   if (delta === 0) return band
   const add = band.evidenceAllowance * delta
   // Floors never fall below a level where a section could be a single thin
@@ -395,16 +414,33 @@ export function countPlanEvidence(chartContext: string, planetSection: string): 
   return null
 }
 
-// The standard length instruction appended to a section prompt, rendered from
-// the section's band so the prose the model reads and the numbers the gate
-// enforces can never drift apart.
-function lengthClause(band: WordBand): string {
+// The marker a section instruction carries where its length clause belongs.
+// SECTION_INSTRUCTIONS is a module-level const, so a clause rendered INTO it is
+// bound once, at import, to the section's BASE band — while the gate scores the
+// section against the band scaled to THIS chart's aspect or evidence count. That
+// drift is not cosmetic: on roughly half of all sections the model was told a
+// target that scores 3/5 on the gate's own `length` criterion rather than 5/5
+// (tropical Venus on a 7-aspect chart: instruction "target 350, range 300–400",
+// gate band 450–700), and with MIN_PASS_AVERAGE at 3.75 across ten criteria a
+// baked-in 3 forces the other nine to carry it — a repair tax the pipeline
+// created for itself and then paid for in Opus calls.
+//
+// So the clause is no longer rendered at import. The slot is substituted per
+// request by renderSectionInstruction(), from the same wordBandFor() call the
+// gate's scoreLength uses, which makes the number the model reads and the number
+// it is scored against the same number by construction.
+export const LENGTH_CLAUSE_SLOT = '⟪AXIS_LENGTH_CLAUSE⟫'
+
+// The standard length instruction for a section, rendered from the band the gate
+// will actually score against so the prose the model reads and the numbers the
+// gate enforces cannot drift apart.
+export function lengthClause(band: WordBand): string {
   let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}. Below ${band.hardMin} means required material was thinned or skipped — that fails the quality gate on length, so go deeper. Above ${band.fullMax} costs marks and risks the padding checks (PROSE FAILURE MODES: cadence, repetition), so stay tight; but earned depth is not a length failure — only runaway length far past the range is. Reach the target through substance, never padding.`
   if (band.evidenceAllowance != null) {
-    s += ` These numbers assume a chart whose plan allocates about ${band.evidenceBaseline} items to this section. The quality gate scales the range to what THIS chart's plan actually allocated — down as well as up — so a quiet plan legitimately yields a shorter section and that is NOT a length failure. Write what the evidence supports and stop; never pad to reach a number.`
+    s += ` These numbers are already scaled to what THIS chart's plan actually allocated to this section (the baseline is about ${band.evidenceBaseline} items), down as well as up — a quiet plan legitimately yields a shorter section and that is NOT a length failure. The quality gate scores you against exactly these numbers. Write what the evidence supports and stop; never pad to reach a number.`
   }
   if (band.aspectAllowance != null) {
-    s += ` These numbers are for a baseline chart of about ${band.aspectBaseline} major aspects; a densely aspected placement legitimately needs more room. The quality gate scales the range UP by how many major aspects this planet actually has, so depth EARNED by working each aspect once — never repetition or padding — will not fail on length even when it runs well past the baseline range. Work every aspect the chart gives you and let the length follow the chart, not a fixed number; length only fails when it is too thin or truly runaway.`
+    s += ` These numbers are already scaled UP to how many major aspects this placement actually carries (the baseline is about ${band.aspectBaseline}), because a densely aspected placement needs the room. The quality gate scores you against exactly these numbers. Reach them by working each aspect once to its own dynamic — never by repetition or padding; length fails only when it is too thin or truly runaway.`
   }
   return s
 }
@@ -776,7 +812,7 @@ ${openingClause('tropical', 'sun')}
 
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement. This is an EVIDENCE CHECK, not a Moon interpretation. You may name the Moon's net effect on the Sun's impulse in one or two sentences — whether it confirms the Sun's reach toward relationship or overrides it toward withholding — stated as a behavioural fact ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity, or aspects here — no "Virgo Moon grounds through constancy", no unpacking the 4th-house domain, no characterising the Moon's emotional operating mode. The Moon has its own full section and has NOT been interpreted yet; building its portrait here pre-empts that section and is a scope violation. Reference the Moon only as it bears on the Sun; the moment a sentence is about the Moon rather than about the Sun-Moon behavioural cross-purpose, it belongs in the Moon section, not here.
 
-This is a full primary portrait. ${lengthClause(BAND_MAJOR)} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
+This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
@@ -788,7 +824,7 @@ This is the emotional architecture. Cover: the sign's emotional operating mode a
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-${lengthClause(BAND_MAJOR)} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
+${LENGTH_CLAUSE_SLOT} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -796,7 +832,7 @@ Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Asce
 
 Cover: what this rising sign produces as the person's instinctive way of entering a situation — what they do first, how they move into a room, a conversation or a decision, felt from the inside before any reflection; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign. Do not open on what other people notice, register or see first.
 
-This is a full primary portrait. ${lengthClause(BAND_PRIMARY)} Develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. Being perceived may appear here, but only routed through the native's own experience — what they notice of how they land, what they brace for or are surprised by (PROSE FAILURE MODES #3) — never as the section's lens. Any concrete scene must be built from chart factors you can name; do not invent specifics (durations, counts, exact circumstances) the chart does not supply. Do NOT end on a struck aphoristic fragment.`,
+This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. Being perceived may appear here, but only routed through the native's own experience — what they notice of how they land, what they brace for or are surprised by (PROSE FAILURE MODES #3) — never as the section's lens. Any concrete scene must be built from chart factors you can name; do not invent specifics (durations, counts, exact circumstances) the chart does not supply. Do NOT end on a struck aphoristic fragment.`,
 
     mercury: `Interpret Mercury.
 
@@ -806,7 +842,7 @@ ${openingClause('tropical', 'mercury')}
 
 Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
-End with ### Putting It Together. ${closingClause('tropical', 'mercury')} ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
     venus: `Interpret Venus.
 
@@ -818,7 +854,7 @@ Cover sign, house, dignity, the condition of Venus's sign ruler, and every key a
 
 Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
 
-End with ### Putting It Together. ${closingClause('tropical', 'venus')} ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
     mars: `Interpret Mars.
 
@@ -830,7 +866,7 @@ Cover sign, house, dignity, the condition of Mars's sign ruler, and every key as
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 
-End with ### Putting It Together. ${closingClause('tropical', 'mars')} ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('tropical', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
 
@@ -838,7 +874,7 @@ Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → 
 
 Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — name it first with its orb and applying/separating status and what it produces as an ongoing internal condition. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
-End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${lengthClause(BAND_SECONDARY)}`,
+End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${LENGTH_CLAUSE_SLOT}`,
 
     key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
@@ -848,7 +884,7 @@ For each aspect you include: name both planets with their houses and rulerships;
 
 Not all remaining aspects deserve equal weight. The tightest applying aspects, and those involving chart angles or the chart ruler, carry the most force. Name the weight difference — say why one pattern is more structurally significant than another.
 
-${lengthClause(BAND_KEY_ASPECTS)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     rahu_ketu: `Interpret the Lunar Nodes — Rahu (North Node) and Ketu (South Node) — in the Tropical chart.
 
@@ -860,7 +896,7 @@ Cover, in continuous prose: each node's sign and house and what each produces ps
 
 Anchor every claim to the recognisable situation in which it surfaces — when the Rahu pull arrives, what Ketu's groove feels like in a familiar moment — not abstract destiny language. No "soul mission," no "past life" claims, no fatalistic framing.
 
-${lengthClause(BAND_NODES_TROP)} End with the sharpest precise observation about how this person's nodal axis actually operates in lived experience, not a prescription for growth.`,
+${LENGTH_CLAUSE_SLOT} End with the sharpest precise observation about how this person's nodal axis actually operates in lived experience, not a prescription for growth.`,
   },
 
   sidereal: {
@@ -872,7 +908,7 @@ The Lagna describes the body and the life circumstances. Cover: the Lagna sign (
 
 If a Pancha Mahapurusha or other significant yoga is listed in the STRUCTURED INTERPRETATION CONTEXT, name it and interpret its meaning at the size the context gives it. Reference the active dasha period where it speaks to the current chapter of life circumstances, honouring any TRANSITION note.
 
-${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     sun: `Interpret the Sun in the Sidereal chart.
 
@@ -884,7 +920,7 @@ ${openingClause('sidereal', 'sun')}
 
 ${SIDEREAL_EVIDENCE_CLAUSE} Name the Nakshatra and the specific psychological quality it adds that the sign alone does not show, using its lord, deity and theme from the context. Reference the active dasha where it illuminates the current Sun chapter.
 
-${closingClause('sidereal', 'sun')} ${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
+${closingClause('sidereal', 'sun')} ${LENGTH_CLAUSE_SLOT}`,
 
     moon: `Interpret the Moon in the Sidereal chart.
 
@@ -898,7 +934,7 @@ Cover: the sign's emotional orientation; the house as the domain where the insti
 
 If the Tropical reading already made a behavioural claim about this Moon — how it extends or withholds trust, how it handles loss — do NOT issue the opposite claim as a flat verdict. Name the specific condition in which the Sidereal pattern surfaces, so the two accounts describe different situations rather than contradict each other. Reference the dasha where it speaks to the current emotional chapter, honouring any TRANSITION note.
 
-${closingClause('sidereal', 'moon')} ${lengthClause(BAND_SIDEREAL_PRIMARY)}`,
+${closingClause('sidereal', 'moon')} ${LENGTH_CLAUSE_SLOT}`,
 
     mercury: `Interpret Mercury in the Sidereal chart.
 
@@ -908,7 +944,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'mercury')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'mercury')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('sidereal', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
     venus: `Interpret Venus in the Sidereal chart.
 
@@ -918,7 +954,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'venus')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'venus')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('sidereal', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
     mars: `Interpret Mars in the Sidereal chart.
 
@@ -928,7 +964,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'mars')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'mars')} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+End with ### Putting It Together. ${closingClause('sidereal', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 
@@ -936,7 +972,7 @@ Start with: ## Jupiter and Saturn
 
 Open with any sign shifts from Tropical, as their FRAME SHIFT lines state them. Cover signs, houses and Jyotish sign status, including any NEECHA BHANGA CONDITIONS listed for a debilitated planet. Address the expansion and contraction dynamic — what Jupiter is oriented toward and what Saturn must work hardest against in this frame, beside the Tropical account rather than ranked beneath or above it (resolution-by-hierarchy is banned). ${SIDEREAL_EVIDENCE_CLAUSE}
 
-${SIDEREAL_CLOSE} ${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+${SIDEREAL_CLOSE} ${LENGTH_CLAUSE_SLOT}`,
 
     rahu_ketu: `Interpret Rahu and Ketu — the Lunar Nodes.
 
@@ -944,7 +980,7 @@ Start with: ## Rahu and Ketu
 
 The nodal axis describes a direction of growth: what the person is moving toward (Rahu's sign and house) and what they are releasing over-dependence on (Ketu's sign and house). Cover: the signs and houses of both nodes, opening with any shift from Tropical as the FRAME SHIFT lines state it; the Nakshatras for each — lord, deity and the quality they add; the planets conjunct each node and the drishti each node's house receives (GRAHA RELATIONSHIPS RECEIVED); what this axis means as a life direction, specifically for this chart. Do not name Western aspects to the nodes. No claims about what "the soul has mastered" that the chart cannot support — anchor Ketu's competence to its sign, house and nakshatra.
 
-${lengthClause(BAND_SIDEREAL_SECONDARY)}`,
+${LENGTH_CLAUSE_SLOT}`,
   },
 
   synthesis: {
@@ -958,7 +994,7 @@ These are the points where the chart is least negotiable — the facts that hold
 
 Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems — never speak in abstract terms. If the plan allocates little, say so plainly and briefly rather than manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Do not preview the divergence analysis.
 
-${lengthClause(BAND_CONCORDANCE)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     diverge: `Write the DIVERGENCE section of The Divergence reading.
 
@@ -972,7 +1008,7 @@ Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause
 
 Do not resolve the divergence and do not average the two readings into a compromise — name each divergence exactly and let it stand open. A divergence the plan shows as narrow is named at that size: hold it open without inflating it into conflict, suffering, or an invented history. Do not speak in abstractions — name planets, signs, degrees and houses from both systems throughout.
 
-${lengthClause(BAND_DIVERGENCE)} Depth on the allocated divergences plus one compressed clause for the rest is what keeps the section inside this budget; trying to walk every divergence in depth is what makes it overrun and truncate.`,
+${LENGTH_CLAUSE_SLOT} Depth on the allocated divergences plus one compressed clause for the rest is what keeps the section inside this budget; trying to walk every divergence in depth is what makes it overrun and truncate.`,
 
     tension: `Write the CENTRAL TENSION section of The Divergence reading.
 
@@ -986,7 +1022,7 @@ Where the linking evidence is thin, say what the leading divergences do and do n
 
 Reference specific planets, signs, and houses from both systems by name. No comfort. No resolution. Do not gesture at how it might ease. Sharp and specific.
 
-${lengthClause(BAND_CENTRAL_TENSION)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     closing: `Write the CLOSING section of The Divergence reading.
 
@@ -998,7 +1034,7 @@ This is a description of how the divergence is INHABITED, not a chain that disso
 
 The final sentence must be precise and unsoftened — something true, stated at the size the chart supports. Where this person's divergence is narrow, the closing is correspondingly quiet, and that is the accurate ending; do not manufacture devastation the chart has not earned, and do not resolve, soften, or prescribe. Name what is, not what might be done about it. End here.
 
-${lengthClause(BAND_CLOSING)}`,
+${LENGTH_CLAUSE_SLOT}`,
   },
 
   synastry: {
@@ -1010,7 +1046,7 @@ Focus on: Sun-Moon aspects between the charts (both directions), Sun-Sun, Moon-M
 
 Reference the composite Sun and Moon positions to show how the relationship itself functions as an entity.
 
-${lengthClause(BAND_SYN_LARGE)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     venus_mars: `Interpret Venus-Mars dynamics between the two charts.
 
@@ -1018,7 +1054,7 @@ Start with: ## Venus and Mars
 
 Focus on Venus-Mars aspects between the charts (both directions), Venus-Venus, Mars-Mars. These aspects govern attraction, desire, and how each person's relational style and drive interact. Name the specific aspects and orbs. Cover: what draws them together, where desire and values reinforce versus conflict, how each person experiences the other's approach to pleasure and assertion. Include Venus-Venus and Mars-Mars to show whether their relational styles and drives are in harmony or tension.
 
-${lengthClause(BAND_SYN_MED)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     outer_planets: `Interpret the remaining inter-aspects: Mercury, Jupiter, Saturn, and the outers.
 
@@ -1026,7 +1062,7 @@ Start with: ## Mind, Structure, and the Outer Planets
 
 Cover Mercury-to-Mercury and cross-aspects (how they think together, communicate, irritate each other intellectually). Cover Jupiter and Saturn aspects to personal planets — where one person expands or structures the other. Note any significant Uranus, Neptune, or Pluto contacts to personal planets if present: these aspects describe where one person's outer-planet energy transforms, disrupts, or dissolves something fundamental in the other. Only interpret aspects that are actually present within orb — do not discuss absent aspects.
 
-${lengthClause(BAND_SYN_MED)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     composite_chart: `Interpret the composite chart as a relationship entity.
 
@@ -1036,7 +1072,7 @@ The composite is the chart of the relationship itself — not either person, but
 
 Name specific composite placements throughout. Do not interpret composite positions as if they were natal positions — they describe a relationship's character, not a person's.
 
-${lengthClause(BAND_SYN_LARGE)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     central_dynamic: `Write the closing central-dynamic section for this synastry reading.
 
@@ -1046,7 +1082,7 @@ Name the one most defining feature of this combination — the thing that makes 
 
 The final paragraph: what does this relationship ask of each person? Not prescriptively — not what they should do — but structurally, what each chart requires the other to carry or confront. End on the sharpest observation in the reading.
 
-${lengthClause(BAND_SYN_SMALL)}`,
+${LENGTH_CLAUSE_SLOT}`,
 
     navigation: `Write the navigating differences section for this synastry reading.
 
@@ -1058,6 +1094,32 @@ Then address 2–3 specific friction points evident from the inter-aspects and c
 
 The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that it can be recognised as chart-driven rather than personal, chosen, or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
 
-${lengthClause(BAND_SYN_LARGE)}`,
+${LENGTH_CLAUSE_SLOT}`,
   },
+}
+
+// ── Per-request section instruction ──────────────────────────────────────────
+// The ONLY supported way to read a section instruction. SECTION_INSTRUCTIONS
+// still carries LENGTH_CLAUSE_SLOT where its length clause belongs; this
+// substitutes the clause rendered from the band this chart will actually be
+// scored against (see LENGTH_CLAUSE_SLOT for why that is not done at import).
+//
+// `aspectCount` and `evidenceCount` must be derived from the SAME context block
+// the section is generated from, with the same helpers the gate uses
+// (countAspectsInContext / countPlanEvidence) — that identity is what the
+// instruction-vs-gate parity test pins.
+//
+// A section with no slot (none today; a future untyped one) renders unchanged
+// rather than throwing: a missing length clause is a weaker prompt, not a
+// broken request.
+export function renderSectionInstruction(
+  section: string,
+  planetSection: string,
+  opts: { aspectCount?: number; evidenceCount?: number } = {},
+): string | undefined {
+  const raw = SECTION_INSTRUCTIONS[section]?.[planetSection]
+  if (raw === undefined) return undefined
+  if (!raw.includes(LENGTH_CLAUSE_SLOT)) return raw
+  const band = wordBandFor(section, planetSection, opts.aspectCount, opts.evidenceCount)
+  return raw.split(LENGTH_CLAUSE_SLOT).join(lengthClause(band))
 }

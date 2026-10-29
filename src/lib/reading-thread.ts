@@ -18,7 +18,8 @@
 //
 // Stored text is exactly what the reader saw (the first pass, or the cached text
 // on a cache hit), never the quality gate's later repair: continuity is with what
-// was read. Entries expire after 24h.
+// was read. That is also why the reading cache key digests WHICH sections came
+// before this one and not their prose — see priorDigest. Entries expire after 24h.
 
 import { createHash } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
@@ -37,15 +38,20 @@ export function parseThreadId(value: unknown): string | null {
 }
 
 export interface ThreadScope {
-  threadId:     string
-  birth:        BirthData
-  plutoSource?: string
+  threadId:       string
+  birth:          BirthData
+  plutoSource?:   string
+  // Part of the chart fingerprint for the same reason it is part of the cache
+  // key (reading-cache.ts): it is a validated client hint, so two callers
+  // claiming the same source with different longitudes are reading different
+  // charts and must not share a thread.
+  plutoLongitude?: number
 }
 
-function threadKey({ threadId, birth, plutoSource }: ThreadScope, ref: SectionRef): string {
+function threadKey({ threadId, birth, plutoSource, plutoLongitude }: ThreadScope, ref: SectionRef): string {
   // makeCacheKey already normalises birth data (and carries the prompt version),
   // so reuse it as the chart fingerprint rather than keeping a second normaliser.
-  const chart = makeCacheKey({ birth, section: '_thread', planetSection: '_', plutoSource })
+  const chart = makeCacheKey({ birth, section: '_thread', planetSection: '_', plutoSource, plutoLongitude })
   const bind  = createHash('sha256').update(`${threadId}|${chart}`).digest('hex').slice(0, 40)
   return `axis:thread:${bind}:${ref.section}:${ref.planetSection}`
 }
@@ -259,11 +265,36 @@ export function phrasesAlreadyUsedBlock(prior: PriorSection[]): string {
   return out
 }
 
-// Folded into the reading cache key: a section is only reusable after the exact
-// earlier text it was written to follow.
+// Folded into the reading cache key: WHICH earlier sections this one was written
+// after, in order — deliberately not their prose.
+//
+// It used to digest the text, on the reasoning that a section is only reusable
+// after the exact text it followed. That reasoning quietly destroyed the cache.
+// The route stores the FIRST PASS to the thread (the reader's continuity is with
+// what they actually read) while the gate caches the REPAIRED text, so the next
+// reader of the same chart gets T1′ from the cache, stores T1′ to their thread,
+// and computes a different digest for section 2 than the digest section 2 was
+// cached under. The chain forks at the first repaired section and never rejoins:
+// the cache was reusable only for the maximal prefix of sections the gate did not
+// repair (expected length (1-r)/r of 21 at repair rate r — about 4 sections at
+// r=0.2), every section after it regenerated for every reader forever, including
+// the same person reloading their own dossier, and each miss wrote a row under a
+// digest no future reader would ever produce.
+//
+// Keyed on the section list instead, every reader of a chart computes the same
+// key at every section and the chain converges completely. The chart itself,
+// the prompt version and (where it applies) the dasha are already in the key
+// around this digest, so the only thing given up is that a cached section may
+// have followed the first-pass wording of an earlier section while this reader
+// saw the repaired wording of it — a repair of the same section, not a different
+// one. Cheap, against ~80% of a reading never caching.
+//
+// A section the thread is missing (failed, expired) is simply absent from the
+// list, which changes the digest exactly as it should: that reading genuinely
+// had a different set of sections before this one.
 export function priorDigest(prior: PriorSection[]): string {
   if (prior.length === 0) return ''
   const h = createHash('sha256')
-  for (const p of prior) h.update(`${p.section}:${p.planetSection}\u0000${p.text}\u0000`)
+  for (const p of prior) h.update(`${p.section}:${p.planetSection}\u0000`)
   return h.digest('hex').slice(0, 32)
 }

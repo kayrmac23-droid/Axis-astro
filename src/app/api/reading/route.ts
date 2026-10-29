@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
-import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor } from '@/lib/prompts'
+import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor, renderSectionInstruction, countPlanEvidence } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
@@ -175,16 +175,19 @@ export async function POST(req: NextRequest) {
     // loaded before the cache check because they are part of the cache key.
     const threadId = section === 'synastry' ? null : parseThreadId(body.threadId)
     const thread: ThreadScope | null = threadId
-      ? { threadId, birth: birthData!, plutoSource: plutoOverride?.plutoSource }
+      ? { threadId, birth: birthData!, plutoSource: plutoOverride?.plutoSource, plutoLongitude: plutoOverride?.plutoLongitude }
       : null
     const prior: PriorSection[] = thread ? await loadPriorSections(thread, section, planetSection) : []
     const remember = async (text: string) => {
       if (thread) await storeThreadSection(thread, section, planetSection, text)
     }
 
-    const systemPrompt      = SYSTEM_PROMPT_MAP[section]
-    const sectionInstruction = SECTION_INSTRUCTIONS[section]?.[planetSection]
-    if (!systemPrompt || !sectionInstruction) {
+    const systemPrompt = SYSTEM_PROMPT_MAP[section]
+    // The instruction itself is rendered below, once the context block exists:
+    // its length clause is substituted from the band THIS chart will be scored
+    // against (prompts.ts renderSectionInstruction). Only its existence is
+    // checked here, before any work is done.
+    if (!systemPrompt || !SECTION_INSTRUCTIONS[section]?.[planetSection]) {
       return NextResponse.json({ error: 'Internal configuration error' }, { status: 500 })
     }
 
@@ -225,9 +228,11 @@ export async function POST(req: NextRequest) {
       ? makeSynastryCacheKey({
           birthA: birthA!, birthB: birthB!, section, planetSection,
           plutoSourceA: overrideA?.plutoSource, plutoSourceB: overrideB?.plutoSource,
+          plutoLongitudeA: overrideA?.plutoLongitude, plutoLongitudeB: overrideB?.plutoLongitude,
         })
       : makeCacheKey({
-          birth: birthData!, section, planetSection, plutoSource: plutoOverride?.plutoSource,
+          birth: birthData!, section, planetSection,
+          plutoSource: plutoOverride?.plutoSource, plutoLongitude: plutoOverride?.plutoLongitude,
           priorDigest: priorDigest(prior), dasha,
         })
     const cached = await getCachedReading(cacheKey)
@@ -276,7 +281,11 @@ export async function POST(req: NextRequest) {
     // this section is told not to repeat them (empty for an opening section).
     const repeatBlock = phrasesAlreadyUsedBlock(prior)
     const priorText = prior.map(p => p.text).join('\n\n')
-    let userContent: string
+
+    // The evidence half of the user turn, assembled first and on its own: the
+    // section instruction's length clause is rendered FROM it (below), so it has
+    // to exist before the instruction does.
+    let contextBlock: string
     if (section === 'synastry') {
       const dualA      = calculateDualChart(birthA!, overrideA)
       const dualB      = calculateDualChart(birthB!, overrideB)
@@ -285,29 +294,40 @@ export async function POST(req: NextRequest) {
       // For composite-focused sections, append an elite chart block for the
       // composite so the model has dignity labels, chart ruler, and direction
       // — data the position table in formatSynastryBlock doesn't include.
-      if (planetSection === 'composite_chart' || planetSection === 'central_dynamic') {
-        const compositeEliteBlock = formatEliteChartBlock(synData.composite, 'tropical')
-        userContent = `${synBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${compositeEliteBlock}\n\n---\n\n${sectionInstruction}`
-      } else {
-        userContent = `${synBlock}\n\n---\n\n${sectionInstruction}`
-      }
-    } else if (section === 'tropical') {
-      const ctxBlock   = buildInterpretationContext(dual!, 'tropical', planetSection, { priorText })
-      const chartBlock = formatEliteChartBlock(dual!.tropical, 'tropical')
-      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
-    } else if (section === 'sidereal') {
-      const ctxBlock   = buildInterpretationContext(dual!, 'sidereal', planetSection, { priorText })
-      const chartBlock = formatEliteChartBlock(dual!.sidereal, 'sidereal')
-      userContent = `${chartBlock}\n${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
-    } else {
-      // synthesis — needs both chart systems
-      const ctxBlock      = buildInterpretationContext(dual!, 'synthesis', planetSection)
+      contextBlock = planetSection === 'composite_chart' || planetSection === 'central_dynamic'
+        ? `${synBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${formatEliteChartBlock(synData.composite, 'tropical')}`
+        : synBlock
+    } else if (section === 'synthesis') {
       // The shared plan is deliberately the sole comparison dossier. Appending
       // two full chart blocks here used to reintroduce unreliable houses/angles
       // for unknown birth times and invited two parallel readings rather than a
       // comparison of computed evidence.
-      userContent = `${ctxBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
+      contextBlock = buildInterpretationContext(dual!, 'synthesis', planetSection)
+    } else {
+      const frame      = section as 'tropical' | 'sidereal'
+      const ctxBlock   = buildInterpretationContext(dual!, frame, planetSection, { priorText })
+      const chartBlock = formatEliteChartBlock(dual![frame], frame)
+      contextBlock = `${chartBlock}\n${ctxBlock}`
     }
+
+    // ── Length band: one number, read by the model AND by the gate ────────────
+    // The band is a function of this chart — aspect count for aspect-driven
+    // sections, the Divergence plan's own weight line for the two comparative
+    // ones. The gate's scoreLength derives it with these exact helpers from the
+    // userContent assembled just below, so rendering the instruction's length
+    // clause from it here is what makes the target the model is given and the
+    // target it is scored against the same number. (Counting on contextBlock
+    // rather than the finished userContent is safe and pinned by
+    // prompts-length-wiring.test.ts: neither helper's pattern can match prompt
+    // prose, so the counts are identical either side of the instruction.)
+    const aspectCount   = countAspectsInContext(contextBlock)
+    const evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
+    const band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
+    const sectionInstruction = renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!
+
+    const userContent = section === 'synastry'
+      ? `${contextBlock}\n\n---\n\n${sectionInstruction}`
+      : `${contextBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
 
     // The reading so far goes in front of this section's chart context: one block
     // per earlier section (prompt-cache friendly, see priorSectionBlocks), then
@@ -346,9 +366,27 @@ export async function POST(req: NextRequest) {
     const readable = new ReadableStream({
       async start(controller) {
         // An uncached section costs one Sonnet call to generate, plus one to
-        // evaluate, plus one more when a repair fires. Counted as they happen and
-        // recorded once in the finally path regardless of outcome.
-        let modelCalls = 0
+        // evaluate, plus one more when a repair fires. The gate's calls are
+        // recorded in the after() below; the generation is reserved up front.
+        let gateCalls = 0
+
+        // Reserve the generation call against the daily budget AS it is made.
+        // Recording it afterwards — which meant after the gate finished, ~30–60s
+        // later — left the counter lagging real spend by the whole gate duration,
+        // so concurrent traffic could overshoot the cap by the number of requests
+        // in flight. Reserving makes the counter a running total of calls STARTED,
+        // which is the number the cap is supposed to bound. A reservation is never
+        // refunded if the call then fails: a call that errors late can still have
+        // billed, and over-counting is the safe direction (the same reasoning the
+        // gate counts its own attempts by).
+        //
+        // NOT awaited here. This is the reader's critical path and the write is a
+        // round trip to Upstash — awaiting it would put that latency in front of
+        // every one of the ~21 sequential sections to buy nothing, since the write
+        // only has to land before the invocation ends. Both exits below await the
+        // promise inside after(), which is what guarantees it is flushed while the
+        // platform still holds the instance alive.
+        const reservation = recordModelCalls(1).catch(() => { /* best-effort */ })
 
         try {
           // First pass — the only model call the reader ever waits on.
@@ -368,7 +406,6 @@ export async function POST(req: NextRequest) {
             }
           }
           const firstMessage = await stream.finalMessage()
-          modelCalls = 1  // first-pass generation completed; gating adds its own below
           logUsage(`${section}/${planetSection}`, 'generate', MODEL, firstMessage.usage, {
             stop: firstMessage.stop_reason ?? 'none', prior: prior.length,
           })
@@ -403,15 +440,16 @@ export async function POST(req: NextRequest) {
               // and the aspect count that scales that band, so a section that ran
               // long because the chart genuinely carried more aspects is
               // distinguishable from one that runs multiples over spec on every
-              // chart. countWords and wordBandFor are the gate's own helpers, so
-              // the number logged here is exactly the number scoreLength acts on.
-              const lenAspects = countAspectsInContext(userContent)
-              const lenBand    = wordBandFor(section, planetSection, lenAspects)
+              // chart. It logs the SAME band the instruction's length clause was
+              // rendered from — which is the band scoreLength acts on — so prompt,
+              // log and gate cannot disagree. (It previously recomputed the band
+              // without the evidence count, printing the wrong numbers for exactly
+              // the two sections whose bands move most.)
               console.log(
                 `[AXIS_LEN] section=${section}/${planetSection} words=${countWords(firstText)} ` +
-                `band=${lenBand.fullMin}-${lenBand.fullMax} hardMax=${lenBand.hardMax} ` +
-                `aspects=${lenAspects} maxTokens=${maxTokens} stop=${firstMessage.stop_reason} ` +
-                `prior=${prior.length}`
+                `band=${band.fullMin}-${band.fullMax} hardMax=${band.hardMax} ` +
+                `aspects=${aspectCount} evidence=${evidenceCount ?? '-'} ` +
+                `maxTokens=${maxTokens} stop=${firstMessage.stop_reason} prior=${prior.length}`
               )
 
               const verdict = await gateForCache({
@@ -426,7 +464,7 @@ export async function POST(req: NextRequest) {
                 model: MODEL,
                 startedAt,
               })
-              modelCalls += verdict.modelCalls
+              gateCalls += verdict.modelCalls
 
               if (verdict.cacheText) {
                 await setCachedReading(cacheKey, verdict.cacheText)
@@ -439,9 +477,10 @@ export async function POST(req: NextRequest) {
                 gateErr instanceof Error ? gateErr.message : gateErr
               )
             } finally {
-              // Record the true model-call count (generation + gate + repair) for
-              // this request against the global daily budget. Best-effort.
-              try { await recordModelCalls(modelCalls) } catch { /* best-effort */ }
+              // Flush the generation reservation fired on the hot path, then record
+              // only what gating added (evaluate + any repair + re-score) on top.
+              await reservation
+              try { await recordModelCalls(gateCalls) } catch { /* best-effort */ }
             }
           })
         } catch (err) {
@@ -466,14 +505,12 @@ export async function POST(req: NextRequest) {
             `[AXIS_GEN_FAIL] section=${section}/${planetSection} fatal=${fatal} code=${code} —`,
             err instanceof Error ? err.message : err
           )
-          // Record whatever generation cost was incurred before the failure. Via
-          // after() for the same reason the success path uses it: post-close work
-          // is not guaranteed to run once the response has flushed. The success
-          // path records inside its own after() (gate calls included), so the two
-          // paths are mutually exclusive and never double-count.
-          after(async () => {
-            try { await recordModelCalls(modelCalls) } catch { /* best-effort */ }
-          })
+          // Nothing further to record: the generation call was reserved as it was
+          // attempted and gating never ran. (This path used to record a post-hoc
+          // count, which here was usually zero — a failed call that had already
+          // billed went uncounted.) The reservation is still only flushed under
+          // after(), for the same reason the success path flushes it there.
+          after(async () => { await reservation })
         }
       }
     })

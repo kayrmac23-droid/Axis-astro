@@ -327,9 +327,12 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
       }
 
       const req = buildSectionRequest(dual, section, planetSection, prior)
+      // The band the request's own length clause was rendered from — the same one
+      // the gate scores against. Read off the request rather than recomputed, so
+      // the harness cannot report a band the prompt did not state.
+      const band     = req.band
       const aspects  = countAspectsInContext(req.userContent)
       const evidence = countPlanEvidence(req.userContent, planetSection)
-      const band     = wordBandFor(section, planetSection, aspects, evidence ?? undefined)
       Object.assign(rec, {
         aspects, plan_evidence: evidence, band_min: band.fullMin, band_max: band.fullMax,
         hard_min: band.hardMin, hard_max: band.hardMax, max_tokens: req.params.max_tokens,
