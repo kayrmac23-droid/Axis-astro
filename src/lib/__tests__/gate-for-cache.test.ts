@@ -16,7 +16,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
   },
 }))
 
-import { gateForCache, detectBannedPhrasings } from '../reading-quality-gate'
+import { gateForCache, detectBannedPhrasings, EVAL_MODEL } from '../reading-quality-gate'
 import { BANNED_RESCUE_PHRASINGS, OPENER_MODES, wordBandFor } from '../prompts'
 import { READING_SO_FAR_FOOTER } from '../reading-thread'
 
@@ -450,9 +450,13 @@ describe('gateForCache — every model call is logged with its token usage', () 
     await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     const lines = usageLines()
     expect(lines).toHaveLength(3)
-    expect(lines[0]).toMatch(/section=tropical\/sun call=evaluate model=claude-opus-5 in=101 cache_read=4000/)
+    // The evaluator model is imported, not spelled out: it changed once already
+    // (Opus 5 → current-generation Sonnet in v10.30) and a hardcoded name turns
+    // that into a false failure. The repair model is the GENERATION model, which
+    // is a separate choice and stays asserted by name.
+    expect(lines[0]).toMatch(new RegExp(`section=tropical/sun call=evaluate model=${EVAL_MODEL} in=101 cache_read=4000`))
     expect(lines[1]).toMatch(/section=tropical\/sun call=repair model=claude-sonnet-5 in=202/)
-    expect(lines[2]).toMatch(/section=tropical\/sun call=recheck model=claude-opus-5 in=303/)
+    expect(lines[2]).toMatch(new RegExp(`section=tropical/sun call=recheck model=${EVAL_MODEL} in=303`))
   })
 
   it('logs the surgical doctrine repair', async () => {

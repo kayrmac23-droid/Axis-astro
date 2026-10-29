@@ -76,29 +76,56 @@ import {
   WordBand,
 } from '@/lib/prompts'
 
-// The semantic doctrine check needs the discriminating judgment that only the
-// stronger model reliably delivers: smaller models are too lenient on the subtle
-// failure modes the gate exists to catch (pseudo-synthesis, compensatory
-// reframes, under-grounded prose). Opus is deliberately more capable than the
-// Sonnet generator because the gate is the last line before caching.
-const EVAL_MODEL = 'claude-opus-5'
-// Failure-path output is the sizing constraint, not the pass path: a failing
-// section emits scores + a repair critique + the falsifiability_inversion
-// evidence field. The critique is kept concise and failing-criteria-only (see
-// the system prompt), which keeps this comfortably in budget; extractScoresFromRaw
-// is the backstop if a critique still truncates the JSON, so the verdict never
-// fails open regardless.
-const EVAL_MAX_TOKENS = 1200
+// The evaluator needs discriminating judgment on subtle failure modes
+// (pseudo-synthesis, compensatory reframes, under-grounded prose), which is why
+// it is not the generator's own model grading its own output.
+//
+// It was `claude-opus-5` with thinking DISABLED. That pairing was the worst of
+// both: Opus input bills at 2.5x Sonnet over roughly the SAME token volume the
+// generation call pays (rubric + prior blocks + chart context + the draft), so
+// evaluation — not generation — was the larger half of the bill, and the reader
+// never sees its benefit (gateForCache runs under after(), so the first reader
+// of a section always gets the ungated first pass). Meanwhile the judgment it
+// was bought for was switched off: a nine-criterion prose verdict returned as
+// strict JSON is exactly the task reasoning helps most, and disabling thinking
+// on Opus 5 is also the documented trigger for leaked tags and malformed output
+// — which this gate turns into `eval-errored` and caches nothing.
+//
+// Current generation Sonnet with REASONING ON is both cheaper and a better
+// judge. Note `thinking: {type:'disabled'}` is a 400 on this model: the eval
+// path therefore has its own thinking config (EVAL_THINKING), separate from the
+// repair path, which still runs on the caller's generation model.
+export const EVAL_MODEL = 'claude-sonnet-5-5'
+// Effort is the depth knob on current models (`budget_tokens` is removed). The
+// gate runs off the response path entirely, so thinking costs the reader no
+// latency — but it is still a scoring pass, not open-ended reasoning, so this
+// sits at `medium` rather than the model default of `high`.
+const EVAL_EFFORT: Anthropic.OutputConfig['effort'] = 'medium'
+// Adaptive thinking tokens count against max_tokens, so this is no longer sized
+// for the JSON alone: the former 1200 was a JSON-only budget and would truncate
+// the scores object the moment the model thought at all. Failure-path output is
+// still the sizing constraint (scores + critique + falsifiability_inversion);
+// extractScoresFromRaw remains the backstop if a critique truncates the JSON,
+// so the verdict never fails open regardless.
+const EVAL_MAX_TOKENS = 4000
 const DOCTRINE_REPAIR_MAX_TOKENS = 500
 
 // Sonnet 5 / Opus 5 REMOVED the sampling params (temperature/top_p/top_k):
-// sending `temperature` returns a 400 and fails the call. These models also
-// default to adaptive thinking when `thinking` is omitted, whose tokens count
-// against `max_tokens` — on the evaluator that risks truncating the scores JSON
-// (EVAL_MAX_TOKENS is sized for JSON only), and it adds non-determinism the
-// gate does not want. Disable thinking to keep the deterministic, no-thinking
-// behaviour the former temperature-0 Sonnet-4-6 evaluator/repairer had.
+// sending `temperature` returns a 400 and fails the call. There is no
+// temperature knob on these models; do not re-add one.
+//
+// REPAIR path only. Repair and doctrine-repair run on the caller's generation
+// model (Sonnet 5), which accepts a disabled thinking config, and a repair is a
+// constrained rewrite against an explicit critique rather than a judgment call
+// — so it keeps the generator's no-thinking shape. The EVALUATOR does not: see
+// EVAL_THINKING below.
 const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
+
+// EVALUATION path. Scoring prose on nine criteria and emitting strict JSON is a
+// judgment task, and the gate is the last check before a 30-day cache write, so
+// the evaluator reasons. Adaptive is also the only legal on-mode here —
+// `{type:'disabled'}` returns a 400 on EVAL_MODEL.
+const EVAL_THINKING: Anthropic.ThinkingConfigParam = { type: 'adaptive' }
 
 // The worked example the falsifiability criterion is calibrated against, and a
 // permanent regression fixture (see reading-quality-gate.test.ts). This claim
@@ -302,7 +329,7 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context? Generic claims with no chart anchor score low. Score LOW for a factual claim the context contradicts: a superlative the context does not state ("the tightest aspect in the chart"), a house restated as a distance, a Sidereal shift called "forward", a wide (>6°) aspect given "real force" or made a recurring theme, a nakshatra's deity called its ruler, a cusp placement (marked ⚠ CUSP) called pure or unmixed, or Western aspects re-walked in a Sidereal section.
 2. specificity — Does the section describe recognisable lived patterns (concrete scenes, behavioural moments) from INSIDE the native's experience, rather than abstract trait labels? Score LOW for opening on what other people notice first, and for measuring the native against other people ("the gap that plagues so many people"). Score LOW too for opening the section on the existential frame (${BANNED_OPENER_LIST}): it announces that a quality exists instead of naming it. Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
-3. synthesis — Does the closing/"Putting It Together" name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes? Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, more authentic, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The same breach made with STACKING language counts identically: one frame built "on top of" the other, one as the "core", "engine" or "foundation", one as what the person "actually" wants, one as a defence against the other. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension. Score LOW too for a claimed conflict the supplied evidence does not earn — a changed placement is a divergence, not proof of conflict, suffering, or a coping history — and for counting one unchanged angular relationship twice as if both frameworks produced it independently. Concordance is consistency across frameworks, not independent psychological proof. A divergence the chart shows as narrow, named at that size and left open, is correct: score that as accurate, not thin. Inflating it into drama and resolving it away are both failures.
+3. synthesis — Does the section's closing paragraph (unheaded as of v10.30 — a section that heads it "Putting It Together", "Synthesis", "In Summary" or any variant has broken FORMATTING: score that LOW here) name the single live tension the person NAVIGATES and show how they inhabit it, rather than re-listing placements already covered? Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Are cross-references genuinely combined (sign × house × aspect × dignity × ruler chain), and does each subsection advance a DIFFERENT claim rather than re-arriving at one central note in new clothes? Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, more authentic, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The same breach made with STACKING language counts identically: one frame built "on top of" the other, one as the "core", "engine" or "foundation", one as what the person "actually" wants, one as a defence against the other. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension. Score LOW too for a claimed conflict the supplied evidence does not earn — a changed placement is a divergence, not proof of conflict, suffering, or a coping history — and for counting one unchanged angular relationship twice as if both frameworks produced it independently. Concordance is consistency across frameworks, not independent psychological proof. A divergence the chart shows as narrow, named at that size and left open, is correct: score that as accurate, not thin. Inflating it into drama and resolving it away are both failures.
 4. contradiction_handling — Does it name paradoxes, compensations, tensions, and mixed expressions? When two placements pull in opposite directions, is the contradiction held open rather than averaged away? Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault. Score LOW too for the MIRROR move — the RESCUE CLAUSE on a strength (ease → hidden strength): a plain placement or soft aspect described accurately, then followed by a trailing value-assertion that adds no astrological information, only reassurance about how valuable, rare, or underrated it is. Apply the DELETION TEST: if removing the clause leaves the astrological claim fully intact, the clause is flattery and must be flagged. Phrasings such as ${BANNED_RESCUE_LIST} are paradigm failures. A strength is legitimate ONLY as plain function ("the Pluto trine gives access to transformative experience without a hard aspect's destabilisation") or as a load-bearing mechanism against a named difficulty ("the Moon trine is what keeps the identity from fragmenting under the Neptune pressure") — never as an appended reassurance about its worth. Score LOW for the THIRD member of the same family — MANUFACTURED SHADOW: a strength followed by a flaw that is not that strength under stress but an unrelated trait bolted on to make the paragraph look balanced ("Leo warmth, but also secretly anxious" — the anxiety is not the warmth). A genuine shadow is the SAME quality in its distorted or unconscious expression ("Leo warmth hardening into needing to be central"); anything else is an invented claim with no chart behind it and is worse than leaving the shadow unstated. Conversely, score LOW for one-sided praise: a quality presented as if it had no stress-state at all. Where a placement’s distorted expression is genuinely mild, stating it plainly and briefly is correct and must NOT be penalised as thin coverage.
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts, and shadow with real psychological grain — or stay at trait-level surface?
@@ -476,10 +503,11 @@ Score the generated section against the criteria and return the JSON object spec
 
   try {
     const msg = await getAnthropic().messages.create({
-      model:       EVAL_MODEL,
-      max_tokens:  EVAL_MAX_TOKENS,
-      thinking:    THINKING,
-      system:      EVAL_SYSTEM_BLOCKS,
+      model:         EVAL_MODEL,
+      max_tokens:    EVAL_MAX_TOKENS,
+      thinking:      EVAL_THINKING,
+      output_config: { effort: EVAL_EFFORT },
+      system:        EVAL_SYSTEM_BLOCKS,
       messages:    [{ role: 'user', content: userTurn(priorBlocks, evalUserContent) }],
     })
     logUsage(`${section}/${planetSection}`, usageCall, EVAL_MODEL, msg.usage, { stop: msg.stop_reason ?? 'none' })

@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.28
+// AXIS Production System Prompts v10.30
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -304,17 +304,44 @@ export interface WordBand {
   evidenceUpCap?:     number  // max (evidenceCount - evidenceBaseline) applied upward
 }
 
-const BAND_MAJOR:              WordBand = { target: 650, fullMin: 550, fullMax:  750, hardMin: 500, hardMax:  800, aspectBaseline: 3, aspectAllowance: 80 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 550, fullMin: 450, fullMax:  650, hardMin: 400, hardMax:  700 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 500, fullMin: 400, fullMax:  600, hardMin: 350, hardMax:  700, aspectBaseline: 2, aspectAllowance: 60 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500, aspectBaseline: 2, aspectAllowance: 60 } // Mercury, Venus, Mars, Jup/Sat
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 200, hardMax:  400, aspectBaseline: 1, aspectAllowance: 50 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 250, fullMin: 200, fullMax:  300, hardMin: 170, hardMax:  380 }
-const BAND_NODES_TROP:         WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 210, hardMax:  430 }
-const BAND_DIVERGENCE:         WordBand = { target: 900, fullMin: 750, fullMax: 1050, hardMin: 650, hardMax: 1150, evidenceBaseline: 4, evidenceAllowance: 150, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 450, fullMin: 350, fullMax:  600, hardMin: 300, hardMax:  700, evidenceBaseline: 3, evidenceAllowance: 110, evidenceUpCap: 3 }
-const BAND_CENTRAL_TENSION:    WordBand = { target: 350, fullMin: 280, fullMax:  450, hardMin: 230, hardMax:  550 }
-const BAND_CLOSING:            WordBand = { target: 220, fullMin: 160, fullMax:  320, hardMin: 130, hardMax:  400 }
+// ── v10.30 LENGTH RESET ───────────────────────────────────────────────────────
+// Every natal band below was cut by roughly 28%: a full natal reading at target
+// went from ~8,600 words to ~6,200. Three reasons, in order of weight:
+//
+//   1. 8,600 words is ~45 minutes of continuous prose for a web dossier. The
+//      length was never chosen as a reading experience — it accumulated, band
+//      by band, from "a major section must not under-deliver".
+//   2. Length is the compounding cost term. Prior sections are resent verbatim
+//      on every later section (reading-thread.ts), so each word written is a
+//      word re-read as input up to twenty more times, on BOTH the generation and
+//      the evaluation call. Cutting prose cuts output tokens once and input
+//      tokens ~20x.
+//   3. A floor is an instruction. A band whose floor exceeds what the chart
+//      actually supports is a standing instruction to pad, and padding is what
+//      PROSE FAILURE MODES exists to catch — so the length criterion was
+//      manufacturing the failure the prose criteria then penalised.
+//
+// Ratios between section classes are preserved: The Divergence is still the
+// largest single section by a wide margin, the Sun and Moon still dominate
+// their frame, and every target still scores 5/5 against its own band both
+// unscaled and scaled (pinned by prompts-length-wiring.test.ts). To dial the
+// whole reading up or down, this table is the only place to edit — the prompt
+// clause and the gate's `length` criterion both read it.
+//
+// Synastry bands are deliberately UNCHANGED: six sections at ~1,950 words is
+// already a reasonable sitting, and that flow is not threaded, so it carries
+// none of the compounding input cost that motivates (2).
+const BAND_MAJOR:              WordBand = { target: 450, fullMin: 380, fullMax:  520, hardMin: 330, hardMax:  580, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 400, fullMin: 330, fullMax:  470, hardMin: 290, hardMax:  530 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 350, fullMin: 290, fullMax:  410, hardMin: 250, hardMax:  470, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 250, fullMin: 210, fullMax:  290, hardMin: 180, hardMax:  360, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars, Jup/Sat
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 200, fullMin: 175, fullMax:  230, hardMin: 150, hardMax:  290, aspectBaseline: 1, aspectAllowance: 40 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 200, fullMin: 165, fullMax:  240, hardMin: 140, hardMax:  300 }
+const BAND_NODES_TROP:         WordBand = { target: 220, fullMin: 185, fullMax:  260, hardMin: 160, hardMax:  320 }
+const BAND_DIVERGENCE:         WordBand = { target: 650, fullMin: 540, fullMax:  760, hardMin: 470, hardMax:  840, evidenceBaseline: 4, evidenceAllowance: 110, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 330, fullMin: 260, fullMax:  430, hardMin: 220, hardMax:  500, evidenceBaseline: 3, evidenceAllowance:  80, evidenceUpCap: 3 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 260, fullMin: 210, fullMax:  330, hardMin: 175, hardMax:  400 }
+const BAND_CLOSING:            WordBand = { target: 180, fullMin: 135, fullMax:  250, hardMin: 110, hardMax:  300 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
 const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
 const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
@@ -567,7 +594,7 @@ These are the specific ways an AXIS reading rots from the inside. Each is a hard
 
 3. THE OBSERVER-FRAME INVERSION. The reading exists to show the native their own interior — not to appraise the native through an audience's eyes. Constructions like "this Sun becomes most visible and most vulnerable", "a quality other people experience as rare", "what others receive from you" centre the spectator's verdict on the person, which is the exact inversion of the product's purpose — and it is hardest to catch when dressed as praise. Perception of the native may appear ONLY routed back through the native's own experience: something they themselves register, manage, brace for, or are surprised by — never as the lens that establishes the insight. Write from inside the person looking out, not from outside looking at them. Two forms of this are banned outright: opening a section or paragraph on what other people notice, register or see first ("the first thing people register is…", "this reads as confident", "unusually easy to read"); and measuring the native against other people ("the gap that plagues so many people", "more than most people", "where others would…"), which flatters or diagnoses by comparison instead of describing this person.
 
-4. PSEUDO-SYNTHESIS. A closing or "Putting It Together" passage that re-lists placements already covered is not synthesis — it is a summary, and a reader can tell. Synthesis names the single live tension the person actually NAVIGATES and shows how they live inside it, with the tension itself as the insight. Banned: the flattening closer that resolves a tension by addition — "carries both simultaneously", "holds both at once", "needs both real depth and real freedom". That phrasing dissolves the friction the section just built. Leave the tension load-bearing and open; describe how it is inhabited and what it costs, not how it cancels out.
+4. PSEUDO-SYNTHESIS. A closing passage that re-lists placements already covered is not synthesis — it is a summary, and a reader can tell. Until v10.30 every planet section was REQUIRED to head its close "### Putting It Together", twelve times per reading; a heading that announces a summary gets a summary, so the heading is gone and this failure mode is the reason. Synthesis names the single live tension the person actually NAVIGATES and shows how they live inside it, with the tension itself as the insight. Banned: the flattening closer that resolves a tension by addition — "carries both simultaneously", "holds both at once", "needs both real depth and real freedom". That phrasing dissolves the friction the section just built. Leave the tension load-bearing and open; describe how it is inhabited and what it costs, not how it cancels out.
 
 APPLY THE RULES SILENTLY — NON-NEGOTIABLE:
 These rules govern what you write; they are never its subject. Do not narrate your compliance to the reader — no sentence whose job is to announce that a difficulty will not be redeemed ("the cost is real rather than a secretly deeper form of love", "this does not resolve into a hidden virtue", "a genuine cost worth leaving stated plainly"), that two frames are not being ranked ("these are not mask and face"), or that a difficulty is "structural rather than poetic". The reader has never seen these rules, so such sentences read as the reading arguing with an invisible critic. State the cost and move on; hold the two frames side by side without announcing that you are doing so. Banned as written: ${BANNED_META_LIST}.
@@ -625,7 +652,8 @@ The reading is written one section at a time, in order, and every section is the
 Coherence comes from both the chart and the reading so far: read every placement in relation to the rest of the chart exactly as the context gives it, and let the document accumulate — each section should leave the reader knowing something the previous ones did not.
 
 FORMATTING:
-Major sections use ### sub-headers to structure layers (sign, house, aspects, synthesis). No other markdown. No italic lines.
+Major sections use ### sub-headers to structure the evidence layers (sign, house, aspects). No other markdown. No italic lines.
+The section's closing paragraph carries NO heading. It is the last paragraph of the last sub-section, running on from it. Never head it "Putting It Together", "Synthesis", "In Summary", "The Core", "Bringing It Together" or any variant: a heading announces a summary, and v10.30 removed that heading from every section precisely because it was producing one (see PROSE FAILURE MODES #4).
 
 ASTROLOGICAL KNOWLEDGE BASE — SIGNS:
 Use these as the psychological ground truth for every placement. Always read sign through house before drawing behavioural conclusions.
@@ -798,7 +826,7 @@ export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
 // Sidereal secondaries no longer all close on the same mechanism.
 const SIDEREAL_EVIDENCE_TAIL = `the houses this planet rules from the Lagna and what it carries into the house it occupies (HOUSE LORDSHIP); the graha relationships it receives — drishti and same-sign conjunction — and the drishti it casts. Do not re-describe the Tropical aspects.`
 const SIDEREAL_EVIDENCE_CLAUSE = `Work the Jyotish evidence in the context: ${SIDEREAL_EVIDENCE_TAIL}`
-const SIDEREAL_CLOSE = `End with ### Putting It Together: two to four full sentences naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
+const SIDEREAL_CLOSE = `Close the section with two to four full sentences, under no heading, naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
 
 export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
   tropical: {
@@ -806,17 +834,17 @@ export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
 
 Internally identify the chart's dominant story: which placements are strongest (angular, dignified, heavily aspected), what the central tension is, and what the chart ruler is doing. Do not output this reasoning step — it shapes every sentence that follows.
 
-Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
+Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
 
 ${openingClause('tropical', 'sun')}
 
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver. Cross-reference the Moon using the MOON EMOTIONAL EVIDENCE in the context before making any behavioural statement. This is an EVIDENCE CHECK, not a Moon interpretation. You may name the Moon's net effect on the Sun's impulse in one or two sentences — whether it confirms the Sun's reach toward relationship or overrides it toward withholding — stated as a behavioural fact ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity, or aspects here — no "Virgo Moon grounds through constancy", no unpacking the 4th-house domain, no characterising the Moon's emotional operating mode. The Moon has its own full section and has NOT been interpreted yet; building its portrait here pre-empts that section and is a scope violation. Reference the Moon only as it bears on the Sun; the moment a sentence is about the Moon rather than about the Sun-Moon behavioural cross-purpose, it belongs in the Moon section, not here.
 
-This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's Putting It Together names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the synthesis spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
+This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully (the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, the close); a two-sentence subsection has under-delivered. Reach the length through substance — more chart worked through — never through padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show when and where it surfaces, not only where the difficulty lives. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…"), do NOT restate the section's central quality as if newly discovered, and do NOT land it on a struck aphoristic fragment. The close earns its place by adding, not by summarising. The Sun's close names the single live tension the SUN navigates — built from the Sun's own placement, dignity, ruler chain, and aspects. It is not the place to develop the Moon: if the close spends its length characterising the Moon's sign, house, and emotional mechanism, it has interpreted the wrong planet and pre-empted the Moon section. The Moon may appear only as the one-sentence behavioural cross-purpose already established above — not as a fresh portrait.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
-Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections] → ### Putting It Together.
+Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
 
 ${openingClause('tropical', 'moon')}
 
@@ -824,11 +852,11 @@ This is the emotional architecture. Cover: the sign's emotional operating mode a
 
 When interpreting Moon-Pluto aspects: do not stop at "bonds run deep and do not release." Go one layer further — the sign and house of Pluto determines HOW the attachment mechanism actually operates. A Moon-Pluto conjunction in a fire/mutable sign in a philosophical house means the Pluto attachment expresses through meaning-making: the person processes the loss through narrative and philosophy, and that narrative IS the Pluto bond continuing — not a resolution of it. The instrument used to "move on" is the same instrument keeping the attachment alive. Name the specific mechanism, not just the fact of intensity.
 
-${LENGTH_CLAUSE_SLOT} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, Putting It Together); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
+${LENGTH_CLAUSE_SLOT} Develop every subsection fully (sign, house, EACH aspect to its specific dynamic, the close); a two-sentence subsection has under-delivered. Reach the length through substance, never padding or repetition (see DEPTH REQUIREMENTS and PROSE FAILURE MODES). Throughout, anchor each emotional pattern to the situation that activates it — use the SITUATIONAL FRAME in the context to show the moment it surfaces, not only the structural difficulty. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, do NOT open with a "the truest observation is…" formula, and do NOT end on a struck aphoristic fragment.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
-Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Ascendant Shapes the Chart → ### Planets in the 1st House (if any; omit this sub-section if none) → ### Putting It Together.
+Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Ascendant Shapes the Chart → ### Planets in the 1st House (if any; omit this sub-section if none). The closing paragraph runs on from the last sub-section under no heading of its own.
 
 Cover: what this rising sign produces as the person's instinctive way of entering a situation — what they do first, how they move into a room, a conversation or a decision, felt from the inside before any reflection; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign. Do not open on what other people notice, register or see first.
 
@@ -836,17 +864,17 @@ This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection 
 
     mercury: `Interpret Mercury.
 
-Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects, then the closing paragraph under no heading of its own. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 ${openingClause('tropical', 'mercury')}
 
 Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
-End with ### Putting It Together. ${closingClause('tropical', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('tropical', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
     venus: `Interpret Venus.
 
-Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects, then the closing paragraph under no heading of its own. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 ${openingClause('tropical', 'venus')}
 
@@ -854,11 +882,11 @@ Cover sign, house, dignity, the condition of Venus's sign ruler, and every key a
 
 Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
 
-End with ### Putting It Together. ${closingClause('tropical', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('tropical', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
     mars: `Interpret Mars.
 
-Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects, then the closing paragraph under no heading of its own. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 ${openingClause('tropical', 'mars')}
 
@@ -866,15 +894,15 @@ Cover sign, house, dignity, the condition of Mars's sign ruler, and every key as
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 
-End with ### Putting It Together. ${closingClause('tropical', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('tropical', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn together.
 
-Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → ### Saturn in [Sign], House [N] → ### Putting It Together. Use ## only for the planet header and ### for every sub-header; never use ####.
+Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → ### Saturn in [Sign], House [N], then the closing paragraph under no heading of its own. Use ## only for the planet header and ### for every sub-header; never use ####.
 
 Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — name it first with its orb and applying/separating status and what it produces as an ongoing internal condition. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
-End with ### Putting It Together: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${LENGTH_CLAUSE_SLOT}`,
+Close with a final paragraph, under no heading: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${LENGTH_CLAUSE_SLOT}`,
 
     key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
 
@@ -944,7 +972,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'mercury')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('sidereal', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
     venus: `Interpret Venus in the Sidereal chart.
 
@@ -954,7 +982,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'venus')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('sidereal', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
     mars: `Interpret Mars in the Sidereal chart.
 
@@ -964,7 +992,7 @@ Open with any sign shift from Tropical, as its FRAME SHIFT line states it. Name 
 
 ${openingClause('sidereal', 'mars')}
 
-End with ### Putting It Together. ${closingClause('sidereal', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
+Close the section with a final paragraph under no heading. ${closingClause('sidereal', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 

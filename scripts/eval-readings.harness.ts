@@ -35,6 +35,7 @@ import { execSync } from 'node:child_process'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, type DualChartData, type PlanetPosition } from '@/lib/astro-calc'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
+import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
 import { isNearStation, cuspNeighbour, currentDashaKey } from '@/lib/interpretation-engine'
 import { countPlanEvidence, wordBandFor } from '@/lib/prompts'
 import { gateForCache, countWords, countAspectsInContext, scoreLength, type GateScores } from '@/lib/reading-quality-gate'
@@ -90,8 +91,9 @@ const FRAMES: NatalFrame[] = ['tropical', 'sidereal', 'synthesis']
 // cache writes bill at 1.25× input, cache reads at 0.1× input. A model missing
 // from this table reports usd: null rather than a guessed number — add it here.
 const PRICES: Record<string, { input: number; output: number }> = {
-  'claude-sonnet-5': { input: 2, output: 10 },
-  'claude-opus-5':   { input: 5, output: 25 },
+  'claude-sonnet-5':   { input: 2, output: 10 },
+  'claude-sonnet-5-5': { input: 2, output: 10 },  // the v10.30 evaluator
+  'claude-opus-5':     { input: 5, output: 25 },  // the pre-v10.30 evaluator; kept so an older run still prices
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -134,6 +136,15 @@ interface SectionRecord {
   max_tokens: number | null; stop_reason: string | null; truncated: boolean | null
   gen_ms: number | null; error: string | null; error_fatal: boolean | null
   prompt_chars: number | null
+  // Deterministic rule compliance (reading-rule-scan.ts). Counted on the FIRST
+  // PASS — the text a real reader actually gets, since gateForCache runs under
+  // after() and only decides what the cache serves later. These are the
+  // SHARED_RULES / DOCTRINE constraints that are pure string facts and had no
+  // enforcement anywhere before v10.30; `rules_detail` carries the matched text
+  // so a count can be confirmed rather than taken on trust.
+  rules_hard: number | null; rules_doctrine: number | null; rules_soft: number | null
+  rules_by_rule: Record<string, number> | null
+  rules_detail: string | null
   // Gate (--gate only; all null otherwise).
   gate_reason: string | null
   first_pass_clean: boolean | null      // passed the gate with no repair (reason === 'passed')
@@ -309,6 +320,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         kind: 'model', words: null, band_min: 0, band_max: 0, hard_min: 0, hard_max: 0,
         aspects: 0, plan_evidence: null, length_score: null, length_status: null,
         max_tokens: null, stop_reason: null, truncated: null, gen_ms: null, error: null, error_fatal: null,
+        rules_hard: null, rules_doctrine: null, rules_soft: null, rules_by_rule: null, rules_detail: null,
         prompt_chars: null,
         gate_reason: null, first_pass_clean: null, first_pass_rubric_pass: null, first_pass_scores: null,
         first_pass_critique: null, final_scores: null, repair_attempted: null, repaired: null, cached: null,
@@ -383,12 +395,18 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
 
         const words = countWords(firstText)
         const lengthScore = scoreLength(words, band)
+        // Deterministic rule scan on the first pass, free and instant.
+        const ruleScan = summariseRuleScan(firstText)
         Object.assign(rec, {
           words, length_score: lengthScore, length_status: lengthStatus(words, band, lengthScore),
           stop_reason: finalMessage.stop_reason, truncated, gen_ms: Date.now() - startedAt,
+          rules_hard: ruleScan.hard, rules_doctrine: ruleScan.doctrine, rules_soft: ruleScan.soft,
+          rules_by_rule: ruleScan.byRule,
+          rules_detail: ruleScan.findings.map(f => `L${f.line} ${f.rule}: ${f.match}`).join(' | ') || null,
         })
+        if (process.env.AXIS_EVAL_VERBOSE === '1') say(formatRuleScanLog(label, ruleScan))
         writeFileSync(`${fileStem}.md`, truncated ? `${firstText}\n\n[AXIS_TRUNCATED]` : firstText)
-        say(`[${spec.id}] ${label.padEnd(26)} ${String(words).padStart(5)}w band ${band.fullMin}–${band.fullMax} (${rec.length_status}) stop=${finalMessage.stop_reason} ${(rec.gen_ms! / 1000).toFixed(1)}s`)
+        say(`[${spec.id}] ${label.padEnd(26)} ${String(words).padStart(5)}w band ${band.fullMin}–${band.fullMax} (${rec.length_status}) stop=${finalMessage.stop_reason} ${(rec.gen_ms! / 1000).toFixed(1)}s${ruleScan.hard > 0 ? ` ⚠ ${ruleScan.hard} rule breach${ruleScan.hard === 1 ? '' : 'es'}` : ''}`)
 
         if (MODE !== 'gate') return
 
@@ -478,6 +496,16 @@ function aggregate(records: SectionRecord[]) {
   }
 
   const withWords = generated.filter(r => r.words != null)
+
+  // Deterministic rule compliance across the run. `sections_with_hard_breach`
+  // is the headline number: the share of sections a real reader would receive
+  // carrying an unambiguous breach of a stated rule. `by_rule` says WHICH rule,
+  // which is what turns "the output breaks my rules" into a work queue.
+  const scanned = generated.filter(r => r.rules_hard != null)
+  const byRule: Record<string, number> = {}
+  for (const r of scanned)
+    for (const [k, v] of Object.entries(r.rules_by_rule ?? {})) byRule[k] = (byRule[k] ?? 0) + v
+
   return {
     sections:           records.length,
     generated:          generated.length,
@@ -485,6 +513,16 @@ function aggregate(records: SectionRecord[]) {
     generation_errors:  records.filter(r => r.kind === 'error').length,
     truncated:          generated.filter(r => r.truncated).length,
     truncated_rate:     rate(generated.filter(r => r.truncated).length, generated.length),
+    rules: scanned.length === 0 ? null : {
+      scanned:                   scanned.length,
+      sections_with_hard_breach: scanned.filter(r => r.rules_hard! > 0).length,
+      hard_breach_rate:          rate(scanned.filter(r => r.rules_hard! > 0).length, scanned.length),
+      doctrine_candidate_rate:   rate(scanned.filter(r => r.rules_doctrine! > 0).length, scanned.length),
+      total_hard:                scanned.reduce((n, r) => n + r.rules_hard!, 0),
+      total_doctrine:            scanned.reduce((n, r) => n + r.rules_doctrine!, 0),
+      total_soft:                scanned.reduce((n, r) => n + r.rules_soft!, 0),
+      by_rule:                   byRule,
+    },
     length: {
       in_band_rate:     rate(withWords.filter(r => r.length_status === 'in').length, withWords.length),
       over_band_rate:   rate(withWords.filter(r => r.length_status === 'over' || r.length_status === 'runaway').length, withWords.length),
@@ -520,6 +558,7 @@ const CSV_COLUMNS: (keyof SectionRecord)[] = [
   'run_id', 'mode', 'chart_id', 'axis', 'order', 'section', 'planet_section', 'prior_sections', 'kind',
   'words', 'band_min', 'band_max', 'hard_min', 'hard_max', 'aspects', 'plan_evidence', 'length_score', 'length_status',
   'max_tokens', 'stop_reason', 'truncated', 'gen_ms', 'error', 'prompt_chars',
+  'rules_hard', 'rules_doctrine', 'rules_soft', 'rules_detail',
   'gate_reason', 'first_pass_clean', 'first_pass_rubric_pass', 'repair_attempted', 'repaired', 'cached', 'repair_failed',
   'gate_model_calls', 'gate_ms', 'usd',
 ]
@@ -551,6 +590,16 @@ function printSummary(summary: ReturnType<typeof aggregate>, perChart: Record<st
   say('\n══════════ SUMMARY ══════════')
   say(`sections ${summary.sections} · generated ${summary.generated} · deterministic ${summary.deterministic} · errors ${summary.generation_errors} · truncated ${summary.truncated} (${pct(summary.truncated_rate)})`)
   say(`length: in band ${pct(summary.length.in_band_rate)} · over ${pct(summary.length.over_band_rate)} (runaway ${pct(summary.length.runaway_rate)}) · under ${pct(summary.length.under_band_rate)} · mean words/band-max ${summary.length.mean_words_over_band_max ?? '—'}`)
+  if (summary.rules) {
+    const r = summary.rules
+    // Printed above the gate line deliberately: these are breaches in the text
+    // a reader actually receives, whereas every gate number describes what the
+    // cache serves a LATER reader.
+    const worst = Object.entries(r.by_rule).sort((a, b) => b[1] - a[1]).slice(0, 6)
+      .map(([k, v]) => `${k}=${v}`).join(' ')
+    say(`rules (first pass): ${r.sections_with_hard_breach}/${r.scanned} sections carry a hard breach ${pct(r.hard_breach_rate)} · ${r.total_hard} hard · ${r.total_doctrine} doctrine candidates · ${r.total_soft} soft`)
+    if (worst) say(`  by rule: ${worst}`)
+  }
   if (summary.gate) {
     const g = summary.gate
     say(`gate: first-pass pass ${pct(g.first_pass_pass_rate)} · repair ${pct(g.repair_rate)} · repair-failed ${pct(g.repair_failed_rate)} of repairs (${pct(g.repair_failed_of_gated)} of gated) · uncached ${pct(g.uncached_rate)} · evaluator errored ${g.evaluator_errored}`)

@@ -78,7 +78,8 @@ Write from inside the native looking out. Other people's perception may appear o
 7. Meta-narration of the rules.
 8. Refrains repeated across sections. A reading is one continuous document: each section builds on what the reader has already read rather than re-explaining it.
 9. Sections converging on one shape. The Sun, Moon, Mercury, Venus and Mars sections each have their own opening and closing mode (`OPENER_MODES` / `CLOSER_MODES` in prompts.ts). No section opens on the existential frame ("There is a particular…", "There is a kind of…", "There is something…", "There are moments…"); that frame is legal mid-paragraph. No section closes on the struck aphoristic fragment by default.
-10. Moon and Venus blurring. The Moon covers what the person needs in order to feel emotionally safe; Venus covers what they find worth giving and having. The two never share a concrete image (the noticed domestic detail, the remembered coffee order, the small thing quietly fixed).
+10. The headed summary close. A section's closing paragraph carries **no heading**: it runs on from the last sub-section. Never head it "Putting It Together", "Synthesis", "In Summary", "The Core", "Bringing It Together" or any variant. Until v10.30 twelve of the seventeen natal sections were *required* to head their close "### Putting It Together" while the same prompt classified a Putting It Together that re-lists placements as a hard error — a heading that announces a summary gets a summary, and it also overrode the per-section closing modes in (9). The close still does synthesising work; it just does not advertise itself.
+11. Moon and Venus blurring. The Moon covers what the person needs in order to feel emotionally safe; Venus covers what they find worth giving and having. The two never share a concrete image (the noticed domestic detail, the remembered coffee order, the small thing quietly fixed).
 
 ## Synthesis Layer Rules (Tropical + Sidereal)
 
