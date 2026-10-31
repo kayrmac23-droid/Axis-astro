@@ -35,4 +35,4 @@ jobs:
       - name: Run live smoke test
         run: npm run test:smoke
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ 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 }}
