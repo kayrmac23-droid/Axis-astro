@@ -79,7 +79,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 |---|---|
 | Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
-| AI backend | Anthropic Claude Sonnet 5 for generation and Opus 5 for evaluation, via streaming API with prompt caching |
+| AI backend | Anthropic Claude Sonnet 5 for generation and repair, Sonnet 5.5 for quality evaluation, via streaming API with prompt caching |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + JPL Horizons DE440 Pluto |
 | Geocoding | OpenStreetMap Nominatim |
 | Timezone | tz-lookup (offline IANA lookup) |
@@ -157,6 +157,7 @@ Every generated section then goes through the LLM **quality gate** (`lib/reading
 | `ANTHROPIC_API_KEY` | Required. Set in Vercel dashboard → Environment Variables. |
 | `UPSTASH_REDIS_REST_URL` | Recommended. Upstash Redis REST endpoint for the reading cache. Create a free database at [console.upstash.com](https://console.upstash.com). Falls back to no-op (no caching) when absent. |
 | `UPSTASH_REDIS_REST_TOKEN` | Recommended. Upstash Redis REST token (paired with the URL above). |
+| `KV_REST_API_URL` / `KV_REST_API_TOKEN` | Alternative to the two above — the names Vercel injects when an Upstash store is connected through the Vercel marketplace. Either pair works. |
 
 Operational switches for the reading pipeline (`AXIS_READINGS_ENABLED`, `AXIS_GATE_ENABLED`, `AXIS_READING_RATE_LIMIT_MAX`, …) are described in [`CLAUDE.md`](CLAUDE.md).
 
@@ -199,7 +200,7 @@ Each API route sets its `maxDuration` via `export const` in the route file itsel
 This section describes what is hardened now and what requires distributed infrastructure for true production scale.
 
 **Hardened (current state):**
-- **HTTP security headers** applied to every route via `next.config.js` `headers()`: a scoped Content-Security-Policy (`default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, allow-listed to the app's real external surface — PostHog and Vercel Insights), plus `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/microphone/geolocation denied), and `Strict-Transport-Security` (2-year HSTS with `includeSubDomains; preload`)
+- **HTTP security headers** applied to every route via `next.config.js` `headers()`: a scoped Content-Security-Policy (`default-src 'self'`, `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, allow-listed to the app's real external surface — PostHog and Vercel Insights; `'unsafe-eval'` is added to `script-src` in development only, for React's dev build and Turbopack HMR, so the production policy stays strict), plus `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (camera/microphone/geolocation denied), and `Strict-Transport-Security` (2-year HSTS with `includeSubDomains; preload`)
 - `/api/reading` validates section and planetSection against explicit allow-lists before processing
 - `/api/reading` recomputes chart positions server-side from validated birth data rather than trusting client-supplied positions, preventing cache poisoning via forged planet data
 - `/api/reading` enforces a 16 KB payload size limit

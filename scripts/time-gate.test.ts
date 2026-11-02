@@ -28,7 +28,10 @@
 //     C*0.8 ≤ T_fail < C → fits thin; revive keep-alive/heartbeat
 //     T_fail ≥ C        → sync does not fit; do NOT write the wiring prompt.
 //                          Options in order: Haiku eval, then async, then raise C.
-//   NOTE: with maxDuration = 120, T_fail is two Sonnet calls plus one Opus evaluation.
+//   NOTE: with maxDuration = 120, T_fail is two Sonnet 5 calls plus one evaluation
+//   (EVAL_MODEL — Opus 5 when this harness was written, Sonnet 5.5 since v10.30).
+//   The gate has since shipped async under after(), so this decision is historical;
+//   the route.ts:NN line references below date from that version of the route.
 //   If you intend to ship at a higher ceiling, BUMP maxDuration FIRST and test
 //   against that value — measuring against a stale C while shipping at a higher
 //   one is the wrong ceiling. See the console banner, which prints C read from source.
@@ -254,6 +257,6 @@ describe('AXIS gate timing harness', () => {
       )
       console.log(`\nResults written to ${RESULTS_FILE}\n`)
     },
-    600_000 // 10-min vitest timeout: 2 sections × 3 runs × 2 Sonnet calls + 1 Opus call
+    600_000 // 10-min vitest timeout: 2 sections × 3 runs × 2 Sonnet calls + 1 eval call
   )
 })
