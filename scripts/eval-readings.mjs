@@ -10,7 +10,7 @@
 //   Put ANTHROPIC_API_KEY in .env.local (read automatically) or the shell, then:
 //
 //     npm run eval                   generate-only: Sonnet generation, no gate (cheap)
-//     npm run eval -- --gate         also runs gateForCache per section (Opus eval +
+//     npm run eval -- --gate         also runs gateForCache per section (Sonnet 5.5 eval +
 //                                    any repair/re-score) — the real cost of a reading
 //     npm run eval -- --verify       no API: recompute every chart and check it still
 //                                    hits its axis (run after editing eval-charts.json)
@@ -33,9 +33,10 @@
 //   CI never collect it; and generate/gate modes refuse to start without a real
 //   ANTHROPIC_API_KEY. Do not set AXIS_GATE_ENABLED=false with --gate.
 //
-//   Cost: generate-only is ~21 Sonnet calls per chart. --gate adds one Opus
-//   evaluation per generated section, plus a repair (Sonnet) and an Opus re-score
-//   wherever a repair fires. The printed summary prices every call at list price.
+//   Cost: generate-only is ~21 Sonnet 5 calls per chart. --gate adds one Sonnet 5.5
+//   evaluation per generated section, plus a repair (Sonnet 5) and a Sonnet 5.5
+//   re-score wherever a full repair fires (a doctrine-only hit is a 500-token
+//   Sonnet 5 sentence edit, not re-scored). The printed summary prices every call at list price.
 //   Start with --charts=<one id> to see one chart's cost before running all 12.
 //
 // ── OUTPUT ─────────── eval-output/<timestamp>_<mode>/ ────────────────────────
