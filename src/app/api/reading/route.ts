@@ -306,7 +306,7 @@ export async function POST(req: NextRequest) {
     } else {
       const frame      = section as 'tropical' | 'sidereal'
       const ctxBlock   = buildInterpretationContext(dual!, frame, planetSection, { priorText })
-      const chartBlock = formatEliteChartBlock(dual![frame], frame)
+      const chartBlock = formatEliteChartBlock(dual![frame], frame, { birthTimeUnknown: dual!.birthData.birthTimeUnknown === true })
       contextBlock = `${chartBlock}\n${ctxBlock}`
     }
 

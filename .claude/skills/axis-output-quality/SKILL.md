@@ -60,7 +60,7 @@ Write from inside the native looking out. Other people's perception may appear o
 - A placement within 3° of a sign boundary is a normal placement in its sign (DOCTRINE.md: SIGN-BOUNDARY CUSPS — DEREGISTERED). Do not name the neighbouring sign or read it into the placement. The only boundary point a reading may make is the cross-system one: a body near a boundary in one frame and away from one in the other, which belongs in The Divergence.
 
 **Prose failure modes** (each makes prose perform depth instead of delivering it):
-1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once.
+1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once. The "X rather than Y" antithesis is the same failure: at most one "rather than" per section (`RATHER_THAN_MAX_PER_SECTION`; counted by `reading-rule-scan.ts`).
 2. Repetition dressed as development.
 3. Observer frame (above).
 4. Pseudo-synthesis: flattening a tension the native has to navigate into "carries both simultaneously".
@@ -80,6 +80,8 @@ Write from inside the native looking out. Other people's perception may appear o
 9. Sections converging on one shape. The Sun, Moon, Mercury, Venus and Mars sections each have their own opening and closing mode (`OPENER_MODES` / `CLOSER_MODES` in prompts.ts). No section opens on the existential frame ("There is a particular…", "There is a kind of…", "There is something…", "There are moments…"); that frame is legal mid-paragraph. No section closes on the struck aphoristic fragment by default.
 10. The headed summary close. A section's closing paragraph carries **no heading**: it runs on from the last sub-section. Never head it "Putting It Together", "Synthesis", "In Summary", "The Core", "Bringing It Together" or any variant. Until v10.30 twelve of the seventeen natal sections were *required* to head their close "### Putting It Together" while the same prompt classified a Putting It Together that re-lists placements as a hard error — a heading that announces a summary gets a summary, and it also overrode the per-section closing modes in (9). The close still does synthesising work; it just does not advertise itself.
 11. Moon and Venus blurring. The Moon covers what the person needs in order to feel emotionally safe; Venus covers what they find worth giving and having. The two never share a concrete image (the noticed domestic detail, the remembered coffee order, the small thing quietly fixed).
+12. No recurring moment. Every Tropical and Sidereal section renders at least one recurring moment from inside the person: what sets it off (a trigger the chart names), what they do, what they are left with afterwards. Built only from named chart factors: no invented durations, counts, ages, people or circumstances.
+13. Unknown birth time. The context withholds houses, house domains, the chart ruler and lordships when the birth time is unknown, because all of them are counted from an Ascendant a noon chart cannot fix. Name no house and no house domain; if where a pattern plays out matters, say once that it cannot be placed without a birth time.
 
 ## Synthesis Layer Rules (Tropical + Sidereal)
 

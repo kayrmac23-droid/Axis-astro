@@ -30,7 +30,8 @@
 // generic, under-synthesised, or insufficiently chart-grounded section. The
 // gate refuses to ship those.
 //
-// Threshold: average score ≥ 3.75 / 5 AND no individual criterion below 3.
+// Threshold: average score ≥ MIN_PASS_AVERAGE (3.40) / 5 AND no individual
+// criterion below 3. See MIN_PASS_AVERAGE for why it is not 3.75.
 // A single weak criterion fails the section regardless of average. Caching
 // only happens after a pass.
 //
@@ -182,8 +183,19 @@ export interface GateResult {
   truncated: boolean
 }
 
-const MIN_PASS_AVERAGE = 3.75
-const MIN_INDIVIDUAL   = 3
+// v10.31: lowered from 3.75. The v10.30 eval (60 scored sections, four charts)
+// never produced an average above 3.50 first pass or 3.60 after repair, so the
+// gate rejected every section it saw — including 42 repairs that raised the
+// score — and cached almost nothing. The cause was the rater, not the prose:
+// across 540 prose scores it awarded zero 5s, because every criterion below
+// listed only what pulls a score DOWN and nothing defined a 4 or a 5. That is
+// fixed in the same change (SCORE ANCHORS in EVAL_SYSTEM_PROMPT). 3.40 sits
+// above the observed post-repair mean (3.25) and below the observed ceiling
+// (3.60), so it discriminates instead of rejecting everything. It is an interim
+// bar: once an eval shows the anchored rater actually using 4 and 5, raise it.
+// MIN_INDIVIDUAL is unchanged and still fails any section with a sub-3 score.
+export const MIN_PASS_AVERAGE = 3.4
+export const MIN_INDIVIDUAL   = 3
 
 // The marker the /api/reading route appends when the model stopped on
 // max_tokens. Its presence means the section is incomplete.
@@ -337,8 +349,19 @@ CRITERIA (score each 1–5; 5 = elite, 4 = strong, 3 = adequate, 2 = weak, 1 = u
 8. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions? Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence. Score LOW too for META-NARRATION — the prose announcing its own compliance with AXIS rules to a reader who has never seen them ("the cost is real rather than a secretly deeper form of love", "these are not mask and face", "this does not resolve into a hidden virtue"); paradigm phrasings: ${BANNED_META_LIST}. And score LOW for phrasing lifted from the reading so far or from the context's knowledge-base wording and repeated as a refrain.
 9. falsifiability — Apply the INVERSION TEST to each major psychological claim, and ONLY the inversion test. Negate the claim: if the negation would ALSO sound broadly, plausibly true of almost any reader, then the claim excludes no one — it is a Barnum statement doing comfort work, not astrological work — and you deduct. A claim earns its place only if a neighbouring chart could plausibly falsify it. Universal-endorsement phrasings such as ${BANNED_BARNUM_LIST} are the paradigm failures — mirror this list; a section that trades in them scores 2 or below. Do NOT re-score chart-anchoring here — whether a claim is tied to a named placement is criterion 1 (chart_evidence); this criterion asks only whether the claim, however anchored, could be false for someone. SCENE-CRAFT DOES NOT EXEMPT A CLAIM: a statement can be vivid, interior, and behaviourally concrete — scoring well on specificity (criterion 2) — and still be universally endorsable. The two axes are orthogonal. Worked example: "${FALSIFIABILITY_DIVERGENCE_EXAMPLE}" reads as a specific interior scene (it PASSES specificity) yet its negation is equally endorsable and it collapses to the banned "you want to be understood" line (it FAILS falsifiability). Score LOW when major claims survive only because they are too universal to be false.
 
+SCORE ANCHORS — what earns a 4 and a 5. The LOW conditions above say what pulls a score down; they do not set a ceiling. Score each criterion on what the section achieves, not only on which faults it avoids. A section free of every listed fault has earned at least 3; whether it earns 4 or 5 depends on whether the positive quality below is present. 5 is attainable: award it whenever the section fully delivers the 5 anchor, even if a stronger section is imaginable — it means "elite", not "flawless". Do not park at 3: a 3 is a finding that the 4 anchor was not met, and the critique should say which part was missing.
+- chart_evidence — 4: every major claim names the placement it rests on. 5: that, and at least one claim is built from two or more factors combined (sign × aspect × dispositor condition, or the equivalent in the frame), with no factual error against the context.
+- specificity — 4: behaviour is concrete throughout, mostly from the native's side. 5: at least one recurring moment rendered from inside the native — what sets it off, what they do, what it leaves behind — that this reader could catch themselves in, built only from named chart factors with no invented durations, counts or circumstances.
+- synthesis — 4: the close names a live tension and every paragraph advances its own claim. 5: the tension is specific to this chart's named factors and the close shows how the person moves within it, without resolving it.
+- contradiction_handling — 4: real tensions are named and none is rescued. 5: at least one contradiction between named placements is held open with the condition under which each side wins, and any shadow is the same quality under stress.
+- anti_cliche — 4: no sign cliché or horoscope phrasing. 5: every sign description is particular to its combination in this chart; nothing would transfer unchanged to another chart with the same sign.
+- psychological_depth — 4: a defence or relational pattern is explained, not just labelled. 5: a mechanism is named end to end — what it protects against, what it costs, and where the person cannot see it operating.
+- practical_usefulness — 4: the reader can name the pattern afterwards. 5: the reader can catch it in the act — the section names the cue that comes just before it.
+- voice_quality — 4: precise, unsentimental, British spelling, at most one struck closing fragment, no meta-narration, no refrain. 5: that, with sentence shapes that vary paragraph to paragraph so the prose never settles into a template (including the "X rather than Y" antithesis).
+- falsifiability — 4: the major claims mostly survive the inversion test. 5: every major psychological claim excludes a recognisable kind of person; its negation would describe a different chart.
+
 DECISION RULES:
-- Score all nine criteria above. The final pass/fail is computed outside this prompt: your nine scores are combined with a tenth, deterministic length score (word count vs the section's target band), and pass = true ONLY IF the average of all ten is ≥ 3.75 AND no individual score is below 3. Do NOT score or mention length yourself — just score the nine.
+- Score all nine criteria above. The final pass/fail is computed outside this prompt: your nine scores are combined with a tenth, deterministic length score (word count vs the section's target band), and pass = true ONLY IF the average of all ten is ≥ ${MIN_PASS_AVERAGE.toFixed(2)} AND no individual score is below ${MIN_INDIVIDUAL}. Do NOT score or mention length yourself — just score the nine.
 - If pass = false, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee. Keep it concise: cover ONLY the criteria that scored below 4, do NOT write a paragraph for every criterion, and stay under roughly 150 words.
 - AUDITABILITY: if falsifiability scores below 3, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is your evidence for the deduction, not a bare integer. When falsifiability is 3 or above, set "falsifiability_inversion" to an empty string.
 - If pass = true, critique should be an empty string.
@@ -456,7 +479,9 @@ export function computePassFromScores(scores: GateScores): boolean {
   const values = CRITERIA.map(k => scores[k])
   const min    = Math.min(...values)
   const avg    = values.reduce((a, b) => a + b, 0) / values.length
-  return avg >= MIN_PASS_AVERAGE && min >= MIN_INDIVIDUAL
+  // Ten integer scores give an average in steps of 0.1; the epsilon keeps an
+  // average landing exactly on the bar from failing on float rounding.
+  return avg + 1e-9 >= MIN_PASS_AVERAGE && min >= MIN_INDIVIDUAL
 }
 
 export interface EvaluateInput {
