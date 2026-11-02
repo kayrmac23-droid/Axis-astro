@@ -29,7 +29,7 @@
 // the client forwards it, and an offline harness keeps runs reproducible.
 import { describe, it, expect, vi } from 'vitest'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { execSync } from 'node:child_process'
 import Anthropic from '@anthropic-ai/sdk'
@@ -78,6 +78,13 @@ const ONLY        = (process.env.AXIS_EVAL_CHARTS ?? '').split(',').map(s => s.t
 const THROUGH     = (process.env.AXIS_EVAL_THROUGH ?? 'synthesis') as NatalFrame
 const CONCURRENCY = Math.max(1, Number(process.env.AXIS_EVAL_CONCURRENCY ?? 1) || 1)
 const SAVE_PROMPTS = process.env.AXIS_EVAL_SAVE_PROMPTS === '1'
+// Targeted runs (see the launcher's --sections / --reuse). SECTIONS names the
+// only sections that call the model, as `frame` or `frame/planetSection`. Every
+// earlier section the targets need as THE READING SO FAR is read back from a
+// previous run's first-pass prose in REUSE instead of regenerated, and nothing
+// after the last target runs at all. Empty SECTIONS = every section, as before.
+const SECTIONS    = (process.env.AXIS_EVAL_SECTIONS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+const REUSE_DIR   = process.env.AXIS_EVAL_REUSE ? resolve(process.env.AXIS_EVAL_REUSE) : null
 const NEEDS_API   = MODE === 'generate' || MODE === 'gate'
 // The opt-in. Without it (an ordinary vitest invocation) the suite is skipped;
 // with it but without a real key, it fails loudly below rather than skipping —
@@ -127,7 +134,11 @@ interface TokenTotals { calls: number; input: number; cache_read: number; cache_
 interface SectionRecord {
   run_id: string; mode: Mode; chart_id: string; axis: string
   order: number; section: NatalFrame; planet_section: string; prior_sections: number
-  kind: 'model' | 'deterministic' | 'dry-run' | 'error'
+  // 'reused' = first-pass prose read back from a previous run (--reuse) so a
+  // later target section has its real reading so far. No model call, usd 0, and
+  // excluded from every quality aggregate (aggregate() counts kind 'model' only),
+  // so old prose is never scored as if this run produced it.
+  kind: 'model' | 'deterministic' | 'dry-run' | 'error' | 'reused'
   // Length, scored exactly as the gate scores it.
   words: number | null; band_min: number; band_max: number; hard_min: number; hard_max: number
   aspects: number; plan_evidence: number | null
@@ -212,6 +223,70 @@ function loadCharts(): ChartSpec[] {
   return all.filter(c => ONLY.includes(c.id))
 }
 
+// ── Targeted runs: --sections / --reuse ──────────────────────────────────────
+function isTarget(section: NatalFrame, planetSection: string): boolean {
+  return SECTIONS.length === 0 || SECTIONS.includes(section) || SECTIONS.includes(`${section}/${planetSection}`)
+}
+
+// The (frame, planetSection) pairs this run walks, in reading order, cut at THROUGH
+// and — on a targeted run — at the last target, since nothing after it is needed.
+function plannedSections(): { section: NatalFrame; planetSection: string }[] {
+  const all = FRAMES.slice(0, FRAMES.indexOf(THROUGH) + 1)
+    .flatMap(section => (NATAL_SECTION_ORDER[section] as readonly string[]).map(planetSection => ({ section, planetSection })))
+  if (SECTIONS.length === 0) return all
+  let last = -1
+  all.forEach((s, i) => { if (isTarget(s.section, s.planetSection)) last = i })
+  return all.slice(0, last + 1)
+}
+
+function validateTargets(): void {
+  if (SECTIONS.length === 0) {
+    if (REUSE_DIR) throw new Error('--reuse needs --sections: with every section targeted there is nothing to reuse.')
+    return
+  }
+  const known = new Set<string>(FRAMES)
+  for (const f of FRAMES) for (const p of NATAL_SECTION_ORDER[f] as readonly string[]) known.add(`${f}/${p}`)
+  const bad = SECTIONS.filter(s => !known.has(s))
+  if (bad.length) throw new Error(`Unknown section(s): ${bad.join(', ')}. Use a frame (tropical, sidereal, synthesis) or frame/planetSection, e.g. synthesis/diverge.`)
+  const plan = plannedSections()
+  if (plan.length === 0) throw new Error(`No targeted section falls at or before --through=${THROUGH}.`)
+  const needsReuse = plan.some(s => !isTarget(s.section, s.planetSection))
+  if (needsReuse && !REUSE_DIR) {
+    throw new Error('--sections targets a section that is read after others, and those earlier sections are its reading so far. Pass --reuse=<earlier run dir> to read them back instead of regenerating them (or target from the first section).')
+  }
+}
+
+interface ReuseSource { dir: string; run_id: string | null; mode: string | null; prompt_version: string | null; git_sha: string | null }
+
+function loadReuseSource(): ReuseSource | null {
+  if (!REUSE_DIR) return null
+  if (!existsSync(REUSE_DIR)) throw new Error(`--reuse directory does not exist: ${REUSE_DIR}`)
+  const runFile = join(REUSE_DIR, 'run.json')
+  if (!existsSync(runFile)) throw new Error(`--reuse directory has no run.json — point it at one eval-output/<run>/ folder: ${REUSE_DIR}`)
+  const r = JSON.parse(readFileSync(runFile, 'utf8')) as { run_id?: string; mode?: string; prompt_version?: string; git?: { sha?: string | null } }
+  // A dry run's "prose" is a placeholder line; threading it would measure the
+  // targets against a reading that never existed.
+  if (r.mode === 'dry-run' && MODE !== 'dry-run') throw new Error(`--reuse points at a dry run (${REUSE_DIR}); its sections are placeholders, not prose. Reuse a generate or gate run.`)
+  return { dir: REUSE_DIR, run_id: r.run_id ?? null, mode: r.mode ?? null, prompt_version: r.prompt_version ?? null, git_sha: r.git?.sha ?? null }
+}
+
+// First-pass prose for one section from the reuse run — the `.md`, never the
+// gate's `.cached.md`, because production threads what the reader saw. Matched
+// on the frame/section suffix rather than the order number, so a run made with
+// a different --through or chart set still lines up.
+function readReusedSection(src: ReuseSource, chartId: string, section: NatalFrame, planetSection: string): string {
+  const dir = join(src.dir, chartId)
+  if (!existsSync(dir)) throw new Error(`--reuse run has no folder for chart ${chartId} (${dir}); run that chart there first or drop it from --charts`)
+  // `.md` is a section that run generated; `.reused.md` one it read back itself,
+  // so a targeted run can in turn be reused. Never `.cached.md` (the gate's text).
+  const files = readdirSync(dir)
+  const hit = files.find(f => f.endsWith(`-${section}-${planetSection}.md`))
+    ?? files.find(f => f.endsWith(`-${section}-${planetSection}.reused.md`))
+  if (!hit) throw new Error(`--reuse run has no ${section}/${planetSection} for ${chartId} — it may have failed or been cut by --through there`)
+  // The harness appends the truncation sentinel to the file; the thread never carried it.
+  return readFileSync(join(dir, hit), 'utf8').replace(/\n\n\[AXIS_TRUNCATED\]\s*$/, '')
+}
+
 function castChart(spec: ChartSpec): DualChartData {
   // Same parser and tz resolution as /api/calculate (resolveTzName defaults on).
   const parsed = parseBirthDataInput(spec.birth, { label: spec.id })
@@ -288,7 +363,7 @@ interface RunCtx {
   aborted: { reason: string | null }
 }
 
-async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]> {
+async function readChart(ctx: RunCtx, spec: ChartSpec, reuse: ReuseSource | null): Promise<SectionRecord[]> {
   const dual = castChart(spec)
   const unknownTime = dual.birthData.birthTimeUnknown === true
   const chartDir = join(ctx.outDir, spec.id)
@@ -301,9 +376,8 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
   const pendingGates: Promise<void>[] = []
   let order = 0
 
-  const frames = FRAMES.slice(0, FRAMES.indexOf(THROUGH) + 1)
-  for (const section of frames) {
-    for (const planetSection of NATAL_SECTION_ORDER[section] as readonly string[]) {
+  for (const { section, planetSection } of plannedSections()) {
+    {
       if (ctx.aborted.reason) break
       order++
       const label = `${section}/${planetSection}`
@@ -325,6 +399,18 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         gate_reason: null, first_pass_clean: null, first_pass_rubric_pass: null, first_pass_scores: null,
         first_pass_critique: null, final_scores: null, repair_attempted: null, repaired: null, cached: null,
         repair_failed: null, gate_model_calls: null, gate_ms: null, tokens: {}, usd: null,
+      }
+
+      // Not a target on a targeted run: read the reader's first pass back from the
+      // reuse run so the targets get a real reading so far, with no model call.
+      if (!isTarget(section, planetSection)) {
+        const text = readReusedSection(reuse!, spec.id, section, planetSection)
+        thread.set(label, text)
+        writeFileSync(`${fileStem}.reused.md`, text)
+        Object.assign(rec, { kind: 'reused', words: countWords(text), usd: 0 })
+        records.push(rec)
+        say(`[${spec.id}] ${label.padEnd(26)} reused from ${reuse!.run_id ?? reuse!.dir}`)
+        continue
       }
 
       // Unknown birth time: the route returns the deterministic notice, no model call.
@@ -363,6 +449,9 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         if (MODE === 'dry-run') {
           const text = `## ${label}\n\n[dry-run placeholder — no model call was made for this section.]`
           thread.set(label, text)
+          // Written like a generated section so a dry run can stand in as a --reuse
+          // source for another dry run: the reuse path is then provable offline.
+          writeFileSync(`${fileStem}.md`, text)
           rec.kind = 'dry-run'
           say(`[${spec.id}] ${label.padEnd(26)} dry-run · prior=${prior.length} · prompt ${rec.prompt_chars} chars · band ${band.fullMin}–${band.fullMax} · aspects=${aspects}`)
           return
@@ -510,6 +599,7 @@ function aggregate(records: SectionRecord[]) {
     sections:           records.length,
     generated:          generated.length,
     deterministic:      records.filter(r => r.kind === 'deterministic').length,
+    reused:             records.filter(r => r.kind === 'reused').length,
     generation_errors:  records.filter(r => r.kind === 'error').length,
     truncated:          generated.filter(r => r.truncated).length,
     truncated_rate:     rate(generated.filter(r => r.truncated).length, generated.length),
@@ -588,7 +678,7 @@ function writeCsv(path: string, records: SectionRecord[]): void {
 function printSummary(summary: ReturnType<typeof aggregate>, perChart: Record<string, ReturnType<typeof aggregate>>, bySection: Record<string, ReturnType<typeof aggregate>>): void {
   const pct = (v: number | null | undefined) => v == null ? '  —  ' : `${(v * 100).toFixed(0).padStart(3)}%`
   say('\n══════════ SUMMARY ══════════')
-  say(`sections ${summary.sections} · generated ${summary.generated} · deterministic ${summary.deterministic} · errors ${summary.generation_errors} · truncated ${summary.truncated} (${pct(summary.truncated_rate)})`)
+  say(`sections ${summary.sections} · generated ${summary.generated} · deterministic ${summary.deterministic}${summary.reused ? ` · reused ${summary.reused} (not scored)` : ''} · errors ${summary.generation_errors} · truncated ${summary.truncated} (${pct(summary.truncated_rate)})`)
   say(`length: in band ${pct(summary.length.in_band_rate)} · over ${pct(summary.length.over_band_rate)} (runaway ${pct(summary.length.runaway_rate)}) · under ${pct(summary.length.under_band_rate)} · mean words/band-max ${summary.length.mean_words_over_band_max ?? '—'}`)
   if (summary.rules) {
     const r = summary.rules
@@ -646,14 +736,29 @@ describe.skipIf(!ENABLED)('AXIS batch reading evaluation', () => {
     writeFileSync(join(outDir, 'sections.jsonl'), '')
     writeFileSync(join(outDir, 'calls.jsonl'), '')
 
+    validateTargets()
+    const reuse = loadReuseSource()
+    const plan = plannedSections()
+    const targeted = plan.filter(s => isTarget(s.section, s.planetSection)).map(s => `${s.section}/${s.planetSection}`)
+
     const startedAt = new Date().toISOString()
     const run = {
       run_id: runId, mode: MODE, started_at: startedAt, through: THROUGH, concurrency: CONCURRENCY,
+      sections: SECTIONS.length ? targeted : 'all',
+      reused_from: reuse,
       prompt_version: READING_PROMPT_VERSION, generation_model: MODEL, git: gitInfo(),
       charts: charts.map(c => ({ id: c.id, axis: c.axis })), prices_usd_per_mtok: PRICES,
     }
     writeFileSync(join(outDir, 'run.json'), JSON.stringify(run, null, 2))
     say(`AXIS eval ${runId} · ${charts.length} chart(s) · through ${THROUGH} · prompts ${READING_PROMPT_VERSION} · ${MODEL} · → ${outDir}`)
+    if (SECTIONS.length) say(`targeted: ${targeted.length} of ${plan.length} sections per chart call the model (${targeted.join(', ')})`)
+    if (reuse) {
+      say(`reading so far reused from ${reuse.run_id ?? reuse.dir} (prompts ${reuse.prompt_version ?? '?'}, git ${reuse.git_sha?.slice(0, 7) ?? '?'})`)
+      if (reuse.prompt_version !== READING_PROMPT_VERSION) {
+        say(`⚠ reuse run was made with prompts ${reuse.prompt_version ?? 'unknown'}, this checkout is ${READING_PROMPT_VERSION}: the targets will be read after prose`)
+        say(`  production would no longer write. Fine for isolating a change to the targets; not a measure of a full current reading.`)
+      }
+    }
 
     const ctx: RunCtx = {
       runId, outDir, aborted: { reason: null },
@@ -680,7 +785,7 @@ describe.skipIf(!ENABLED)('AXIS batch reading evaluation', () => {
       for (let spec = queue.shift(); spec; spec = queue.shift()) {
         if (ctx.aborted.reason) break
         try {
-          records.push(...await readChart(ctx, spec))
+          records.push(...await readChart(ctx, spec, reuse))
         } catch (err) {
           failures.push(`${spec.id}: ${err instanceof Error ? err.message : String(err)}`)
           say(`[${spec.id}] CHART FAILED — ${failures[failures.length - 1]}`)

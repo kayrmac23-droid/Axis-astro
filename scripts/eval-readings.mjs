@@ -17,6 +17,29 @@
 //     npm run eval -- --dry-run      no API: build every section's real request with
 //                                    placeholder prose, to prove the run end to end
 //
+//   Cheaper runs — the bill is ~21 sequential calls per chart, mostly output
+//   tokens, so the saving comes from making fewer calls, not smaller ones:
+//     --set=smoke          a named chart subset from eval-charts.json "sets" (3
+//                          charts: a control, the densest chart, unknown time).
+//                          Routine check after a prompt change; run all 12 before
+//                          a release. Mutually exclusive with --charts.
+//     --sections=LIST      only these sections call the model: a frame
+//                          (synthesis) or frame/section (synthesis/diverge),
+//                          comma-separated. Nothing after the last one runs.
+//     --reuse=DIR          read every earlier section's first-pass prose back from
+//                          a previous run (an eval-output/<run>/ folder) instead
+//                          of regenerating it, so the targets still get the real
+//                          reading so far. Needed whenever --sections targets
+//                          anything after the first section. Reused sections cost
+//                          nothing and are left out of every quality figure.
+//     Example — iterate on The Divergence alone after one full baseline run:
+//       npm run eval -- --set=smoke
+//       npm run eval -- --set=smoke --sections=synthesis --reuse=eval-output/<that run>
+//     4 of 21 sections per chart; the upstream reading is held fixed, so a change
+//     in the Divergence numbers is the prompt change and not upstream variance.
+//     The reuse run's prompt version is recorded and a mismatch is printed: a
+//     stale upstream is right for isolating a change, wrong as a full measure.
+//
 //   Options:
 //     --charts=id1,id2     only these chart ids (default: all)
 //     --through=FRAME      stop after tropical | sidereal | synthesis (default
@@ -82,7 +105,7 @@ import { parseEnv } from 'node:util'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const FLAGS = new Set(['gate', 'dry-run', 'verify', 'save-prompts', 'verbose', 'help'])
-const OPTIONS = new Set(['charts', 'through', 'concurrency', 'out'])
+const OPTIONS = new Set(['charts', 'through', 'concurrency', 'out', 'set', 'sections', 'reuse'])
 
 function fail(msg) {
   console.error(`eval-readings: ${msg}\nRun \`npm run eval -- --help\` for usage.`)
@@ -112,6 +135,17 @@ if (modes.length > 1) fail(`--${modes.join(' and --')} are mutually exclusive`)
 const mode = modes[0] ?? 'generate'
 if (opts.through && !['tropical', 'sidereal', 'synthesis'].includes(opts.through)) fail('--through must be tropical, sidereal or synthesis')
 if (opts.concurrency && !/^[1-9]\d*$/.test(opts.concurrency)) fail('--concurrency must be a positive integer')
+if (opts.set && opts.charts) fail('--set and --charts are mutually exclusive')
+if (opts.reuse && !opts.sections) fail('--reuse needs --sections (which sections to regenerate on top of the reused reading)')
+if (opts.set) {
+  const sets = JSON.parse(readFileSync(join(ROOT, 'scripts', 'eval-charts.json'), 'utf8')).sets ?? {}
+  if (!sets[opts.set]) fail(`unknown --set "${opts.set}". Known: ${Object.keys(sets).join(', ') || '(none)'}`)
+  opts.charts = sets[opts.set].join(',')
+}
+if (opts.reuse) {
+  opts.reuse = resolve(process.cwd(), opts.reuse)
+  if (!existsSync(join(opts.reuse, 'run.json'))) fail(`--reuse must be one eval-output/<run>/ folder containing run.json: ${opts.reuse}`)
+}
 
 // .env.local then .env, as Next reads them — without overriding the shell.
 for (const file of ['.env.local', '.env']) {
@@ -134,6 +168,8 @@ const env = {
   ...(opts.through && { AXIS_EVAL_THROUGH: opts.through }),
   ...(opts.concurrency && { AXIS_EVAL_CONCURRENCY: opts.concurrency }),
   ...(opts.out && { AXIS_EVAL_OUT: resolve(process.cwd(), opts.out) }),
+  ...(opts.sections && { AXIS_EVAL_SECTIONS: opts.sections }),
+  ...(opts.reuse && { AXIS_EVAL_REUSE: opts.reuse }),
   ...(flags.has('save-prompts') && { AXIS_EVAL_SAVE_PROMPTS: '1' }),
   ...(flags.has('verbose') && { AXIS_EVAL_VERBOSE: '1' }),
   // Vitest's own deprecation notice about the CJS-loaded config; not ours.

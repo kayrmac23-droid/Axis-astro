@@ -1,5 +1,7 @@
 {
   "_about": "Chart set for scripts/eval-readings.mjs. Each chart targets one axis the 23 Jul 1999 Epping reference chart does not cover. `birth` is passed through parseBirthDataInput (tzName resolved DST/LMT-aware, exactly as /api/calculate does). `expect` is checked by `npm run eval -- --verify`, which recomputes every chart with calculateDualChart and fails if a chart no longer hits its axis. `verified` records the placements that verify printed when the set was chosen (tropical, local-Meeus Pluto). Incidental features (a second cusp planet, a near-station planet) are listed by --verify for every chart, so a failure on one axis can be told apart from another.",
+  "_sets": "Named chart subsets for `npm run eval -- --set=NAME`. smoke: one control, the densest chart (a stellium stresses length, repetition and the Divergence plan) and unknown birth time (the deterministic angle path and a 19-section reading): three distinct code paths for a quarter of the full set's cost. Run it after a prompt change; run all twelve before a release.",
+  "sets": { "smoke": ["control-chicago-1987", "stellium-delhi-1962", "unknown-time-glasgow-1996"] },
   "charts": [
     {
       "id": "unknown-time-glasgow-1996",
