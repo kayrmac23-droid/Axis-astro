@@ -11,13 +11,19 @@
 //     (no dangerouslySetInnerHTML; readings are streamed as plain text).
 // Google Fonts are self-hosted at build time by next/font, so no external
 // font host is needed.
+//   - 'unsafe-eval' on script-src in DEVELOPMENT ONLY: React's dev build calls
+//     eval() to reconstruct cross-environment callstacks and Turbopack's dev
+//     runtime relies on it for HMR. React never uses eval() in production, so
+//     the production policy stays strict.
+const isDev = process.env.NODE_ENV !== 'production'
+
 const CSP = [
   "default-src 'self'",
   "base-uri 'self'",
   "object-src 'none'",
   "frame-ancestors 'none'",
   "form-action 'self'",
-  "script-src 'self' 'unsafe-inline' https://*.posthog.com https://va.vercel-scripts.com",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''} https://*.posthog.com https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.posthog.com",
   "font-src 'self' data:",
