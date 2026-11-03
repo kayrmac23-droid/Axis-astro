@@ -136,6 +136,52 @@ describe('reading-rule-scan — paragraph length', () => {
   })
 })
 
+describe('reading-rule-scan — antithesis cap', () => {
+  const tic = (text: string) => scanSectionRules(text).filter(f => f.rule === 'antithesis-tic')
+
+  it('leaves a section with exactly one antithesis alone', () => {
+    // CLEAN_SECTION already carries one "rather than" and must stay clean.
+    expect(tic(CLEAN_SECTION)).toEqual([])
+    expect(tic('The warmth contracts rather than performs. The memory is long.')).toEqual([])
+  })
+
+  it('does not count bare "rather", concessions, "not only" or ordinary comparatives', () => {
+    const ok = [
+      'She would rather not say so. It is rather good at holding.',
+      'You may not say so, but it is felt. You do not leave, but you go quiet.',
+      'It is not only warm but also exacting.',
+      'The Moon moves less often than the Sun suggests, and spends less time than expected.',
+    ].join('\n\n')
+    expect(tic(ok)).toEqual([])
+  })
+
+  it('reports four occurrences as ONE soft finding carrying the count', () => {
+    const text = [
+      'The warmth contracts rather than performs.',
+      'Recognition is sought rather than demanded.',
+      'The memory works rather than rests.',
+      'The exit is planned rather than taken.',
+    ].join('\n\n')
+    const f = tic(text)
+    expect(f).toHaveLength(1)
+    expect(f[0].severity).toBe('soft')
+    expect(f[0].match).toMatch(/^4 occurrences \(limit 1\)/)
+    expect(f[0].line).toBe(3) // the first occurrence past the cap
+  })
+
+  it('counts the "not X but Y" and "less X than Y" variants', () => {
+    expect(tic('This is not warmth but obligation. It is less a wound than a habit.')).toHaveLength(1)
+    // The struck fragment AND the antithesis: both are real, and this counts.
+    expect(tic('The cost stays — not a consolation, but a fact. It is less about control than about safety.')).toHaveLength(1)
+  })
+
+  it('is reusable across sections — the /g regexes keep no stale lastIndex', () => {
+    const text = 'Sought rather than demanded. Planned rather than taken.'
+    expect(tic(text)).toHaveLength(1)
+    expect(tic(text)).toHaveLength(1)
+  })
+})
+
 describe('reading-rule-scan — summary and logging', () => {
   it('aggregates by severity and rule', () => {
     const s = summariseRuleScan('You should work on this. The behavior is colored.')

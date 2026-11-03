@@ -220,6 +220,30 @@ export function countSentences(paragraph: string): number {
   return (guarded.match(/[.!?](?=\s|$)/g) ?? []).length
 }
 
+// ── 8. The antithesis tic ────────────────────────────────────────────────────
+// SHARED_RULES PART 4: "X rather than Y" and its near variants may appear AT
+// MOST ONCE per section. Measured before the rule existed: 141 occurrences across
+// the 63 sections of the 2026-11-02 eval run, 39 sections at two or more. Reported
+// `soft`, like `long-paragraph`: one is a sentence, four is a template.
+//
+// Scoped tightly to the contrastive construction, the same false-positive
+// discipline as the prescription and spelling scans:
+//   · bare "rather" ("would rather", "rather good") stays silent;
+//   · "not X but Y" counts only with X at most two words, never "not only…but"
+//     (additive, not contrastive), and never when "but" opens a fresh clause
+//     with a pronoun subject ("you may not say so, but it is…" is a concession);
+//   · "less X than Y" counts only as "less a/an X than" or "less about X than",
+//     never an ordinary comparative ("less often than", "less time than").
+const ANTITHESIS_RES: readonly RegExp[] = [
+  /\brather than\b/gi,
+  /\bnot\s+(?!only\b)(?:(?:a|an|the)\s+)?\w+(?:\s+\w+)?,?\s+but\s+(?!(?:it|you|they|he|she|we|i|this|that|there)\b)\w+/gi,
+  /\bless\s+(?:(?:a|an)\s+\w+|about\s+[^.!?]{1,40}?)\s+than\b/gi,
+]
+
+// The rule permits one; the scan reports from the second, so a section at the
+// cap stays clean.
+const ANTITHESIS_LIMIT = 1
+
 // ── Scanner ──────────────────────────────────────────────────────────────────
 
 /**
@@ -283,6 +307,24 @@ export function scanSectionRules(text: string): RuleFinding[] {
       const line = (lines.find(l => para.startsWith(l.text.trim()) && l.text.trim())?.line) ?? 0
       push('long-paragraph', 'soft', `${sentences} sentences: ${para}`, line)
     }
+  }
+
+  // The antithesis cap. One finding for the section, not one per hit: the
+  // breach is the COUNT, and n separate findings would swamp `soft` and bury
+  // long-paragraph.
+  const antitheses: { match: string; line: number }[] = []
+  for (const { line, text: raw } of lines)
+    for (const re of ANTITHESIS_RES)
+      for (const m of allMatches(raw, re)) antitheses.push({ match: m, line })
+  if (antitheses.length > ANTITHESIS_LIMIT) {
+    out.push({
+      rule:     'antithesis-tic',
+      severity: 'soft',
+      // Not clipped to MATCH_CAP: the count leads, and the matches after it are
+      // what a reviewer needs to confirm the count is real.
+      match:    `${antitheses.length} occurrences (limit ${ANTITHESIS_LIMIT}): ${antitheses.map(a => a.match.replace(/\s+/g, ' ')).join(' | ')}`,
+      line:     antitheses[ANTITHESIS_LIMIT].line,
+    })
   }
 
   return out.sort((a, b) => a.line - b.line)
