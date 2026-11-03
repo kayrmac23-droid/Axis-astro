@@ -16,6 +16,17 @@ Rules for the language and interpretive logic of AXIS reading output.
 
 **Source of truth.** These rules summarise what the product actually ships: `SHARED_RULES`, `SHADOW_RULES` and the system prompts in `src/lib/prompts.ts`, enforced by the quality gate in `src/lib/reading-quality-gate.ts`. If this skill and the repo disagree, **the repo wins** — read the current prompt text before changing or judging output, and update this skill to match. This skill lives in the repo at `.claude/skills/axis-output-quality/`: change it in the same PR as any prompt change it describes, so the two are reviewed together. (An earlier version of this skill drifted from the prompts and told readers to do things the product had deliberately banned.)
 
+## Priority Order
+
+`SHARED_RULES` opens with five things that decide whether a section is good, in order; where two rules appear to conflict, the lower number wins:
+1. Every claim is anchored to a named chart factor.
+2. Every pattern is shown in a concrete recurring moment, from inside the person's experience.
+3. Nothing is made more palatable than it is.
+4. No claim that would be true of almost any reader.
+5. The section is this person's, continuous with what they have already read.
+
+**The scene requirement comes first.** Every section contains at least one recurring moment told from the inside: what sets it off, what the person does, what they register once it has passed. The moment is how the claim is made, not an illustration added to it. Build it only from chart factors the context names; a fabricated duration, job, count or person is worse than an abstraction. Where the chart supports it, also name when the pattern goes quiet.
+
 ## Core Interpretive Logic
 
 **Read the placement through what modifies it before reaching for the archetype.**
@@ -59,11 +70,17 @@ Write from inside the native looking out. Other people's perception may appear o
 - Orb class sets the weight: a wide aspect gets a clause, never a theme.
 - A placement within 3° of a sign boundary is a normal placement in its sign (DOCTRINE.md: SIGN-BOUNDARY CUSPS — DEREGISTERED). Do not name the neighbouring sign or read it into the placement. The only boundary point a reading may make is the cross-system one: a body near a boundary in one frame and away from one in the other, which belongs in The Divergence.
 
+**When the birth time is unknown** (the context carries ⚠ BIRTH TIME UNKNOWN), houses, the Midheaven and dasha timing are unreliable in *every* section, not only the angles. Read the placement from sign, dignity, aspects and nakshatra, or mark a house reading as conditional in the sentence that makes it. Never build a scene or a close on a house, and never describe a house's arena without the number ("how they are known professionally" is a 10th-house claim). Say it once, then stop.
+
+**Length follows the band.** Primary sections (Sun, Moon, Ascendant/Lagna) develop every subsection fully. Secondary sections (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key aspects) run about two to three sentences per evidence layer, and that is the correct shape, not a shortfall. When the chart offers more than the band carries, work the tightest aspect fully and give the rest a clause each. Where depth and the band conflict, the band wins.
+
 **Prose failure modes** (each makes prose perform depth instead of delivering it):
 1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once.
 2. Repetition dressed as development.
 3. Observer frame (above).
 4. Pseudo-synthesis: flattening a tension the native has to navigate into "carries both simultaneously".
+
+**One antithesis per section.** "X rather than Y", and its variants "not X but Y", "less X than Y" and a standalone "X, not Y", appear at most once per section. Past that, state what is and leave what it is not unsaid. Before v10.31 it averaged more than two per section; `reading-rule-scan.ts` now counts it (`antithesis-tic`).
 
 **Apply the rules silently.** The prose never announces its own compliance ("this is not a hidden virtue", "these are not mask and face"). It makes the plain claim instead.
 

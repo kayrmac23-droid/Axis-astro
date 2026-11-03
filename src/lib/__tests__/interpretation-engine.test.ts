@@ -40,7 +40,7 @@ describe('computeVimshottariDasha', () => {
 //
 // computeAspects() iterates chart.planets, and the Ascendant is an angle, not a
 // body — so no aspect to it was computed anywhere in the codebase. Meanwhile
-// DEPTH REQUIREMENTS instructs the model to work "every major aspect with the
+// SHARED_RULES PART 7 (DEPTH AND LENGTH) instructs the model to work "every major aspect with the
 // aspecting planet named" for that section, and BAND_PRIMARY is aspect-scaled
 // with a 400-word hard floor. A model told to work aspects it was never given can
 // only pad or invent, which made this the most likely source of hallucinated

@@ -61,12 +61,13 @@ function allScores(v: number): GateScores {
 }
 
 describe('computePassFromScores', () => {
-  // Pass requires average ≥ 3.75 over all TEN criteria AND no individual below 3.
+  // Pass requires average ≥ 3.40 (v10.31 interim; was 3.75) over all TEN criteria
+  // AND no individual below 3.
   it('passes when every score is strong', () => {
     expect(computePassFromScores(allScores(4))).toBe(true)
   })
 
-  it('fails when the average is below 3.75 even with no sub-3 score', () => {
+  it('fails when the average is below 3.40 even with no sub-3 score', () => {
     expect(computePassFromScores(allScores(3))).toBe(false)
   })
 
@@ -90,20 +91,22 @@ describe('computePassFromScores', () => {
     expect(computePassFromScores(scores)).toBe(false)
   })
 
-  it('passes just above the 3.75 boundary with min ≥ 3', () => {
-    // Eight 4s and two 3s → (32 + 6)/10 = 3.8, min 3.
-    const scores = allScores(4)
-    scores.specificity = 3
-    scores.anti_cliche = 3
+  it('passes at the 3.40 boundary with min ≥ 3', () => {
+    // Four 4s and six 3s → (16 + 18)/10 = 3.4, min 3.
+    const scores = allScores(3)
+    scores.chart_evidence = 4
+    scores.anti_cliche = 4
+    scores.voice_quality = 4
+    scores.length = 4
     expect(computePassFromScores(scores)).toBe(true)
   })
 
-  it('fails just below the 3.75 boundary', () => {
-    // Seven 4s and three 3s → (28 + 9)/10 = 3.7, min 3.
-    const scores = allScores(4)
-    scores.specificity = 3
-    scores.anti_cliche = 3
-    scores.synthesis = 3
+  it('fails just below the 3.40 boundary', () => {
+    // Three 4s and seven 3s → (12 + 21)/10 = 3.3, min 3.
+    const scores = allScores(3)
+    scores.chart_evidence = 4
+    scores.anti_cliche = 4
+    scores.length = 4
     expect(computePassFromScores(scores)).toBe(false)
   })
 })

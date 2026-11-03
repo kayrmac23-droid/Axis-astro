@@ -73,7 +73,15 @@ import type { BirthData } from '@/lib/astro-calc'
 // a digest of which earlier sections preceded this one rather than of their
 // prose. Entries written under the old key shape are unreachable anyway; the
 // bump keeps the version honest about the prompt change.
-export const READING_PROMPT_VERSION = 'v10.30'
+// v10.31: SHARED_RULES restructured into eight ordered PARTs with an explicit
+// priority list (the scene requirement first) and no NON-NEGOTIABLE labels; the
+// depth floor is scoped to the primary sections so it no longer sits above the
+// secondaries' band ceiling; BIRTH TIME UNKNOWN is an operative rule for every
+// section; the antithesis is capped at one per section. The evaluator rubric gains
+// 5→1 anchors on every criterion and MIN_PASS_AVERAGE drops to an interim 3.40.
+// Every cached section was generated under different rules and gated under a
+// rubric that could not award a pass.
+export const READING_PROMPT_VERSION = 'v10.31'
 
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
