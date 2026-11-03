@@ -26,7 +26,7 @@ export default function MethodPage() {
         </div>
         <p className={styles.heroBody}>
           Most astrology tools flatten you into one system. AXIS does not. It computes one birth
-          against two zodiacs, reads each on its own terms, then reads the distance between them.
+          against two zodiacs, reads each on its own terms, then reads where they diverge.
           Nothing is averaged.
         </p>
       </section>

@@ -1833,8 +1833,9 @@ export function buildInterpretationContext(
       `  • Vimshottari Dasha timing (depends on exact Moon nakshatra position)\n` +
       `Where birth time is unknown, focus interpretation on the planetary sign positions, ` +
       `dignities, and sign-based aspects — which are accurate — rather than house placements ` +
-      `or Ascendant-derived conclusions. Open any Ascendant or house section with an explicit ` +
-      `acknowledgment that birth time is unknown.\n`
+      `or Ascendant-derived conclusions. Say that the birth time is unknown ONCE, where it first ` +
+      `bears on the reading; if the reading so far has already said it, do not say it again ` +
+      `(see WHEN THE BIRTH TIME IS UNKNOWN in the rules).\n`
     : ''
 
   const header  = `\n${divider}\nSTRUCTURED INTERPRETATION CONTEXT\n(First-principles reasoning scaffold — use these facts as the foundation for every interpretive claim)\n${divider}\n${birthTimeCaveat}`

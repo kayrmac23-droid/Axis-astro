@@ -48,7 +48,7 @@ const SYSTEM_PROMPT_MAP: Record<string, string> = {
 }
 
 // SHARED_RULES is the same across all system prompt types and is the largest
-// block (~7 KB). Marking it as the cached prefix means every request hits the
+// block (~42 KB, ~10k tokens, as of v10.31). Marking it as the cached prefix means every request hits the
 // same cache entry regardless of which section type is being streamed.
 const SHARED_RULES_BLOCK: Anthropic.TextBlockParam = {
   type: 'text',
@@ -369,8 +369,9 @@ export async function POST(req: NextRequest) {
 
     const readable = new ReadableStream({
       async start(controller) {
-        // An uncached section costs one Sonnet call to generate, plus one to
-        // evaluate, plus one more when a repair fires. The gate's calls are
+        // An uncached section costs one call to generate, plus one to evaluate,
+        // plus one for a doctrine-only surgical edit or two for a full repair
+        // (the repair and its re-score). The gate's calls are
         // recorded in the after() below; the generation is reserved up front.
         let gateCalls = 0
 

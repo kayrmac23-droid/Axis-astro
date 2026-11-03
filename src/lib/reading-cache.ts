@@ -81,7 +81,13 @@ import type { BirthData } from '@/lib/astro-calc'
 // 5→1 anchors on every criterion and MIN_PASS_AVERAGE drops to an interim 3.40.
 // Every cached section was generated under different rules and gated under a
 // rubric that could not award a pass.
-export const READING_PROMPT_VERSION = 'v10.31'
+// v10.32: the BIRTH TIME UNKNOWN context notice told the model to "open any
+// Ascendant or house section" with the caveat, while v10.31's SHARED_RULES says
+// to say it ONCE and calls repetition a failure. Every Tropical section carries
+// houses, so an unknown-time reading was instructed to repeat the caveat in up to
+// nineteen sections and then penalised for it. The notice now defers to the rule.
+// Bumped within hours of v10.31 shipping, while its cache was still near-empty.
+export const READING_PROMPT_VERSION = 'v10.32'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
