@@ -156,7 +156,6 @@ const AMERICAN_SPELLINGS: readonly [RegExp, string][] = [
   [/\bintellectualiz(e|es|ed|ing)\b/gi,       'intellectualise'],
   [/\bdefens(e|es)\b/gi,                      'defence'],
   [/\bfulfill(s|ed|ing|ment)?\b/gi,           'fulfil'],
-  [/\bjudgement\b/gi,                         'judgment'],
 ]
 
 // ── 4. Formatting ────────────────────────────────────────────────────────────

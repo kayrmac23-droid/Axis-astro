@@ -392,3 +392,21 @@ describe('toJulianDay', () => {
     expect(firstGregorian).toBeCloseTo(2299160.5, 6)
   })
 })
+
+// ── Local Pluto vs JPL Horizons DE440 ─────────────────────────────────────────
+// The fallback used to mix a J2000 Pluto with an of-date Earth, drifting ~50″/yr
+// from 2000 (+57′ in 1930). With consistent frames it matches the BENCHMARK.md
+// JPL column to well under 1′. Times are 11:59 UTC ≈ noon TT, as benchmarked.
+describe('calculateDualChart — local Pluto matches JPL DE440', () => {
+  const JPL: [number, number, number, number][] = [
+    [1930, 6, 15, 108.4753], [1945, 1, 1, 129.7165], [1960, 7, 1, 154.1303],
+    [1975, 3, 15, 188.2723], [1990, 9, 1, 225.3637], [2000, 1, 1, 251.4548],
+    [2010, 6, 21, 274.2203], [2020, 1, 12, 292.7691], [2025, 3, 20, 303.3475],
+  ]
+  it.each(JPL)('%i-%i-%i within 0.5 arcmin', (year, month, day, jpl) => {
+    const d = calculateDualChart({ year, month, day, hour: 11, minute: 59, latitude: 0, longitude: 0, timezone: 0 })
+    const lon = d.tropical.planets.find(p => p.name === 'Pluto')!.longitude
+    const diffArcmin = (((lon - jpl) + 540) % 360 - 180) * 60
+    expect(Math.abs(diffArcmin)).toBeLessThan(0.5)
+  })
+})

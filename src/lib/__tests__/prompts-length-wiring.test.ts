@@ -33,7 +33,7 @@ import { buildInterpretationContext } from '../interpretation-engine'
 import { calculateDualChart, type BirthData } from '../astro-calc'
 import { parseBirthDataInput } from '../birth-data-validation'
 import { NATAL_SECTION_ORDER } from '../reading-order'
-import { buildSectionRequest, type NatalFrame } from '../../../scripts/eval-readings.request'
+import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
 
 const WIRING_BIRTH: BirthData = {
   year: 1990, month: 6, day: 15, hour: 14, minute: 30,
@@ -217,12 +217,24 @@ describe('evidence-scaled Divergence bands', () => {
       .toBeLessThan(wordBandFor('synthesis', 'agree', undefined, 2).fullMin)
   })
 
-  it('never lets a scaled floor collapse below a real section', () => {
+  it('never lets a scaled floor collapse below a real section while there is evidence', () => {
     for (const section of ['agree', 'diverge'] as const) {
-      const band = wordBandFor('synthesis', section, undefined, 0)
+      const band = wordBandFor('synthesis', section, undefined, 1)
       expect(band.hardMin).toBeGreaterThanOrEqual(90)
       expect(band.hardMin).toBeLessThan(band.fullMin)
       expect(band.fullMin).toBeLessThan(band.fullMax)
+    }
+  })
+
+  // An empty allocation is told to "say so plainly and briefly". The band must
+  // agree, or the gate fails a correctly brief section on length and the repair
+  // pads it — the exact contradiction this band replaced.
+  it('gives an empty allocation a short band that a brief statement passes', () => {
+    for (const section of ['agree', 'diverge'] as const) {
+      const band = wordBandFor('synthesis', section, undefined, 0)
+      expect(band.fullMax).toBeLessThan(150)
+      expect(scoreLength(50, band)).toBe(5)
+      expect(scoreLength(band.target, band)).toBe(5)
     }
   })
 

@@ -27,6 +27,8 @@ export default function DossierHeader({
   title, castLine, ayanamsa, year, birthTimeUnknown = false, plutoSource,
 }: DossierHeaderProps) {
   const plutoFallback = plutoSource === 'local-meeus'
+  // 'jpl-horizons-de441' for dates outside DE440's 1550–2650 span — say which.
+  const plutoEphem = plutoSource?.match(/de\d+$/i)?.[0].toUpperCase() ?? 'DE440'
   return (
     <>
       <div className={styles.head}>
@@ -39,7 +41,7 @@ export default function DossierHeader({
           <div className={styles.cell}>
             <div className={styles.cellHead}>PLUTO</div>
             <div className={plutoFallback ? styles.cellWarn : undefined}>
-              {plutoFallback ? <>LOCAL MEEUS<br />FALLBACK</> : <>JPL HORIZONS<br />DE440</>}
+              {plutoFallback ? <>LOCAL MEEUS<br />FALLBACK</> : <>JPL HORIZONS<br />{plutoEphem}</>}
             </div>
           </div>
           <div className={styles.cell}>

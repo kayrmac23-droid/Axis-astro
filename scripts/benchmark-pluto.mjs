@@ -6,8 +6,9 @@
 // Requires outbound HTTPS access to ssd.jpl.nasa.gov — will not run in sandboxed CI.
 //
 // The local Meeus column uses the same code path as the in-app fallback:
-//   astronomia/pluto.heliocentric(jde)  →  rectangular geocentric  →  ecliptic lon + nutation
-// Observed accuracy vs DE440: ~15–60 arcminutes across 1930–2025 (see BENCHMARK.md).
+//   astronomia/pluto.heliocentric(jde) (J2000) − Earth position2000(jde) → light-time
+//   → precess J2000 → date → + nutation − annual aberration
+// Observed accuracy vs DE440: < 0.03 arcminutes across 1930–2025 (see BENCHMARK.md).
 
 import { createRequire } from 'module'
 const require = createRequire(import.meta.url)
@@ -15,13 +16,16 @@ const require = createRequire(import.meta.url)
 const plutoLib    = require('astronomia/pluto')
 const { Planet }  = require('astronomia/planetposition')
 const nutationLib = require('astronomia/nutation')
+const precessLib  = require('astronomia/precess')
+const coordLib    = require('astronomia/coord')
+const baseLib     = require('astronomia/base')
+const solarLib    = require('astronomia/solar')
 const vsop87Bearth = require('astronomia/data/vsop87Bearth')
 
 const d = m => m.default ?? m
 const _earth   = new Planet(d(vsop87Bearth))
 const plutoFn  = (plutoLib.default ?? plutoLib).heliocentric
 
-const _DEG2RAD = Math.PI / 180
 const RAD2DEG = 180 / Math.PI
 const HORIZONS_URL = 'https://ssd.jpl.nasa.gov/api/horizons.api'
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -42,14 +46,22 @@ function toJulianDay(year, month, day, utHour = 12) {
 // Uses the full 43-term table from astronomia/pluto (same as the in-app fallback).
 
 function localPluto(jde) {
-  const ep = _earth.position(jde)
-  const ph = plutoFn(jde)
-  const x = ph.range * Math.cos(ph.lat) * Math.cos(ph.lon) - ep.range * Math.cos(ep.lat) * Math.cos(ep.lon)
-  const y = ph.range * Math.cos(ph.lat) * Math.sin(ph.lon) - ep.range * Math.cos(ep.lat) * Math.sin(ep.lon)
-  let λ = Math.atan2(y, x)
-  const [Δψ] = nutationLib.nutation(jde)
-  λ += Δψ
-  return normalize(λ * RAD2DEG)
+  const precess = d(precessLib), coord = d(coordLib), base = d(baseLib), solar = d(solarLib)
+  const e = _earth.position2000(jde)
+  const geo = p => {
+    const x = p.range * Math.cos(p.lat) * Math.cos(p.lon) - e.range * Math.cos(e.lat) * Math.cos(e.lon)
+    const y = p.range * Math.cos(p.lat) * Math.sin(p.lon) - e.range * Math.cos(e.lat) * Math.sin(e.lon)
+    const z = p.range * Math.sin(p.lat) - e.range * Math.sin(e.lat)
+    return { lon: Math.atan2(y, x), lat: Math.atan2(z, Math.hypot(x, y)), dist: Math.hypot(x, y, z) }
+  }
+  const first = geo(plutoFn(jde))
+  const g = geo(plutoFn(jde - base.lightTime(first.dist)))
+  const ofDate = precess.eclipticPosition(new coord.Ecliptic(g.lon, g.lat), 2000.0, base.JDEToJulianYear(jde))
+  const [Δψ] = d(nutationLib).nutation(jde)
+  let λ = (ofDate.lon + Δψ) * RAD2DEG
+  const sunLon = solar.apparentVSOP87(_earth, jde).lon * RAD2DEG
+  λ -= (20.49552 / 3600) * Math.cos((sunLon - λ) * Math.PI / 180)
+  return normalize(λ)
 }
 
 // ── JPL Horizons fetch ──────────────────────────────────────────────────────────

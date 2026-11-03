@@ -1,5 +1,5 @@
 'use client'
-import { SynastryData, SynastryAspect, AspectType, ASPECT_SYMBOLS } from '@/lib/synastry-calc'
+import { SynastryData, SynastryAspect, AspectType, ASPECT_SYMBOLS, synastryTimeUnknown } from '@/lib/synastry-calc'
 import styles from './SynastryAspectsPanel.module.css'
 
 interface Props {
@@ -53,6 +53,9 @@ export default function SynastryAspectsPanel({ data }: Props) {
 
   const compSun = data.composite.planets.find(p => p.name === 'Sun')
   const compMoon = data.composite.planets.find(p => p.name === 'Moon')
+  // The composite Ascendant is a midpoint of a noon placeholder when either
+  // birth time is unknown — the reading withholds it, so the panel does too.
+  const anglesKnown = !synastryTimeUnknown(data).composite
 
   return (
     <section className={styles.panel}>
@@ -61,7 +64,7 @@ export default function SynastryAspectsPanel({ data }: Props) {
       <div className={styles.compositeBar}>
         <span className={styles.compositeLabel}>Composite</span>
         <span className={styles.compositePlacements}>
-          {'☉︎'} {compSun?.sign ?? '—'} · {'☽︎'} {compMoon?.sign ?? '—'} · {'↑︎'} {data.composite.ascendantSign}
+          {'☉︎'} {compSun?.sign ?? '—'} · {'☽︎'} {compMoon?.sign ?? '—'} · {'↑︎'} {anglesKnown ? data.composite.ascendantSign : '—'}
         </span>
         <span className={styles.compositeCount}>
           {interAspects.length} inter-aspect{interAspects.length !== 1 ? 's' : ''}

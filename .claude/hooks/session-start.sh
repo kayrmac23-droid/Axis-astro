@@ -6,7 +6,9 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
-echo '{"async": true, "asyncTimeout": 300000}'
+# Synchronous on purpose. It used to run async, so the first commands of a
+# session could race a half-finished install (a missing vitest binary, a
+# partially written next/dist). The incremental install below is ~1s.
 
 cd "${CLAUDE_PROJECT_DIR:-.}"
 

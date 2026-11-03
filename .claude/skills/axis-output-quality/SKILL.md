@@ -111,7 +111,7 @@ The divergence is something the native **navigates**, not merely observes, and i
 
 Name what each system produces and hold the two side by side.
 
-**Dual-system facts.** Sign, degree-within-sign, dignity, nakshatra, the chart ruler / Lagna lord and occasionally the house all change between systems. The sign ruler is never a separate point of disagreement: it changes only because the sign changed. Never import one system's chart ruler into the other, and never claim a placement is "the same in both" unless the data shows it.
+**Dual-system facts.** Sign, degree-within-sign, dignity, nakshatra, the chart ruler / Lagna lord and the house all change between systems — under Whole Sign the house renumbers whenever the Ascendant changes sign, which is most charts. The sign ruler is never a separate point of disagreement: it changes only because the sign changed. Never import one system's chart ruler into the other, and never claim a placement is "the same in both" unless the data shows it.
 
 ## Kay's Chart (Reference for Calibration)
 

@@ -101,3 +101,16 @@ describe('formatting', () => {
     expect(lonStr(359.996)).toBe('0°00′ ' + ZODIAC_GLYPHS[0])
   })
 })
+
+describe('buildReadoutRows — unknown birth time', () => {
+  it('drops the angles and every house, keeping both frames for each body', async () => {
+    const { calculateDualChart } = await import('../astro-calc')
+    const { buildReadoutRows, buildFlips } = await import('../readout')
+    const d = calculateDualChart({ year: 1990, month: 5, day: 4, hour: 12, minute: 0, latitude: -37.8, longitude: 144.9, timezone: 10, birthTimeUnknown: true })
+    const rows = buildReadoutRows(d)
+    expect(rows.some(r => r.isAngle)).toBe(false)
+    expect(rows.every(r => r.tHouse === null && r.sHouse === null)).toBe(true)
+    expect(rows.every(r => Number.isFinite(r.tLon) && Number.isFinite(r.sLon))).toBe(true)
+    expect(buildFlips(rows).every(f => f.signal === 'SIGN')).toBe(true)
+  })
+})

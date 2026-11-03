@@ -156,7 +156,27 @@
   outline: none;
   border-radius: 0;
 }
+.placeInput { padding-right: 96px; }
 .placeInput::placeholder { color: var(--text-4); }
+
+/* Explicit search: Nominatim may not be queried per keystroke. */
+.searchBtn {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--border-2);
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+  cursor: pointer;
+}
+.searchBtn:disabled { color: var(--text-4); cursor: not-allowed; }
 .placeInput:focus {
   border-color: var(--cyan);
   box-shadow: 0 0 0 1px var(--cyan-ring);
@@ -164,7 +184,7 @@
 
 .placeMeta {
   position: absolute;
-  right: 14px;
+  right: 96px;
   top: 50%;
   transform: translateY(-50%);
   font-size: 11px;

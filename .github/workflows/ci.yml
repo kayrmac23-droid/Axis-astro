@@ -36,7 +36,8 @@ jobs:
       - name: Test
         run: npm test
 
+      # No ANTHROPIC_API_KEY: the build reads no secret (the key is read at
+      # request time only), and `next build` executes repository code, so
+      # handing it a secret it does not need is pure exposure.
       - name: Build
         run: npm run build
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

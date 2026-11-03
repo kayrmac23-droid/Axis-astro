@@ -34,13 +34,13 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const [locationConfirmed, setLocationConfirmed] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [activeSuggestion, setActiveSuggestion] = useState(-1)
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Shown in the place field's meta slot when a search returns nothing usable.
+  const [searchNotice, setSearchNotice] = useState('')
   const geocodeAbortRef = useRef<AbortController | null>(null)
   const listboxId = 'location-listbox'
 
   useEffect(() => {
     return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
       geocodeAbortRef.current?.abort()
     }
   }, [])
@@ -56,18 +56,25 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     if (name === 'location') {
+      // No search per keystroke. Nominatim's usage policy forbids autocomplete
+      // against its public API (and caps clients at 1 request/second); typing
+      // only edits the query, and the search runs on Enter or the SEARCH button.
       setLocationConfirmed(false)
       setActiveSuggestion(-1)
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
-      if (value.length > 2) {
-        searchTimerRef.current = setTimeout(() => searchLocation(value), 300)
-      } else {
-        setLocationSuggestions([])
-      }
+      setLocationSuggestions([])
+      setSearchNotice('')
     }
   }
 
+  const canSearch = formData.location.trim().length > 2 && !locationConfirmed
+
   const handleLocationKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && (activeSuggestion < 0 || !locationSuggestions.length)) {
+      // Enter searches; it never submits the form from the place field.
+      e.preventDefault()
+      if (canSearch) searchLocation(formData.location.trim())
+      return
+    }
     if (!locationSuggestions.length) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()
@@ -91,6 +98,12 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
     try {
       const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`, { signal: geocodeAbortRef.current.signal })
       const data = await res.json()
+      setSearchNotice(
+        res.status === 429 ? 'SEARCH BUSY · TRY AGAIN'
+          : !res.ok ? 'SEARCH FAILED · TRY AGAIN'
+          : Array.isArray(data) && data.length === 0 ? 'NO MATCHES'
+          : '',
+      )
       // The endpoint returns an array on every path, but guard defensively so a
       // non-array body (e.g. an intermediary error page) can never crash the
       // suggestion list's .map() render.
@@ -205,7 +218,9 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const isValid = dateOk && timeOk && placeOk
   const placeMeta = placeOk
     ? `${parseFloat(formData.latitude).toFixed(3)} · ${parseFloat(formData.longitude).toFixed(3)}${formData.tzName ? ' · ' + formData.tzName.toUpperCase() : ''}`
-    : (formData.location ? 'SELECT A RESULT' : '')
+    : (formData.location
+        ? (locationSuggestions.length ? 'SELECT A RESULT' : searchNotice || 'PRESS ENTER TO SEARCH')
+        : '')
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
@@ -290,6 +305,12 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
             aria-activedescendant={activeSuggestion >= 0 ? `location-option-${activeSuggestion}` : undefined}
             className={styles.placeInput}
           />
+          <button
+            type="button"
+            className={styles.searchBtn}
+            onClick={() => canSearch && searchLocation(formData.location.trim())}
+            disabled={!canSearch || locationLoading}
+          >SEARCH</button>
           <span className={styles.placeMeta}>{locationLoading ? 'SEARCHING…' : placeMeta}</span>
           {locationSuggestions.length > 0 && (
             <ul id={listboxId} className={styles.suggestionList} role="listbox">

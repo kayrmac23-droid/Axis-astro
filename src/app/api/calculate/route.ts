@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const birthData = parsedBirth.data
     const { year, month, day, hour, minute, timezone } = birthData
 
-    // Attempt JPL Horizons DE440 lookup for Pluto. Falls back to local Meeus (~0.3°)
+    // Attempt JPL Horizons DE440 lookup for Pluto. Falls back to local Meeus (< 0.03′ vs DE440)
     // silently if Horizons is unavailable. The chart is still valid in either case.
     const utcDate = new Date(birthToUtcMs(year, month, day, hour, minute, timezone))
     const horizonsPluto = await getHorizonsEclipticLon('Pluto', utcDate).catch(() => null)

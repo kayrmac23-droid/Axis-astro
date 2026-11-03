@@ -5,7 +5,7 @@ import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } fro
 import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
-import { detectStreamError, ReadingUnavailableError } from '@/lib/reading-stream'
+import { detectStreamError, ReadingUnavailableError, retryDelayForStatus } from '@/lib/reading-stream'
 import { NATAL_SECTION_ORDER } from '@/lib/reading-order'
 
 // A reading-thread id (see reading-thread.ts): one per cast chart, so each
@@ -350,8 +350,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               } else {
                 lastError = body.message || body.error || `Section failed (${res.status})`
               }
-              if (attempt === 0) continue
-              break
+              const wait = attempt === 0 ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
+              if (wait == null) break
+              await new Promise(r => setTimeout(r, wait))
+              continue
             }
             if (!res.body) { lastError = 'No response body'; break }
 
@@ -540,8 +542,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         })
 
         if (!res.ok || !res.body) {
-          if (attempt === 0) continue
-          break
+          const wait = attempt === 0 && !res.ok ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
+          if (wait == null) break
+          await new Promise(r => setTimeout(r, wait))
+          continue
         }
 
         const reader  = res.body.getReader()

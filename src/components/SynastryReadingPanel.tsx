@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { SynastryData } from '@/lib/synastry-calc'
 import { SYNASTRY_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
-import { detectStreamError, ReadingUnavailableError } from '@/lib/reading-stream'
+import { detectStreamError, ReadingUnavailableError, retryDelayForStatus } from '@/lib/reading-stream'
 
 interface Props {
   synastryData: SynastryData
@@ -73,12 +73,13 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
   const [activeSection, setActiveSection] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
   const abortRef = useRef<AbortController | null>(null)
-  const loadingRef = useRef(false)
 
   const generateReading = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort()
-    abortRef.current = new AbortController()
-    loadingRef.current = true
+    // This run's own controller: every check below is against IT, never the ref,
+    // which a newer run may already have replaced.
+    const controller = new AbortController()
+    abortRef.current = controller
     setLoading(true)
     setError(null)
     setText('')
@@ -92,7 +93,7 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
       let accumulated = ''
 
       for (const sec of SYNASTRY_SECTIONS) {
-        if (abortRef.current?.signal.aborted) break
+        if (controller.signal.aborted) break
 
         setSectionStates(prev => ({ ...prev, [sec]: 'loading' }))
         setActiveSection(sec)
@@ -103,12 +104,12 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
         let lastError = ''
 
         for (let attempt = 0; attempt < 2; attempt++) {
-          if (abortRef.current?.signal.aborted) break
+          if (controller.signal.aborted) break
           try {
             const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
             const combinedSignal = AbortSignal.any
-              ? AbortSignal.any([abortRef.current!.signal, timeoutSignal])
-              : abortRef.current!.signal
+              ? AbortSignal.any([controller.signal, timeoutSignal])
+              : controller.signal
 
             const res = await fetch('/api/reading', {
               method: 'POST',
@@ -131,8 +132,10 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
               lastError = res.status === 429
                 ? `Rate limit reached. Please wait before retrying.`
                 : body.message || body.error || `Section failed (${res.status})`
-              if (attempt === 0) continue
-              break
+              const wait = attempt === 0 ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
+              if (wait == null) break
+              await new Promise(r => setTimeout(r, wait))
+              continue
             }
             if (!res.body) { lastError = 'No response body'; break }
 
@@ -167,7 +170,7 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
             break
           } catch (err: unknown) {
             if (err instanceof ReadingUnavailableError) throw err
-            if (err instanceof Error && err.name === 'AbortError' && abortRef.current?.signal.aborted) throw err
+            if (err instanceof Error && err.name === 'AbortError' && controller.signal.aborted) throw err
             if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
               lastError = `${SECTION_DISPLAY[sec]} timed out. Please retry.`
             } else {
@@ -196,23 +199,25 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
         setLiveStatus('Reading generation failed')
       }
     } finally {
-      if (!abortRef.current?.signal.aborted) {
-        loadingRef.current = false
+      if (!controller.signal.aborted) {
         setLoading(false)
         setActiveSection(null)
       }
     }
   }, [synastryData])
 
+  // One effect owns the run and its cancellation. It used to be two — a start
+  // guarded by `loadingRef` and a separate unmount abort — and under React
+  // StrictMode's dev double-invoke the abort cancelled the first run while the
+  // guard (still true) skipped the second, leaving the reading stuck loading.
+  // generateReading aborts any earlier run itself, so starting again is safe.
+  // Started on a timer, as ReadingPanel does, so its synchronous state resets
+  // run outside the effect body; StrictMode's first, discarded mount clears the
+  // timer before it fires.
   useEffect(() => {
-    if (!loadingRef.current) {
-      generateReading()
-    }
+    const id = setTimeout(() => { generateReading() }, 0)
+    return () => { clearTimeout(id); abortRef.current?.abort() }
   }, [generateReading])
-
-  useEffect(() => {
-    return () => { abortRef.current?.abort() }
-  }, [])
 
   const blocks = text ? parseReading(text) : []
   const hasAnyFailed = SYNASTRY_SECTIONS.some(s => sectionStates[s] === 'failed')

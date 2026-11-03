@@ -89,11 +89,16 @@ export interface ReadoutRow {
 // come first, then the bodies in PLANET_ORDER. Any body missing from a frame
 // falls back to the other frame's longitude for display (never reconciled — the
 // fallback only prevents a blank cell when an ephemeris omits a body).
+//
+// With no birth time the angles and every Whole Sign house follow from a noon
+// placeholder, so the ASC/MC rows are left out and every house is null. The
+// reading withholds them; the instruments must not state them as fact either.
 export function buildReadoutRows(data: DualChartData): ReadoutRow[] {
   const { tropical, sidereal } = data
+  const timeKnown = data.birthData?.birthTimeUnknown !== true
   const tMap = Object.fromEntries(tropical.planets.map(p => [p.name, p]))
   const sMap = Object.fromEntries(sidereal.planets.map(p => [p.name, p]))
-  const out: ReadoutRow[] = [
+  const out: ReadoutRow[] = !timeKnown ? [] : [
     {
       id: 'asc', glyph: '', name: 'ASC', tLon: tropical.ascendant, sLon: sidereal.ascendant,
       tSign: Math.floor(norm(tropical.ascendant) / 30), sSign: Math.floor(norm(sidereal.ascendant) / 30),
@@ -117,7 +122,7 @@ export function buildReadoutRows(data: DualChartData): ReadoutRow[] {
       id: name.toLowerCase(), glyph: PLANET_GLYPH[name] ?? '', name: name.toUpperCase(),
       tLon: tp.longitude, sLon: sp.longitude,
       tSign, sSign, flip: tSign !== sSign,
-      tHouse: t ? t.house : null, sHouse: s ? s.house : null,
+      tHouse: t && timeKnown ? t.house : null, sHouse: s && timeKnown ? s.house : null,
       retro: tp.retrograde,
       tDignity: t ? dignityOf(name, t.sign) : '', sDignity: s ? dignityOf(name, s.sign) : '',
       nakshatra: s?.nakshatra ?? '', nakPada: s?.nakshatraPada ?? null,
