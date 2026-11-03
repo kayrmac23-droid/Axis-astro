@@ -2,6 +2,7 @@
 // Falls back to per-instance in-memory limiting when Redis is unavailable.
 import type { NextRequest } from 'next/server'
 import { getRedis } from './reading-cache'
+import { intEnv } from './env'
 
 export interface RateLimitConfig {
   max:        number   // max requests per window
@@ -133,7 +134,7 @@ function budgetKey(): string {
 // fails open exactly like the recorder — a Redis outage never takes readings
 // down globally.
 export async function readGlobalDailyBudget(): Promise<{ allowed: boolean; used: number; cap: number }> {
-  const cap = Number(process.env.AXIS_DAILY_READING_CALL_CAP ?? DEFAULT_DAILY_CAP)
+  const cap = intEnv('AXIS_DAILY_READING_CALL_CAP', DEFAULT_DAILY_CAP)
 
   const redis = getRedis()
   if (!redis) return { allowed: true, used: 0, cap }

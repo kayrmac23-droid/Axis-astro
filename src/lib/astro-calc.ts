@@ -4,6 +4,8 @@
 
 /* eslint-disable @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any */
 
+import { lahiriAyanamsa } from './ayanamsa'
+
 // ── TYPES ─────────────────────────────────────────────────────────────────────
 
 export interface BirthData {
@@ -164,11 +166,9 @@ export function toJulianDay(
 
 // ── AYANAMSA ──────────────────────────────────────────────────────────────────
 
-// Lahiri ayanamsa — the standard for Jyotish.
-// IAU-calibrated precession rate 50.2564"/yr, base 23.85° at J2000.
-function getLahiriAyanamsa(jd: number): number {
-  return 23.85 + (jd - 2451545.0) / 365.25 * (50.2564 / 3600)
-}
+// Lahiri ayanamsa — the standard for Jyotish. Lives in lib/ayanamsa.ts so the
+// client can use the same formula without pulling in the ephemeris data.
+const getLahiriAyanamsa = lahiriAyanamsa
 
 // ── PLANET POSITIONS ──────────────────────────────────────────────────────────
 

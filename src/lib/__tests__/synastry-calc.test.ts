@@ -149,3 +149,37 @@ describe('buildSynastryData + formatSynastryBlock', () => {
     expect(block).toContain('COMPOSITE CHART')
   })
 })
+
+describe('formatSynastryBlock — unknown birth time', () => {
+  const mk = (btu: boolean, sunLon: number, asc: number): DualChartData => ({
+    ...mkDual(mkChart([mkPlanet('Sun', sunLon, 7)], asc), mkChart([mkPlanet('Sun', sunLon - 24, 7)], asc - 24, 66, 'sidereal')),
+    birthData: { ...DUMMY_BIRTH, birthTimeUnknown: btu },
+  })
+
+  it('carries no caveat and keeps angles and houses when both times are known', () => {
+    const block = formatSynastryBlock(buildSynastryData(mk(false, 10, 100), mk(false, 190, 200)), 'luminaries')
+    expect(block).not.toContain('BIRTH TIME UNKNOWN')
+    expect(block).toMatch(/Ascendant: Cancer/)
+    expect(block).toMatch(/ H7/)
+  })
+
+  it('names the unknown-time person, withholds their angles and houses, and the composite\'s', () => {
+    // The shared BIRTH TIME UNCERTAINTY rule keys off this exact notice; without
+    // it the noon-derived Ascendant and houses were handed to the model as fact.
+    const block = formatSynastryBlock(buildSynastryData(mk(false, 10, 100), mk(true, 190, 200)), 'composite_chart')
+    expect(block).toContain('⚠ BIRTH TIME UNKNOWN — PERSON B')
+    const [, a, b, comp] = block.split(/PERSON A — TROPICAL CHART|PERSON B — TROPICAL CHART|COMPOSITE CHART/)
+    expect(a).toMatch(/Ascendant: Cancer/)          // Person A's time is known
+    expect(a).toMatch(/ H7/)
+    expect(b).not.toMatch(/Ascendant: \w/)
+    expect(b).not.toMatch(/ H\d/)
+    expect(comp).not.toMatch(/Ascendant: \w/)
+    expect(comp).not.toMatch(/ H\d/)
+  })
+
+  it('carries a rounded-up arcminute into the degree instead of printing 60′', () => {
+    const block = formatSynastryBlock(buildSynastryData(mk(false, 12.9999, 100), mk(false, 190, 200)), 'luminaries')
+    expect(block).not.toContain("°60'")
+    expect(block).toContain("Aries 13°00'")
+  })
+})

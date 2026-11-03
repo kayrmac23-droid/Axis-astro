@@ -419,9 +419,12 @@ export function computeVimshottariDasha(chartData: DualChartData, now: number = 
 
   if (!antardasha) return null
 
+  // UTC, like every other instant here: local getters made the boundary month
+  // depend on the TZ of whichever machine ran it (UTC on Vercel, AEST in a
+  // local eval run), so the same chart could name different months.
   const fmtDate = (ms: number) => {
     const d = new Date(ms)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`
   }
 
   const MS_PER_DAY = 24 * 3600 * 1000

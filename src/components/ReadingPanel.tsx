@@ -433,6 +433,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       setTabErrors(prev => ({ ...prev, [sec]: msg }))
       setTabStatus(prev => ({ ...prev, [sec]: 'failed' }))
       setLiveStatus(`${sec} reading failed`)
+      // A fatal failure (billing, auth) is the account's, not this tab's: let it
+      // reach the chain so the later tabs are not each sent one more doomed call.
+      if (err instanceof ReadingUnavailableError) throw err
     } finally {
       setStreamingTab(prev => prev === sec ? null : prev)
       setActivePlanetSection(null)
@@ -450,7 +453,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     abortRef.current = controller
     threadIdRef.current = newThreadId()
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTabStatus({ tropical: 'pending', sidereal: 'pending', synthesis: 'pending' })
     setTabErrors({ tropical: null, sidereal: null, synthesis: null })
     setPlanetSectionErrors({})
@@ -458,11 +460,19 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
     const id = setTimeout(async () => {
       const { signal } = controller
-      try {
-        await generateSingleReading('tropical', signal)
-        if (!signal.aborted) await generateSingleReading('sidereal', signal)
-        if (!signal.aborted) await generateSingleReading('synthesis', signal)
-      } catch { /* per-section errors already handled */ }
+      const order: SystemSection[] = ['tropical', 'sidereal', 'synthesis']
+      for (let i = 0; i < order.length && !signal.aborted; i++) {
+        try {
+          await generateSingleReading(order[i], signal)
+        } catch (err) {
+          if (err instanceof ReadingUnavailableError) {
+            const rest = order.slice(i + 1)
+            setTabErrors(prev => ({ ...prev, ...Object.fromEntries(rest.map(s => [s, err.message])) }))
+            setTabStatus(prev => ({ ...prev, ...Object.fromEntries(rest.map(s => [s, 'failed' as TabStatus])) }))
+          }
+          break  // aborted or fatal; per-section errors are handled inside
+        }
+      }
     }, 0)
 
     return () => {
@@ -490,6 +500,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       delete next[`${sec}:${planetSec}`]
       return next
     })
+    setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'loading' }))
     setReadings(prev => {
       const text = prev[sec] || ''
       return {
@@ -568,6 +579,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       }
     }
 
+    setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: success && fetchedText ? 'done' : 'failed' }))
     if (success && fetchedText) {
       setReadings(prev => {
         const text = prev[sec] || ''
@@ -617,13 +629,11 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     const renderBlock = (block: Block, key: string | number, animIndex: number) => {
       if (block.type === 'sectionFailed') {
         const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
-          || 'This section could not be generated.'
+          || 'This section could not be generated. Check your connection and retry.'
         return (
           <div key={key} className={styles.sectionErrorBlock}>
             <p className={styles.sectionErrorLabel}>Section Unavailable</p>
-            <p className={styles.sectionErrorMsg}>
-              {errMsg} Check your connection and retry.
-            </p>
+            <p className={styles.sectionErrorMsg}>{errMsg}</p>
             <button
               className={styles.retrySectionBtn}
               onClick={() => retryPlanetSection(section, block.planetSection)}
@@ -694,9 +704,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           {currentError && (
             <div className={styles.sectionErrorBlock}>
               <p className={styles.sectionErrorLabel}>Section Unavailable</p>
-              <p className={styles.sectionErrorMsg}>
-                This section could not be generated. Check your connection and retry.
-              </p>
+              <p className={styles.sectionErrorMsg}>{currentError}</p>
               <button className={styles.retrySectionBtn} onClick={() => retrySection(section)}>
                 Retry
               </button>

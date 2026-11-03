@@ -5,14 +5,14 @@ import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor, renderSectionInstruction, countPlanEvidence } from '@/lib/prompts'
 import { buildInterpretationContext, formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
-import { buildSynastryData, formatSynastryBlock } from '@/lib/synastry-calc'
+import { buildSynastryData, formatSynastryBlock, synastryTimeUnknown } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
 import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { classifyGenerationError } from '@/lib/reading-stream'
 import { logUsage } from '@/lib/usage-log'
-import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
+import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
 import {
@@ -38,7 +38,7 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
-const READING_RATE_LIMIT = { max: Number(process.env.AXIS_READING_RATE_LIMIT_MAX ?? 20), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
+const READING_RATE_LIMIT = { max: intEnv('AXIS_READING_RATE_LIMIT_MAX', 20, 1), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -294,7 +294,11 @@ export async function POST(req: NextRequest) {
       // For composite-focused sections, append an elite chart block for the
       // composite so the model has dignity labels, chart ruler, and direction
       // — data the position table in formatSynastryBlock doesn't include.
-      contextBlock = planetSection === 'composite_chart' || planetSection === 'central_dynamic'
+      // Not when either birth time is unknown: that block leads with the
+      // composite Ascendant, houses and chart ruler, which are then midpoints of
+      // a noon placeholder — exactly what formatSynastryBlock withholds.
+      const anglesKnown = !synastryTimeUnknown(synData).composite
+      contextBlock = anglesKnown && (planetSection === 'composite_chart' || planetSection === 'central_dynamic')
         ? `${synBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${formatEliteChartBlock(synData.composite, 'tropical')}`
         : synBlock
     } else if (section === 'synthesis') {
@@ -412,8 +416,13 @@ export async function POST(req: NextRequest) {
           const truncated = firstMessage.stop_reason === 'max_tokens'
 
           // Truncated drafts ship with the marker so the client can surface it.
+          // Guarded like the deltas above: if the reader has gone (navigated
+          // away, cast another chart) the controller is already closed, and an
+          // unguarded enqueue/close throws into the catch below — which logged a
+          // false [AXIS_GEN_FAIL] and, worse, skipped the gate and the cache
+          // write for a generation that had already been paid for in full.
           if (truncated) {
-            controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]'))
+            try { controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]')) } catch { /* closed */ }
           }
 
           // Into the thread BEFORE close: the client requests the next section
@@ -422,7 +431,7 @@ export async function POST(req: NextRequest) {
 
           // The reader has the whole section from here on. Everything below only
           // decides what lands in the 30-day cache.
-          controller.close()
+          try { controller.close() } catch { /* reader disconnected — still gate and cache */ }
 
           // Post-response work — the quality gate and the spend recording — is
           // registered with after() rather than run inline below the close.

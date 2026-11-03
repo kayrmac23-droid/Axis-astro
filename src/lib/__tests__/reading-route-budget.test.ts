@@ -19,6 +19,9 @@ import { _resetThreadMemoryForTests } from '@/lib/reading-thread'
 // Ordered log of what happened when: 'reserve:N' / 'stream' / 'gate'.
 const events: string[] = []
 let streamShouldThrow = false
+// When set, the mock stream pauses after its first delta until released — so a
+// test can disconnect the reader while generation is still running.
+let streamHold: Promise<void> | null = null
 
 vi.mock('@anthropic-ai/sdk', () => {
   class Anthropic {
@@ -29,6 +32,10 @@ vi.mock('@anthropic-ai/sdk', () => {
         return {
           async *[Symbol.asyncIterator]() {
             yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'PROSE.' } }
+            if (streamHold) {
+              await streamHold
+              yield { type: 'content_block_delta', delta: { type: 'text_delta', text: ' MORE.' } }
+            }
           },
           finalMessage: async () => ({
             stop_reason: 'end_turn',
@@ -96,7 +103,7 @@ describe('/api/reading — the daily budget counts calls started', () => {
     if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
     else process.env.ANTHROPIC_API_KEY = priorKey
   })
-  beforeEach(() => { events.length = 0; streamShouldThrow = false; _resetThreadMemoryForTests() })
+  beforeEach(() => { events.length = 0; streamShouldThrow = false; streamHold = null; _resetThreadMemoryForTests() })
 
   it('reserves the generation call BEFORE making it', async () => {
     await run('10.1.0.1')
@@ -122,5 +129,32 @@ describe('/api/reading — the daily budget counts calls started', () => {
     expect(res.status).toBe(200)   // the failure is in-band, not a status code
     expect(events).toContain('reserve:1')
     expect(events).not.toContain('gate')
+  })
+
+  it('still gates and caches a paid generation when the reader disconnects mid-stream', async () => {
+    // Navigating away (or casting another chart) cancels the response body while
+    // the model is still generating. The finished text must still reach the gate
+    // and the cache: it has been billed in full. An unguarded controller.close()
+    // threw into the failure path instead — skipping both and logging a false
+    // [AXIS_GEN_FAIL].
+    let release!: () => void
+    streamHold = new Promise<void>(r => { release = r })
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const res = await POST(new NextRequest('https://x/api/reading', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.1.0.4' },
+        body: JSON.stringify({ birthData: BIRTH, section: 'tropical', planetSection: 'sun' }),
+      }))
+      const reader = res.body!.getReader()
+      await reader.read()            // first delta arrives
+      await reader.cancel('navigated away')
+      release()
+      for (let i = 0; i < 10 && !events.includes('gate'); i++) await new Promise(r => setTimeout(r, 0))
+      expect(events).toContain('gate')
+      expect(errors.mock.calls.some(c => String(c[0]).includes('[AXIS_GEN_FAIL]'))).toBe(false)
+    } finally {
+      errors.mockRestore()
+    }
   })
 })
