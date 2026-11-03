@@ -888,7 +888,7 @@ function computeAspects(planets: PlanetPosition[], filter?: string[]): Aspect[] 
 //
 // The Ascendant is an angle, not a body, so it is not a member of chart.planets and
 // computeAspects() never sees it. Without this, the Ascendant/Lagna context block
-// carried no aspects at all — while DEPTH REQUIREMENTS instructs the model to work
+// carried no aspects at all — while SHARED_RULES PART 7 (DEPTH AND LENGTH) instructs the model to work
 // "every major aspect with the aspecting planet named" for that very section, and the
 // section's word band is aspect-scaled. A model told to work aspects it was never
 // given can only pad or invent, so this supplies the real ones.
