@@ -166,3 +166,28 @@ describe('reading-rule-scan — summary and logging', () => {
     expect(first.length).toBeGreaterThan(0)
   })
 })
+
+describe('scanSectionRules — the "rather than" antithesis cap (v10.31)', () => {
+  it('stays silent at the cap', () => {
+    const one = 'The Moon in Cancer reaches for the familiar rather than the new. It holds what it has built.'
+    expect(scanSectionRules(one).filter(f => f.rule === 'rather-than')).toEqual([])
+  })
+
+  it('reports one soft finding carrying the section count once the cap is passed', () => {
+    const text = [
+      'Mars acts rather than waits.',
+      '',
+      'Venus chooses the known rather than the bright, and Saturn delays rather than refuses.',
+    ].join('\n')
+    const hits = scanSectionRules(text).filter(f => f.rule === 'rather-than')
+    expect(hits).toHaveLength(1)
+    expect(hits[0].severity).toBe('soft')
+    expect(hits[0].match).toContain('×3')
+    expect(hits[0].line).toBe(3) // the first use past the cap
+  })
+
+  it('ignores headings', () => {
+    const text = '## Rather than this\n\n## Rather than that\n\nThe Sun in Leo leads.'
+    expect(scanSectionRules(text).filter(f => f.rule === 'rather-than')).toEqual([])
+  })
+})

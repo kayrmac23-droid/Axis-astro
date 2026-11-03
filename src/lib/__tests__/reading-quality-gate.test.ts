@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   computePassFromScores,
+  MIN_PASS_AVERAGE,
+  MIN_INDIVIDUAL,
   validateScores,
   stripJsonFence,
   extractScoresFromRaw,
@@ -61,12 +63,15 @@ function allScores(v: number): GateScores {
 }
 
 describe('computePassFromScores', () => {
-  // Pass requires average ≥ 3.75 over all TEN criteria AND no individual below 3.
+  // Pass requires average ≥ MIN_PASS_AVERAGE over all TEN criteria AND no
+  // individual below MIN_INDIVIDUAL. The boundary cases are built from the
+  // constants so a deliberate change to the bar does not need these rewritten.
   it('passes when every score is strong', () => {
     expect(computePassFromScores(allScores(4))).toBe(true)
   })
 
-  it('fails when the average is below 3.75 even with no sub-3 score', () => {
+  it('fails when every score is merely adequate (3)', () => {
+    expect(MIN_PASS_AVERAGE).toBeGreaterThan(3)
     expect(computePassFromScores(allScores(3))).toBe(false)
   })
 
@@ -90,21 +95,28 @@ describe('computePassFromScores', () => {
     expect(computePassFromScores(scores)).toBe(false)
   })
 
-  it('passes just above the 3.75 boundary with min ≥ 3', () => {
-    // Eight 4s and two 3s → (32 + 6)/10 = 3.8, min 3.
-    const scores = allScores(4)
-    scores.specificity = 3
-    scores.anti_cliche = 3
-    expect(computePassFromScores(scores)).toBe(true)
+  // Ten integer scores, every one 3 or 4: the average is (30 + fours) / 10.
+  const withFours = (fours: number) => {
+    const scores = allScores(3)
+    ;(Object.keys(scores) as Array<keyof typeof scores>).slice(0, fours).forEach(k => { scores[k] = 4 })
+    return scores
+  }
+  const foursAtBar = Math.round((MIN_PASS_AVERAGE - 3) * 10)
+
+  it('passes with the average exactly on the bar and min ≥ 3 (no float-rounding miss)', () => {
+    expect(computePassFromScores(withFours(foursAtBar))).toBe(true)
   })
 
-  it('fails just below the 3.75 boundary', () => {
-    // Seven 4s and three 3s → (28 + 9)/10 = 3.7, min 3.
-    const scores = allScores(4)
-    scores.specificity = 3
-    scores.anti_cliche = 3
-    scores.synthesis = 3
-    expect(computePassFromScores(scores)).toBe(false)
+  it('fails one step (0.1) below the bar', () => {
+    expect(computePassFromScores(withFours(foursAtBar - 1))).toBe(false)
+  })
+
+  it('sits the bar between the v10.30 eval post-repair mean (3.25) and its ceiling (3.60)', () => {
+    // The bar was 3.75 while the rater's best observed average was 3.60, so
+    // nothing could pass. Moving it outside this window again needs evidence
+    // from an eval run, not a constant edit.
+    expect(MIN_PASS_AVERAGE).toBeGreaterThan(3.25)
+    expect(MIN_PASS_AVERAGE).toBeLessThanOrEqual(3.6)
   })
 })
 
@@ -699,5 +711,30 @@ describe('opening and closing modes — personal-planet sections', () => {
   it('separates the Moon (needed for safety) from Venus (worth giving and having)', () => {
     expect(SHARED_RULES).toContain('The Moon and Venus sections describe different things')
     expect(SECTION_INSTRUCTIONS.tropical.venus).not.toContain('needs from intimacy')
+  })
+})
+
+describe('EVAL_SYSTEM_PROMPT — score anchors (v10.31)', () => {
+  // The v10.30 eval awarded zero 5s across 540 prose scores: every criterion
+  // listed only what pulls a score down, so the rater parked at 3 and no
+  // section could reach the pass bar. These pin the positive anchors.
+  const LLM_CRITERIA = [
+    'chart_evidence', 'specificity', 'synthesis', 'contradiction_handling', 'anti_cliche',
+    'psychological_depth', 'practical_usefulness', 'voice_quality', 'falsifiability',
+  ]
+
+  it('defines a 4 and a 5 for every LLM-scored criterion', () => {
+    const anchors = EVAL_SYSTEM_PROMPT.slice(EVAL_SYSTEM_PROMPT.indexOf('SCORE ANCHORS'))
+    for (const c of LLM_CRITERIA) expect(anchors).toMatch(new RegExp(`- ${c} — 4: .+ 5: `))
+  })
+
+  it('tells the rater 5 is attainable and 3 is not a default', () => {
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/5 is attainable/)
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/Do not park at 3/)
+  })
+
+  it('states the live pass bar, not a hardcoded one', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain(`≥ ${MIN_PASS_AVERAGE.toFixed(2)} AND no individual score is below ${MIN_INDIVIDUAL}`)
+    expect(EVAL_SYSTEM_PROMPT).not.toContain('3.75')
   })
 })

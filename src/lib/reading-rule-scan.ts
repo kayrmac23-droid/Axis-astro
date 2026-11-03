@@ -50,6 +50,8 @@
 //     names, not a general -ize/-our heuristic, so "size" and "glamour" are safe.
 // A finding carries the matched text so a reviewer can confirm it in one glance.
 
+import { RATHER_THAN_MAX_PER_SECTION } from './prompts'
+
 // ── Severity ──────────────────────────────────────────────────────────────────
 // `hard`     — an unambiguous breach of a stated rule. No judgment required.
 // `doctrine` — a THE SMOKE DETECTOR candidate. Per DOCTRINE.md the grep finds
@@ -57,6 +59,7 @@
 //              rather than asserted as failures.
 // `soft`     — a measured property that is a breach only in aggregate (e.g. one
 //              over-long paragraph is a slip; six is a pattern).
+
 export type RuleSeverity = 'hard' | 'doctrine' | 'soft'
 
 export interface RuleFinding {
@@ -220,6 +223,13 @@ export function countSentences(paragraph: string): number {
   return (guarded.match(/[.!?](?=\s|$)/g) ?? []).length
 }
 
+// ── 8. The "rather than" antithesis ─────────────────────────────────────────
+// SHARED_RULES caps it at RATHER_THAN_MAX_PER_SECTION per section. Reported
+// `soft`: the phrase is ordinary English and one or two uses are not a breach of
+// anything; it is the section-level count that marks the template. One finding
+// per section, carrying the count, anchored at the first use past the cap.
+const RATHER_THAN_RE = /\brather than\b/gi
+
 // ── Scanner ──────────────────────────────────────────────────────────────────
 
 /**
@@ -263,6 +273,14 @@ export function scanSectionRules(text: string): RuleFinding[] {
         for (const m of allMatches(sentence, re))
           push('smoke-detector', 'doctrine', `${m} — in: ${sentence}`, line)
     }
+  }
+
+  // Section-level count of the "rather than" antithesis.
+  const ratherThan = lines.flatMap(l => allMatches(l.text, RATHER_THAN_RE).map(() => l.line))
+  if (ratherThan.length > RATHER_THAN_MAX_PER_SECTION) {
+    push('rather-than', 'soft',
+      `"rather than" ×${ratherThan.length} (limit ${RATHER_THAN_MAX_PER_SECTION})`,
+      ratherThan[RATHER_THAN_MAX_PER_SECTION])
   }
 
   // Headings: the v10.30 unheaded-close rule.

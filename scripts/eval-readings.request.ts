@@ -65,7 +65,7 @@ export function buildSectionRequest(
     contextBlock = buildInterpretationContext(dual, 'synthesis', planetSection)
   } else {
     const ctxBlock   = buildInterpretationContext(dual, section, planetSection, { priorText })
-    const chartBlock = formatEliteChartBlock(dual[section], section)
+    const chartBlock = formatEliteChartBlock(dual[section], section, { birthTimeUnknown: dual.birthData.birthTimeUnknown === true })
     contextBlock = `${chartBlock}\n${ctxBlock}`
   }
 
