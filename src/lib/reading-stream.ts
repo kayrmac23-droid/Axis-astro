@@ -136,3 +136,20 @@ export function classifyGenerationError(err: unknown): GenerationFailure {
   // Rate limits, 5xx, network, and unknown failures may clear — retry is fair.
   return { fatal: false, code: 'generation' }
 }
+
+// ── Client retry policy for a non-OK /api/reading response ─────────────────────
+// A 429 is retried only after the server's Retry-After (capped, so a reader is
+// never left staring at a frozen section); retrying it at once is guaranteed to
+// hit the limit again. A 5xx may clear. Every other status — a 4xx validation
+// rejection, or a 503 from the kill switch or the daily cap — is the same
+// answer on a second attempt, so it is not retried.
+export const MAX_RETRY_WAIT_MS = 15_000
+
+export function retryDelayForStatus(status: number, retryAfter: string | null): number | null {
+  if (status === 429) {
+    const secs = Number(retryAfter)
+    return Math.min(MAX_RETRY_WAIT_MS, Number.isFinite(secs) && secs > 0 ? secs * 1000 : 5000)
+  }
+  if (status >= 500 && status !== 503) return 1500
+  return null
+}

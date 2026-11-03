@@ -46,12 +46,17 @@ export function parseBirthDataInput(
   }
 
   const input     = raw as Record<string, unknown>
+  const birthTimeUnknown = input.birthTimeUnknown === true || input.birthTimeUnknown === 'true'
   const year      = numberFromUnknown(input.year)
   const month     = numberFromUnknown(input.month)
   const day       = numberFromUnknown(input.day)
-  // Unknown birth time is sent without an hour/minute; default to noon.
-  const hour      = isBlank(input.hour)   ? 12 : numberFromUnknown(input.hour)
-  const minute    = isBlank(input.minute) ? 0  : numberFromUnknown(input.minute)
+  // Unknown birth time is ALWAYS noon, whatever hour/minute was sent. The reading
+  // cache key normalises an unknown-time chart to 12:00, so a chart computed from
+  // any other supplied hour would write prose about a different Moon (and Lagna)
+  // under the noon key — read by every honest unknown-time reader of that date
+  // and place for the full TTL. Forcing noon here makes key and chart agree.
+  const hour      = birthTimeUnknown ? 12 : isBlank(input.hour)   ? 12 : numberFromUnknown(input.hour)
+  const minute    = birthTimeUnknown ? 0  : isBlank(input.minute) ? 0  : numberFromUnknown(input.minute)
   const latitude  = numberFromUnknown(input.latitude)
   const longitude = numberFromUnknown(input.longitude)
 
@@ -97,7 +102,7 @@ export function parseBirthDataInput(
     ok: true,
     data: {
       year, month, day, hour, minute, latitude, longitude, timezone, tzName,
-      birthTimeUnknown: input.birthTimeUnknown === true || input.birthTimeUnknown === 'true',
+      birthTimeUnknown,
     },
   }
 }

@@ -118,3 +118,19 @@ describe('server → client protocol round trip', () => {
     expect(detectStreamError(wire)!.fatal).toBe(false)
   })
 })
+
+describe('retryDelayForStatus', () => {
+  it('waits out Retry-After on a 429, capped', async () => {
+    const { retryDelayForStatus, MAX_RETRY_WAIT_MS } = await import('../reading-stream')
+    expect(retryDelayForStatus(429, '3')).toBe(3000)
+    expect(retryDelayForStatus(429, '600')).toBe(MAX_RETRY_WAIT_MS)
+    expect(retryDelayForStatus(429, null)).toBe(5000)
+  })
+  it('retries a transient 5xx but never a 4xx or a 503 kill switch / daily cap', async () => {
+    const { retryDelayForStatus } = await import('../reading-stream')
+    expect(retryDelayForStatus(500, null)).toBe(1500)
+    expect(retryDelayForStatus(503, null)).toBeNull()
+    expect(retryDelayForStatus(400, null)).toBeNull()
+    expect(retryDelayForStatus(413, null)).toBeNull()
+  })
+})

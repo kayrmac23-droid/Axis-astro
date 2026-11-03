@@ -36,23 +36,32 @@ const NAKS = ['ASHWINI', 'BHARANI', 'KRITTIKA', 'ROHINI', 'MRIGASHIRA', 'ARDRA',
 const SIGN_NAMES = ['ARIES', 'TAURUS', 'GEMINI', 'CANCER', 'LEO', 'VIRGO', 'LIBRA', 'SCORPIO', 'SAGITTARIUS', 'CAPRICORN', 'AQUARIUS', 'PISCES']
 
 // Major aspects, frame-invariant (both systems shift by the same ayanamsa).
-const ASPECT_DEFS: [number, number, 'hard' | 'soft'][] = [
-  [180, 7, 'hard'], [120, 6, 'soft'], [90, 6, 'hard'], [60, 4, 'soft'],
+// The SAME set and orbs the interpretation engine reads (interpretation-engine.ts
+// ASPECT_DEFS, and its 5° orb for an angle), so the web on the wheel is the web
+// the reading discusses. It used to omit conjunctions and run tighter orbs.
+type AspectKind = 'hard' | 'soft' | 'conj'
+const ASPECT_DEFS: [number, number, AspectKind][] = [
+  [0, 8, 'conj'], [180, 8, 'hard'], [120, 8, 'soft'], [90, 8, 'hard'], [60, 6, 'soft'],
 ]
-function computeAspects(lonOf: Record<string, number>): [string, string, 'hard' | 'soft'][] {
+const ANGLE_ORB = 5
+const ANGLE_IDS = new Set(['asc', 'mc'])
+function computeAspects(lonOf: Record<string, number>): [string, string, AspectKind][] {
   const ids = Object.keys(lonOf)
-  const out: [string, string, 'hard' | 'soft'][] = []
+  const out: [string, string, AspectKind][] = []
   for (let i = 0; i < ids.length; i++) {
     for (let j = i + 1; j < ids.length; j++) {
+      const angular = ANGLE_IDS.has(ids[i]) || ANGLE_IDS.has(ids[j])
+      if (ANGLE_IDS.has(ids[i]) && ANGLE_IDS.has(ids[j])) continue
       let d = Math.abs(norm(lonOf[ids[i]] - lonOf[ids[j]]))
       if (d > 180) d = 360 - d
       for (const [ang, orb, kind] of ASPECT_DEFS) {
-        if (Math.abs(d - ang) <= orb) { out.push([ids[i], ids[j], kind]); break }
+        if (Math.abs(d - ang) <= (angular ? Math.min(orb, ANGLE_ORB) : orb)) { out.push([ids[i], ids[j], kind]); break }
       }
     }
   }
   return out
 }
+const aspectStroke = (kind: AspectKind) => 'rgba(234,232,248,' + (kind === 'soft' ? .26 : .40) + ')'
 
 const TREATMENT_LETTER: Record<string, 'A' | 'B' | 'C'> = { graticule: 'A', plate: 'B', stellar: 'C' }
 
@@ -77,7 +86,7 @@ export default function FrameShiftWheel({
   const aRef = useRef(0)
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
   const aspectElsRef = useRef<Record<string, SVGElement[]>>({})
-  const aspectKindRef = useRef<Map<SVGElement, 'hard' | 'soft'>>(new Map())
+  const aspectKindRef = useRef<Map<SVGElement, AspectKind>>(new Map())
   const selRingsRef = useRef<Record<string, SVGElement>>({})
   const glyphElsRef = useRef<Record<string, SVGElement>>({})
   const pointerElsRef = useRef<Record<string, SVGElement>>({})
@@ -153,10 +162,18 @@ export default function FrameShiftWheel({
       { id: 'dsc', n: 'DSC', lon: norm(tropical.ascendant + 180) },
       { id: 'ic', n: 'IC', lon: norm(tropical.midheaven + 180) },
     ]
+    const timeKnown = data.birthData.birthTimeUnknown !== true
     const lonOf: Record<string, number> = {}
-    bodyList.forEach(b => { lonOf[b.id] = b.lon })
-    lonOf['asc'] = tropical.ascendant
-    lonOf['mc'] = tropical.midheaven
+    // Ketu is left out of the web, as in the engine: it is always exactly
+    // opposite Rahu, so including both drew a permanent Rahu–Ketu "opposition"
+    // and doubled every nodal contact. Its glyph is still drawn.
+    bodyList.forEach(b => { if (b.id !== 'ketu') lonOf[b.id] = b.lon })
+    // The angles join the web only when they are real: with no birth time they
+    // are a noon placeholder.
+    if (timeKnown) {
+      lonOf['asc'] = tropical.ascendant
+      lonOf['mc'] = tropical.midheaven
+    }
     const ASPECTS = computeAspects(lonOf)
     const TROP_ASC_SIGN = Math.floor(norm(tropical.ascendant) / 30)
     const SID_ASC_SIGN = Math.floor(norm(sidereal.ascendant) / 30)
@@ -238,7 +255,7 @@ export default function FrameShiftWheel({
     // whole-sign house numerals (crossfade, plate)
     const NUMOP = .38
     const gNumT = mk('g', { opacity: NUMOP }, gNums), gNumS = mk('g', { opacity: 0 }, gNums)
-    for (let h = 0; h < 12; h++) {
+    for (let h = 0; timeKnown && h < 12; h++) {
       const sT = (TROP_ASC_SIGN + h) % 12, sS = (SID_ASC_SIGN + h) % 12
       const [tx, ty] = pt(sT * 30 + 15, 296)
       const tT = mk('text', { x: tx, y: ty, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8' }, gNumT); tT.textContent = ROMAN[h]
@@ -246,12 +263,13 @@ export default function FrameShiftWheel({
       const tS = mk('text', { x: sx, y: sy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8' }, gNumS); tS.textContent = ROMAN[h]
     }
 
-    // axes
-    ANGLES.slice(0, 2).forEach(ax => {
+    // axes — not drawn for an unknown birth time: the angles are a noon
+    // placeholder, and drawing them states them as fact (the header says so).
+    if (timeKnown) ANGLES.slice(0, 2).forEach(ax => {
       const [x0, y0] = pt(ax.lon, 410), [x1, y1] = pt(ax.lon + 180, 410)
       mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.20)', 'stroke-width': 1 }, gSky)
     })
-    ;([[-1.4, 0], [0, 1.4]] as [number, number][]).forEach(p => {
+    if (timeKnown) ([[-1.4, 0], [0, 1.4]] as [number, number][]).forEach(p => {
       const [x0, y0] = pt(tropical.ascendant + p[0], 402), [x1, y1] = pt(tropical.ascendant + p[1], 416)
       mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.5)', 'stroke-width': 1 }, gSky)
     })
@@ -260,7 +278,7 @@ export default function FrameShiftWheel({
     const aspectEls: Record<string, SVGElement[]> = {}
     ASPECTS.forEach(([a, b, kind]) => {
       const [x0, y0] = pt(lonOf[a], 218), [x1, y1] = pt(lonOf[b], 218)
-      const l = mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,' + (kind === 'hard' ? .40 : .26) + ')', 'stroke-width': 1, 'stroke-dasharray': kind === 'hard' ? 'none' : '3 4' }, gSky)
+      const l = mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: aspectStroke(kind), 'stroke-width': 1, 'stroke-dasharray': kind === 'soft' ? '3 4' : 'none' }, gSky)
       aspectKindRef.current.set(l, kind)
       ;(aspectEls[a] = aspectEls[a] || []).push(l)
       ;(aspectEls[b] = aspectEls[b] || []).push(l)
@@ -303,7 +321,7 @@ export default function FrameShiftWheel({
       asc: { x: 14, y: 442, anchor: 'start' }, dsc: { x: 886, y: 442, anchor: 'end' },
       mc: { x: 398, y: 26, anchor: 'middle' }, ic: { x: 502, y: 882, anchor: 'middle' },
     }
-    ANGLES.forEach(ax => {
+    if (timeKnown) ANGLES.forEach(ax => {
       const cfg = ANGLE_LBL[ax.id]
       const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)' }, gSky)
       t.textContent = ax.n
@@ -412,7 +430,7 @@ export default function FrameShiftWheel({
     all.forEach(l => {
       const kind = kinds.get(l)
       l.setAttribute('opacity', '1')
-      l.setAttribute('stroke', 'rgba(234,232,248,' + (kind === 'hard' ? .40 : .26) + ')')
+      l.setAttribute('stroke', aspectStroke(kind ?? 'hard'))
       l.setAttribute('stroke-width', '1')
     })
     if (selected) {
@@ -443,7 +461,7 @@ export default function FrameShiftWheel({
         onClick={() => onSelect?.(null)}
       />
       <div className={styles.legend}>
-        <span><i className={styles.lineHard} />SQUARE · OPPOSITION</span>
+        <span><i className={styles.lineHard} />CONJUNCTION · SQUARE · OPPOSITION</span>
         <span><i className={styles.lineSoft} />TRINE · SEXTILE</span>
         <span><i className={styles.dotSel} />SELECTED</span>
         <span><i className={styles.deltaMark}>Δ</i>OFFSET ARC</span>

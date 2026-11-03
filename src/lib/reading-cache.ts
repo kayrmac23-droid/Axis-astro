@@ -87,7 +87,15 @@ import type { BirthData } from '@/lib/astro-calc'
 // houses, so an unknown-time reading was instructed to repeat the caveat in up to
 // nineteen sections and then penalised for it. The notice now defers to the rule.
 // Bumped within hours of v10.31 shipping, while its cache was still near-empty.
-export const READING_PROMPT_VERSION = 'v10.32'
+// v10.33: full-repo audit fixes. The local Pluto fallback was off by up to 1.4°
+// (a J2000/of-date frame mix) and the true node dropped a 0.08° term, so cached
+// prose could describe positions the wheel no longer shows. Unknown-birth-time
+// charts no longer receive dasha, Lagna-derived yogas or house lordships as
+// fact. SHARED_RULES: the uncompensated-difficulty rule is no longer a quota,
+// and houses are no longer described as changing only "occasionally" between
+// frames. An empty Divergence allocation gets a short length band. The Western
+// dignity table no longer assigns the nodes dignities.
+export const READING_PROMPT_VERSION = 'v10.33'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
@@ -159,9 +167,9 @@ interface CacheKeyParams {
   // reader for the rest of its 30-day TTL. Empty for sections that never
   // carry the dasha.
   dasha?:        string
-  // Digest of the earlier sections this one was written after (see
-  // reading-thread.ts priorDigest). A section is only reusable after the exact
-  // text it was written to follow; '' for the opening section or no thread.
+  // Digest of WHICH earlier sections this one was written after, in order — not
+  // their prose (see reading-thread.ts priorDigest for why). '' for the opening
+  // section or no thread.
   priorDigest?:  string
 }
 
@@ -234,11 +242,17 @@ export async function getCachedReading(key: string): Promise<string | null> {
   }
 }
 
-export async function setCachedReading(key: string, text: string): Promise<void> {
+// A section the gate could not confirm is cached for a day rather than not at
+// all: uncached, every later view of the chart regenerated and re-gated it
+// (~4 model calls per view, indefinitely). A day bounds how long unconfirmed
+// prose is served while capping that cost at one regeneration per chart per day.
+export const PROVISIONAL_TTL_SECONDS = 24 * 60 * 60
+
+export async function setCachedReading(key: string, text: string, ttlSeconds: number = TTL_SECONDS): Promise<void> {
   const redis = getRedis()
   if (!redis) return
   try {
-    await redis.set(key, text, { ex: TTL_SECONDS })
+    await redis.set(key, text, { ex: ttlSeconds })
   } catch (err) {
     console.error('Redis SET error:', err instanceof Error ? err.message : err)
   }

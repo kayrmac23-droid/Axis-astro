@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.32
+// AXIS Production System Prompts v10.33
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -12,7 +12,7 @@
 // Methodology disclosed:
 //   House system:  Whole Sign (for both Tropical and Sidereal)
 //   Ayanamsa:      Lahiri (IAU standard for Jyotish, ~23.85° at J2000)
-//   Lunar node:    True (osculating) node for Rahu/Ketu — Meeus Ch. 22 + corrections, <0.05° vs Swiss Ephemeris
+//   Lunar node:    True node for Rahu/Ketu — Meeus Ch. 47 mean node + the five periodic terms
 //   Dasha system:  Vimshottari (used for current-chapter context, not predictive events)
 //   Ephemeris:     VSOP87 (planets) + ELP2000 (Moon) — professional-grade accuracy
 
@@ -390,12 +390,23 @@ export function scaleBand(band: WordBand, aspectCount: number): WordBand {
   }
 }
 
+// The band for a Divergence section whose plan allocated NOTHING: a short,
+// accurate statement of that fact, not a section.
+export const EMPTY_PLAN_BAND = { target: 70, fullMin: 35, fullMax: 140, hardMin: 15, hardMax: 220 } as const
+
 // Scale a band to how much evidence this chart's plan actually allocated to the
 // section. Symmetric, unlike aspect scaling: a rich plan raises the ceiling, a
 // thin one lowers the floor. Without this, a chart with one concordance is told
 // to write 300 words about it, and the only way to comply is padding.
 export function scaleBandByEvidence(band: WordBand, evidenceCount: number): WordBand {
   if (band.evidenceAllowance == null || band.evidenceBaseline == null) return band
+  // NOTHING allocated: the section instruction and the plan both say to state
+  // that plainly and briefly. The scaled floor (~110 words) contradicted that —
+  // a correctly brief section scored 1 on length and was "repaired" by padding
+  // it, on ~5% of charts for `agree`. An empty allocation gets a short band.
+  if (evidenceCount <= 0) {
+    return { ...band, target: EMPTY_PLAN_BAND.target, fullMin: EMPTY_PLAN_BAND.fullMin, fullMax: EMPTY_PLAN_BAND.fullMax, hardMin: EMPTY_PLAN_BAND.hardMin, hardMax: EMPTY_PLAN_BAND.hardMax }
+  }
   const raw   = evidenceCount - band.evidenceBaseline
   // Upward only: a thin plan still scales all the way down (see evidenceUpCap).
   const delta = band.evidenceUpCap != null ? Math.min(raw, band.evidenceUpCap) : raw
@@ -589,8 +600,8 @@ METHODOLOGY (apply these facts consistently):
   angle and does NOT equal the 10th-house boundary.
 - Ayanamsa: Lahiri (IAU standard for Jyotish, ~23.85° at J2000), applied to
   derive Sidereal from Tropical positions.
-- Lunar nodes: True (osculating) node for Rahu/Ketu — Meeus Ch. 22 mean node
-  plus periodic corrections, matching Swiss Ephemeris to <0.05°. The node
+- Lunar nodes: True node for Rahu/Ketu — the Meeus mean node plus its five
+  periodic correction terms. The node
   oscillates up to ±1.5° around the mean with a ~173-day period; the position
   given is the instantaneous osculating node, not the mean.
 - Vimshottari dasha: contextualises the current life chapter; it is not a
@@ -628,7 +639,10 @@ WHAT CHANGES BETWEEN TROPICAL AND SIDEREAL:
 Both systems derive from one shared set of planetary positions. What is
 per-system is the sign a planet falls in, its degree WITHIN that sign, its
 essential dignity, its nakshatra, and — because the Ascendant shifts too — the
-chart ruler / Lagna lord and, at a sign boundary, occasionally the house.
+chart ruler / Lagna lord and the house. Houses are Whole Sign, so whenever the
+Ascendant changes sign between the frames (on most charts) every house number
+is counted from a different sign, and a planet can change house while keeping
+its sign.
 Interpret ONLY from the chart block in front of you, which is labelled for its
 system.
 - The chart ruler is keyed to the Ascendant of the system you are reading. The
@@ -639,8 +653,8 @@ system.
   chart-ruler claim is implicitly keyed to this block's Ascendant; do not assert
   it holds in the other system.
 - Do not claim a placement's house, degree or sign is "the same in both systems"
-  unless this block establishes it. House can differ at a sign boundary, and
-  degree-within-sign always differs by the ayanamsa. Reason from the numbers in
+  unless this block establishes it. House usually differs between the frames,
+  and degree-within-sign always differs by the ayanamsa. Reason from the numbers in
   front of you, never from an assumed cross-system identity.
 - The ayanamsa moves every position BACKWARD, to an earlier degree. A placement
   that changes sign always moves to the PREVIOUS sign (Virgo to Leo, never Virgo
@@ -720,10 +734,12 @@ debilitation and tight hard aspect gets rehabilitated inside the paragraph that
 raised it, so the prose never once sits with a cost as a cost. That is forced
 emotional resolution, and it flatters the reader about their wounds — a subtler
 dishonesty than flattering their strengths.
-- Within this section, at least one named difficulty MUST be left
+- Where this section names a real difficulty, at least one of them is left
   uncompensated: stated as a real cost, with no redemptive upside attached to it
   anywhere in the section — not in the same paragraph, not in a later one, not
-  in the close.
+  in the close. This is not a quota: if the placement genuinely carries no hard
+  factor, do not invent one to have something to leave standing (SHADOW
+  COVERAGE below — a manufactured difficulty is a worse failure than none).
 - Banned move: raising a hard placement and resolving it into a virtue in the
   same breath. Do not follow a Sun in fall with "the effort produces something
   genuinely uncommon"; do not follow serial identity destabilisation with "a

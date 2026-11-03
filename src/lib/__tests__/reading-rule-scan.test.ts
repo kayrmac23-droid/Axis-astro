@@ -43,6 +43,11 @@ describe('reading-rule-scan — false positives', () => {
     expect(has(ok, 'american-spelling')).toBe(false)
   })
 
+  // "judgement" is the British spelling; it used to be reported as American.
+  it('does not flag the British "judgement"', () => {
+    expect(has('Your judgement of a room is quick and rarely revised.', 'american-spelling')).toBe(false)
+  })
+
   it('does not flag astrological "merger" or a conjunction described as merging', () => {
     const ok = 'The conjunction is a merger: the two planets operate as a single intensified unit. Scorpio needs transformation through total depth and merger.'
     expect(has(ok, 'smoke-detector')).toBe(false)

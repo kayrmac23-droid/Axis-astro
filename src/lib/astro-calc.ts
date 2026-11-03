@@ -87,6 +87,8 @@ const moonposition       = require('astronomia/moonposition')   as any
 const baseLib            = require('astronomia/base')           as any
 const nutationLib        = require('astronomia/nutation')       as any
 const plutoLib           = require('astronomia/pluto')          as any
+const precessLib        = ((m: any) => m.default ?? m)(require('astronomia/precess'))
+const coordLib          = ((m: any) => m.default ?? m)(require('astronomia/coord'))
 
 // Data modules: ESM `export default {...}` → CJS wraps under `.default`
 // Using static require paths so the bundler can resolve them at build time.
@@ -231,53 +233,52 @@ function getSaturnLongitude(jde: number): number   { return getGeocentricLon(get
 function getUranusLongitude(jde: number): number   { return getGeocentricLon(getPlanets()._uranus,  jde) }
 function getNeptuneLongitude(jde: number): number  { return getGeocentricLon(getPlanets()._neptune, jde) }
 
-// Pluto is not in VSOP87. Use the full Meeus Chapter 37 polynomial (43 terms,
-// sin + cos for each argument) via astronomia/pluto, then convert heliocentric →
-// geocentric using the same rectangular-coordinate approach as other planets.
-// Accuracy vs JPL Horizons: ~0.5° (few arcminutes near J2000, under 1° to 1885–2099).
+// Pluto is not in VSOP87. Meeus Ch.37 (astronomia/pluto) gives Pluto's
+// heliocentric position referred to the ecliptic and equinox of J2000, so the
+// geocentric conversion must be done in THAT frame — Earth from position2000(),
+// not position() — and only the resulting geocentric direction precessed to the
+// equinox of date. Mixing a J2000 Pluto with an of-date Earth (the original
+// implementation) put the result off by the accumulated precession, ~50″ per
+// year from 2000: 0.68° for a 1950 birth, 1.36° for 1900 — enough to change
+// Pluto's sign near a boundary. With the frames consistent, plus light-time,
+// nutation and annual aberration, this matches JPL Horizons DE440 to under
+// 0.03′ on every date in BENCHMARK.md (pinned in astro-calc.test.ts).
+const ABERRATION_DEG = 20.49552 / 3600
 function getPlutoLongitude(jde: number): number {
   const { _earth } = getPlanets()
-  const earthPos = _earth.position(jde)
-  const [L0, B0, R0] = [earthPos.lon, earthPos.lat, earthPos.range]
+  const pluto = plutoLib.default ?? plutoLib
+  const e = _earth.position2000(jde)
 
-  // Full Meeus Ch.37 heliocentric position from astronomia/pluto (VSOP87B J2000 frame)
-  const plutoHelio = (plutoLib.default ?? plutoLib).heliocentric(jde)
-  const [L, B, R] = [plutoHelio.lon, plutoHelio.lat, plutoHelio.range]
+  const geo = (p: { lon: number; lat: number; range: number }) => {
+    const x = p.range * Math.cos(p.lat) * Math.cos(p.lon) - e.range * Math.cos(e.lat) * Math.cos(e.lon)
+    const y = p.range * Math.cos(p.lat) * Math.sin(p.lon) - e.range * Math.cos(e.lat) * Math.sin(e.lon)
+    const z = p.range * Math.sin(p.lat) - e.range * Math.sin(e.lat)
+    return { lon: Math.atan2(y, x), lat: Math.atan2(z, Math.hypot(x, y)), dist: Math.hypot(x, y, z) }
+  }
 
-  // Heliocentric rectangular → geocentric rectangular (same as getGeocentricLon)
-  const x = R * Math.cos(B) * Math.cos(L) - R0 * Math.cos(B0) * Math.cos(L0)
-  const y = R * Math.cos(B) * Math.sin(L) - R0 * Math.cos(B0) * Math.sin(L0)
+  // Light-time: Pluto where it was when the light now arriving left it.
+  const first = geo(pluto.heliocentric(jde))
+  const g = geo(pluto.heliocentric(jde - baseLib.lightTime(first.dist)))
 
-  // Geocentric ecliptic longitude + nutation
-  let λ = Math.atan2(y, x)
+  // J2000 → ecliptic and equinox of date.
+  const ofDate = precessLib.eclipticPosition(
+    new coordLib.Ecliptic(g.lon, g.lat), 2000.0, baseLib.JDEToJulianYear(jde),
+  )
+  let λ = ofDate.lon * RAD2DEG
+  // Nutation in longitude, then annual aberration (Meeus 23.2, longitude term).
   const [Δψ] = nutationLib.nutation(jde)
-  λ += Δψ
-  return normalize(λ * RAD2DEG)
+  λ += Δψ * RAD2DEG
+  const sunLon = getSunLongitude(jde)
+  λ -= ABERRATION_DEG * Math.cos((sunLon - λ) * DEG2RAD)
+  return normalize(λ)
 }
 
-// True (osculating) ascending lunar node (Rahu) — Meeus Ch. 22 mean node
-// plus the 4 dominant periodic correction terms. Matches Swiss Ephemeris
-// osculating node to <0.05° over 1900–2100. The dominant term oscillates
-// ±1.5° with a ~173-day period driven by the Sun–Moon–node geometry.
+// True (osculating) ascending lunar node (Rahu) — Meeus Ch.47: the mean node
+// plus the five periodic terms, via astronomia/moonposition.trueNode. The
+// hand-rolled version this replaces carried only four of the five terms and
+// dropped the 0.0801° sin 2(M′−F) term.
 function getRahuLongitude(jde: number): number {
-  const T = (jde - 2451545.0) / 36525.0
-
-  const meanNode = normalize(
-    125.04452 - 1934.136261 * T + 0.0020708 * T * T + T * T * T / 450000
-  )
-
-  // Fundamental arguments in radians (Meeus Ch. 22)
-  const D = normalize(297.85036 + 445267.111480 * T - 0.0019142 * T * T + T * T * T / 189474) * DEG2RAD
-  const M = normalize(357.52772 +  35999.050340 * T - 0.0001603 * T * T - T * T * T / 300000) * DEG2RAD
-  const F = normalize( 93.27191 + 483202.017538 * T - 0.0036825 * T * T + T * T * T / 327270) * DEG2RAD
-
-  const correction =
-    - 1.4979 * Math.sin(2 * D - 2 * F)
-    - 0.1500 * Math.sin(M)
-    - 0.1226 * Math.sin(2 * D)
-    + 0.1176 * Math.sin(2 * F)
-
-  return normalize(meanNode + correction)
+  return normalize(moonposition.trueNode(jde) * RAD2DEG)
 }
 
 // ── HOUSES + ASC + MC ─────────────────────────────────────────────────────────

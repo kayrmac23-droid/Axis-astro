@@ -525,3 +525,44 @@ describe('gateForCache — banned existential opener', () => {
     expect(r.modelCalls).toBe(1)
   })
 })
+
+describe('gateForCache — spend is recorded per call, and unconfirmed sections expire rather than regenerate forever', () => {
+  it('calls onModelCall once per billable call, matching modelCalls', async () => {
+    const onModelCall = vi.fn()
+    create
+      .mockResolvedValueOnce(evalReply(2, 'fix it'))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(2, 'still weak'))
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW(), onModelCall })
+    expect(onModelCall).toHaveBeenCalledTimes(r.modelCalls)
+  })
+
+  it('bounds every call with a timeout inside the invocation and disables SDK retries', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    const opts = create.mock.calls[0][1] as { timeout: number; maxRetries: number }
+    expect(opts.maxRetries).toBe(0)
+    expect(opts.timeout).toBeGreaterThan(0)
+    expect(opts.timeout).toBeLessThanOrEqual(120_000)
+  })
+
+  it('offers the clean first pass as provisional when the repair fails its re-score', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(2, 'fix it'))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(2, 'still weak'))
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBeNull()
+    expect(r.provisionalText).toBe(GOOD_SECTION)
+  })
+
+  it('never offers a doctrine-breaching first pass as provisional', async () => {
+    const breaching = `${GOOD_SECTION} ${BANNED_RESCUE_PHRASINGS[0]}.`
+    create
+      .mockResolvedValueOnce(evalReply(2, 'fix it'))
+      .mockRejectedValueOnce(new Error('repair failed'))
+    const r = await gateForCache({ ...BASE, firstPassText: breaching, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBeNull()
+    expect(r.provisionalText ?? null).toBeNull()
+  })
+})

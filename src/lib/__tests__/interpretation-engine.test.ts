@@ -349,3 +349,66 @@ describe('unknown-birth-time notice', () => {
     }
   })
 })
+
+describe('unknown birth time — no Lagna- or Moon-timing facts stated as fact', () => {
+  // A noon Lagna and a Moon up to ~6° off make the dasha, the house lordships
+  // and every Lagna-derived yoga unsupported. They used to reach the Sidereal
+  // sections and the Divergence plan regardless.
+  const chart = calculateDualChart({
+    year: 1990, month: 5, day: 4, hour: 12, minute: 0,
+    latitude: -37.8, longitude: 144.9, timezone: 10, birthTimeUnknown: true,
+  })
+
+  it('withholds dasha, yogas and house lordships from every Sidereal planet section', () => {
+    for (const planetSection of ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']) {
+      const ctx = buildInterpretationContext(chart, 'sidereal', planetSection)
+      expect(ctx).not.toContain('ACTIVE VIMSHOTTARI DASHA')
+      expect(ctx).not.toContain('MAJOR YOGAS DETECTED')
+      expect(ctx).not.toContain('HOUSE LORDSHIP')
+    }
+  })
+
+  it('keeps Lagna-derived yogas out of the Divergence plan and the dasha out of the cache key', async () => {
+    const { buildDivergencePlan, currentDashaKey } = await import('../interpretation-engine')
+    expect(buildDivergencePlan(chart).evidence.some(e => e.kind === 'yoga')).toBe(false)
+    expect(currentDashaKey(chart)).toBe('')
+  })
+
+  it('compares Tropical placements by sign only, with no certainty claim', () => {
+    const ctx = buildInterpretationContext(chart, 'tropical', 'sun')
+    expect(ctx).not.toMatch(/certain across both frameworks/)
+    expect(ctx.split('CROSS-CHART ACCURACY NOTE:')[1]).not.toMatch(/ H\d/)
+  })
+})
+
+describe('fmtDeg — degree within a sign', () => {
+  it('carries rounded minutes into the degree', async () => {
+    const { fmtDeg } = await import('../interpretation-engine')
+    expect(fmtDeg(19.9958)).toBe("20°00'")
+    expect(fmtDeg(14.3667)).toBe("14°22'")
+  })
+  // It used to wrap 29°59.7′ to "0°00'" beside the unchanged sign name.
+  it('never wraps or reaches 30° at the top of the sign', async () => {
+    const { fmtDeg } = await import('../interpretation-engine')
+    expect(fmtDeg(29.9958)).toBe("29°59'")
+    expect(fmtDeg(29.99999)).toBe("29°59'")
+  })
+})
+
+describe('detectMajorYogas — Raja yoga pairs', () => {
+  // Cancer Lagna: the Moon rules H1 (kendra + trikona), Mars rules H5 and H10.
+  // Their conjunction used to be reported twice, once per lord order.
+  it('reports a kendra–trikona conjunction once', async () => {
+    const { detectMajorYogas } = await import('../interpretation-engine')
+    const p = (name: string, sign: string, signIndex: number, house: number) =>
+      ({ name, sign, signIndex, degree: 10, longitude: signIndex * 30 + 10, house, retrograde: false, dailyMotion: 1 })
+    const chart = {
+      ascendant: 95, ascendantSign: 'Cancer', ascendantDegree: 5, midheaven: 0, midheavenSign: 'Aries', midheavenDegree: 0,
+      houses: [], system: 'sidereal' as const,
+      planets: [p('Moon', 'Leo', 4, 2), p('Mars', 'Leo', 4, 2), p('Jupiter', 'Aries', 0, 10), p('Saturn', 'Gemini', 2, 12),
+        p('Venus', 'Taurus', 1, 11), p('Mercury', 'Gemini', 2, 12), p('Sun', 'Gemini', 2, 12)],
+    }
+    const raja = detectMajorYogas(chart).filter(y => y.startsWith('Raja Yoga') && y.includes('Moon') && y.includes('Mars'))
+    expect(raja).toHaveLength(1)
+  })
+})

@@ -3,8 +3,9 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor, renderSectionInstruction, countPlanEvidence } from '@/lib/prompts'
-import { buildInterpretationContext, formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
-import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
+import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
+import { formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
+import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading, PROVISIONAL_TTL_SECONDS } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock, synastryTimeUnknown } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
@@ -16,8 +17,7 @@ import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
 import {
-  parseThreadId, loadPriorSections, storeThreadSection, priorSectionBlocks, phrasesAlreadyUsedBlock,
-  priorDigest, READING_SO_FAR_FOOTER, type ThreadScope, type PriorSection,
+  parseThreadId, loadPriorSections, storeThreadSection, priorDigest, type ThreadScope, type PriorSection,
 } from '@/lib/reading-thread'
 
 export const maxDuration = 120
@@ -277,15 +277,20 @@ export async function POST(req: NextRequest) {
     // interprets the exact Pluto the user sees; otherwise it falls back to local
     // Meeus (no outbound JPL call in this hot path).
     //
-    // Refrains and verbal tics the reading so far already leans on are named so
-    // this section is told not to repeat them (empty for an opening section).
-    const repeatBlock = phrasesAlreadyUsedBlock(prior)
-    const priorText = prior.map(p => p.text).join('\n\n')
+    // The natal request is assembled by the same builder the eval harness uses
+    // (lib/reading-request.ts): chart block + context, the length clause rendered
+    // from the band THIS chart is scored against, the repeated-phrase block, and
+    // the reading so far as one cached block per earlier section. Synastry has no
+    // thread and its own context block, so it is assembled here.
+    let userContent:   string
+    let priorBlocks:   Anthropic.TextBlockParam[]
+    let userBlocks:    Anthropic.TextBlockParam[]
+    let systemBlocks:  Anthropic.TextBlockParam[]
+    let maxTokens:     number
+    let band:          ReturnType<typeof wordBandFor>
+    let aspectCount:   number
+    let evidenceCount: number | undefined
 
-    // The evidence half of the user turn, assembled first and on its own: the
-    // section instruction's length clause is rendered FROM it (below), so it has
-    // to exist before the instruction does.
-    let contextBlock: string
     if (section === 'synastry') {
       const dualA      = calculateDualChart(birthA!, overrideA)
       const dualB      = calculateDualChart(birthB!, overrideB)
@@ -298,62 +303,30 @@ export async function POST(req: NextRequest) {
       // composite Ascendant, houses and chart ruler, which are then midpoints of
       // a noon placeholder — exactly what formatSynastryBlock withholds.
       const anglesKnown = !synastryTimeUnknown(synData).composite
-      contextBlock = anglesKnown && (planetSection === 'composite_chart' || planetSection === 'central_dynamic')
+      const contextBlock = anglesKnown && (planetSection === 'composite_chart' || planetSection === 'central_dynamic')
         ? `${synBlock}\n\nCOMPOSITE CHART — DIGNITY & CHART RULER:\n${formatEliteChartBlock(synData.composite, 'tropical')}`
         : synBlock
-    } else if (section === 'synthesis') {
-      // The shared plan is deliberately the sole comparison dossier. Appending
-      // two full chart blocks here used to reintroduce unreliable houses/angles
-      // for unknown birth times and invited two parallel readings rather than a
-      // comparison of computed evidence.
-      contextBlock = buildInterpretationContext(dual!, 'synthesis', planetSection)
+      aspectCount   = countAspectsInContext(contextBlock)
+      evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
+      band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
+      userContent   = `${contextBlock}\n\n---\n\n${renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!}`
+      priorBlocks   = []
+      userBlocks    = [{ type: 'text', text: userContent }]
+      maxTokens     = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
+      // Cache the per-section-type system prompt too: it is stable across every
+      // request for a given section.
+      systemBlocks  = [SHARED_RULES_BLOCK, { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
     } else {
-      const frame      = section as 'tropical' | 'sidereal'
-      const ctxBlock   = buildInterpretationContext(dual!, frame, planetSection, { priorText })
-      const chartBlock = formatEliteChartBlock(dual![frame], frame)
-      contextBlock = `${chartBlock}\n${ctxBlock}`
+      const req = buildSectionRequest(dual!, section as NatalFrame, planetSection, prior)
+      userContent   = req.userContent
+      priorBlocks   = req.priorBlocks
+      userBlocks    = req.params.messages[0].content
+      systemBlocks  = req.params.system
+      maxTokens     = req.params.max_tokens
+      band          = req.band
+      aspectCount   = req.aspectCount
+      evidenceCount = req.evidenceCount
     }
-
-    // ── Length band: one number, read by the model AND by the gate ────────────
-    // The band is a function of this chart — aspect count for aspect-driven
-    // sections, the Divergence plan's own weight line for the two comparative
-    // ones. The gate's scoreLength derives it with these exact helpers from the
-    // userContent assembled just below, so rendering the instruction's length
-    // clause from it here is what makes the target the model is given and the
-    // target it is scored against the same number. (Counting on contextBlock
-    // rather than the finished userContent is safe and pinned by
-    // prompts-length-wiring.test.ts: neither helper's pattern can match prompt
-    // prose, so the counts are identical either side of the instruction.)
-    const aspectCount   = countAspectsInContext(contextBlock)
-    const evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
-    const band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
-    const sectionInstruction = renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!
-
-    const userContent = section === 'synastry'
-      ? `${contextBlock}\n\n---\n\n${sectionInstruction}`
-      : `${contextBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
-
-    // The reading so far goes in front of this section's chart context: one block
-    // per earlier section (prompt-cache friendly, see priorSectionBlocks), then
-    // this section's own context and instruction. The gate is handed the same
-    // prior blocks rather than a flattened string, so its evaluator and repair
-    // calls read the reading so far from the prompt cache instead of paying full
-    // price for it on every section (it judges repetition and repairs in
-    // continuity from exactly the same text).
-    const priorBlocks = priorSectionBlocks(prior)
-    const userBlocks: Anthropic.TextBlockParam[] = [
-      ...priorBlocks,
-      { type: 'text', text: prior.length > 0 ? `${READING_SO_FAR_FOOTER}\n\n${userContent}` : userContent },
-    ]
-
-    const maxTokens = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
-    // Cache the per-section-type system prompt too: it is stable across every
-    // request for a given section, so a second cache breakpoint here shaves
-    // time-to-first-token off the streamed first pass.
-    const systemBlocks: Anthropic.TextBlockParam[] = [
-      SHARED_RULES_BLOCK,
-      { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } },
-    ]
 
     // ── Generation pipeline (evaluate-and-recache) ─────────────────────────────
     // The first pass streams to the client token-by-token, so prose starts
@@ -374,6 +347,11 @@ export async function POST(req: NextRequest) {
         // (the repair and its re-score). The gate's calls are
         // recorded in the after() below; the generation is reserved up front.
         let gateCalls = 0
+        // Gate calls recorded the moment each is made (gateForCache onModelCall),
+        // so a call made before the platform kills an overrunning invocation is
+        // still counted. Any remainder the gate reports is recorded at the end.
+        let gateCallsRecorded = 0
+        const gateRecords: Promise<void>[] = []
 
         // Reserve the generation call against the daily budget AS it is made.
         // Recording it afterwards — which meant after the gate finished, ~30–60s
@@ -473,11 +451,17 @@ export async function POST(req: NextRequest) {
                 maxTokens,
                 model: MODEL,
                 startedAt,
+                onModelCall: () => {
+                  gateCallsRecorded++
+                  gateRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
+                },
               })
               gateCalls += verdict.modelCalls
 
               if (verdict.cacheText) {
                 await setCachedReading(cacheKey, verdict.cacheText)
+              } else if (verdict.provisionalText) {
+                await setCachedReading(cacheKey, verdict.provisionalText, PROVISIONAL_TTL_SECONDS)
               }
             } catch (gateErr) {
               // gateForCache never throws by contract; guard anyway so a stray
@@ -490,7 +474,11 @@ export async function POST(req: NextRequest) {
               // Flush the generation reservation fired on the hot path, then record
               // only what gating added (evaluate + any repair + re-score) on top.
               await reservation
-              try { await recordModelCalls(gateCalls) } catch { /* best-effort */ }
+              await Promise.all(gateRecords)
+              const unrecorded = gateCalls - gateCallsRecorded
+              if (unrecorded > 0) {
+                try { await recordModelCalls(unrecorded) } catch { /* best-effort */ }
+              }
             }
           })
         } catch (err) {

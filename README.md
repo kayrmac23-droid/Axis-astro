@@ -30,7 +30,7 @@ Readings are written in continuous analytical prose. No bullet points. No generi
 |---|---|---|
 | House system | Whole Sign | Consistent for both Tropical and Sidereal; used throughout code, wheel, and interpretation engine |
 | Ayanamsa | Lahiri | IAU standard for Jyotish; ~23.85° at J2000, precessing at 50.2564"/yr |
-| Lunar nodes | True (osculating) node | Meeus Ch. 22 mean node + 4-term periodic corrections; matches Swiss Ephemeris to <0.05°. Oscillates ±1.5° around the mean with a ~173-day period. |
+| Lunar nodes | True node | Meeus Ch. 47 mean node + the five periodic correction terms (`astronomia` `moonposition.trueNode`). Oscillates ±1.5° around the mean with a ~173-day period. |
 | Dasha system | Vimshottari | Used for current-chapter contextualisation, not event prediction |
 | Midheaven | Shown as separate angle | MC is NOT the Whole Sign 10th-house cusp — displayed independently on the wheel |
 
@@ -51,8 +51,8 @@ AXIS uses two complementary ephemeris sources:
 | Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included) | < 1 arcsecond |
 | Moon | ELP2000 + nutation correction | < 10 arcseconds |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
-| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, ~15–60 arcmin) | **< 1 arcsecond** |
-| Rahu/Ketu | True node: Meeus Ch. 22 + periodic corrections | < 0.05° vs. Swiss Ephemeris osculating node |
+| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, < 0.03 arcmin vs DE440 1930–2025) | **< 1 arcsecond** |
+| Rahu/Ketu | True node: Meeus Ch. 47 mean node + five periodic terms | Not independently benchmarked; the formula's terms are complete |
 | Lahiri ayanamsa | Linear precession formula | Within ~0.01° of the IAU reference value |
 
 Every generated chart displays the active Pluto ephemeris source ("JPL Horizons DE440" or "⚠ local fallback") in the reading header so users know which source was used.
@@ -207,7 +207,7 @@ This section describes what is hardened now and what requires distributed infras
 - `/api/reading` applies a Redis-backed per-IP rate limiter (20 req / 60s fixed window via Upstash, with an atomic Lua INCR+EXPIRE; in-memory fallback when Redis env vars are absent)
 - `/api/calculate` and `/api/synastry` enforce a 16 KB payload size limit with explicit JSON parse guard (reject oversized or malformed bodies before any processing)
 - `/api/calculate` applies a Redis-backed per-IP rate limiter (30 req / 60s); `/api/synastry` applies 20 req / 60s
-- `/api/geocode` enforces a 200-character query length limit and a Redis-backed per-IP rate limiter (30 req / 60s); results are field-whitelisted rather than forwarding raw Nominatim output
+- `/api/geocode` enforces a 200-character query length limit, a Redis-backed per-IP rate limiter (30 req / 60s) and a single app-wide 1 request/second gate to Nominatim; results are cached in Redis for 30 days and field-whitelisted rather than forwarding raw Nominatim output. The birth form searches only on Enter or its SEARCH button — never per keystroke, which Nominatim's policy forbids
 - `/api/timezone` applies a Redis-backed per-IP rate limiter (60 req / 60s) so the offline lookup cannot be used as an unbounded compute or scraping surface
 - All internal error messages are scrubbed from client-facing responses (server-side logging only)
 - Per-section streaming retry (2 attempts) with visible failure fallback
@@ -219,15 +219,15 @@ This section describes what is hardened now and what requires distributed infras
 
 **External service dependencies:**
 - Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs a generation call plus an evaluation call, and more when the gate repairs it, so a fully uncached natal reading is **42–84 calls**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
-- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to the local Meeus Ch. 37 polynomial (~15–60 arcmin vs DE440 across 1930–2025; see [BENCHMARK.md](BENCHMARK.md)) if unreachable.
-- OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s, no bulk use).
+- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to the local Meeus Ch. 37 calculation (< 0.03 arcmin vs DE440 across 1930–2025; see [BENCHMARK.md](BENCHMARK.md)) if unreachable.
+- OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s for the whole app, no autocomplete, results cached), all three enforced by `/api/geocode` and `BirthForm`.
 
 ---
 
 ## Known limitations and accuracy notes
 
-- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 polynomial (full 43-term table via `astronomia/pluto`; ~15–60 arcminutes vs DE440) and the chart header displays "⚠ local fallback." The fallback is noted so users know the accuracy tier their chart used. See [BENCHMARK.md](BENCHMARK.md).
-- **Rahu/Ketu** use the **true (osculating) lunar node** — Meeus Ch. 22 mean node plus 4 dominant periodic correction terms. Matches Swiss Ephemeris to <0.05° over 1900–2100. The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
+- **Pluto** uses JPL Horizons DE440 (< 1 arcsecond) when available. If the Horizons API is unreachable at chart calculation time, the engine falls back to the local Meeus Ch.37 calculation (full 43-term table via `astronomia/pluto`, computed in the J2000 frame and precessed to date; < 0.03 arcmin vs DE440 across 1930–2025) and the chart header names the source. Until November 2026 the fallback mixed a J2000 Pluto with an of-date Earth and drifted ~50″/yr from 2000 (up to ~1° for early-1900s births). See [BENCHMARK.md](BENCHMARK.md).
+- **Rahu/Ketu** use the **true lunar node** — the Meeus mean node plus all five periodic correction terms (an earlier version omitted the 0.08° fifth term). The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
 - **Lahiri ayanamsa** is computed via a linear precession formula. Difference from the full polynomial calculation is < 0.01° for dates 1900–2100.
 - **Birth time** accuracy directly affects Ascendant, MC, house placements, Moon degree, and dasha timing. AXIS flags this explicitly in the UI when time is unknown.
 - **JPL Horizons availability:** AXIS requires one outbound HTTP call to `ssd.jpl.nasa.gov` per chart calculation for the Pluto position. If the endpoint is unreachable (downtime, network policy), the fallback engine activates transparently.

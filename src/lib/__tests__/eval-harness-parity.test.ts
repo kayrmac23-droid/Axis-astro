@@ -1,9 +1,9 @@
 // Pins the batch eval harness (scripts/eval-readings.mjs) to /api/reading: drives
 // the real route through a whole natal reading with the Anthropic SDK mocked, and
-// asserts that every request it sends is exactly what the harness's
-// buildSectionRequest builds for the same chart and the same reading so far.
-// If the route's prompt assembly changes, this fails until the harness is brought
-// back in line — the harness must never measure a request production does not send.
+// asserts that every request it sends is exactly what buildSectionRequest
+// (lib/reading-request.ts, which the route and the harness now share) builds for
+// the same chart and the same reading so far. With one builder this mostly
+// guards the route's own wiring — the thread, the cache key, the prior sections.
 // Kept in its own file so the SDK and next/server mocks cannot leak.
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
@@ -13,7 +13,7 @@ import { NATAL_SECTION_ORDER, priorSectionsFor } from '@/lib/reading-order'
 import { calculateDualChart } from '@/lib/astro-calc'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
-import { buildSectionRequest, type NatalFrame } from '../../../scripts/eval-readings.request'
+import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
 
 const streamCalls: unknown[] = []
 let nextText = ''

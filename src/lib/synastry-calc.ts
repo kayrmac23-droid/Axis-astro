@@ -1,4 +1,7 @@
 import { DualChartData, ChartData, PlanetPosition } from './astro-calc'
+// Same formatter as the natal context: degree within the sign, clamped to the
+// sign's last arcminute so 29.999° never prints as "30°00'" against its own sign.
+import { fmtDeg } from './format-degree'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -220,13 +223,6 @@ export function buildSynastryData(personA: DualChartData, personB: DualChartData
 
 // ── Prompt formatting ─────────────────────────────────────────────────────────
 
-function fmtDeg(deg: number): string {
-  let d = Math.floor(deg)
-  let m = Math.round((deg - d) * 60)
-  // 12.9999° rounds to 60′ — carry it, or the block prints "12°60'".
-  if (m === 60) { d += 1; m = 0 }
-  return `${d}°${String(m).padStart(2, '0')}'`
-}
 
 // housesKnown=false drops the house number: with no birth time the Ascendant is
 // a noon placeholder, so every Whole Sign house follows from a guess.

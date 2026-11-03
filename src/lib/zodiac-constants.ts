@@ -17,6 +17,3 @@ export const ZODIAC_SIGNS = [
   { glyph: '♓', name: 'Pisces',      degree: 330 },
 ] as const
 
-// Lahiri ayanamsa at J2000 — the angular offset between tropical and sidereal
-// reference frames. The same value the calculation engine uses.
-export const SIDEREAL_OFFSET_DEG = 23.85

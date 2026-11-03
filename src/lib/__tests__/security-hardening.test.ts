@@ -178,3 +178,14 @@ describe('reading cache key — client-supplied Pluto cannot poison a shared row
     expect(syn(272.31, 280.00)).toBe(syn(272.31, 280.00))
   })
 })
+
+describe('parseBirthDataInput — unknown birth time is always noon', () => {
+  it('ignores a supplied hour/minute when birthTimeUnknown is set', () => {
+    const r = parseBirthDataInput({
+      year: 1990, month: 5, day: 4, hour: 3, minute: 17,
+      latitude: 10, longitude: 20, timezone: 0, birthTimeUnknown: true,
+    })
+    expect(r.ok).toBe(true)
+    if (r.ok) { expect(r.data.hour).toBe(12); expect(r.data.minute).toBe(0) }
+  })
+})

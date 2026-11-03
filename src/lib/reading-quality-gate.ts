@@ -473,6 +473,15 @@ function userTurn(priorBlocks: Anthropic.TextBlockParam[] | undefined, ...texts:
   ]
 }
 
+// Per-call request options. A gate call is only worth making if it can finish
+// inside the invocation: after() shares the route's maxDuration, and the SDK's
+// own default (a 10-minute timeout, two retries) would let a slow call run past
+// the platform kill — losing the cache write AND the spend record for a call
+// that billed. `timeoutMs` comes from gateForCache's remaining budget.
+function requestOptions(timeoutMs?: number): Anthropic.RequestOptions | undefined {
+  return timeoutMs == null ? undefined : { timeout: Math.max(1000, Math.floor(timeoutMs)), maxRetries: 0 }
+}
+
 function extractText(message: Anthropic.Message): string {
   return message.content
     .filter((b): b is Anthropic.TextBlock => b.type === 'text')
@@ -553,10 +562,12 @@ export interface EvaluateInput {
   // How this call is labelled in the [AXIS_USAGE] log: the first-pass score or
   // the re-score of a repair.
   usageCall?:    'evaluate' | 'recheck'
+  // Hard per-call timeout (ms). Omitted: the SDK default applies.
+  timeoutMs?:    number
 }
 
 export async function evaluateSection({
-  generatedText, chartContext, section, planetSection, priorBlocks, usageCall = 'evaluate',
+  generatedText, chartContext, section, planetSection, priorBlocks, usageCall = 'evaluate', timeoutMs,
 }: EvaluateInput): Promise<GateResult> {
   // Truncation is a hard, pre-scoring failure: a section that carries the
   // truncation sentinel or ends mid-sentence is incomplete and must never be
@@ -590,7 +601,7 @@ Score the generated section against the criteria and return the JSON object spec
       output_config: { effort: EVAL_EFFORT },
       system:        EVAL_SYSTEM_BLOCKS,
       messages:    [{ role: 'user', content: userTurn(priorBlocks, evalUserContent) }],
-    })
+    }, requestOptions(timeoutMs))
     logUsage(`${section}/${planetSection}`, usageCall, EVAL_MODEL, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
     const raw = extractText(msg)
@@ -735,10 +746,11 @@ export interface RepairInput {
   maxTokens:           number
   model:               string
   label?:              string   // section/planetSection, for the [AXIS_USAGE] log
+  timeoutMs?:          number   // hard per-call timeout; omitted → SDK default
 }
 
 export async function repairSection({
-  originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model, label = 'unknown',
+  originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model, label = 'unknown', timeoutMs,
 }: RepairInput): Promise<string> {
   const repairInstruction = `──────────── QUALITY-GATE REPAIR PASS ────────────
 The first draft of this section did not meet the AXIS quality threshold. The evaluator's critique follows. Rewrite the section from scratch, addressing every point in the critique while keeping the same structure, sub-headers, and depth target.
@@ -762,7 +774,7 @@ ${failedDraft}`
     thinking:    THINKING,
     system:      systemBlocks,
     messages:    [{ role: 'user', content: userTurn(priorBlocks, originalUserContent, repairInstruction) }],
-  })
+  }, requestOptions(timeoutMs))
   logUsage(label, 'repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
   return extractText(msg)
@@ -837,6 +849,7 @@ export async function repairDoctrineSentences(
   hits: string[],
   model: string,
   label = 'unknown',   // section/planetSection, for the [AXIS_USAGE] log
+  timeoutMs?: number,
 ): Promise<string> {
   const targets = doctrineRepairTargets(draft, hits)
   // A hit the segmenter cannot localise (or one whose text has already been
@@ -855,7 +868,7 @@ export async function repairDoctrineSentences(
       role: 'user',
       content: `Banned phrasing or hierarchy terms: ${hits.map(hit => `"${hit}"`).join(', ')}\n\nSentences:\n${numbered}`,
     }],
-  })
+  }, requestOptions(timeoutMs))
   logUsage(label, 'doctrine-repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
 
   const raw = extractText(msg).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
@@ -906,6 +919,10 @@ export function detectBannedPhrasings(text: string): string[] {
 // slowest observed pass of each kind plus the Redis write.
 const EVAL_SKIP_AFTER_MS   = 95_000  // an eval is ~5–15s
 const REPAIR_SKIP_AFTER_MS = 70_000  // a repair is a full regeneration, ~20–45s
+// The skip guards above bound when a call STARTS. This bounds when it must END:
+// every gate call is given a request timeout that expires here, leaving the
+// route's 120s maxDuration a few seconds for the Redis write and spend record.
+const GATE_HARD_DEADLINE_MS = 112_000
 
 export interface GateForCacheInput {
   firstPassText: string
@@ -924,6 +941,10 @@ export interface GateForCacheInput {
   // isTruncated()'s heuristic is not: a section cut off at the token ceiling can
   // still happen to end on a full stop, which the end-of-prose check would pass.
   truncated:     boolean
+  // Called the moment each billable gate call is made, so the caller can record
+  // spend per call. Recording only a total at the end lost every call made
+  // before the platform killed an overrunning invocation.
+  onModelCall?:  () => void
 }
 
 export interface GateForCacheResult {
@@ -941,6 +962,12 @@ export interface GateForCacheResult {
   // is the only record of how the first pass itself scored. Read by the batch
   // eval harness (scripts/eval-readings.mjs); the route ignores it.
   firstPass:  GateResult | null
+  // When cacheText is null because the gate could not confirm the section (as
+  // opposed to it being truncated or doctrine-breaching), the doctrine-clean
+  // first pass, for the caller to cache with a SHORT TTL. Leaving such a section
+  // uncached made every later view of the chart regenerate and re-gate it — ~4
+  // model calls per view, indefinitely.
+  provisionalText?: string | null
 }
 
 // One greppable line per gated section. This is the only place gate scores are
@@ -971,9 +998,14 @@ function cacheIfClean(text: string, reason: string, label: string, modelCalls: n
 export async function gateForCache(input: GateForCacheInput): Promise<GateForCacheResult> {
   const {
     firstPassText, chartContext, priorBlocks, section, planetSection,
-    systemBlocks, maxTokens, model, startedAt, truncated,
+    systemBlocks, maxTokens, model, startedAt, truncated, onModelCall,
   } = input
   const label = `${section}/${planetSection}`
+  const remainingMs = () => startedAt + GATE_HARD_DEADLINE_MS - Date.now()
+  const noteCall = () => { try { onModelCall?.() } catch { /* best-effort */ } }
+  // The first pass, if it is safe to serve for a short while. Never a truncated
+  // or doctrine-breaching text — those stay uncached exactly as before.
+  const provisional = detectBannedPhrasings(firstPassText).length === 0 ? firstPassText : null
 
   // Truncated or empty output is never cached, never scored, never repaired in
   // place — it has to be regenerated in full, so spending an eval call on it
@@ -997,12 +1029,14 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // evaluateSection swallows its own errors (returning evaluatorErrored), so this
   // resolves either way. Count the call regardless: a response that failed to parse
   // still billed tokens, and over-counting spend is the safe direction.
+  noteCall()
   const gate = await evaluateSection({
     generatedText: firstPassText,
     chartContext,
     priorBlocks,
     section,
     planetSection,
+    timeoutMs: remainingMs(),
   })
   let modelCalls = 1
 
@@ -1033,7 +1067,8 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     }
     try {
       modelCalls++
-      const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model, label)
+      noteCall()
+      const repaired = await repairDoctrineSentences(firstPassText, bannedHits, model, label, remainingMs())
       const remainingHits = detectBannedPhrasings(repaired)
       if (remainingHits.length === 0 && !isTruncated(repaired)) {
         logGateOutcome(label, 'doctrine-repaired', gate.scores)
@@ -1058,12 +1093,13 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   if (Date.now() - startedAt > REPAIR_SKIP_AFTER_MS) {
     console.warn(`[AXIS_GATE] section=${label} repair skipped — ${Date.now() - startedAt}ms elapsed`)
     logGateOutcome(label, 'failed-repair-skipped-budget', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-skipped-budget', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-skipped-budget', firstPass: gate, provisionalText: provisional }
   }
 
   let repaired: string
   try {
     modelCalls++  // count the attempt: a call that throws late can still have billed
+    noteCall()
     repaired = await repairSection({
       originalUserContent: chartContext,
       priorBlocks,
@@ -1073,11 +1109,12 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
       maxTokens,
       model,
       label,
+      timeoutMs: remainingMs(),
     })
   } catch (err) {
     console.error(`[AXIS_GATE] section=${label} repair pass failed:`, err instanceof Error ? err.message : err)
     logGateOutcome(label, 'failed-repair-errored', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'failed-repair-errored', firstPass: gate, provisionalText: provisional }
   }
 
   // First, the cheap deterministic gates on the repair — a repair that came back
@@ -1085,13 +1122,13 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // call to confirm.
   if (repaired.trim().length === 0 || isTruncated(repaired)) {
     logGateOutcome(label, 'repair-truncated-or-empty', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-truncated-or-empty', firstPass: gate, provisionalText: provisional }
   }
   const repairedHits = detectBannedPhrasings(repaired)
   if (repairedHits.length > 0) {
     console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} hits=${repairedHits.join('|')} (after repair)`)
     logGateOutcome(label, 'repair-doctrine-hit', gate.scores)
-    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'repair-doctrine-hit', firstPass: gate, provisionalText: provisional }
   }
 
   // Then re-score the repair against the full rubric before caching it. A repair
@@ -1108,6 +1145,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget', firstPass: gate }
   }
 
+  noteCall()
   const recheck = await evaluateSection({
     generatedText: repaired,
     chartContext,
@@ -1115,6 +1153,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
     section,
     planetSection,
     usageCall: 'recheck',
+    timeoutMs: remainingMs(),
   })
   modelCalls++
 
@@ -1130,7 +1169,7 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // gate could not confirm for 30 days.
   if (!recheck.pass) {
     logGateOutcome(label, 'repair-failed-recheck', recheck.scores)
-    return { cacheText: null, modelCalls, scores: recheck.scores, repaired: false, reason: 'repair-failed-recheck', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: recheck.scores, repaired: false, reason: 'repair-failed-recheck', firstPass: gate, provisionalText: provisional }
   }
 
   // The repair passes the rubric on its own re-score — cache it, and report the
