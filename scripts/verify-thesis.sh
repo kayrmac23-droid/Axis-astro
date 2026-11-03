@@ -131,6 +131,25 @@ check "reencode-terrain-born"        'the terrain it was born' 'synonym hierarch
 check "reencode-born-into"           'born into'               'synonym hierarchy "born into"'
 
 # ---------------------------------------------------------------------------
+# HAND-AUTHORED COPY — NAMING (DOCTRINE.md: NAMING)
+#
+# "Gap" and "distance" are NOT product terms: the concept is the Divergence.
+# Ordinary uses in unrelated prose are fine ("the gap between what Mercury
+# perceives and what…"), so these match only where the word names the space
+# BETWEEN THE TWO SYSTEMS. "Integration" was renamed out of the synastry closing
+# section (Aug 2026) for the inter-system vocabulary ban; its descriptor kept
+# saying "The integration names…" until Nov 2026.
+# ---------------------------------------------------------------------------
+header "HAND-AUTHORED COPY — NAMING"
+
+check "naming-gap-product-term" \
+  '\b(that|this) gap\b|\b(gap|distance) between (them|the two|both|the (two )?(systems|charts|frames|zodiacs|maps))' \
+  '"gap"/"distance" naming the inter-system concept (use "divergence")'
+check "naming-integration-rendered" \
+  '\bthe integration\b' \
+  '"the integration" in rendered copy (DOCTRINE.md: NAMING, synastry VOCABULARY)'
+
+# ---------------------------------------------------------------------------
 # RESIDUAL KNOWN LEAK (INFO — never affects exit code)
 #
 # The sidereal system prompt (prompts.ts, ~line 423) reads "…deep instinctive

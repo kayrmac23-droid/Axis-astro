@@ -329,3 +329,23 @@ describe('shared Divergence evidence plan', () => {
     expect(plan.evidence.filter(e => e.kind === 'yoga').every(e => !plan.allocation.agree.includes(e.id))).toBe(true)
   })
 })
+
+describe('unknown-birth-time notice', () => {
+  // SHARED_RULES says to state the caveat ONCE across the reading and calls
+  // repetition a failure. The notice rides on every section's context, so if it
+  // tells the model to open each house section with the caveat (it did until
+  // v10.32), every unknown-time reading repeats it in up to nineteen sections.
+  const chart = calculateDualChart({
+    year: 1990, month: 5, day: 4, hour: 12, minute: 0,
+    latitude: -37.8, longitude: 144.9, timezone: 10, birthTimeUnknown: true,
+  })
+
+  it('reaches every natal section and defers to the once-only rule', () => {
+    for (const [section, planetSection] of [['tropical', 'sun'], ['tropical', 'venus'], ['sidereal', 'moon'], ['synthesis', 'diverge']] as const) {
+      const ctx = buildInterpretationContext(chart, section, planetSection)
+      expect(ctx).toContain('⚠ BIRTH TIME UNKNOWN')
+      expect(ctx).toMatch(/unknown ONCE/)
+      expect(ctx).not.toMatch(/Open any Ascendant or house section/)
+    }
+  })
+})

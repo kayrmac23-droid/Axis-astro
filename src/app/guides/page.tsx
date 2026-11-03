@@ -35,7 +35,7 @@ export default function GuidesPage() {
             </span>
           ))}
           <div className={styles.railNote}>
-            NEITHER CHART IS &ldquo;TRUE&rdquo;.<br />BOTH ARE. THE READING LIVES<br />IN THE DISTANCE BETWEEN THEM.
+            NEITHER CHART IS &ldquo;TRUE&rdquo;.<br />BOTH ARE. THE READING LIVES<br />IN THE DIVERGENCE BETWEEN THEM.
           </div>
         </aside>
 

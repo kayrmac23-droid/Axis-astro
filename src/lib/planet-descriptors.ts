@@ -134,7 +134,7 @@ export const SYNASTRY_DESCRIPTORS = {
   central_dynamic: {
     title: 'The Central Dynamic',
     keywords: 'the defining feature · what makes this pairing itself',
-    description: `The integration names the single most defining feature of this combination — the observation that makes everything else cohere. It may be a dominant inter-aspect, a pattern repeated across multiple contacts, or a tension between the composite chart and the individual charts. The final observation names what this relationship structurally requires each person to carry or confront.`
+    description: `The central dynamic names the single most defining feature of this combination — the observation that makes everything else cohere. It may be a dominant inter-aspect, a pattern repeated across multiple contacts, or a tension between the composite chart and the individual charts. The final observation names what this relationship structurally requires each person to carry or confront.`
   },
   navigation: {
     title: 'What Each Chart Requires',
