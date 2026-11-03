@@ -9,6 +9,7 @@ import ReadoutRail from '@/components/ReadoutRail'
 import ComputationInterstitial from '@/components/ComputationInterstitial'
 import { DualChartData } from '@/lib/astro-calc'
 import { buildReadoutRows, dms } from '@/lib/readout'
+import { lahiriAyanamsaForDate } from '@/lib/ayanamsa'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
 
@@ -116,6 +117,16 @@ export default function Home() {
       .filter(Boolean).join(' · ')
   })()
 
+  // The offset for the chart being cast, not today's: the dossier header shows
+  // the computed value a moment later, and the two must agree.
+  const castAyanamsa = (() => {
+    const y = parseInt(lastFormData?.year ?? '', 10)
+    if (!y) return undefined
+    const m = Math.min(12, Math.max(1, parseInt(lastFormData?.month ?? '', 10) || 1))
+    const d = Math.min(31, Math.max(1, parseInt(lastFormData?.day ?? '', 10) || 1))
+    return dms(lahiriAyanamsaForDate(y, m, d))
+  })()
+
   // Readout rows — the single source the wheel selection and the rail share.
   const rows = useMemo(() => (chartData ? buildReadoutRows(chartData) : []), [chartData])
 
@@ -138,7 +149,7 @@ export default function Home() {
 
       {/* Computation interstitial — orb + five staged cells (redesign) */}
       {loading && (
-        <ComputationInterstitial line={castLine} ayanamsa="24°13′" />
+        <ComputationInterstitial line={castLine} ayanamsa={castAyanamsa} />
       )}
 
       {/* The dossier — header + provenance, the frame control, the instrument

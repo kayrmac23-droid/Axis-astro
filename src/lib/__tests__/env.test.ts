@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { getAnthropicKey, isAnthropicKeyConfigured } from '../env'
+import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '../env'
 
 const ORIGINAL = process.env.ANTHROPIC_API_KEY
 
@@ -34,5 +34,35 @@ describe('getAnthropicKey', () => {
       expect(getAnthropicKey()).toBeNull()
       expect(isAnthropicKeyConfigured()).toBe(false)
     }
+  })
+})
+
+describe('intEnv', () => {
+  const NAME = 'AXIS_TEST_INT_ENV'
+  afterEach(() => { delete process.env[NAME] })
+
+  it('returns the default when unset', () => {
+    expect(intEnv(NAME, 20, 1)).toBe(20)
+  })
+
+  it('parses a whole number, tolerating surrounding whitespace', () => {
+    process.env[NAME] = ' 35 '
+    expect(intEnv(NAME, 20, 1)).toBe(35)
+  })
+
+  it.each(['', 'abc', '2O00', '20k', '1.5', '-3', '1e3'])(
+    'falls back on %j instead of producing NaN or 0',
+    raw => {
+      // NaN as a rate-limit max disabled the limit; NaN as the daily cap
+      // refused every reading. Neither may come from a typo.
+      process.env[NAME] = raw
+      expect(intEnv(NAME, 20, 1)).toBe(20)
+    },
+  )
+
+  it('enforces the minimum', () => {
+    process.env[NAME] = '0'
+    expect(intEnv(NAME, 20, 1)).toBe(20)
+    expect(intEnv(NAME, 2000, 0)).toBe(0)
   })
 })

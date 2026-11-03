@@ -96,7 +96,6 @@ export default function SynastryPage() {
     return (
       <ComputationInterstitial
         variant="synastry"
-        ayanamsa="24°13′"
         line={`${(personAData?.location || '').toUpperCase()} × ${(personBData?.location || '').toUpperCase()} · TWO CHARTS · BOTH FRAMES`}
       />
     )

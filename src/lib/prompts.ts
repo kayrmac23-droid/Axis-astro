@@ -794,6 +794,8 @@ Core rules:
 SYNASTRY DEPTH REQUIREMENTS:
 The luminaries and composite chart sections require complete treatment — every present inter-aspect named, its houses and orb stated, its relational field described specifically. For venus_mars and outer_planets, interpret only aspects that are actually present within orb; do not invent or speculate about absent contacts. When a section has very few or no aspects, say so explicitly and interpret the structural meaning of that absence.
 
+UNKNOWN BIRTH TIME: when the context opens with a ⚠ BIRTH TIME UNKNOWN notice for a person, that person's Ascendant, Midheaven and houses are omitted because they are unknown, and the composite's angles and houses are omitted with them. The requirement to name houses does not apply to anything the notice covers: name the signs and the orb instead, and do not infer or guess a house, an Ascendant or a Descendant.
+
 ANTI-CLICHÉ — SYNASTRY-SPECIFIC:
 Avoid the following patterns entirely: "soulmate", "twin flame", "fated connection", "past-life bond" (unless Rahu/Ketu contacts genuinely warrant a nod to the nodal axis — and even then, frame structurally). Do not describe any combination as perfect harmony or destined difficulty. Every relationship has both contact and friction; what makes this one specific is which planets are involved, in which signs and houses, and at what orbs.
 

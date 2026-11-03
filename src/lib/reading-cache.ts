@@ -75,6 +75,16 @@ import type { BirthData } from '@/lib/astro-calc'
 // bump keeps the version honest about the prompt change.
 export const READING_PROMPT_VERSION = 'v10.30'
 
+// Synastry-only revision, folded into the synastry key alone. A change that
+// touches ONLY the synastry prompt or synastry context should invalidate
+// synastry rows without throwing away every natal section in the cache (which
+// is what bumping READING_PROMPT_VERSION does — ~42 model calls per chart to
+// rebuild). Bump READING_PROMPT_VERSION as usual for anything shared.
+// s1: synastry now carries the ⚠ BIRTH TIME UNKNOWN notice and withholds the
+// angles and houses of an unknown-time chart (and the composite's); before,
+// noon-derived Ascendants and houses were presented to the model as fact.
+export const SYNASTRY_PROMPT_REVISION = 's1'
+
 // Readings only change when the prompt version changes, so a 30-day TTL is safe.
 const TTL_SECONDS = 30 * 24 * 60 * 60  // 30 days
 
@@ -156,6 +166,7 @@ export function makeSynastryCacheKey({
   const key = {
     a: norm(birthA), b: norm(birthB), section, planetSection,
     promptVersion: READING_PROMPT_VERSION,
+    synastryRevision: SYNASTRY_PROMPT_REVISION,
     plutoSourceA:  plutoSourceA ?? 'local-meeus',
     plutoSourceB:  plutoSourceB ?? 'local-meeus',
     // See plutoLongitude on CacheKeyParams — the client hint is keyed on, per person.

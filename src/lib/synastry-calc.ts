@@ -221,13 +221,43 @@ export function buildSynastryData(personA: DualChartData, personB: DualChartData
 // ── Prompt formatting ─────────────────────────────────────────────────────────
 
 function fmtDeg(deg: number): string {
-  const d = Math.floor(deg)
-  const m = Math.round((deg - d) * 60)
+  let d = Math.floor(deg)
+  let m = Math.round((deg - d) * 60)
+  // 12.9999° rounds to 60′ — carry it, or the block prints "12°60'".
+  if (m === 60) { d += 1; m = 0 }
   return `${d}°${String(m).padStart(2, '0')}'`
 }
 
-function fmtPlanet(p: PlanetPosition): string {
-  return `  ${p.name.padEnd(10)} ${(p.sign + ' ' + fmtDeg(p.degree)).padEnd(18)} H${p.house}${p.retrograde ? ' ℞' : ''}`
+// housesKnown=false drops the house number: with no birth time the Ascendant is
+// a noon placeholder, so every Whole Sign house follows from a guess.
+function fmtPlanet(p: PlanetPosition, housesKnown = true): string {
+  return `  ${p.name.padEnd(10)} ${(p.sign + ' ' + fmtDeg(p.degree)).padEnd(18)}${housesKnown ? ` H${p.house}` : ''}${p.retrograde ? ' ℞' : ''}`
+}
+
+// True when either chart was cast without a birth time — the composite's
+// Ascendant, MC and houses are midpoints of a guessed angle in that case.
+export function synastryTimeUnknown(data: SynastryData): { a: boolean; b: boolean; composite: boolean } {
+  const a = data.personA.birthData.birthTimeUnknown === true
+  const b = data.personB.birthData.birthTimeUnknown === true
+  return { a, b, composite: a || b }
+}
+
+// The same notice the natal context carries (interpretation-engine.ts), so the
+// shared BIRTH TIME UNCERTAINTY rule in SHARED_RULES fires for synastry too.
+// Without it the synastry block stated noon-derived angles and houses as facts.
+function synastryBirthTimeCaveat(u: { a: boolean; b: boolean }): string {
+  if (!u.a && !u.b) return ''
+  const who = u.a && u.b ? 'Person A and Person B' : u.a ? 'Person A' : 'Person B'
+  return `⚠ BIRTH TIME UNKNOWN — ${who.toUpperCase()} — NOON APPROXIMATION USED
+No birth time was provided for ${who}; 12:00 noon was used. For ${u.a && u.b ? 'both charts' : 'that chart'}:
+  • Ascendant, Midheaven and every house placement are unknown and are omitted below.
+  • The Moon may be several degrees from the position shown (it moves ~0.5°/hour), so
+    Moon contacts and their orbs are approximate.
+  • The composite Ascendant, Midheaven and houses are omitted: they are midpoints of an unknown angle.
+Do NOT interpret Ascendant, Descendant, Midheaven or house overlays for ${who}. Work from
+signs, dignities and the planet-to-planet contacts, which are accurate without a birth time.
+
+`
 }
 
 export const ASPECT_SYMBOLS: Record<AspectType, string> = {
@@ -243,14 +273,18 @@ export function formatSynastryBlock(data: SynastryData, planetSection: string): 
 
   const PLANET_ORDER = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto']
 
-  function chartLines(chart: ChartData): string {
-    const lines = [
-      `Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)}`,
-      `Midheaven: ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)}`,
-    ]
+  const unknown = synastryTimeUnknown(data)
+
+  function chartLines(chart: ChartData, anglesKnown: boolean): string {
+    const lines = anglesKnown
+      ? [
+          `Ascendant: ${chart.ascendantSign} ${fmtDeg(chart.ascendantDegree)}`,
+          `Midheaven: ${chart.midheavenSign} ${fmtDeg(chart.midheavenDegree)}`,
+        ]
+      : ['Ascendant / Midheaven / houses: UNKNOWN (no birth time)']
     for (const name of PLANET_ORDER) {
       const p = chart.planets.find(x => x.name === name)
-      if (p) lines.push(fmtPlanet(p))
+      if (p) lines.push(fmtPlanet(p, anglesKnown))
     }
     return lines.join('\n')
   }
@@ -279,17 +313,17 @@ export function formatSynastryBlock(data: SynastryData, planetSection: string): 
     return `  ${a.planetA} (A) ${ASPECT_SYMBOLS[a.aspect]} ${a.planetB} (B) — ${shifts.join('; ')}`
   }).join('\n')
 
-  const compLines = chartLines(composite)
+  const compLines = chartLines(composite, !unknown.composite)
   const skipped = (composite as ChartData & { _skippedPlanets?: string[] })._skippedPlanets
   const skippedNote = skipped && skipped.length > 0
     ? `\n  ⚠ INCOMPLETE: ${skipped.join(', ')} excluded from composite — position data missing from one chart (birth time unknown or planet not computed)`
     : ''
 
-  return `PERSON A — TROPICAL CHART
-${chartLines(personA.tropical)}
+  return `${synastryBirthTimeCaveat(unknown)}PERSON A — TROPICAL CHART
+${chartLines(personA.tropical, !unknown.a)}
 
 PERSON B — TROPICAL CHART
-${chartLines(personB.tropical)}
+${chartLines(personB.tropical, !unknown.b)}
 
 SYNASTRY INTER-ASPECTS (Person A → Person B, section: ${planetSection})
 ${aspectLines || '  (no aspects within orb for this section)'}
