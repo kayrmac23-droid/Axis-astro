@@ -243,6 +243,39 @@ const ANTITHESIS_RES: readonly RegExp[] = [
 // cap stays clean.
 const ANTITHESIS_LIMIT = 1
 
+/**
+ * Every antithesis construction in `text`, in document order.
+ *
+ * Exported so the quality gate clamps `voice_quality` on the SAME detector the
+ * scan reports — the 2026-11-03 eval run had this tic cited in 11 of 21
+ * evaluator critiques (15 scan findings) while the scan's own finding was
+ * `soft` and fed nothing, so a second copy of these regexes in the gate would
+ * be the one thing guaranteed to drift. Pure; never throws.
+ *
+ * Returns ALL occurrences, including the one the rule permits: the caller
+ * decides the threshold (the scan reports above ANTITHESIS_LIMIT; the gate
+ * applies the same cap via `antithesisTicExceeded`).
+ */
+export function detectAntithesisTic(text: string): { match: string; line: number }[] {
+  const hits: { match: string; line: number }[] = []
+  for (const { line, text: raw } of proseLines(text))
+    for (const re of ANTITHESIS_RES)
+      for (const m of allMatches(raw, re)) hits.push({ match: m.replace(/\s+/g, ' '), line })
+  return hits.sort((a, b) => a.line - b.line)
+}
+
+/**
+ * The antithesis hits in `text` when it is over the one-per-section cap, else
+ * null. The gate's clamp predicate; `detectAntithesisTic` is the raw count.
+ */
+export function antithesisTicExceeded(text: string): { match: string; line: number }[] | null {
+  const hits = detectAntithesisTic(text)
+  return hits.length > ANTITHESIS_LIMIT ? hits : null
+}
+
+/** The cap SHARED_RULES PART 4 states, so a critique can quote it. */
+export const ANTITHESIS_PER_SECTION_LIMIT = ANTITHESIS_LIMIT
+
 // ── Scanner ──────────────────────────────────────────────────────────────────
 
 /**
@@ -311,17 +344,14 @@ export function scanSectionRules(text: string): RuleFinding[] {
   // The antithesis cap. One finding for the section, not one per hit: the
   // breach is the COUNT, and n separate findings would swamp `soft` and bury
   // long-paragraph.
-  const antitheses: { match: string; line: number }[] = []
-  for (const { line, text: raw } of lines)
-    for (const re of ANTITHESIS_RES)
-      for (const m of allMatches(raw, re)) antitheses.push({ match: m, line })
+  const antitheses = detectAntithesisTic(text)
   if (antitheses.length > ANTITHESIS_LIMIT) {
     out.push({
       rule:     'antithesis-tic',
       severity: 'soft',
       // Not clipped to MATCH_CAP: the count leads, and the matches after it are
       // what a reviewer needs to confirm the count is real.
-      match:    `${antitheses.length} occurrences (limit ${ANTITHESIS_LIMIT}): ${antitheses.map(a => a.match.replace(/\s+/g, ' ')).join(' | ')}`,
+      match:    `${antitheses.length} occurrences (limit ${ANTITHESIS_LIMIT}): ${antitheses.map(a => a.match).join(' | ')}`,
       line:     antitheses[ANTITHESIS_LIMIT].line,
     })
   }

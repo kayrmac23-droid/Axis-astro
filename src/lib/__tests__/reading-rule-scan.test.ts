@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   scanSectionRules, summariseRuleScan, countSentences, formatRuleScanLog,
+  detectAntithesisTic, antithesisTicExceeded, ANTITHESIS_PER_SECTION_LIMIT,
 } from '@/lib/reading-rule-scan'
 
 const rules = (text: string) => scanSectionRules(text).map(f => f.rule)
@@ -215,5 +216,64 @@ describe('reading-rule-scan — summary and logging', () => {
     const second = scanSectionRules(bad)
     expect(second).toEqual(first)
     expect(first.length).toBeGreaterThan(0)
+  })
+})
+
+// ── The exported antithesis detector ────────────────────────────────────────
+// The quality gate clamps `voice_quality` on THIS function (v10.34), so it is
+// no longer only a reporting input: a change in what it matches changes what
+// the pipeline repairs and caches. The scan's own false-positive controls above
+// cover the regexes; these pin the exported surface and the cap boundary.
+describe('detectAntithesisTic / antithesisTicExceeded — the gate clamp surface', () => {
+  it('counts every occurrence, in document order, with whitespace collapsed', () => {
+    const text = [
+      '## The Sun',
+      '',
+      'The Sun acts rather than waits.',
+      '',
+      'It is not a stance but a reflex, and it moves less a decision than',
+      'a habit.',
+    ].join('\n')
+    const hits = detectAntithesisTic(text)
+    expect(hits.length).toBeGreaterThanOrEqual(3)
+    expect(hits.map(h => h.line)).toEqual([...hits.map(h => h.line)].sort((a, b) => a - b))
+    // Collapsed: a construction broken across a line wrap must not carry \n
+    // into the critique the gate builds from these strings.
+    for (const h of hits) expect(h.match).not.toMatch(/\n/)
+  })
+
+  it('returns null AT the cap and hits above it, so a compliant section is never clamped', () => {
+    const atCap = '## The Sun\n\nThe Sun asserts rather than asks. It is direct and it is early.'
+    expect(detectAntithesisTic(atCap)).toHaveLength(ANTITHESIS_PER_SECTION_LIMIT)
+    expect(antithesisTicExceeded(atCap)).toBeNull()
+
+    const overCap = `${atCap} The Moon reflects rather than initiates.`
+    expect(antithesisTicExceeded(overCap)).not.toBeNull()
+    expect(antithesisTicExceeded(overCap)!.length).toBe(ANTITHESIS_PER_SECTION_LIMIT + 1)
+  })
+
+  it('stays null on the clean control section', () => {
+    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
+  })
+
+  it('agrees with the scan: a clamp fires exactly when the scan reports the tic', () => {
+    const overCap = [
+      '## Venus',
+      '',
+      'Venus gives rather than receives, and it chooses depth rather than breadth.',
+    ].join('\n')
+    expect(antithesisTicExceeded(overCap)).not.toBeNull()
+    expect(rules(overCap)).toContain('antithesis-tic')
+    // And the converse, which is the regression that matters: no clamp without
+    // a scan finding, or the two surfaces have drifted.
+    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
+    expect(rules(CLEAN_SECTION)).not.toContain('antithesis-tic')
+  })
+
+  it('is reusable across sections (no stale regex lastIndex)', () => {
+    const overCap = '## Mars\n\nIt pushes rather than waits, and it leads rather than follows.'
+    const first  = antithesisTicExceeded(overCap)
+    const second = antithesisTicExceeded(overCap)
+    expect(second).toEqual(first)
   })
 })

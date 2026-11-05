@@ -263,3 +263,69 @@ describe('reference chart facts quoted by the AXIS skills', () => {
     expect(jyotishSignStatus(planet('sidereal', 'Moon'))).toMatch(/debilitated/)
   })
 })
+
+// ── v10.34: the antithesis rule must not demonstrate the antithesis ─────────
+// The cap was already emphatic and already predicted the exact failure rate,
+// and the model breached it on 15 of 21 sections anyway (2026-11-03 eval run).
+// One cause was in the rule itself: "a reader reading straight through hears the
+// template rather than the content" used the construction inside the sentence
+// prohibiting it. Examples outrank instructions. The rule may now QUOTE the
+// banned forms as named specimens, but must not use one in its own prose.
+describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => {
+  const block = SHARED_RULES
+    .slice(SHARED_RULES.indexOf('VARY THE ANTITHESIS'))
+    .split('\n- Banned outright')[0]
+
+  it('no longer contains the self-demonstrating clause', () => {
+    expect(block).not.toMatch(/hears\s+the\s+template\s+rather\s+than\s+the\s+content/)
+  })
+
+  it('states that the cap is enforced on the finished text', () => {
+    expect(block).toMatch(/enforced on the finished text/i)
+  })
+
+  it('carries a worked rewrite, so the fix is shown and not only named', () => {
+    expect(block).toMatch(/Worked example/i)
+    expect(block).toMatch(/stay\s+interchangeable\s+to\s+her/)
+  })
+
+  it('closes the reword loophole the gate also closes', () => {
+    expect(block).toMatch(/keeping the\s*\n?\s*contrastive shape does not satisfy/i)
+  })
+})
+
+// ── v10.34: the unheaded close must be REQUIRED, not merely unheaded ─────────
+// v10.30 removed the mandated `### Putting It Together` heading, correctly: the
+// prompt mandated a summary heading twelve times per reading while PROSE FAILURE
+// MODES #4 penalised the summary it produced. But what remained in PART 8 was a
+// purely negative rule — where the close goes and what not to call it — and
+// nothing saying it must exist. On the 2026-11-03 eval run 4 of 21 sections
+// ended on their last aspect sub-section with no close at all, and `synthesis`
+// scored 2.48 with 11 of 21 below the individual pass bar. The heading had been
+// load-bearing scaffolding; removing it removed the close.
+//
+// These assertions fail if PART 8 goes back to stating only the prohibition.
+describe('PART 8 — the closing paragraph is required (v10.34)', () => {
+  it('states that every section ends on a closing paragraph', () => {
+    expect(SHARED_RULES).toMatch(/ENDS ON A CLOSING PARAGRAPH/)
+  })
+
+  it('rules out the two ways the close degraded: absent, and a one-liner', () => {
+    expect(SHARED_RULES).toMatch(/has not closed/i)
+    expect(SHARED_RULES).toMatch(/one-line sign-off is not a closing paragraph/i)
+  })
+
+  it('still bans the heading and every variant v10.30 named', () => {
+    expect(SHARED_RULES).toMatch(/carries no heading|carries NO\s*\n?heading/i)
+    for (const variant of [
+      'Putting It Together', 'Synthesis', 'In Summary', 'The Core', 'Bringing It Together',
+    ]) expect(SHARED_RULES).toContain(variant)
+  })
+
+  it('says what the close must DO, so the requirement is not satisfied by padding', () => {
+    // One live tension and its cost — not a re-list of placements, which is the
+    // pseudo-synthesis PROSE FAILURE MODES #4 catches.
+    expect(SHARED_RULES).toMatch(/ONE live tension/i)
+    expect(SHARED_RULES).toMatch(/does not re-list placements/i)
+  })
+})

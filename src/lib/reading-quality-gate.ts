@@ -76,6 +76,10 @@ import {
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
+import {
+  antithesisTicExceeded,
+  ANTITHESIS_PER_SECTION_LIMIT,
+} from '@/lib/reading-rule-scan'
 
 // The evaluator needs discriminating judgment on subtle failure modes
 // (pseudo-synthesis, compensatory reframes, under-grounded prose), which is why
@@ -655,6 +659,24 @@ Score the generated section against the criteria and return the JSON object spec
     if (openerHits.length > 0) {
       scores.specificity = Math.min(scores.specificity, MIN_INDIVIDUAL - 1)
     }
+
+    // Deterministic antithesis backstop (PART 4's one-per-section cap, and the
+    // cadence half of PROSE FAILURE MODES #1). Applied BEFORE rubricPass for the
+    // same reason as the opener: the doctrine-only route splices individual
+    // sentences, and a construction repeated across the whole section is not a
+    // sentence-level fault, so a spliced section would be cached with the tic
+    // intact. Clamps voice_quality, the criterion the tic actually degrades.
+    //
+    // Why deterministic: on the 2026-11-03 eval run the evaluator cited this tic
+    // in 11 of 21 critiques unprompted, and the scan independently counted 15
+    // instances — but the scan's finding was `soft` and fed nothing, so it only
+    // reached the repair as free text the rater happened to write, and the
+    // sections where it said nothing shipped the tic. The count is a string fact
+    // about the output; it should not depend on a judgment call.
+    const antithesisHits = antithesisTicExceeded(generatedText)
+    if (antithesisHits) {
+      scores.voice_quality = Math.min(scores.voice_quality, MIN_INDIVIDUAL - 1)
+    }
     const rubricPass = computePassFromScores(scores)
 
     // Deterministic rescue-clause backstop (ease → hidden strength). A literal
@@ -702,6 +724,14 @@ Score the generated section against the criteria and return the JSON object spec
         ? `Rewrite the opening to this section's OPENING MODE: open on ${mode}`
         : 'Open instead on a named chart factor or the concrete moment it produces.'
       critique = `OPENER FAILURE — the section's first sentence opens on the banned existential frame ("${openerHits[0]}…"). It announces that a quality exists instead of naming it, and every section reaching for it makes the assembled reading open the same way repeatedly. Do not substitute another existential opener (${BANNED_OPENER_LIST}). ${instead}\n\n${critique}`.trim()
+    }
+
+    // Name every instance and the cap, so the repair cuts to one rather than
+    // guessing which constructions the deduction was for. The count leads: the
+    // breach is the repetition, not any single use.
+    if (!pass && antithesisHits) {
+      console.warn(`Reading quality gate: antithesis tic x${antithesisHits.length} for ${section}/${planetSection}: ${antithesisHits.map(h => h.match).join('; ')}`)
+      critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; SHARED_RULES PART 4 permits at most ${ANTITHESIS_PER_SECTION_LIMIT} per section. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the single most load-bearing one and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater
