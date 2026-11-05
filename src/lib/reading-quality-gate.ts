@@ -77,8 +77,9 @@ import {
   WordBand,
 } from '@/lib/prompts'
 import {
-  antithesisTicExceeded,
+  detectAntithesisTic,
   ANTITHESIS_PER_SECTION_LIMIT,
+  ANTITHESIS_HARD_THRESHOLD,
 } from '@/lib/reading-rule-scan'
 
 // The evaluator needs discriminating judgment on subtle failure modes
@@ -673,9 +674,25 @@ Score the generated section against the criteria and return the JSON object spec
     // reached the repair as free text the rater happened to write, and the
     // sections where it said nothing shipped the tic. The count is a string fact
     // about the output; it should not depend on a judgment call.
-    const antithesisHits = antithesisTicExceeded(generatedText)
-    if (antithesisHits) {
-      scores.voice_quality = Math.min(scores.voice_quality, MIN_INDIVIDUAL - 1)
+    //
+    // GRADUATED, matching the rubric prose the evaluator is handed verbatim
+    // ("two is a deduction and four or more caps this criterion at 2"). Clamping
+    // below the bar on the second instance — what v10.34 shipped — made a
+    // two-instance cadence slip a hard failure for every section class, which on
+    // the scan's own numbers is 39 of 63 sections. Each of those takes a full
+    // repair, and a repair that lands on two again (near-native cadence for this
+    // model) fails its re-score and caches provisionally for 24h, so the section
+    // is regenerated for every reader every day. Over the cap now clamps TO the
+    // bar — a real deduction, since it drags MIN_PASS_AVERAGE and still earns the
+    // critique below — and only ANTITHESIS_HARD_THRESHOLD, where the construction
+    // has become the section's default sentence shape, clamps beneath it.
+    const antithesisHits   = detectAntithesisTic(generatedText)
+    const antithesisOverCap = antithesisHits.length > ANTITHESIS_PER_SECTION_LIMIT
+    if (antithesisOverCap) {
+      scores.voice_quality = Math.min(
+        scores.voice_quality,
+        antithesisHits.length >= ANTITHESIS_HARD_THRESHOLD ? MIN_INDIVIDUAL - 1 : MIN_INDIVIDUAL,
+      )
     }
     const rubricPass = computePassFromScores(scores)
 
@@ -729,7 +746,7 @@ Score the generated section against the criteria and return the JSON object spec
     // Name every instance and the cap, so the repair cuts to one rather than
     // guessing which constructions the deduction was for. The count leads: the
     // breach is the repetition, not any single use.
-    if (!pass && antithesisHits) {
+    if (!pass && antithesisOverCap) {
       console.warn(`Reading quality gate: antithesis tic x${antithesisHits.length} for ${section}/${planetSection}: ${antithesisHits.map(h => h.match).join('; ')}`)
       critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; SHARED_RULES PART 4 permits at most ${ANTITHESIS_PER_SECTION_LIMIT} per section. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the single most load-bearing one and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
     }
@@ -747,11 +764,20 @@ Score the generated section against the criteria and return the JSON object spec
       critique = `BARNUM / FALSIFIABILITY FAILURE — the following claim is universally endorsable (its negation reads as equally true) and must be anchored to a named chart factor or cut:\n${inversion}\n\n${critique}`.trim()
     }
 
+    // ⚠ The critique is returned whether or not the section passed. The rubric
+    // instructs the evaluator to write one "whenever any criterion is below 4",
+    // i.e. for a section that passes with real weaknesses — and dropping it on
+    // pass threw exactly those away. The repair path is gated on `pass`, not on
+    // this string, so nothing downstream rewrites a passing section because of
+    // it; what the text IS used for is measurement. The eval harness's `scene`
+    // metric reads these critiques, and with the critique blanked on pass its
+    // numerator could only ever come from failing sections, so the metric moved
+    // the wrong way as the pass rate improved.
     return {
       pass,
       rubricPass,
       scores,
-      critique: pass ? '' : critique,
+      critique,
       evaluatorErrored: false,
       truncated: false,
     }

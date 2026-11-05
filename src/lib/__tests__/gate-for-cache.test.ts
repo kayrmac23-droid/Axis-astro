@@ -511,6 +511,63 @@ describe('gateForCache — the antithesis tic (v10.34)', () => {
     expect(r.firstPass?.scores?.chart_evidence).toBe(5)
   })
 
+  // ── The clamp is GRADUATED ────────────────────────────────────────────────
+  // v10.34 clamped below the pass bar the moment the count passed the cap,
+  // making a two-instance cadence slip a hard gate failure for every section
+  // class. On the rule scan's own numbers that is 39 of 63 sections: each takes
+  // a full repair, and a repair that lands on two again — near-native cadence
+  // for this model — fails its re-score, returns `repair-failed-recheck` and
+  // caches provisionally for 24h, so the section is regenerated and re-gated
+  // every day, for every reader, over a cadence tic. It also contradicted the
+  // rubric prose the evaluator is handed, which says "two is a deduction and
+  // four or more caps this criterion at 2".
+  const TWO_TICKS = `${GOOD_SECTION}\n\nIt asserts rather than asks. It leads rather than follows.`
+
+  it('treats two instances as a deduction, not a hard failure', async () => {
+    create.mockResolvedValueOnce(evalReply(5))   // one eval call and no more
+
+    const r = await gateForCache({ ...BASE, firstPassText: TWO_TICKS, startedAt: JUST_NOW() })
+    // Clamped TO the bar, not beneath it, so MIN_INDIVIDUAL is not tripped.
+    expect(r.firstPass?.scores?.voice_quality).toBe(3)
+    expect(r.repaired).toBe(false)
+    expect(r.cacheText).toBe(TWO_TICKS)
+    expect(r.modelCalls).toBe(1)
+  })
+
+  it('still hard-fails at three, where the construction is the default sentence shape', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
+    expect(r.repaired).toBe(true)
+  })
+
+  it('leaves a section at the cap untouched', async () => {
+    const atCap = `${GOOD_SECTION}\n\nIt asserts rather than asks.`
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: atCap, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(5)
+  })
+
+  it('names the deduction in the critique when the section fails for another reason', async () => {
+    // Two instances alone do not fail the section, but once something else does
+    // the repair must still be told to cut the tic — otherwise the rewrite
+    // reproduces it and the re-score is where it surfaces.
+    create
+      .mockResolvedValueOnce(evalReply(2))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    await gateForCache({ ...BASE, firstPassText: TWO_TICKS, startedAt: JUST_NOW() })
+    const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
+    expect(content).toContain('ANTITHESIS-TIC FAILURE')
+    expect(content).toMatch(/appears 2 times/)
+  })
+
   it('does not take the surgical doctrine edit when a tic rides alongside a doctrine hit', async () => {
     // The surgical edit rewrites only the doctrine sentence. Taken here it would
     // clear the scan and cache a section whose tic is spread across paragraphs —
@@ -633,5 +690,36 @@ describe('gateForCache — spend is recorded per call, and unconfirmed sections 
     const r = await gateForCache({ ...BASE, firstPassText: breaching, startedAt: JUST_NOW() })
     expect(r.cacheText).toBeNull()
     expect(r.provisionalText ?? null).toBeNull()
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The rubric tells the evaluator to write a critique "whenever any criterion is
+// below 4" — i.e. for sections that PASS with real weaknesses. The result used
+// to blank it on pass, which threw exactly those away. That text is the eval
+// harness's only sensitive instrument for the scene requirement (`specificity`
+// moved +0.05 per version regardless of what each version did), and with the
+// critique dropped on pass its numerator could only come from failing sections,
+// so the metric moved the wrong way as the pass rate improved.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('gateForCache — the critique survives a pass', () => {
+  it('returns the evaluator critique on a section that passed', async () => {
+    const note = 'No concrete moment appears; the Mars material is asserted structurally.'
+    create.mockResolvedValueOnce(evalReply(4, note))
+
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(r.firstPass?.pass).toBe(true)
+    expect(r.firstPass?.critique).toBe(note)
+  })
+
+  it('does not repair a passing section because a critique exists', async () => {
+    create.mockResolvedValueOnce(evalReply(4, 'thin on the aftermath'))
+
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    // One call: the eval. The repair path is gated on `pass`, never on the
+    // critique string, so widening the critique cannot cost a model call.
+    expect(r.modelCalls).toBe(1)
+    expect(r.repaired).toBe(false)
+    expect(r.cacheText).toBe(GOOD_SECTION)
   })
 })
