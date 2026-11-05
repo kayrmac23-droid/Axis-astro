@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.38
+// AXIS Production System Prompts v10.39
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -539,6 +539,66 @@ export function lengthClause(band: WordBand): string {
   return s
 }
 
+// ── THE ANTITHESIS CAP, SCALED BY BAND LENGTH ────────────────────────────────
+//
+// The contrastive construction ("X rather than Y", "not X but Y", "less a X
+// than Y") is the house tic: measured at 141 occurrences across the 63 sections
+// of the 2026-11-02 eval run, 39 sections at two or more. PART 4 capped it at
+// ONE per section, flat, and the gate clamped `voice_quality` on that count.
+//
+// ⚠ WHY A FLAT NUMBER WAS WRONG, and why this is not a loosening. The fault the
+// rule exists to stop is DENSITY — the construction becoming the section's
+// default sentence shape, so that a reader going straight through hears a
+// template. Density is occurrences per word, and a flat cap is only a density
+// while the sections are the same length. They no longer are: v10.36 raised
+// Sun/Moon 450 → 760 and Divergence 650 → 780 while `key_aspects` and `closing`
+// stayed at ~230, so one cap was being applied across a 3.4× spread. A
+// 780-word comparative section with two contrasts is not doing what a 230-word
+// one with two is doing, and the gate was failing it as if it were.
+//
+// THE RATE IS CHOSEN SO THIS CHANGES NOTHING THAT WAS RATIFIED. Under the
+// v10.30 bands every natal section was at or under 450 words except Divergence
+// at 650 — so "one per section" and "one per 450 words" were the SAME RULE, and
+// the distinction only became observable when v10.36 grew two bands past it.
+// At 450 words per use the function reproduces the flat cap of 1 for every
+// section under the v10.30 table (pinned in reading-rule-scan.test.ts), and
+// grants a second use only to the two bands that roughly doubled. The cap was
+// never rescaled when the bands were; that is the whole of this change.
+//
+// Derived from SECTION_WORD_BANDS so the band table stays the ONE place to
+// edit: change a band and its cadence allowance follows. It reads the CHART-
+// SCALED band, so a densely aspected placement that earned 690 words earns the
+// room to vary its cadence across them too.
+export const ANTITHESIS_WORDS_PER_USE = 450
+
+/**
+ * How many times the contrastive construction may appear in a section of this
+ * band. At least one always: the construction is legitimate once, and a cap of
+ * zero would ban a shape the prompt's own worked example uses.
+ */
+export function antithesisCapFor(band: WordBand): number {
+  return Math.max(1, Math.round(band.target / ANTITHESIS_WORDS_PER_USE))
+}
+
+/**
+ * The per-section cadence allowance, rendered for the section instruction.
+ *
+ * ⚠ It goes in the SECTION INSTRUCTION, never in SHARED_RULES, for the same
+ * reason the length clause does: SHARED_RULES is sent as a prompt-cached block
+ * and must be byte-identical across all ~21 sections of a reading. A per-section
+ * number interpolated into it would destroy the cache on every section.
+ */
+export function antithesisClause(cap: number): string {
+  // ⚠ This clause is held to the rule it states: no contrastive construction
+  // of its own outside the quoted forms it names. The v10.34 finding was that
+  // the antithesis rule's OWN use of "rather than" beat its explicit cap, and
+  // the v10.35 finding was that PART 1's third person beat PART 4's second — in
+  // this prompt, example outranks rule, twice measured. A clause that modelled
+  // the tic while capping it would teach the tic.
+  // reading-review-fixes.test.ts fails the build if a bare one reappears here.
+  return `CADENCE ALLOWANCE: the contrastive construction — "X rather than Y", and its variants "not X but Y", "less a X than Y", "X, not Y" as a standalone contrast — may appear AT MOST ${cap === 1 ? 'ONCE' : `${cap} TIMES`} in this section: ${cap === 1 ? 'one use' : `${cap} uses`} in the section as a whole, counted across every paragraph. The number is scaled to this section's length. Spend it where the contrast carries a claim you cannot make as cleanly any other way; once it is spent, make every further claim directly — say what IS, and let what it is not stay unsaid. This is checked on the finished text (SHARED_RULES PART 4: VARY THE ANTITHESIS).`
+}
+
 // SHADOW COVERAGE — the anti-quota counterpart to the rescue-move bans.
 //
 // UNCOMPENSATED CONSTRAINT and NOTHING MAY BE MADE MORE PALATABLE guard one
@@ -1074,14 +1134,18 @@ Every interpretation must read as written for this chart, not this Sun sign.
 - Precision over poetry. Where a sentence could be analytically sharp or
   lyrically evocative, choose sharp. "That is exactly right" is worth more than
   a beautiful sentence producing a vague feeling.
-- VARY THE ANTITHESIS. The construction "X rather than Y" may appear AT MOST
-  ONCE per section. It is the house tic: left unchecked it arrives three to
-  seven times a section, every section, and a reader going straight through
-  hears a template where the content should be. The same cap applies to its
-  near variants — "not X but Y", "less X than Y", "X, not Y" as a standalone
-  contrast. This cap is enforced on the finished text, not taken on trust.
-  On the second one, make the claim directly: say what IS, and let what it is
-  not stay unsaid. Worked example — "she commits to the work rather than to the
+- VARY THE ANTITHESIS. The construction "X rather than Y" is CAPPED, and this
+  section's own allowance is the number stated in its instruction under CADENCE
+  ALLOWANCE. Treat that number as hard. The allowance scales with the section's
+  length, because what the cap measures is density: two uses make a template of
+  a 230-word section, while across a 780-word comparative section the same two
+  are simply two sentences. It is the house tic: left unchecked it arrives three to seven times a
+  section, every section, and a reader going straight through hears a template
+  where the content should be. The cap covers its near variants too — "not X but
+  Y", "less X than Y", "X, not Y" as a standalone contrast.
+  This cap is enforced on the finished text, not taken on trust.
+  Once the allowance is spent, make every further claim directly: say what IS,
+  and let what it is not stay unsaid. Worked example — "she commits to the work rather than to the
   people doing it" becomes "she commits to the work; the people doing it stay
   interchangeable to her". The second sentence carries the same claim and one
   more fact, and it costs no length. Varying the wording while keeping the
@@ -1769,7 +1833,14 @@ export function renderSectionInstruction(
 ): string | undefined {
   const raw = SECTION_INSTRUCTIONS[section]?.[planetSection]
   if (raw === undefined) return undefined
-  if (!raw.includes(LENGTH_CLAUSE_SLOT)) return raw
   const band = wordBandFor(section, planetSection, opts.aspectCount, opts.evidenceCount)
-  return raw.split(LENGTH_CLAUSE_SLOT).join(lengthClause(band))
+  const withLength = raw.includes(LENGTH_CLAUSE_SLOT)
+    ? raw.split(LENGTH_CLAUSE_SLOT).join(lengthClause(band))
+    : raw
+  // The cadence allowance is appended rather than slotted: it applies to every
+  // section without exception, so a per-section token would be 27 places to
+  // forget it. Appended here it cannot be missing from a section, and it is
+  // rendered from the same band the length clause and the gate's `length`
+  // criterion read — so prompt and gate cannot state different caps.
+  return `${withLength}\n\n${antithesisClause(antithesisCapFor(band))}`
 }

@@ -73,13 +73,13 @@ import {
   HIERARCHY_IDENTITY_TOKENS,
   HIERARCHY_PROXIMITY_CHARS,
   openerModeFor,
+  antithesisCapFor,
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
 import {
   detectAntithesisTic,
-  ANTITHESIS_PER_SECTION_LIMIT,
-  ANTITHESIS_HARD_THRESHOLD,
+  antithesisHardThresholdFor,
 } from '@/lib/reading-rule-scan'
 
 // The evaluator needs discriminating judgment on subtle failure modes
@@ -412,7 +412,7 @@ CRITERIA (score each 1–5):
    3 = correct register, flat execution — the prose is competent and uniform in shape.
    2 = a recurring tic: the struck fragment used more than once, the antithesis past its cap, or spelling slips.
    1 = wrong register — mystical, wellness, prescriptive, or predictive.
-   Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence. Score LOW for the ANTITHESIS TIC: "X rather than Y", and its variants "not X but Y" / "less X than Y", used more than ONCE in the section. Count the occurrences; two is a deduction and four or more caps this criterion at 2. Score LOW too for META-NARRATION — the prose announcing its own compliance with AXIS rules to a reader who has never seen them ("the cost is real rather than a secretly deeper form of love", "these are not mask and face", "this does not resolve into a hidden virtue"); paradigm phrasings: ${BANNED_META_LIST}. And score LOW for phrasing lifted from the reading so far or from the context's knowledge-base wording and repeated as a refrain.
+   Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence. Score LOW for the ANTITHESIS TIC: "X rather than Y", and its variants "not X but Y" / "less X than Y", used more often than the CADENCE ALLOWANCE stated for this section in the user turn. That allowance is scaled to the section's length, because the fault is density — do not judge against a fixed number of your own. Count the occurrences: one over the allowance is a deduction, and two or more over it caps this criterion at 2. Score LOW too for META-NARRATION — the prose announcing its own compliance with AXIS rules to a reader who has never seen them ("the cost is real rather than a secretly deeper form of love", "these are not mask and face", "this does not resolve into a hidden virtue"); paradigm phrasings: ${BANNED_META_LIST}. And score LOW for phrasing lifted from the reading so far or from the context's knowledge-base wording and repeated as a refrain.
 
 9. falsifiability — Apply the INVERSION TEST to each major psychological claim, and ONLY the inversion test. Negate the claim: if the negation would ALSO sound broadly, plausibly true of almost any reader, then the claim excludes no one — it is a Barnum statement doing comfort work, not astrological work — and you deduct. A claim earns its place only if a neighbouring chart could plausibly falsify it.
    5 = every major claim fails its own inversion — negate it and the negation reads as false for this chart. The section would be wrong about a neighbouring chart, which is what makes it worth asserting about this one.
@@ -588,7 +588,22 @@ export async function evaluateSection({
     }
   }
 
+  // Hoisted above the eval call: the band decides BOTH the deterministic
+  // `length` score below and this section's cadence allowance, and the
+  // allowance has to be in the evaluator's user turn. One computation, so the
+  // number the evaluator is told and the number the clamp enforces cannot
+  // differ. The band is aspect/evidence-scaled, so a densely aspected placement
+  // that earned the extra words earns the room to vary its cadence across them.
+  const band = wordBandFor(
+    section,
+    planetSection,
+    countAspectsInContext(chartContext),
+    countPlanEvidence(chartContext, planetSection) ?? undefined,
+  )
+  const antithesisCap = antithesisCapFor(band)
+
   const evalUserContent = `SECTION TYPE: ${section} → ${planetSection}
+CADENCE ALLOWANCE FOR THIS SECTION: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") may appear at most ${antithesisCap} time(s). This is scaled to the section's word band; judge the ANTITHESIS TIC against this number, not against a fixed one.
 
 ──────────── CHART CONTEXT THE SECTION WAS GENERATED FROM ────────────
 ${chartContext}
@@ -642,12 +657,6 @@ Score the generated section against the criteria and return the JSON object spec
     // section, so earned depth on a densely aspected chart is not failed as if
     // it were padding — padding is still caught by the prose criteria and by the
     // (scaled) ceiling a sparse chart would not get.
-    const band       = wordBandFor(
-      section,
-      planetSection,
-      countAspectsInContext(chartContext),
-      countPlanEvidence(chartContext, planetSection) ?? undefined,
-    )
     const words      = countWords(generatedText)
     const scores: GateScores = { ...llmScores, length: scoreLength(words, band) }
 
@@ -686,12 +695,19 @@ Score the generated section against the criteria and return the JSON object spec
     // bar — a real deduction, since it drags MIN_PASS_AVERAGE and still earns the
     // critique below — and only ANTITHESIS_HARD_THRESHOLD, where the construction
     // has become the section's default sentence shape, clamps beneath it.
-    const antithesisHits   = detectAntithesisTic(generatedText)
-    const antithesisOverCap = antithesisHits.length > ANTITHESIS_PER_SECTION_LIMIT
+    //
+    // The cap is THIS section's, scaled by its band (see antithesisCapFor): the
+    // fault is density, and a flat cap stopped being a density when v10.36 put a
+    // 3.4x spread across the bands. A 780-word comparative section with two
+    // contrasts is not doing what a 230-word one with two is doing.
+    const antithesisHits    = detectAntithesisTic(generatedText)
+    const antithesisOverCap = antithesisHits.length > antithesisCap
     if (antithesisOverCap) {
       scores.voice_quality = Math.min(
         scores.voice_quality,
-        antithesisHits.length >= ANTITHESIS_HARD_THRESHOLD ? MIN_INDIVIDUAL - 1 : MIN_INDIVIDUAL,
+        antithesisHits.length >= antithesisHardThresholdFor(antithesisCap)
+          ? MIN_INDIVIDUAL - 1
+          : MIN_INDIVIDUAL,
       )
     }
     const rubricPass = computePassFromScores(scores)
@@ -748,7 +764,7 @@ Score the generated section against the criteria and return the JSON object spec
     // breach is the repetition, not any single use.
     if (!pass && antithesisOverCap) {
       console.warn(`Reading quality gate: antithesis tic x${antithesisHits.length} for ${section}/${planetSection}: ${antithesisHits.map(h => h.match).join('; ')}`)
-      critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; SHARED_RULES PART 4 permits at most ${ANTITHESIS_PER_SECTION_LIMIT} per section. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the single most load-bearing one and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
+      critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; this section's CADENCE ALLOWANCE (SHARED_RULES PART 4, scaled to its ${band.target}-word band) permits at most ${antithesisCap}. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the ${antithesisCap} most load-bearing and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater

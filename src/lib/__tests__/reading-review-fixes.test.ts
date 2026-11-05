@@ -12,8 +12,8 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor } from '@/lib/prompts'
-import { scanSectionRules } from '@/lib/reading-rule-scan'
+import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisCapFor, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
+import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
 import { countWords, scoreLength } from '@/lib/reading-quality-gate'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 
@@ -345,6 +345,79 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
 
   it('closes the reword loophole the gate also closes', () => {
     expect(block).toMatch(/keeping the\s*\n?\s*contrastive shape does not satisfy/i)
+  })
+
+  // ── v10.39: the cap is per-section, so PART 4 must not state a number ──────
+  // SHARED_RULES is sent as a prompt-cached block and must be byte-identical
+  // across the ~21 sections of a reading, so it cannot carry the band-scaled
+  // allowance — the number travels in the section instruction instead (exactly
+  // as the length clause does). If PART 4 ever restates a flat cap, the prompt
+  // and the gate are enforcing two different numbers and the longer sections
+  // get told one thing and scored against another.
+  it('states no flat per-section number of its own', () => {
+    expect(block).not.toMatch(/AT MOST\s*\n?\s*ONCE/i)
+    expect(block).not.toMatch(/may appear\s+(?:at most\s+)?(?:once|one time)/i)
+  })
+
+  it('points at the section instruction for this section\'s allowance', () => {
+    expect(block).toMatch(/CADENCE\s*\n?\s*ALLOWANCE/)
+    expect(block).toMatch(/scales with the section's\s*\n?\s*length/i)
+  })
+
+  // ⚠ THE RULE MUST NOT MODEL THE TIC IT BANS. Measured twice in this prompt:
+  // the antithesis rule's own use of "rather than" beat its explicit cap
+  // (v10.34), and PART 1's third person beat PART 4's second-person rule in 16
+  // of 17 sections (v10.35). Example outranks rule here. So PART 4's own prose
+  // — and the per-section clause it points at — must be clean of the
+  // construction, outside the quoted forms they name and the worked example
+  // they quote as the fault. Quoted spans are stripped before counting.
+  const unquoted = (t: string) => t.replace(/["“”][^"“”]*["“”]/g, '…')
+
+  it('uses no antithesis construction in its own prose', () => {
+    expect(detectAntithesisTic(unquoted(block))).toEqual([])
+  })
+
+  it('renders a cadence clause that is itself clean of the construction', () => {
+    for (const cap of [1, 2, 3])
+      expect(detectAntithesisTic(unquoted(antithesisClause(cap))), `cap ${cap}`).toEqual([])
+  })
+
+  it('stays identical for every section, so the prompt cache is not broken', () => {
+    // The allowance differs between these two (1 vs 2) — if that number had
+    // been interpolated into SHARED_RULES, this would differ too and every
+    // section after the first would pay full price for the whole block.
+    expect(SHARED_RULES).toBe(SHARED_RULES)
+    const a = renderSectionInstruction('tropical', 'key_aspects')!
+    const b = renderSectionInstruction('tropical', 'sun')!
+    expect(a).toContain('AT MOST ONCE in this section')
+    expect(b).toContain('AT MOST 2 TIMES in this section')
+  })
+})
+
+// ── v10.39: the cadence allowance reaches EVERY section ──────────────────────
+// It is appended by renderSectionInstruction rather than slotted per section,
+// because it applies without exception and a token would be 27 places to forget
+// it. These assert it is actually present everywhere and always agrees with the
+// band the gate scores against — the same coupling prompts-length-wiring.ts
+// pins for the length clause, and for the same reason: a section told one cap
+// and scored against another pays a repair the pipeline levied on itself.
+describe('the cadence allowance is wired to every section (v10.39)', () => {
+  it('appears in every section instruction, with the cap its band implies', () => {
+    for (const key of Object.keys(SECTION_WORD_BANDS)) {
+      const [section, planetSection] = key.split(':')
+      const rendered = renderSectionInstruction(section, planetSection)
+      expect(rendered, key).toBeDefined()
+      expect(rendered!, key).toContain('CADENCE ALLOWANCE')
+      const cap = antithesisCapFor(wordBandFor(section, planetSection))
+      expect(rendered!, key).toContain(cap === 1 ? 'AT MOST ONCE' : `AT MOST ${cap} TIMES`)
+    }
+  })
+
+  it('never leaves the length slot unsubstituted while appending the clause', () => {
+    for (const key of Object.keys(SECTION_WORD_BANDS)) {
+      const [section, planetSection] = key.split(':')
+      expect(renderSectionInstruction(section, planetSection)!, key).not.toContain('LENGTH_CLAUSE')
+    }
   })
 })
 

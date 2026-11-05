@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   scanSectionRules, summariseRuleScan, countSentences, formatRuleScanLog,
   detectAntithesisTic, antithesisTicExceeded, ANTITHESIS_PER_SECTION_LIMIT,
-  ANTITHESIS_HARD_THRESHOLD,
+  ANTITHESIS_HARD_MARGIN, antithesisHardThresholdFor,
   hasRegisterDrift, registerFor,
 } from '@/lib/reading-rule-scan'
+import { antithesisCapFor, SECTION_WORD_BANDS, wordBandFor } from '@/lib/prompts'
 
 const rules = (text: string) => scanSectionRules(text).map(f => f.rule)
 const has   = (text: string, rule: string) => rules(text).includes(rule)
@@ -399,10 +400,37 @@ describe('prescription — conditional modals in subordinate clauses', () => {
 // waits for the third. Pinned so neither drifts onto the other.
 // ─────────────────────────────────────────────────────────────────────────────
 describe('antithesis thresholds — the scan reports earlier than the gate fails', () => {
-  it('reports from the second instance but reserves the hard threshold for the third', () => {
+  it('reports from one over the cap but reserves the hard failure for two over', () => {
     expect(ANTITHESIS_PER_SECTION_LIMIT).toBe(1)
-    expect(ANTITHESIS_HARD_THRESHOLD).toBe(3)
-    expect(ANTITHESIS_HARD_THRESHOLD).toBeGreaterThan(ANTITHESIS_PER_SECTION_LIMIT + 1)
+    expect(ANTITHESIS_HARD_MARGIN).toBe(2)
+    expect(antithesisHardThresholdFor(1)).toBe(3)
+  })
+
+  // The margin is expressed ABOVE the cap, not as an absolute count, because
+  // the cap itself scales with the band. An absolute 3 would be "two over" for
+  // a 230-word section and "one over" for a 780-word one, so the severity of a
+  // given overrun would depend on the band — backwards.
+  it('keeps the hard failure the same distance over the cap at every band', () => {
+    for (const cap of [1, 2, 3])
+      expect(antithesisHardThresholdFor(cap) - cap).toBe(ANTITHESIS_HARD_MARGIN)
+  })
+
+  it('honours a band-scaled cap passed by the caller', () => {
+    const two = 'It asserts rather than asks. It leads rather than follows.'
+    // At a cap of 1 this is over and reported…
+    expect(scanSectionRules(two, { antithesisCap: 1 }).filter(f => f.rule === 'antithesis-tic')).toHaveLength(1)
+    // …and at a cap of 2 — the Sun/Moon and Divergence allowance — it is clean.
+    expect(scanSectionRules(two, { antithesisCap: 2 }).filter(f => f.rule === 'antithesis-tic')).toHaveLength(0)
+    expect(antithesisTicExceeded(two, 2)).toBeNull()
+    expect(antithesisTicExceeded(two, 1)).toHaveLength(2)
+  })
+
+  it('reports the cap it was given, and the line of the first instance past it', () => {
+    const three = 'It asserts rather than asks.\n\nIt leads rather than follows.\n\nIt is not a stance but a reflex.'
+    const [f] = scanSectionRules(three, { antithesisCap: 2 }).filter(r => r.rule === 'antithesis-tic')
+    expect(f.match).toContain('(limit 2)')
+    // The finding anchors on the instance that broke the cap, i.e. the third.
+    expect(f.line).toBe(detectAntithesisTic(three)[2].line)
   })
 
   it('counts every occurrence, leaving the threshold to the caller', () => {
@@ -411,6 +439,79 @@ describe('antithesis thresholds — the scan reports earlier than the gate fails
     // Over the cap, so the scan reports it…
     expect(scanSectionRules(two).filter(f => f.rule === 'antithesis-tic')).toHaveLength(1)
     // …and under the gate's hard threshold, so it is a deduction there.
-    expect(detectAntithesisTic(two).length).toBeLessThan(ANTITHESIS_HARD_THRESHOLD)
+    expect(detectAntithesisTic(two).length).toBeLessThan(antithesisHardThresholdFor(1))
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// THE CAP IS A DENSITY, AND THE RATE IS PINNED BY ITS TABLE.
+//
+// The derivation is the table, not a story about the constant. Two properties
+// make this change defensible, and both are asserted here rather than argued:
+//
+//   1. Under the v10.30 band table every natal section yields a cap of 1 — the
+//      flat cap that was actually ratified. "One per section" and "one per 450
+//      words" were the SAME RULE then, because every natal band but Divergence
+//      was at or under 450. So this is not a loosening; the cap simply was
+//      never rescaled when v10.36 rescaled the bands.
+//   2. Under the shipped v10.36 table only the two bands that roughly doubled
+//      — Sun/Moon 450→760 and Divergence 650→780 — gain a second use. Every
+//      other section keeps the cap it has always had.
+//
+// A rate change that broke either property would be a real change in what the
+// prompt permits, and should fail here and be argued on its own merits.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('antithesisCapFor — the band-scaled cadence allowance', () => {
+  const band = (target: number) => ({ target, fullMin: 0, fullMax: 0, hardMin: 0, hardMax: 0 })
+
+  it('reproduces the flat cap of 1 for every section under the v10.30 bands', () => {
+    // The v10.30 targets, the table the flat cap was ratified against.
+    const v1030 = {
+      'Sun/Moon': 450, Ascendant: 400, 'sidereal primary': 350, 'tropical secondary': 250,
+      'sidereal secondary': 200, 'key aspects': 200, 'tropical nodes': 220,
+      Concordance: 330, Divergence: 650,
+    }
+    for (const [name, target] of Object.entries(v1030))
+      expect(antithesisCapFor(band(target)), name).toBe(1)
+  })
+
+  it('grants a second use only to the two bands v10.36 roughly doubled', () => {
+    const caps: Record<string, number> = {}
+    for (const key of Object.keys(SECTION_WORD_BANDS)) {
+      const [section, planetSection] = key.split(':')
+      caps[key] = antithesisCapFor(wordBandFor(section, planetSection))
+    }
+    expect(Object.entries(caps).filter(([, c]) => c > 1).map(([k]) => k).sort())
+      .toEqual(['synthesis:diverge', 'tropical:moon', 'tropical:sun'])
+    expect(caps['tropical:sun']).toBe(2)
+    expect(caps['synthesis:diverge']).toBe(2)
+    // The nearest band below the line stays at 1, so the boundary is not
+    // accidentally sitting on top of a section.
+    expect(caps['tropical:ascendant']).toBe(1)
+  })
+
+  it('never returns zero, however short the band', () => {
+    // The construction is legitimate once, and the prompt's own worked example
+    // uses it — a cap of 0 would ban a shape the rules teach.
+    for (const target of [0, 1, 50, 140, 229]) expect(antithesisCapFor(band(target))).toBe(1)
+  })
+
+  it('scales with the chart-scaled band, not the base band', () => {
+    // A placement dense enough to earn a much longer section earns the room to
+    // vary its cadence across those words too. Aspect scaling moves the target,
+    // so the cap follows it without a second mechanism.
+    const base   = wordBandFor('tropical', 'sun', 0)
+    const scaled = wordBandFor('tropical', 'sun', 20)
+    expect(scaled.target).toBeGreaterThan(base.target)
+    expect(antithesisCapFor(scaled)).toBeGreaterThanOrEqual(antithesisCapFor(base))
+  })
+
+  it('is monotonic in band length', () => {
+    let last = 0
+    for (const target of [100, 300, 450, 700, 900, 1400, 2000]) {
+      const cap = antithesisCapFor(band(target))
+      expect(cap).toBeGreaterThanOrEqual(last)
+      last = cap
+    }
   })
 })
