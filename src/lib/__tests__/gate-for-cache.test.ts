@@ -470,109 +470,159 @@ describe('gateForCache — every model call is logged with its token usage', () 
   })
 })
 
-describe('gateForCache — the antithesis tic (v10.34)', () => {
-  // GOOD_SECTION plus three contrastive constructions. The cap is one, so this
-  // is a breach the scan already counted but which previously fed nothing:
-  // `antithesis-tic` was reported `soft` and the gate never read it, so the tic
-  // only reached a repair when the evaluator happened to mention it in prose
-  // (11 of 21 critiques on the 2026-11-03 eval run — and the other 10 shipped).
-  const TICKY = `${GOOD_SECTION}\n\nIt asserts rather than asks. It leads rather than follows. It is not a stance but a reflex.`
+describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () => {
+  // The cap is no longer flat: it is this section's band-scaled CADENCE
+  // ALLOWANCE (antithesisCapFor), one permitted use per ~450 words of target.
+  // So the boundary has to be tested at BOTH caps, on real sections — the
+  // 230-word `key_aspects` band (cap 1) and the 760-word Sun band (cap 2).
+  const CAP1 = { ...BASE, planetSection: 'key_aspects' }
+  const CAP1_WORDS = wordBandFor('tropical', 'key_aspects', 0).fullMin + 10
+  const shortSection = () => sectionOfWords(CAP1_WORDS)
 
-  it('fails a draft the rubric passed, on the tic alone, and names every instance and the cap', async () => {
+  const tics = (base: string, n: number) => {
+    const constructions = [
+      'It asserts rather than asks.',
+      'It leads rather than follows.',
+      'It is not a stance but a reflex.',
+      'It arrives less a decision than a habit.',
+    ]
+    return `${base}\n\n${constructions.slice(0, n).join(' ')}`
+  }
+
+  it('states the section\'s own allowance in the evaluator user turn', async () => {
+    // The evaluator cannot read the band, and EVAL_SYSTEM_PROMPT is a cached
+    // block that must stay byte-identical across the ~21 sections of a reading,
+    // so the number has to travel in the per-section user turn. If it did not,
+    // the rater would judge against a fixed cap of its own while the clamp
+    // enforced a different one.
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    const content = JSON.stringify(create.mock.calls[0][0].messages[0].content)
+    expect(content).toContain('CADENCE ALLOWANCE FOR THIS SECTION')
+    expect(content).toContain('at most 2 time(s)')
+
+    create.mockReset()
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...CAP1, firstPassText: shortSection(), startedAt: JUST_NOW() })
+    expect(JSON.stringify(create.mock.calls[0][0].messages[0].content)).toContain('at most 1 time(s)')
+  })
+
+  // ── The 230-word band: cap 1 ───────────────────────────────────────────────
+  it('treats two instances in a cap-1 section as a deduction, not a hard failure', async () => {
+    // v10.34 clamped below the bar here, which on the rule scan's own numbers
+    // is 39 of 63 sections taking a full repair — and a repair landing on two
+    // again fails its re-score, caches provisionally for 24h, and the section
+    // is regenerated daily for every reader over a cadence tic.
+    const text = tics(shortSection(), 2)
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...CAP1, firstPassText: text, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(3)   // clamped TO the bar
+    expect(r.repaired).toBe(false)
+    expect(r.cacheText).toBe(text)
+    expect(r.modelCalls).toBe(1)
+  })
+
+  it('hard-fails three instances in a cap-1 section', async () => {
     create
-      .mockResolvedValueOnce(evalReply(5))                              // rubric passes on its own…
-      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))  // full repair
-      .mockResolvedValueOnce(evalReply(5))                              // re-score passes
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(shortSection()))
+      .mockResolvedValueOnce(evalReply(5))
 
-    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
+    const r = await gateForCache({ ...CAP1, firstPassText: tics(shortSection(), 3), startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
+    expect(r.repaired).toBe(true)
+  })
+
+  // ── The 760-word Sun band: cap 2 ──────────────────────────────────────────
+  // This is the case the flat cap got wrong. A 780-word comparative section
+  // with two contrasts is not doing what a 230-word one with two is doing, and
+  // the gate was failing it as if it were.
+  it('leaves two instances in a cap-2 section completely clean', async () => {
+    const text = tics(GOOD_SECTION, 2)
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: text, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(5)   // not even a deduction
+    expect(r.reason).toBe('passed')
+    expect(r.modelCalls).toBe(1)
+  })
+
+  it('treats three instances in a cap-2 section as a deduction', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: tics(GOOD_SECTION, 3), startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(3)
+    expect(r.repaired).toBe(false)
+  })
+
+  it('hard-fails four instances in a cap-2 section — the margin holds at every band', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: tics(GOOD_SECTION, 4), startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
+    expect(r.repaired).toBe(true)
+  })
+
+  it('leaves a section at its cap untouched', async () => {
+    const atCap = tics(shortSection(), 1)
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...CAP1, firstPassText: atCap, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(5)
+    expect(r.reason).toBe('passed')
+    expect(r.cacheText).toBe(atCap)
+  })
+
+  // ── The critique ──────────────────────────────────────────────────────────
+  it('names every instance and THIS section\'s cap, not a fixed one', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: tics(GOOD_SECTION, 4), startedAt: JUST_NOW() })
     expect(r.reason).toBe('repaired')
     expect(r.modelCalls).toBe(3)
 
     const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
     expect(content).toContain('ANTITHESIS-TIC FAILURE')
     // The count leads — the breach is the repetition, not any single use.
-    expect(content).toMatch(/appears \d+ times/)
-    // And each instance is quoted, so the repair cuts the right ones instead of
-    // guessing which constructions the deduction was for.
+    expect(content).toMatch(/appears 4 times/)
+    // And the cap quoted is the Sun band's 2, so the repair is not told to cut
+    // to one in a section the rules allow two.
+    expect(content).toContain('permits at most 2')
+    expect(content).toContain('760-word band')
+    expect(content).toContain('Keep at most the 2 most load-bearing')
+    // Each instance is quoted, so the repair cuts the right ones.
     expect(content).toContain('rather than asks')
     expect(content).toContain('rather than follows')
   })
 
-  it('clamps voice_quality below the individual pass bar, not some other criterion', async () => {
-    create
-      .mockResolvedValueOnce(evalReply(5))
-      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
-      .mockResolvedValueOnce(evalReply(5))
-
-    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
-    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
-    // The clamp is surgical: the criteria the evaluator actually scored stand.
-    expect(r.firstPass?.scores?.specificity).toBe(5)
-    expect(r.firstPass?.scores?.chart_evidence).toBe(5)
-  })
-
-  // ── The clamp is GRADUATED ────────────────────────────────────────────────
-  // v10.34 clamped below the pass bar the moment the count passed the cap,
-  // making a two-instance cadence slip a hard gate failure for every section
-  // class. On the rule scan's own numbers that is 39 of 63 sections: each takes
-  // a full repair, and a repair that lands on two again — near-native cadence
-  // for this model — fails its re-score, returns `repair-failed-recheck` and
-  // caches provisionally for 24h, so the section is regenerated and re-gated
-  // every day, for every reader, over a cadence tic. It also contradicted the
-  // rubric prose the evaluator is handed, which says "two is a deduction and
-  // four or more caps this criterion at 2".
-  const TWO_TICKS = `${GOOD_SECTION}\n\nIt asserts rather than asks. It leads rather than follows.`
-
-  it('treats two instances as a deduction, not a hard failure', async () => {
-    create.mockResolvedValueOnce(evalReply(5))   // one eval call and no more
-
-    const r = await gateForCache({ ...BASE, firstPassText: TWO_TICKS, startedAt: JUST_NOW() })
-    // Clamped TO the bar, not beneath it, so MIN_INDIVIDUAL is not tripped.
-    expect(r.firstPass?.scores?.voice_quality).toBe(3)
-    expect(r.repaired).toBe(false)
-    expect(r.cacheText).toBe(TWO_TICKS)
-    expect(r.modelCalls).toBe(1)
-  })
-
-  it('still hard-fails at three, where the construction is the default sentence shape', async () => {
-    create
-      .mockResolvedValueOnce(evalReply(5))
-      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
-      .mockResolvedValueOnce(evalReply(5))
-
-    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
-    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
-    expect(r.repaired).toBe(true)
-  })
-
-  it('leaves a section at the cap untouched', async () => {
-    const atCap = `${GOOD_SECTION}\n\nIt asserts rather than asks.`
-    create.mockResolvedValueOnce(evalReply(5))
-
-    const r = await gateForCache({ ...BASE, firstPassText: atCap, startedAt: JUST_NOW() })
-    expect(r.firstPass?.scores?.voice_quality).toBe(5)
-  })
-
   it('names the deduction in the critique when the section fails for another reason', async () => {
-    // Two instances alone do not fail the section, but once something else does
-    // the repair must still be told to cut the tic — otherwise the rewrite
-    // reproduces it and the re-score is where it surfaces.
+    // Two instances in a cap-1 section do not fail it alone, but once something
+    // else does, the repair must still be told to cut the tic — otherwise the
+    // rewrite reproduces it and the re-score is where it surfaces.
     create
       .mockResolvedValueOnce(evalReply(2))
-      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(textReply(shortSection()))
       .mockResolvedValueOnce(evalReply(5))
 
-    await gateForCache({ ...BASE, firstPassText: TWO_TICKS, startedAt: JUST_NOW() })
+    await gateForCache({ ...CAP1, firstPassText: tics(shortSection(), 2), startedAt: JUST_NOW() })
     const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
     expect(content).toContain('ANTITHESIS-TIC FAILURE')
     expect(content).toMatch(/appears 2 times/)
+    expect(content).toContain('permits at most 1')
   })
 
   it('does not take the surgical doctrine edit when a tic rides alongside a doctrine hit', async () => {
     // The surgical edit rewrites only the doctrine sentence. Taken here it would
     // clear the scan and cache a section whose tic is spread across paragraphs —
     // which is why the clamp is applied BEFORE rubricPass, as the opener is.
-    const dirty = `${TICKY} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    const dirty = `${tics(GOOD_SECTION, 4)} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
     create
       .mockResolvedValueOnce(evalReply(5))
       .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
@@ -580,19 +630,8 @@ describe('gateForCache — the antithesis tic (v10.34)', () => {
 
     const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
     expect(r.reason).toBe('repaired')
-    // The two repair routes are told apart by their budget: the surgical edit is
-    // a 500-token sentence rewrite, the full repair gets the section's budget.
-    expect(create.mock.calls[1][0].max_tokens).toBe(BASE.maxTokens)
-  })
-
-  it('leaves a section AT the cap alone — one antithesis is legal', async () => {
-    const atCap = `${GOOD_SECTION}\n\nIt asserts rather than asks.`
-    create.mockResolvedValueOnce(evalReply(5))
-
-    const r = await gateForCache({ ...BASE, firstPassText: atCap, startedAt: JUST_NOW() })
-    expect(r.reason).toBe('passed')
-    expect(r.modelCalls).toBe(1)
-    expect(r.cacheText).toBe(atCap)
+    // A full repair (3 calls), not the 2-call surgical doctrine edit.
+    expect(r.modelCalls).toBe(3)
   })
 })
 

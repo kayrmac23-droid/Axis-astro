@@ -38,7 +38,7 @@ import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
 import { checkNumericFacts, formatFactCheckLog } from '@/lib/reading-fact-check'
 import { isNearStation, cuspNeighbour, currentDashaKey } from '@/lib/interpretation-engine'
-import { countPlanEvidence, wordBandFor } from '@/lib/prompts'
+import { antithesisCapFor, countPlanEvidence, wordBandFor } from '@/lib/prompts'
 import { gateForCache, countWords, countAspectsInContext, scoreLength, type GateScores } from '@/lib/reading-quality-gate'
 import { NATAL_SECTION_ORDER, priorSectionsFor } from '@/lib/reading-order'
 import type { PriorSection } from '@/lib/reading-thread'
@@ -401,7 +401,14 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         const words = countWords(firstText)
         const lengthScore = scoreLength(words, band)
         // Deterministic rule scan on the first pass, free and instant.
-        const ruleScan = summariseRuleScan(firstText, { frame: section })
+        const ruleScan = summariseRuleScan(firstText, {
+          frame: section,
+          // The SAME chart-scaled band the prompt's cadence clause and the
+          // gate's clamp read, so the scan reports a section against the cap it
+          // was actually held to. Omitted, it would report the long sections
+          // against a cap of 1 that nothing else enforces.
+          antithesisCap: antithesisCapFor(band),
+        })
         // Numeric fact-check against the exact context this section was given.
         // Catches the confident-false-figure class the rule scan structurally
         // cannot see (it is not a string pattern) and the LLM evaluator missed on

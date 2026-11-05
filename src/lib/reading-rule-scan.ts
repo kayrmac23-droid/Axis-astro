@@ -254,8 +254,17 @@ const ANTITHESIS_RES: readonly RegExp[] = [
   /\bless\s+(?:(?:a|an)\s+\w+|about\s+[^.!?]{1,40}?)\s+than\b/gi,
 ]
 
-// The rule permits one; the scan reports from the second, so a section at the
-// cap stays clean.
+// The DEFAULT cap, used when a caller supplies no band-derived one. The rule
+// permits this many; the scan reports from one over, so a section at its cap
+// stays clean.
+//
+// ⚠ The real cap is per-section and scales with the section's word band —
+// `antithesisCapFor` in prompts.ts, derived from SECTION_WORD_BANDS. It is
+// PASSED IN rather than imported, so this module stays free of prompts.ts and
+// remains what its header claims: pure, throw-free, no dependencies. Callers
+// that know the section (the gate, the eval harness) pass the scaled cap;
+// callers that do not get 1, which is the cap every section carried before
+// v10.39 and still carries at every band but Sun/Moon and Divergence.
 const ANTITHESIS_LIMIT = 1
 
 /**
@@ -280,41 +289,56 @@ export function detectAntithesisTic(text: string): { match: string; line: number
 }
 
 /**
- * The antithesis hits in `text` when it is over the one-per-section cap, else
- * null. The gate's clamp predicate; `detectAntithesisTic` is the raw count.
+ * The antithesis hits in `text` when it is over `cap`, else null. The gate's
+ * clamp predicate; `detectAntithesisTic` is the raw count.
+ *
+ * `cap` is the section's band-scaled allowance (`antithesisCapFor`), defaulting
+ * to ANTITHESIS_LIMIT for a caller that does not know the section.
  */
-export function antithesisTicExceeded(text: string): { match: string; line: number }[] | null {
+export function antithesisTicExceeded(
+  text: string,
+  cap: number = ANTITHESIS_LIMIT,
+): { match: string; line: number }[] | null {
   const hits = detectAntithesisTic(text)
-  return hits.length > ANTITHESIS_LIMIT ? hits : null
+  return hits.length > cap ? hits : null
 }
 
 /** The cap SHARED_RULES PART 4 states, so a critique can quote it. */
 export const ANTITHESIS_PER_SECTION_LIMIT = ANTITHESIS_LIMIT
 
 /**
- * The count at which the gate treats the tic as a HARD failure rather than a
- * deduction — i.e. clamps `voice_quality` BELOW the individual pass bar and so
- * forces a full-section repair.
+ * How far OVER its cap a section must go before the gate treats the tic as a
+ * HARD failure — clamping `voice_quality` below the individual pass bar and so
+ * forcing a full-section repair — rather than a deduction.
  *
- * ⚠ WHY THIS IS NOT THE SAME AS THE CAP. v10.34 clamped below the bar the
- * moment the count passed ANTITHESIS_LIMIT, which made a two-instance cadence
- * slip a hard gate failure for every section class. On this scan's own numbers
- * that is 39 of 63 sections — so most sections would take a full repair, and a
- * repair that lands on two instances again (the likeliest outcome, since two is
- * near-native cadence for this model) fails its re-score, returns
- * `repair-failed-recheck`, and caches provisionally for 24h, which means that
- * section is regenerated and re-gated every day for every reader. A cadence tic
- * is not worth that.
+ * ⚠ WHY A MARGIN AND NOT A THRESHOLD. v10.34 clamped below the bar the moment
+ * the count passed the cap, which made a two-instance cadence slip a hard gate
+ * failure for every section class. On this scan's own numbers that is 39 of 63
+ * sections — so most sections would take a full repair, and a repair that lands
+ * on two instances again (near-native cadence for this model) fails its
+ * re-score, returns `repair-failed-recheck`, and caches provisionally for 24h,
+ * which means that section is regenerated and re-gated every day for every
+ * reader. A cadence tic is not worth that.
  *
  * It also contradicted the rubric prose the evaluator is handed, which says in
- * as many words that "two is a deduction and four or more caps this criterion
- * at 2". The deterministic clamp and the rubric must agree, so the clamp is now
- * graduated the same way: over the cap is a deduction (clamped TO the bar, which
- * still drags MIN_PASS_AVERAGE and still earns the critique), and three or more
- * — a construction that has become the section's default sentence shape — is the
- * failure.
+ * as many words that one over the allowance is a deduction and further
+ * occurrences cap the criterion. The deterministic clamp and the rubric must
+ * agree, so the clamp is graduated the same way: over the cap is a deduction
+ * (clamped TO the bar, which still drags MIN_PASS_AVERAGE and still earns the
+ * critique), and this far over — where the construction has become the
+ * section's default sentence shape — is the failure.
+ *
+ * Expressed as a MARGIN above the cap rather than an absolute count, because
+ * the cap itself now scales with the section's band: an absolute 3 would be
+ * "two over" for a 230-word section and "one over" for a 780-word one, so the
+ * severity of a given overrun would depend on the band, which is backwards.
  */
-export const ANTITHESIS_HARD_THRESHOLD = 3
+export const ANTITHESIS_HARD_MARGIN = 2
+
+/** The count at or above which the tic is a hard failure for a section of `cap`. */
+export function antithesisHardThresholdFor(cap: number = ANTITHESIS_LIMIT): number {
+  return cap + ANTITHESIS_HARD_MARGIN
+}
 
 // ── 9. Register drift ────────────────────────────────────────────────────────
 // SHARED_RULES PART 4: a natal section addresses the reader as "you", present
@@ -378,6 +402,14 @@ export interface RuleScanOptions {
    * is never reported.
    */
   frame?: string
+  /**
+   * This section's band-scaled antithesis allowance (`antithesisCapFor` in
+   * prompts.ts). Omitted, the scan falls back to ANTITHESIS_LIMIT — the cap
+   * every section carried before v10.39, and still the cap at every band but
+   * Sun/Moon and Divergence, so a caller that cannot compute it is not wrong,
+   * only stricter on the two long sections.
+   */
+  antithesisCap?: number
 }
 
 export function scanSectionRules(text: string, opts: RuleScanOptions = {}): RuleFinding[] {
@@ -442,15 +474,16 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
   // The antithesis cap. One finding for the section, not one per hit: the
   // breach is the COUNT, and n separate findings would swamp `soft` and bury
   // long-paragraph.
+  const antithesisCap = opts.antithesisCap ?? ANTITHESIS_LIMIT
   const antitheses = detectAntithesisTic(text)
-  if (antitheses.length > ANTITHESIS_LIMIT) {
+  if (antitheses.length > antithesisCap) {
     out.push({
       rule:     'antithesis-tic',
       severity: 'soft',
       // Not clipped to MATCH_CAP: the count leads, and the matches after it are
       // what a reviewer needs to confirm the count is real.
-      match:    `${antitheses.length} occurrences (limit ${ANTITHESIS_LIMIT}): ${antitheses.map(a => a.match).join(' | ')}`,
-      line:     antitheses[ANTITHESIS_LIMIT].line,
+      match:    `${antitheses.length} occurrences (limit ${antithesisCap}): ${antitheses.map(a => a.match).join(' | ')}`,
+      line:     antitheses[antithesisCap].line,
     })
   }
 
