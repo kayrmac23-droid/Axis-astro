@@ -12,7 +12,9 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS } from '@/lib/prompts'
+import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor } from '@/lib/prompts'
+import { scanSectionRules } from '@/lib/reading-rule-scan'
+import { countWords, scoreLength } from '@/lib/reading-quality-gate'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 
 const BIRTH: BirthData = {
@@ -379,5 +381,68 @@ describe('PART 8 — the closing paragraph is required (v10.34)', () => {
     // pseudo-synthesis PROSE FAILURE MODES #4 catches.
     expect(SHARED_RULES).toMatch(/ONE live tension/i)
     expect(SHARED_RULES).toMatch(/does not re-list placements/i)
+  })
+})
+
+// ── v10.37: the worked section ──────────────────────────────────────────────
+// Through v10.36 the prompt described the scene requirement exhaustively and
+// never SHOWED one. The scene was absent from 14 of 21 sections on the
+// 2026-11-05 run — with the register fixed (register-drift 16/17 -> 1) and the
+// secondary budget raised 1.69x — and `specificity` moved 2.33 -> 2.38, flat.
+// Rule prose has failed to produce a scene across three versions, two registers
+// and two budgets; example is the mechanism that demonstrably moves this model
+// (it beat the register rule 16 times out of 17, and the antithesis cap too).
+//
+// An example that breaks the rules it teaches is worse than no example, so the
+// exemplar is held to them here. These assertions are the whole point of the
+// const being exported.
+describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => {
+  it('produces ZERO deterministic rule findings', () => {
+    expect(scanSectionRules(SCENE_EXEMPLAR, { frame: 'tropical' })).toEqual([])
+  })
+
+  it('scores 5 on length for its own band (tropical/mercury, 4 aspects)', () => {
+    const band = wordBandFor('tropical', 'mercury', 4)
+    const words = countWords(SCENE_EXEMPLAR)
+    expect(scoreLength(words, band)).toBe(5)
+    // And is genuinely inside the band, not merely not-failing.
+    expect(words).toBeGreaterThanOrEqual(band.fullMin)
+    expect(words).toBeLessThanOrEqual(band.fullMax)
+  })
+
+  it('addresses the reader, and never makes the placement the subject', () => {
+    expect(SCENE_EXEMPLAR).toMatch(/\byou\b/i)
+    // The apparatus register the prose kept reverting to before v10.35.
+    expect(SCENE_EXEMPLAR).not.toMatch(/this (?:mind|Mercury|placement) (?:does|works|turns)/i)
+    expect(SCENE_EXEMPLAR).not.toMatch(/\bthe native\b/i)
+  })
+
+  it('contains all three parts of the moment, aftermath included', () => {
+    // The aftermath is the component that was delivered 0 times in most
+    // sections, so the example has to carry an unmistakable one.
+    expect(SCENE_EXEMPLAR).toMatch(/Hours later you notice/)
+    expect(SCENE_EXEMPLAR).toMatch(/had not finished forming/)
+  })
+
+  it('is carried into PART 1, interpolated rather than left as a slot', () => {
+    const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
+    expect(part1).toContain('Mercury in Aries, House 12')
+    expect(part1).not.toContain('${')
+  })
+
+  it('carries the anti-import warning, or it teaches fabrication', () => {
+    // Without this, another chart's Aries Mercury in the twelfth starts turning
+    // up in charts that have neither.
+    const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
+    expect(part1).toMatch(/ITS CHART IS NOT YOUR CHART/)
+    expect(part1).toMatch(/NEVER carry any of those/i)
+    expect(part1).toMatch(/it does not exist, no matter what the example says/i)
+  })
+
+  it('keeps PART 1 stating the rules, so the example supplements rather than replaces them', () => {
+    const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
+    for (const part of ['TRIGGER', 'ACTION', 'AFTERMATH']) expect(part1).toContain(part)
+    expect(part1).toMatch(/Two of the three is a failure/i)
+    expect(part1).toMatch(/Placements explain; they do not act in a life/)
   })
 })
