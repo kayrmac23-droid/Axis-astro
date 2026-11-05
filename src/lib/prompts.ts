@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.37
+// AXIS Production System Prompts v10.38
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -706,6 +706,15 @@ Two of the three is a failure, and (iii) is the one that gets dropped. A moment
 without its aftermath is a mechanism being described; with it, it is a moment
 someone recognises from having lived it. Write (iii) in the same breath as (ii),
 not as a closing flourish.
+
+Write all three in the PRESENT tense. A recurring moment is something that
+happens, not something that is going to happen: "you match their certainty, and
+hours later you notice…", never "you will feel the pull" or "you will find". The
+future tense turns the same observation into a prediction, which PART 4 bans
+outright, and it is the easiest way to breach that rule by accident — the pull
+toward it comes from narrating a moment at all, so it arrives exactly when the
+rest of this PART is being obeyed. The worked section below is in the present
+throughout.
 
 - Do not write "you struggle with commitment." Write the situation the urge to
   leave arrives in, and what you notice yourself having already done by the time

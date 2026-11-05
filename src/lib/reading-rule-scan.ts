@@ -111,8 +111,23 @@ function proseLines(text: string): { line: number; text: string }[] {
 // Scoped to second-person address: the rule bans telling the reader what to do,
 // not the words themselves. "The Saturn return works on the same axis" is
 // prose; "you should work on this" is a prescription.
+// ⚠ The modal list is split in two. "should"/"ought to" are prescriptive wherever
+// they appear. "need to"/"must"/"have to" are ALSO ordinary descriptive English
+// inside a subordinate clause that states a CONDITION rather than giving advice:
+// "a conversation that gives you room to draft before you have to speak" is a
+// temporal clause, and the 2026-11-05 eval run reported it as a hard breach. That
+// is the scanner crying wolf, which this file's own design constraint forbids —
+// a false positive here sends clean prose through a needless repair and, worse,
+// teaches whoever reads the report to stop trusting it.
+//
+// So the conditional modals do not match when the clause is introduced by a
+// subordinating conjunction (before/until/when/while/if/once/unless/after/as/
+// whenever/where), optionally with a few words between it and "you".
+const SUBORDINATED_YOU = String.raw`(?<!\b(?:before|until|when|whenever|while|if|once|unless|after|as|where|than)\b(?:\s+\w+){0,3}\s+)`
+
 const PRESCRIPTION_RES: readonly RegExp[] = [
-  /\byou (?:should|ought to|need to|must|have to)\b/gi,
+  /\byou (?:should|ought to)\b/gi,
+  new RegExp(SUBORDINATED_YOU + String.raw`\byou (?:need to|must|have to)\b`, 'gi'),
   /\byou(?:'| a)?r?e? (?:better off|best served)\b/gi,
   /\b(?:try|work|focus|start|stop|learn) to (?:notice|see|accept|let go)\b/gi,
   /\byou (?:might|may|could) (?:want|wish) to\b/gi,

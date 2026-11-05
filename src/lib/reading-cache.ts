@@ -95,7 +95,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // and houses are no longer described as changing only "occasionally" between
 // frames. An empty Divergence allocation gets a short length band. The Western
 // dignity table no longer assigns the nodes dignities.
-export const READING_PROMPT_VERSION = 'v10.37'
+export const READING_PROMPT_VERSION = 'v10.38'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

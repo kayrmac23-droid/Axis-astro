@@ -353,3 +353,38 @@ conclusion. You turn the disagreement over long after the conversation ended.`
       .not.toContain('register-drift')
   })
 })
+
+// ── v10.38: the prescription false positive ─────────────────────────────────
+// The 2026-11-05 v10.37 run reported a hard `prescription` breach on "a
+// conversation that gives you room to draft before you have to speak". That is
+// a temporal clause, not advice. This file's stated design constraint is that
+// false positives are what matter, "because a scanner that cries wolf gets
+// switched off" — and a hard breach is the loudest thing it can say.
+//
+// "should"/"ought to" are prescriptive anywhere. "need to"/"must"/"have to" are
+// also ordinary descriptive English inside a clause introduced by a
+// subordinating conjunction, so there they stay silent.
+describe('prescription — conditional modals in subordinate clauses', () => {
+  const hit = (t: string) => has(`## X\n\n${t}`, 'prescription')
+
+  it('stays silent on a conditional modal after a subordinating conjunction', () => {
+    expect(hit('a conversation that gives you room to draft before you have to speak')).toBe(false)
+    expect(hit('the pattern holds until you have to choose between them')).toBe(false)
+    expect(hit('when you must defend it, the hesitation returns')).toBe(false)
+    expect(hit('if you need to be certain first, the moment passes')).toBe(false)
+    expect(hit('it costs more than you have to give')).toBe(false)
+    expect(hit('once you have to say it aloud, the draft stops helping')).toBe(false)
+  })
+
+  it('still catches the genuine prescriptions', () => {
+    expect(hit('you have to stop doing that')).toBe(true)
+    expect(hit('you need to accept the cost')).toBe(true)
+    expect(hit('you must name it plainly')).toBe(true)
+  })
+
+  it('never exempts should/ought to, which are prescriptive anywhere', () => {
+    expect(hit('before you should speak, the draft is done')).toBe(true)
+    expect(hit('you ought to say so')).toBe(true)
+    expect(hit('you should work on this')).toBe(true)
+  })
+})
