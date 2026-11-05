@@ -114,3 +114,141 @@ describe('checkNumericFacts — robustness', () => {
       .toMatch(/^\[AXIS_FACTS\] section=tropical\/mercury hard=1 soft=0 unstated-degree=1$/)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The engine renders an orb in four different shapes, and the original parser
+// matched exactly ONE of them. That does not fail loudly: `orbs` comes back
+// empty, `supported` becomes unreachable, and a TRUE closeness claim about the
+// chart's own tightest aspect is reported as `unsupported-closeness` — the
+// checker crying wolf about correct prose, which is the one failure mode its
+// own header calls the design constraint. Each fixture below is copied from the
+// live format at the interpretation-engine.ts line named beside it.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('checkNumericFacts — every aspect format the engine emits', () => {
+  // formatPlanetBlock: "• Sextile Saturn (3.6°, close, applying, cooperative)"
+  const PLANET_BLOCK = `
+VENUS: Scorpio 14.2°, House 8
+
+ASPECTS (tightest first):
+• Trine Moon (0.4°, tight, separating, flowing) | Moon H5
+• Sextile Rahu (3.8°, close, applying, cooperative) | Rahu H7
+`
+  // key_aspects: no bullet, "orb" label, BOTH bodies named.
+  const KEY_ASPECTS = `
+TIGHTEST ASPECT IN THE CHART: Sun sextile Jupiter (orb 0.2°). No other aspect may be called the tightest, closest or most exact.
+
+ALL MAJOR ASPECTS (tightest first):
+
+Sun ⚹ Jupiter (orb 0.2°, tight, separating, cooperative)
+  Placements: Sun Gemini H9 · Jupiter Aries H7
+Moon △ Venus (orb 0.4°, tight, separating, flowing)
+`
+  // formatAscendantBlock: bullet AND the "orb" label, both bodies named.
+  const ASCENDANT = `
+ASPECTS (tightest first):
+• Ascendant △ Moon (orb 1.3°, tight, harmonising): Moon — emotional instinct.
+• Ascendant ⚹ Saturn (orb 3.8°, close, cooperative): Saturn — structure, discipline.
+`
+  // jupiter_saturn's direct-relationship line: aspect name alone, no second body.
+  const JUPSAT = `
+JUPITER–SATURN DIRECT RELATIONSHIP:
+Square (orb 2.1°, applying): productive friction — the planets pull in incompatible directions
+Jupiter = expansion | Saturn = contraction
+`
+
+  it('supports a true closeness claim in the key_aspects format', () => {
+    // 0.2° Sun–Jupiter is in the context. Before the line-based parser this was
+    // reported, because the regex required a bullet and no "orb" label.
+    expect(checkNumericFacts('Your Sun is exactly conjunct your Jupiter.', KEY_ASPECTS)).toEqual([])
+  })
+
+  it('supports a true closeness claim in the ascendant format', () => {
+    expect(checkNumericFacts('Your Ascendant sits within a degree of your Moon.', ASCENDANT)).toEqual([])
+  })
+
+  it('supports a true closeness claim in the planet-block format', () => {
+    // This format names only the OTHER body — the subject is the block's own
+    // planet and implicit — which is why the support test matches on ANY named
+    // body rather than requiring the pair.
+    expect(checkNumericFacts('Your Venus is exactly conjunct your Moon.', PLANET_BLOCK)).toEqual([])
+  })
+
+  it('still reports a closeness claim the context does NOT support', () => {
+    // Rahu is 3.8° out in this block. The parser getting wider must not make
+    // the check toothless.
+    const f = checkNumericFacts('Your Venus sits half a degree from your Rahu.', PLANET_BLOCK)
+    expect(f.map(x => x.check)).toContain('unsupported-closeness')
+  })
+
+  it('reads an orb off a line that names no second body', () => {
+    // The jupiter_saturn line names Jupiter and Saturn on the FOLLOWING line,
+    // so the orb is attached to "Jupiter"/"Saturn" nowhere — but the figure
+    // itself must still be allowed, or every mention of it is a hard breach.
+    expect(checkNumericFacts('That square is 2.1° from exact.', JUPSAT)).toEqual([])
+  })
+
+  it('does not mistake an ordinary position line for an aspect orb', () => {
+    // "VENUS: Scorpio 14.2°" is a position, not an orb. Anchoring on the
+    // opening parenthesis is what keeps it out of the orb table — otherwise a
+    // 14.2° position would silently license a closeness claim at 14.2°.
+    const f = checkNumericFacts('Your Venus is exactly conjunct your Saturn.', `
+VENUS: Scorpio 14.2°, House 8
+SATURN: Pisces 14.2°, House 12
+`)
+    expect(f.map(x => x.check)).toContain('unsupported-closeness')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The check that motivated this file matched only the `°` glyph — and the prose
+// the prompt actually asks for does not always use it. "twelve degrees from
+// your Sun" is the same invented figure as "12°", in the register PART 4
+// requires, and it passed both checks.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('checkNumericFacts — worded degree figures', () => {
+  it('catches a spelled-out figure the context never states', () => {
+    const f = checkNumericFacts('Mercury sits twelve degrees from your Sun.', CONTEXT)
+    expect(f).toHaveLength(1)
+    expect(f[0].check).toBe('unstated-degree')
+    expect(f[0].severity).toBe('hard')
+    expect(f[0].match).toBe('twelve degrees')
+  })
+
+  it('catches a digit-plus-word figure the context never states', () => {
+    const f = checkNumericFacts('It is 12 degrees off.', CONTEXT)
+    expect(f.map(x => x.match)).toEqual(['12 degrees'])
+  })
+
+  it('allows a worded figure the context DOES state, within rounding', () => {
+    // The context carries "Sextile Uranus (4.5°" and "Libra 28.8°".
+    expect(checkNumericFacts('Uranus is four degrees out.', CONTEXT)).toEqual([])
+    expect(checkNumericFacts('Mercury sits at twenty-nine degrees of Libra.', CONTEXT)).toEqual([])
+  })
+
+  // ⚠ FALSE POSITIVES ARE THE DESIGN CONSTRAINT. "degrees" is ordinary English
+  // in forms that assert no number at all, and a hard breach is the loudest
+  // thing this file can say.
+  it('stays silent where no figure is asserted', () => {
+    for (const t of [
+      'The guardedness shifts to varying degrees.',
+      'You keep a few degrees of slack in every arrangement.',
+      'It is several degrees away from anything comfortable.',
+      'There are degrees of separation here that you do not close.',
+      'You hold the line to the degree that it still serves you.',
+    ]) expect(checkNumericFacts(t, CONTEXT)).toEqual([])
+  })
+
+  it('does not double-report a worded closeness claim as an unstated degree', () => {
+    // "half a degree" is a CLAIM, handled by the closeness check; counting the
+    // bare "a"/"half" as a figure too would report one sentence under two
+    // checks and double the apparent error count.
+    const f = checkNumericFacts('Your Mercury sits half a degree from your Saturn.', CONTEXT)
+    expect(f.map(x => x.check)).toEqual(['unsupported-closeness'])
+  })
+
+  it('is reusable across sections (no stale regex lastIndex on the worded pass)', () => {
+    const t = 'Mercury sits twelve degrees from your Sun.'
+    expect(checkNumericFacts(t, CONTEXT)).toEqual(checkNumericFacts(t, CONTEXT))
+    expect(checkNumericFacts(t, CONTEXT)).toHaveLength(1)
+  })
+})

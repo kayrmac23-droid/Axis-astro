@@ -528,7 +528,14 @@ function aggregate(records: SectionRecord[]) {
   const sceneAbsent = (r: SectionRecord) => SCENE_ABSENT_RE.test(r.first_pass_critique ?? '')
   const isNatal = (r: SectionRecord) => r.section === 'tropical' || r.section === 'sidereal'
   const checkedFacts = records.filter(r => r.facts_hard !== null)
-  const scored = records.filter(r => typeof r.first_pass_critique === 'string' && r.first_pass_critique.length > 0)
+  // ⚠ The denominator is every section the evaluator actually SCORED, not every
+  // section that came back with a non-empty critique. A critique is written only
+  // when a criterion is below 4, so filtering on its presence silently excluded
+  // every strong section — the rate was computed over the weak tail alone and
+  // therefore rose as the prose improved, which is the opposite of what it is
+  // for. A scored section with no critique has no "there is no moment" sentence
+  // in it, which is the correct reading: the scene was not called absent.
+  const scored = records.filter(r => r.first_pass_scores != null)
 
   const byRule: Record<string, number> = {}
   for (const r of scanned)
@@ -566,6 +573,9 @@ function aggregate(records: SectionRecord[]) {
     // reader actually receives. Reported natal-only as well as overall: the four
     // Divergence sections are third person and comparative by their own
     // instruction, so a missing "scene" there is not the same failure.
+    //
+    // `scored` is every section the evaluator SCORED, passing ones included — not
+    // every section that came back with a critique. See the filter above.
     scene: scored.length === 0 ? null : {
       scored:                 scored.length,
       sections_without_scene: scored.filter(sceneAbsent).length,

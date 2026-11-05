@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   scanSectionRules, summariseRuleScan, countSentences, formatRuleScanLog,
   detectAntithesisTic, antithesisTicExceeded, ANTITHESIS_PER_SECTION_LIMIT,
+  ANTITHESIS_HARD_THRESHOLD,
   hasRegisterDrift, registerFor,
 } from '@/lib/reading-rule-scan'
 
@@ -386,5 +387,30 @@ describe('prescription — conditional modals in subordinate clauses', () => {
     expect(hit('before you should speak, the draft is done')).toBe(true)
     expect(hit('you ought to say so')).toBe(true)
     expect(hit('you should work on this')).toBe(true)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The cap the SCAN reports from and the threshold the GATE hard-fails on are
+// deliberately different numbers. v10.34 conflated them, so the second instance
+// of an ordinary cadence construction forced a full-section repair — 39 of the
+// 63 sections measured when this rule was written. The scan stays loud (it is a
+// measuring instrument and reports from the second); the gate's hard failure
+// waits for the third. Pinned so neither drifts onto the other.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('antithesis thresholds — the scan reports earlier than the gate fails', () => {
+  it('reports from the second instance but reserves the hard threshold for the third', () => {
+    expect(ANTITHESIS_PER_SECTION_LIMIT).toBe(1)
+    expect(ANTITHESIS_HARD_THRESHOLD).toBe(3)
+    expect(ANTITHESIS_HARD_THRESHOLD).toBeGreaterThan(ANTITHESIS_PER_SECTION_LIMIT + 1)
+  })
+
+  it('counts every occurrence, leaving the threshold to the caller', () => {
+    const two = 'It asserts rather than asks. It leads rather than follows.'
+    expect(detectAntithesisTic(two)).toHaveLength(2)
+    // Over the cap, so the scan reports it…
+    expect(scanSectionRules(two).filter(f => f.rule === 'antithesis-tic')).toHaveLength(1)
+    // …and under the gate's hard threshold, so it is a deduction there.
+    expect(detectAntithesisTic(two).length).toBeLessThan(ANTITHESIS_HARD_THRESHOLD)
   })
 })

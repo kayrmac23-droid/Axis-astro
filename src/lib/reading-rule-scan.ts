@@ -291,6 +291,31 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 /** The cap SHARED_RULES PART 4 states, so a critique can quote it. */
 export const ANTITHESIS_PER_SECTION_LIMIT = ANTITHESIS_LIMIT
 
+/**
+ * The count at which the gate treats the tic as a HARD failure rather than a
+ * deduction — i.e. clamps `voice_quality` BELOW the individual pass bar and so
+ * forces a full-section repair.
+ *
+ * ⚠ WHY THIS IS NOT THE SAME AS THE CAP. v10.34 clamped below the bar the
+ * moment the count passed ANTITHESIS_LIMIT, which made a two-instance cadence
+ * slip a hard gate failure for every section class. On this scan's own numbers
+ * that is 39 of 63 sections — so most sections would take a full repair, and a
+ * repair that lands on two instances again (the likeliest outcome, since two is
+ * near-native cadence for this model) fails its re-score, returns
+ * `repair-failed-recheck`, and caches provisionally for 24h, which means that
+ * section is regenerated and re-gated every day for every reader. A cadence tic
+ * is not worth that.
+ *
+ * It also contradicted the rubric prose the evaluator is handed, which says in
+ * as many words that "two is a deduction and four or more caps this criterion
+ * at 2". The deterministic clamp and the rubric must agree, so the clamp is now
+ * graduated the same way: over the cap is a deduction (clamped TO the bar, which
+ * still drags MIN_PASS_AVERAGE and still earns the critique), and three or more
+ * — a construction that has become the section's default sentence shape — is the
+ * failure.
+ */
+export const ANTITHESIS_HARD_THRESHOLD = 3
+
 // ── 9. Register drift ────────────────────────────────────────────────────────
 // SHARED_RULES PART 4: a natal section addresses the reader as "you", present
 // tense. Measured on the 2026-11-03 eval run: 10 of the 17 natal sections
