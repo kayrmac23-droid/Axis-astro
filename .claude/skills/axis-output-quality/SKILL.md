@@ -128,3 +128,19 @@ Born 23 July 1999, 11:45 PM AEST (UTC+10), Epping VIC, Australia. Positions belo
 The **Moon is in the 9th house, not the 8th**, in both frames. With an Aries Ascendant under Whole Sign houses, Sagittarius is the 9th house. The 8th-house placement in earlier versions of this skill came from a different house system, not from AXIS. Calibrate against what the product computes.
 
 Use this chart as the test case when calibrating reading output. It is also the chart pinned by the regression suite (`src/lib/__tests__/reading-review-fixes.test.ts`).
+
+## Register — address the reader as "you" (v10.35)
+
+A natal section addresses the reader directly, present tense: "you are", "you tend to", "you find". This is a hard constraint, and it was the single most breached rule in the pipeline: on the 2026-11-04 eval run **16 of 17 natal sections contained zero second-person address**.
+
+The model's default — and the register of nearly every astrology text ever written — is the third person about a placement: "this Mercury", "this mind", "the native". A section drifts into it the moment the placement rather than the person becomes the subject of the sentence.
+
+> Not "this mind does its real work alone, turning a disagreement over in solitude" — "you do your real work alone, turning the disagreement over long after the conversation has ended." Same claim, same evidence, same length; one is about an apparatus, one is about your reader.
+
+**Why it matters beyond style.** The scene requirement (priority #2) asks for a recurring moment told *from the inside*. An apparatus cannot be recognised from the inside, so register drift takes the scene requirement down with it — which is why `specificity` never once scored above 3 across 21 sections. Placements explain; they do not act in a life.
+
+Two registers are legitimate exceptions, both by their own instruction: **The Divergence** is third person, and **synastry** is second person plural.
+
+`reading-rule-scan.ts` checks this as `register-drift` (`hard`), frame-aware so the two exceptions are exempt.
+
+**The general lesson, which has now caused two separate failures:** the prompt must state its rules in the register and shape it requires. PART 1 described the scene in third person while PART 4 demanded second; the antithesis rule used "rather than" while banning it. In both cases the model followed the example over the instruction.

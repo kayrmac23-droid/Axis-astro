@@ -264,6 +264,58 @@ describe('reference chart facts quoted by the AXIS skills', () => {
   })
 })
 
+// ── v10.35: the prompt must not model the register it forbids ───────────────
+// PART 4 requires second person. On the 2026-11-04 eval run 16 of 17 natal
+// sections contained ZERO second-person address. The cause was the same as the
+// antithesis one: PART 1 — the block that governs the scene, and priority #2 —
+// stated its OWN requirements in the third person ("what the person does, and
+// what they themselves register"), so the most emphatic block in the prompt
+// demonstrated the register PART 4 bans, and examples outrank rules. Without
+// the reader as grammatical subject a moment cannot be told from the inside, so
+// the scene requirement failed as a consequence (specificity 2.24).
+describe('register — the prompt states its rules in the register it requires (v10.35)', () => {
+  const part1 = SHARED_RULES
+    .slice(SHARED_RULES.indexOf('PART 1 — THE SCENE REQUIREMENT'))
+    .split('── PART 2')[0]
+
+  it('priority #2 names the second-person address', () => {
+    const priorities = SHARED_RULES.split('PART 1 —')[0]
+    expect(priorities).toMatch(/addressed\s*\n?\s*to the reader as "you"/)
+  })
+
+  it('PART 1 no longer describes the moment in the third person', () => {
+    expect(part1).not.toMatch(/what the person does/)
+    expect(part1).not.toMatch(/what they themselves register/)
+  })
+
+  it('PART 1 names all three parts of the moment, and that two is a failure', () => {
+    for (const part of ['TRIGGER', 'ACTION', 'AFTERMATH']) expect(part1).toContain(part)
+    // The aftermath is the one that was being dropped — 0 instances in most
+    // sections — so the rule has to say so.
+    expect(part1).toMatch(/Two of the three is a failure/i)
+  })
+
+  it('PART 1 requires the reader, not the placement, as grammatical subject', () => {
+    expect(part1).toMatch(/grammatical subject/i)
+    expect(part1).toMatch(/Placements explain; they do not act in a life/)
+  })
+
+  it('PART 4 states the register as a hard constraint and names the drift', () => {
+    const part4 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 4 — VOICE')).split('── PART 5')[0]
+    expect(part4).toMatch(/hard constraint, not a stylistic preference/i)
+    expect(part4).toMatch(/third person about a placement/i)
+    expect(part4).toMatch(/no second-person\s*\n?\s*address has breached this rule/i)
+  })
+
+  it('PART 4 preserves the two legitimate overrides, so the fix cannot break them', () => {
+    const part4 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 4 — VOICE')).split('── PART 5')[0]
+    expect(part4).toMatch(/THE DIVERGENCE/)
+    expect(part4).toMatch(/second person plural/i)
+    // And The Divergence's own instruction still says so.
+    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/Third person only/)
+  })
+})
+
 // ── v10.34: the antithesis rule must not demonstrate the antithesis ─────────
 // The cap was already emphatic and already predicted the exact failure rate,
 // and the model breached it on 15 of 21 sections anyway (2026-11-03 eval run).

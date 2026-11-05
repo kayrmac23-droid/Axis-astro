@@ -276,13 +276,71 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 /** The cap SHARED_RULES PART 4 states, so a critique can quote it. */
 export const ANTITHESIS_PER_SECTION_LIMIT = ANTITHESIS_LIMIT
 
+// ── 9. Register drift ────────────────────────────────────────────────────────
+// SHARED_RULES PART 4: a natal section addresses the reader as "you", present
+// tense. Measured on the 2026-11-03 eval run: 10 of the 17 natal sections
+// contained ZERO second-person address, and only one was robustly in register.
+// The model's default is the third person about a placement ("this Mercury",
+// "this mind", "the native"), which is the register of essentially every
+// astrology text, and a single bullet ~11,000 tokens upstream does not hold
+// against that prior.
+//
+// Scoped to what is unambiguous: the rule is breached when a section that must
+// use second person contains NO second-person pronoun at all. A section with
+// some address is not scored on density — that is a judgment call and belongs
+// to the LLM criterion, not here.
+//
+// Frame-aware, because two registers are legitimate: THE DIVERGENCE is third
+// person by its own instruction and synastry is second person plural, so both
+// are exempt. A caller that does not say which frame it is scanning gets no
+// register finding, so the check can never fire on text it cannot classify.
+const SECOND_PERSON_RE = /\b(?:you|your|yours|yourself)\b/i
+
+/** Which register a section is written under. `natal` is the only one checked. */
+export type SectionRegister = 'natal' | 'synthesis' | 'synastry' | 'unknown'
+
+/**
+ * The register a section belongs to, from the frame the route/harness already
+ * has. `synthesis` is The Divergence (third person by instruction); `synastry`
+ * is second person plural. Anything unrecognised is `unknown` and exempt.
+ */
+export function registerFor(frame: string | undefined): SectionRegister {
+  switch (frame) {
+    case 'tropical':
+    case 'sidereal':  return 'natal'
+    case 'synthesis': return 'synthesis'
+    case 'synastry':  return 'synastry'
+    default:          return 'unknown'
+  }
+}
+
+/**
+ * True when `text` must address the reader as "you" and does not do so once.
+ * Pure. Returns false for any register that is not `natal`.
+ */
+export function hasRegisterDrift(text: string, register: SectionRegister): boolean {
+  if (register !== 'natal') return false
+  return !SECOND_PERSON_RE.test(proseLines(text).map(l => l.text).join(' '))
+}
+
 // ── Scanner ──────────────────────────────────────────────────────────────────
 
 /**
  * Scan one generated section against the deterministic SHARED_RULES / DOCTRINE
  * constraints. Pure; never throws. Returns findings in document order.
  */
-export function scanSectionRules(text: string): RuleFinding[] {
+export interface RuleScanOptions {
+  /**
+   * The frame this section was generated for ('tropical' | 'sidereal' |
+   * 'synthesis' | 'synastry'). Required for the `register-drift` rule, which is
+   * skipped entirely when it is absent — the two legitimate non-second-person
+   * registers cannot be told from the prose alone, so an unclassified section
+   * is never reported.
+   */
+  frame?: string
+}
+
+export function scanSectionRules(text: string, opts: RuleScanOptions = {}): RuleFinding[] {
   const out: RuleFinding[] = []
   const push = (rule: string, severity: RuleSeverity, match: string, line: number) =>
     out.push({ rule, severity, match: clip(match), line })
@@ -356,6 +414,19 @@ export function scanSectionRules(text: string): RuleFinding[] {
     })
   }
 
+  // Register drift. `hard`: PART 4 states it as a constraint, and a section
+  // with no second-person address anywhere is a breach a reader notices in the
+  // first sentence. Reported once for the section, with no line, since the
+  // breach is the absence of something rather than the presence of a match.
+  if (hasRegisterDrift(text, registerFor(opts.frame))) {
+    out.push({
+      rule:     'register-drift',
+      severity: 'hard',
+      match:    'no second-person address in a natal section (PART 4: "you are", "you tend to", "you find")',
+      line:     0,
+    })
+  }
+
   return out.sort((a, b) => a.line - b.line)
 }
 
@@ -370,8 +441,8 @@ export interface RuleScanSummary {
 }
 
 /** Aggregate a section's findings into the shape the eval harness records. */
-export function summariseRuleScan(text: string): RuleScanSummary {
-  const findings = scanSectionRules(text)
+export function summariseRuleScan(text: string, opts: RuleScanOptions = {}): RuleScanSummary {
+  const findings = scanSectionRules(text, opts)
   const byRule: Record<string, number> = {}
   for (const f of findings) byRule[f.rule] = (byRule[f.rule] ?? 0) + 1
   return {

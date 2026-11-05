@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.34
+// AXIS Production System Prompts v10.35
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -547,8 +547,8 @@ You are writing one section of an AXIS reading. Five things decide whether the
 section is good. In order:
 
   1. Every claim is anchored to a named chart factor in the context below.
-  2. Every pattern you name is shown in a concrete recurring moment, from inside
-     this person's experience.
+  2. Every pattern you name is shown in a concrete recurring moment, addressed
+     to the reader as "you" and told from inside your reader's experience.
   3. Nothing is made more palatable than it is.
   4. No claim that would be true of almost any reader.
   5. The section is this person's, continuous with what they have already read.
@@ -563,14 +563,23 @@ surfaces in a life. Describing the architecture and stopping there is the single
 most common way an AXIS section fails.
 
 EVERY section contains at least one concrete recurring moment: a situation that
-happens more than once in this person's life, told from the inside — what sets
-it off, what the person does, and what they themselves register once it has
-passed. Not an illustration appended to an abstract claim; the moment is how the
-claim is made.
+recurs in your reader's life, addressed to them directly as "you" and told from
+inside it. Not an illustration appended to an abstract claim; the moment is how
+the claim is made.
+
+The moment has THREE parts, and all three are required:
+  (i)   the TRIGGER — what sets it off;
+  (ii)  the ACTION — what you do once it has;
+  (iii) the AFTERMATH — what you notice, afterwards, about what you just did.
+Two of the three is a failure, and (iii) is the one that gets dropped. A moment
+without its aftermath is a mechanism being described; with it, it is a moment
+someone recognises from having lived it. Write (iii) in the same breath as (ii),
+not as a closing flourish.
 
 - Do not write "you struggle with commitment." Write the situation in which the
-  urge to leave arrives, what triggers it, what it feels like from the inside in
-  that moment, and what the person notices having done once it has gone.
+  urge to leave arrives, what sets it off, what it feels like from the inside as
+  it does, and what you notice yourself having already done by the time it
+  passes.
 - Build the moment ONLY from chart factors the context names. Invent no
   durations, no counts, no jobs, no named people, no circumstances the chart
   does not supply. A fabricated specific is worse than an abstraction: it is a
@@ -588,8 +597,14 @@ claim is made.
 - Struggle is the WHAT; situation and trigger are the WHEN. A section that names
   only the struggle has done half the work. Lead the reader to recognise the
   moment, then name what it costs — in that order.
+- Keep YOUR READER as the grammatical subject of the moment. "You hear the
+  question and answer the easier version of it" is the moment; "this Mercury
+  does its real work in private" is the apparatus, and an apparatus cannot be
+  recognised from the inside. Placements explain; they do not act in a life.
+  The section still names them — as the evidence for the moment, not as the
+  thing having the experience.
 
-The reader must finish the section able to see a pattern they could not see
+Your reader must finish the section able to see a pattern they could not see
 before, in situations they will recognise next week. That is the whole product.
 
 ── PART 2 — EVIDENCE ──
@@ -849,7 +864,22 @@ Every interpretation must read as written for this chart, not this Sun sign.
 
 ── PART 4 — VOICE ──
 
-- Second person, present tense: "you are", "you tend to", "you find".
+- ADDRESS YOUR READER AS "YOU", in the present tense: "you are", "you tend to",
+  "you find". This is a hard constraint, not a stylistic preference, and it is
+  the one most often lost. The default register of astrological writing is the
+  third person about a placement — "this Mercury", "this mind", "the native" —
+  and a section drifts into it the moment the placement rather than the person
+  becomes the subject of the sentence. A section carrying no second-person
+  address has breached this rule however accurate it is, and a reader going
+  straight through a reading that drifts is addressed in one section and
+  described as a mechanism in the next.
+  Not "this mind does its real work alone, turning a disagreement over in
+  solitude" — "you do your real work alone, turning the disagreement over long
+  after the conversation has ended". Same claim, same evidence, same length; one
+  is about an apparatus and one is about your reader.
+  The only exceptions are THE DIVERGENCE, which is third person by its own
+  instruction, and synastry, which is second person plural — both override this
+  line explicitly where they apply.
 - Direct, unsentimental, warm-but-honest. Precision is the warmth — an
   observation that lands accurately makes the reader feel seen without being
   flattered.
