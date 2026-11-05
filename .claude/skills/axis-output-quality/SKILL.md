@@ -144,3 +144,20 @@ Two registers are legitimate exceptions, both by their own instruction: **The Di
 `reading-rule-scan.ts` checks this as `register-drift` (`hard`), frame-aware so the two exceptions are exempt.
 
 **The general lesson, which has now caused two separate failures:** the prompt must state its rules in the register and shape it requires. PART 1 described the scene in third person while PART 4 demanded second; the antithesis rule used "rather than" while banning it. In both cases the model followed the example over the instruction.
+
+## The worked section (v10.37)
+
+`SCENE_EXEMPLAR` in `src/lib/prompts.ts` is one complete Mercury section carried inside PART 1. Anyone writing or reviewing AXIS copy should read it first: it is the standard, and it is more use than the rules that describe it.
+
+**Why it exists.** Through v10.36 the prompt described the scene requirement in exhaustive detail and never showed one. The scene was **absent from 14 of 21 sections** on the 2026-11-05 eval run — after the register was fixed (16 of 17 sections had been in the wrong one; that dropped to 1) and after the secondary word budget was raised 1.69×. `specificity` still read 2.33 → 2.38. Rule prose has failed to produce a scene across three prompt versions, two registers and two budgets.
+
+Example is what moves this model. We know because it moved it the wrong way twice: PART 1's own third-person phrasing beat PART 4's second-person rule in 16 of 17 sections, and the antithesis rule's own "rather than" beat its explicit cap.
+
+**What the example demonstrates**, in order of what was failing:
+- the reader as grammatical subject throughout, placements as evidence and never as the thing having the experience;
+- a complete three-part moment, with the **aftermath in the same breath as the action** — the component that was being delivered zero times;
+- dignity read through the dispositor where the placement is peregrine; close aspects worked to their own dynamics; wide aspects given one clause between them, anchoring nothing;
+- shadow riding the quality rather than bolted on as a separate flaw;
+- one antithesis in the whole section, and a close naming best and worst conditions as two situations, under no heading.
+
+**Two things to know if you edit it.** It is held to the rules it teaches — zero findings from `scanSectionRules`, length score 5 — and the tests fail the build otherwise. And its chart is not any real chart in the repo: PART 1 pairs it with a hard "ITS CHART IS NOT YOUR CHART" block, because a concrete example carries concrete placements and the failure mode is those placements turning up in readings of charts that do not have them.
