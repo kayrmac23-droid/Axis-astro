@@ -80,7 +80,7 @@ Write from inside the native looking out. Other people's perception may appear o
 3. Observer frame (above).
 4. Pseudo-synthesis: flattening a tension the native has to navigate into "carries both simultaneously".
 
-**One antithesis per section.** "X rather than Y", and its variants "not X but Y", "less X than Y" and a standalone "X, not Y", appear at most once per section. Past that, state what is and leave what it is not unsaid. Before v10.31 it averaged more than two per section; `reading-rule-scan.ts` now counts it (`antithesis-tic`).
+**One antithesis per section.** "X rather than Y", and its variants "not X but Y", "less X than Y" and a standalone "X, not Y", appear at most once per section. Past that, state what is and leave what it is not unsaid. Before v10.31 it averaged more than two per section; `reading-rule-scan.ts` counts it (`antithesis-tic`), and **as of v10.34 the gate enforces it**: over the cap, `voice_quality` is clamped below the individual pass bar and the critique names every instance, so the section is repaired. It was the most-cited fault on the 2026-11-03 eval run — 11 of 21 evaluator critiques, 15 scan findings — while the scan reported it `soft` and fed nothing. Varying the wording while keeping the contrastive shape does not satisfy the rule; it is the cadence half of PROSE FAILURE MODES #1.
 
 **Apply the rules silently.** The prose never announces its own compliance ("this is not a hidden virtue", "these are not mask and face"). It makes the plain claim instead.
 
@@ -96,6 +96,8 @@ Write from inside the native looking out. Other people's perception may appear o
 8. Refrains repeated across sections. A reading is one continuous document: each section builds on what the reader has already read rather than re-explaining it.
 9. Sections converging on one shape. The Sun, Moon, Mercury, Venus and Mars sections each have their own opening and closing mode (`OPENER_MODES` / `CLOSER_MODES` in prompts.ts). No section opens on the existential frame ("There is a particular…", "There is a kind of…", "There is something…", "There are moments…"); that frame is legal mid-paragraph. No section closes on the struck aphoristic fragment by default.
 10. The headed summary close. A section's closing paragraph carries **no heading**: it runs on from the last sub-section. Never head it "Putting It Together", "Synthesis", "In Summary", "The Core", "Bringing It Together" or any variant. Until v10.30 twelve of the seventeen natal sections were *required* to head their close "### Putting It Together" while the same prompt classified a Putting It Together that re-lists placements as a hard error — a heading that announces a summary gets a summary, and it also overrode the per-section closing modes in (9). The close still does synthesising work; it just does not advertise itself.
+
+    ⚠ **v10.34 — the close is REQUIRED, not merely unheaded.** Removing the heading left PART 8 stating only the prohibition, and 4 of 21 sections on the 2026-11-03 eval run then ended on their last aspect sub-section with no close at all (`synthesis` 2.48, 11 of 21 below the pass bar). The heading had been load-bearing scaffolding. Every section now ends on a closing paragraph: a full paragraph naming ONE live tension the section's evidence established and what inhabiting it costs — the thing the person is most likely to misread about themselves. A section that stops on its last sub-section has not closed, and a one-line sign-off is not a closing paragraph. It still re-lists nothing.
 11. Moon and Venus blurring. The Moon covers what the person needs in order to feel emotionally safe; Venus covers what they find worth giving and having. The two never share a concrete image (the noticed domestic detail, the remembered coffee order, the small thing quietly fixed).
 
 ## Synthesis Layer Rules (Tropical + Sidereal)
@@ -126,3 +128,19 @@ Born 23 July 1999, 11:45 PM AEST (UTC+10), Epping VIC, Australia. Positions belo
 The **Moon is in the 9th house, not the 8th**, in both frames. With an Aries Ascendant under Whole Sign houses, Sagittarius is the 9th house. The 8th-house placement in earlier versions of this skill came from a different house system, not from AXIS. Calibrate against what the product computes.
 
 Use this chart as the test case when calibrating reading output. It is also the chart pinned by the regression suite (`src/lib/__tests__/reading-review-fixes.test.ts`).
+
+## Register — address the reader as "you" (v10.35)
+
+A natal section addresses the reader directly, present tense: "you are", "you tend to", "you find". This is a hard constraint, and it was the single most breached rule in the pipeline: on the 2026-11-04 eval run **16 of 17 natal sections contained zero second-person address**.
+
+The model's default — and the register of nearly every astrology text ever written — is the third person about a placement: "this Mercury", "this mind", "the native". A section drifts into it the moment the placement rather than the person becomes the subject of the sentence.
+
+> Not "this mind does its real work alone, turning a disagreement over in solitude" — "you do your real work alone, turning the disagreement over long after the conversation has ended." Same claim, same evidence, same length; one is about an apparatus, one is about your reader.
+
+**Why it matters beyond style.** The scene requirement (priority #2) asks for a recurring moment told *from the inside*. An apparatus cannot be recognised from the inside, so register drift takes the scene requirement down with it — which is why `specificity` never once scored above 3 across 21 sections. Placements explain; they do not act in a life.
+
+Two registers are legitimate exceptions, both by their own instruction: **The Divergence** is third person, and **synastry** is second person plural.
+
+`reading-rule-scan.ts` checks this as `register-drift` (`hard`), frame-aware so the two exceptions are exempt.
+
+**The general lesson, which has now caused two separate failures:** the prompt must state its rules in the register and shape it requires. PART 1 described the scene in third person while PART 4 demanded second; the antithesis rule used "rather than" while banning it. In both cases the model followed the example over the instruction.

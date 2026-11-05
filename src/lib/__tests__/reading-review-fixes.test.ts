@@ -263,3 +263,121 @@ describe('reference chart facts quoted by the AXIS skills', () => {
     expect(jyotishSignStatus(planet('sidereal', 'Moon'))).toMatch(/debilitated/)
   })
 })
+
+// ── v10.35: the prompt must not model the register it forbids ───────────────
+// PART 4 requires second person. On the 2026-11-04 eval run 16 of 17 natal
+// sections contained ZERO second-person address. The cause was the same as the
+// antithesis one: PART 1 — the block that governs the scene, and priority #2 —
+// stated its OWN requirements in the third person ("what the person does, and
+// what they themselves register"), so the most emphatic block in the prompt
+// demonstrated the register PART 4 bans, and examples outrank rules. Without
+// the reader as grammatical subject a moment cannot be told from the inside, so
+// the scene requirement failed as a consequence (specificity 2.24).
+describe('register — the prompt states its rules in the register it requires (v10.35)', () => {
+  const part1 = SHARED_RULES
+    .slice(SHARED_RULES.indexOf('PART 1 — THE SCENE REQUIREMENT'))
+    .split('── PART 2')[0]
+
+  it('priority #2 names the second-person address', () => {
+    const priorities = SHARED_RULES.split('PART 1 —')[0]
+    expect(priorities).toMatch(/addressed\s*\n?\s*to the reader as "you"/)
+  })
+
+  it('PART 1 no longer describes the moment in the third person', () => {
+    expect(part1).not.toMatch(/what the person does/)
+    expect(part1).not.toMatch(/what they themselves register/)
+  })
+
+  it('PART 1 names all three parts of the moment, and that two is a failure', () => {
+    for (const part of ['TRIGGER', 'ACTION', 'AFTERMATH']) expect(part1).toContain(part)
+    // The aftermath is the one that was being dropped — 0 instances in most
+    // sections — so the rule has to say so.
+    expect(part1).toMatch(/Two of the three is a failure/i)
+  })
+
+  it('PART 1 requires the reader, not the placement, as grammatical subject', () => {
+    expect(part1).toMatch(/grammatical subject/i)
+    expect(part1).toMatch(/Placements explain; they do not act in a life/)
+  })
+
+  it('PART 4 states the register as a hard constraint and names the drift', () => {
+    const part4 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 4 — VOICE')).split('── PART 5')[0]
+    expect(part4).toMatch(/hard constraint, not a stylistic preference/i)
+    expect(part4).toMatch(/third person about a placement/i)
+    expect(part4).toMatch(/no second-person\s*\n?\s*address has breached this rule/i)
+  })
+
+  it('PART 4 preserves the two legitimate overrides, so the fix cannot break them', () => {
+    const part4 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 4 — VOICE')).split('── PART 5')[0]
+    expect(part4).toMatch(/THE DIVERGENCE/)
+    expect(part4).toMatch(/second person plural/i)
+    // And The Divergence's own instruction still says so.
+    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/Third person only/)
+  })
+})
+
+// ── v10.34: the antithesis rule must not demonstrate the antithesis ─────────
+// The cap was already emphatic and already predicted the exact failure rate,
+// and the model breached it on 15 of 21 sections anyway (2026-11-03 eval run).
+// One cause was in the rule itself: "a reader reading straight through hears the
+// template rather than the content" used the construction inside the sentence
+// prohibiting it. Examples outrank instructions. The rule may now QUOTE the
+// banned forms as named specimens, but must not use one in its own prose.
+describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => {
+  const block = SHARED_RULES
+    .slice(SHARED_RULES.indexOf('VARY THE ANTITHESIS'))
+    .split('\n- Banned outright')[0]
+
+  it('no longer contains the self-demonstrating clause', () => {
+    expect(block).not.toMatch(/hears\s+the\s+template\s+rather\s+than\s+the\s+content/)
+  })
+
+  it('states that the cap is enforced on the finished text', () => {
+    expect(block).toMatch(/enforced on the finished text/i)
+  })
+
+  it('carries a worked rewrite, so the fix is shown and not only named', () => {
+    expect(block).toMatch(/Worked example/i)
+    expect(block).toMatch(/stay\s+interchangeable\s+to\s+her/)
+  })
+
+  it('closes the reword loophole the gate also closes', () => {
+    expect(block).toMatch(/keeping the\s*\n?\s*contrastive shape does not satisfy/i)
+  })
+})
+
+// ── v10.34: the unheaded close must be REQUIRED, not merely unheaded ─────────
+// v10.30 removed the mandated `### Putting It Together` heading, correctly: the
+// prompt mandated a summary heading twelve times per reading while PROSE FAILURE
+// MODES #4 penalised the summary it produced. But what remained in PART 8 was a
+// purely negative rule — where the close goes and what not to call it — and
+// nothing saying it must exist. On the 2026-11-03 eval run 4 of 21 sections
+// ended on their last aspect sub-section with no close at all, and `synthesis`
+// scored 2.48 with 11 of 21 below the individual pass bar. The heading had been
+// load-bearing scaffolding; removing it removed the close.
+//
+// These assertions fail if PART 8 goes back to stating only the prohibition.
+describe('PART 8 — the closing paragraph is required (v10.34)', () => {
+  it('states that every section ends on a closing paragraph', () => {
+    expect(SHARED_RULES).toMatch(/ENDS ON A CLOSING PARAGRAPH/)
+  })
+
+  it('rules out the two ways the close degraded: absent, and a one-liner', () => {
+    expect(SHARED_RULES).toMatch(/has not closed/i)
+    expect(SHARED_RULES).toMatch(/one-line sign-off is not a closing paragraph/i)
+  })
+
+  it('still bans the heading and every variant v10.30 named', () => {
+    expect(SHARED_RULES).toMatch(/carries no heading|carries NO\s*\n?heading/i)
+    for (const variant of [
+      'Putting It Together', 'Synthesis', 'In Summary', 'The Core', 'Bringing It Together',
+    ]) expect(SHARED_RULES).toContain(variant)
+  })
+
+  it('says what the close must DO, so the requirement is not satisfied by padding', () => {
+    // One live tension and its cost — not a re-list of placements, which is the
+    // pseudo-synthesis PROSE FAILURE MODES #4 catches.
+    expect(SHARED_RULES).toMatch(/ONE live tension/i)
+    expect(SHARED_RULES).toMatch(/does not re-list placements/i)
+  })
+})

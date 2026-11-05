@@ -396,7 +396,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         const words = countWords(firstText)
         const lengthScore = scoreLength(words, band)
         // Deterministic rule scan on the first pass, free and instant.
-        const ruleScan = summariseRuleScan(firstText)
+        const ruleScan = summariseRuleScan(firstText, { frame: section })
         Object.assign(rec, {
           words, length_score: lengthScore, length_status: lengthStatus(words, band, lengthScore),
           stop_reason: finalMessage.stop_reason, truncated, gen_ms: Date.now() - startedAt,

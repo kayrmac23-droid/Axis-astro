@@ -470,6 +470,75 @@ describe('gateForCache — every model call is logged with its token usage', () 
   })
 })
 
+describe('gateForCache — the antithesis tic (v10.34)', () => {
+  // GOOD_SECTION plus three contrastive constructions. The cap is one, so this
+  // is a breach the scan already counted but which previously fed nothing:
+  // `antithesis-tic` was reported `soft` and the gate never read it, so the tic
+  // only reached a repair when the evaluator happened to mention it in prose
+  // (11 of 21 critiques on the 2026-11-03 eval run — and the other 10 shipped).
+  const TICKY = `${GOOD_SECTION}\n\nIt asserts rather than asks. It leads rather than follows. It is not a stance but a reflex.`
+
+  it('fails a draft the rubric passed, on the tic alone, and names every instance and the cap', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))                              // rubric passes on its own…
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))  // full repair
+      .mockResolvedValueOnce(evalReply(5))                              // re-score passes
+
+    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('repaired')
+    expect(r.modelCalls).toBe(3)
+
+    const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
+    expect(content).toContain('ANTITHESIS-TIC FAILURE')
+    // The count leads — the breach is the repetition, not any single use.
+    expect(content).toMatch(/appears \d+ times/)
+    // And each instance is quoted, so the repair cuts the right ones instead of
+    // guessing which constructions the deduction was for.
+    expect(content).toContain('rather than asks')
+    expect(content).toContain('rather than follows')
+  })
+
+  it('clamps voice_quality below the individual pass bar, not some other criterion', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: TICKY, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
+    // The clamp is surgical: the criteria the evaluator actually scored stand.
+    expect(r.firstPass?.scores?.specificity).toBe(5)
+    expect(r.firstPass?.scores?.chart_evidence).toBe(5)
+  })
+
+  it('does not take the surgical doctrine edit when a tic rides alongside a doctrine hit', async () => {
+    // The surgical edit rewrites only the doctrine sentence. Taken here it would
+    // clear the scan and cache a section whose tic is spread across paragraphs —
+    // which is why the clamp is applied BEFORE rubricPass, as the opener is.
+    const dirty = `${TICKY} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('repaired')
+    // The two repair routes are told apart by their budget: the surgical edit is
+    // a 500-token sentence rewrite, the full repair gets the section's budget.
+    expect(create.mock.calls[1][0].max_tokens).toBe(BASE.maxTokens)
+  })
+
+  it('leaves a section AT the cap alone — one antithesis is legal', async () => {
+    const atCap = `${GOOD_SECTION}\n\nIt asserts rather than asks.`
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: atCap, startedAt: JUST_NOW() })
+    expect(r.reason).toBe('passed')
+    expect(r.modelCalls).toBe(1)
+    expect(r.cacheText).toBe(atCap)
+  })
+})
+
 describe('gateForCache — banned existential opener', () => {
   // GOOD_SECTION with its first sentence opened on the convergent frame.
   const OPENS_ON_FRAME = GOOD_SECTION.replace('## The Sun\n\n', '## The Sun\n\nThere is a particular kind of ')

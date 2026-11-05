@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   scanSectionRules, summariseRuleScan, countSentences, formatRuleScanLog,
+  detectAntithesisTic, antithesisTicExceeded, ANTITHESIS_PER_SECTION_LIMIT,
+  hasRegisterDrift, registerFor,
 } from '@/lib/reading-rule-scan'
 
 const rules = (text: string) => scanSectionRules(text).map(f => f.rule)
@@ -13,18 +15,17 @@ const CLEAN_SECTION = `## The Sun
 
 ### The Sun in Leo
 
-The Sun sits in Leo in the fourth house, and the fourth house privatises the
+Your Sun sits in Leo in the fourth house, and the fourth house privatises the
 Leo drive entirely. Recognition matters, but it is recognition from the few
 people inside the door.
 
 ### Sun in the Fourth House
 
-Mars rules this Sun from the ninth, so what the Sun can deliver depends on
-whether the belief holds. Under pressure the warmth contracts rather than
-performs.
+Mars rules this Sun from the ninth, so what you can deliver depends on whether
+the belief holds. Under pressure your warmth contracts instead of performing.
 
-The cost is a long memory for who showed up. That tends to surface when a
-family decision is made without them.`
+The cost is a long memory for who showed up. You notice it surfacing when a
+family decision gets made without you.`
 
 describe('reading-rule-scan — false positives', () => {
   it('finds nothing in clean AXIS-register prose', () => {
@@ -215,5 +216,140 @@ describe('reading-rule-scan — summary and logging', () => {
     const second = scanSectionRules(bad)
     expect(second).toEqual(first)
     expect(first.length).toBeGreaterThan(0)
+  })
+})
+
+// ── The exported antithesis detector ────────────────────────────────────────
+// The quality gate clamps `voice_quality` on THIS function (v10.34), so it is
+// no longer only a reporting input: a change in what it matches changes what
+// the pipeline repairs and caches. The scan's own false-positive controls above
+// cover the regexes; these pin the exported surface and the cap boundary.
+describe('detectAntithesisTic / antithesisTicExceeded — the gate clamp surface', () => {
+  it('counts every occurrence, in document order, with whitespace collapsed', () => {
+    const text = [
+      '## The Sun',
+      '',
+      'The Sun acts rather than waits.',
+      '',
+      'It is not a stance but a reflex, and it moves less a decision than',
+      'a habit.',
+    ].join('\n')
+    const hits = detectAntithesisTic(text)
+    expect(hits.length).toBeGreaterThanOrEqual(3)
+    expect(hits.map(h => h.line)).toEqual([...hits.map(h => h.line)].sort((a, b) => a - b))
+    // Collapsed: a construction broken across a line wrap must not carry \n
+    // into the critique the gate builds from these strings.
+    for (const h of hits) expect(h.match).not.toMatch(/\n/)
+  })
+
+  it('returns null AT the cap and hits above it, so a compliant section is never clamped', () => {
+    const atCap = '## The Sun\n\nThe Sun asserts rather than asks. It is direct and it is early.'
+    expect(detectAntithesisTic(atCap)).toHaveLength(ANTITHESIS_PER_SECTION_LIMIT)
+    expect(antithesisTicExceeded(atCap)).toBeNull()
+
+    const overCap = `${atCap} The Moon reflects rather than initiates.`
+    expect(antithesisTicExceeded(overCap)).not.toBeNull()
+    expect(antithesisTicExceeded(overCap)!.length).toBe(ANTITHESIS_PER_SECTION_LIMIT + 1)
+  })
+
+  it('stays null on the clean control section', () => {
+    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
+  })
+
+  it('agrees with the scan: a clamp fires exactly when the scan reports the tic', () => {
+    const overCap = [
+      '## Venus',
+      '',
+      'Venus gives rather than receives, and it chooses depth rather than breadth.',
+    ].join('\n')
+    expect(antithesisTicExceeded(overCap)).not.toBeNull()
+    expect(rules(overCap)).toContain('antithesis-tic')
+    // And the converse, which is the regression that matters: no clamp without
+    // a scan finding, or the two surfaces have drifted.
+    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
+    expect(rules(CLEAN_SECTION)).not.toContain('antithesis-tic')
+  })
+
+  it('is reusable across sections (no stale regex lastIndex)', () => {
+    const overCap = '## Mars\n\nIt pushes rather than waits, and it leads rather than follows.'
+    const first  = antithesisTicExceeded(overCap)
+    const second = antithesisTicExceeded(overCap)
+    expect(second).toEqual(first)
+  })
+})
+
+// ── Register drift (v10.34) ─────────────────────────────────────────────────
+// PART 4 requires a natal section to address the reader as "you". On the
+// 2026-11-03 eval run 10 of 17 natal sections contained ZERO second-person
+// address — the model reverts to the third person about a placement, which is
+// the register of nearly every astrology text. The false-positive constraint
+// here is the sharpest in the file: two registers are LEGITIMATE (The
+// Divergence is third person by instruction, synastry second person plural),
+// so a frame-blind check would fire on correct prose.
+describe('register drift — natal sections must address the reader', () => {
+  const APPARATUS = `## Mercury
+
+Mercury sits peregrine in Libra, and that condition governs how this mind
+reaches a conclusion. This private weighing often never reaches the person it
+was about.`
+
+  const ADDRESSED = `## Mercury
+
+Mercury sits peregrine in Libra, and that condition governs how you reach a
+conclusion. You turn the disagreement over long after the conversation ended.`
+
+  it('maps frames to registers, and anything unrecognised is exempt', () => {
+    expect(registerFor('tropical')).toBe('natal')
+    expect(registerFor('sidereal')).toBe('natal')
+    expect(registerFor('synthesis')).toBe('synthesis')
+    expect(registerFor('synastry')).toBe('synastry')
+    expect(registerFor(undefined)).toBe('unknown')
+    expect(registerFor('nonsense')).toBe('unknown')
+  })
+
+  it('flags a natal section with no second-person address', () => {
+    expect(hasRegisterDrift(APPARATUS, 'natal')).toBe(true)
+    expect(scanSectionRules(APPARATUS, { frame: 'tropical' }).map(f => f.rule))
+      .toContain('register-drift')
+    expect(scanSectionRules(APPARATUS, { frame: 'sidereal' }).map(f => f.rule))
+      .toContain('register-drift')
+  })
+
+  it('stays silent once the section addresses the reader even once', () => {
+    expect(hasRegisterDrift(ADDRESSED, 'natal')).toBe(false)
+    expect(scanSectionRules(ADDRESSED, { frame: 'tropical' }).map(f => f.rule))
+      .not.toContain('register-drift')
+  })
+
+  it('exempts the two legitimate non-second-person registers', () => {
+    // The Divergence is third person BY INSTRUCTION — flagging it would be the
+    // scan contradicting the prompt.
+    expect(hasRegisterDrift(APPARATUS, 'synthesis')).toBe(false)
+    expect(hasRegisterDrift(APPARATUS, 'synastry')).toBe(false)
+    expect(scanSectionRules(APPARATUS, { frame: 'synthesis' }).map(f => f.rule))
+      .not.toContain('register-drift')
+  })
+
+  it('never fires when the caller did not say which frame it is scanning', () => {
+    // A frame-blind call must not guess: it cannot tell a drifted natal section
+    // from a correct Divergence one.
+    expect(scanSectionRules(APPARATUS).map(f => f.rule)).not.toContain('register-drift')
+    expect(summariseRuleScan(APPARATUS).byRule['register-drift']).toBeUndefined()
+  })
+
+  it('counts a second-person possessive and reflexive, not just the pronoun', () => {
+    for (const t of ['It costs your attention.', 'You find yourself answering.', 'That is yours to carry.'])
+      expect(hasRegisterDrift(`## The Sun\n\n${t}`, 'natal')).toBe(false)
+  })
+
+  it('ignores second person inside a heading only — prose is what counts', () => {
+    // proseLines strips headings; a section whose ONLY "you" is in a heading has
+    // still drifted.
+    expect(hasRegisterDrift('## What You Bring\n\nThis mind works in private.', 'natal')).toBe(true)
+  })
+
+  it('stays silent on the clean control section', () => {
+    expect(scanSectionRules(CLEAN_SECTION, { frame: 'tropical' }).map(f => f.rule))
+      .not.toContain('register-drift')
   })
 })
