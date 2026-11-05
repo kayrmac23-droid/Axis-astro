@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.35
+// AXIS Production System Prompts v10.36
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -304,7 +304,41 @@ export interface WordBand {
   evidenceUpCap?:     number  // max (evidenceCount - evidenceBaseline) applied upward
 }
 
-// ── v10.30 LENGTH RESET ───────────────────────────────────────────────────────
+// ── v10.36 LENGTH CORRECTION ─────────────────────────────────────────────────
+// Every natal band below is raised to what the prose demonstrably needs, measured
+// rather than chosen. The v10.30 reset (kept in full below, because its reasoning
+// still applies to anything that would grow further) cut these bands ~28% without
+// cutting a single requirement, and the model then simply overrode them: across
+// two gated eval runs of control-chicago-1987 the reading came out at ~8,880
+// words against a band-ceiling sum of 8,295. The bands were not constraining the
+// reading; they were describing it wrongly, and `length` scored that 3.95/5, so
+// nothing objected while every over-band section paid a repair.
+//
+// HOW THESE NUMBERS WERE DERIVED. For each section the aspect allowance already
+// granted was backed out ((aspects - aspectBaseline) x aspectAllowance / 2), giving
+// the base length the section needed independent of chart density; the class median
+// of that is the new target. Each band's five numbers are then scaled by one
+// factor, so band SHAPE is unchanged and the band-relative tests in
+// reading-quality-gate.test.ts keep holding. Factors: Sun/Moon and the tropical
+// secondaries 1.69x, sidereal secondaries 1.56x, Ascendant 1.23x, The Divergence
+// and Concordance ~1.20x, sidereal primaries 1.13x, nodes and central tension
+// ~1.06x. Totals at target: ~8,590 words, which is where the output already sits.
+// So this is close to cost-neutral — the output tokens already exist. It is a
+// correction to what the band CLAIMS, not an increase in what gets written.
+//
+// Raised BY CLASS, not per section, deliberately: the evidence is two runs of one
+// chart, and per-section bands fitted to that would encode one Mars placement.
+//
+// ⚠ What this does NOT change, and what it exposes. `scaleBand` grants words for
+// aspect density, and the data contradicts its premise: tropical/jupiter_saturn
+// with SEVEN aspects came in at 0.81x its scaled ceiling, while tropical/mars with
+// TWO ran to 2.37x its band. The driver of length is the narrative requirement load
+// the personal-planet sections carry (opening mode, closing mode, the scene, the
+// three domains), not how many aspects the context lists. The allowances are left
+// exactly as they were here — one variable at a time — but they are the next thing
+// to measure, and they may well want reducing rather than raising.
+//
+// ── v10.30 LENGTH RESET (superseded on the numbers; reasoning retained) ──────
 // Every natal band below was cut by roughly 28%: a full natal reading at target
 // went from ~8,600 words to ~6,200. Three reasons, in order of weight:
 //
@@ -331,17 +365,39 @@ export interface WordBand {
 // Synastry bands are deliberately UNCHANGED: six sections at ~1,950 words is
 // already a reasonable sitting, and that flow is not threaded, so it carries
 // none of the compounding input cost that motivates (2).
-const BAND_MAJOR:              WordBand = { target: 450, fullMin: 380, fullMax:  520, hardMin: 330, hardMax:  580, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 400, fullMin: 330, fullMax:  470, hardMin: 290, hardMax:  530 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 350, fullMin: 290, fullMax:  410, hardMin: 250, hardMax:  470, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 250, fullMin: 210, fullMax:  290, hardMin: 180, hardMax:  360, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars, Jup/Sat
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 200, fullMin: 175, fullMax:  230, hardMin: 150, hardMax:  290, aspectBaseline: 1, aspectAllowance: 40 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 200, fullMin: 165, fullMax:  240, hardMin: 140, hardMax:  300 }
-const BAND_NODES_TROP:         WordBand = { target: 220, fullMin: 185, fullMax:  260, hardMin: 160, hardMax:  320 }
-const BAND_DIVERGENCE:         WordBand = { target: 650, fullMin: 540, fullMax:  760, hardMin: 470, hardMax:  840, evidenceBaseline: 4, evidenceAllowance: 110, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 330, fullMin: 260, fullMax:  430, hardMin: 220, hardMax:  500, evidenceBaseline: 3, evidenceAllowance:  80, evidenceUpCap: 3 }
-const BAND_CENTRAL_TENSION:    WordBand = { target: 260, fullMin: 210, fullMax:  330, hardMin: 175, hardMax:  400 }
-const BAND_CLOSING:            WordBand = { target: 180, fullMin: 135, fullMax:  250, hardMin: 110, hardMax:  300 }
+const BAND_MAJOR:              WordBand = { target: 760, fullMin: 640, fullMax:  880, hardMin: 560, hardMax:  980, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 490, fullMin: 405, fullMax:  575, hardMin: 355, hardMax:  650 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 400, fullMin: 330, fullMax:  465, hardMin: 285, hardMax:  535, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 420, fullMin: 355, fullMax:  490, hardMin: 305, hardMax:  610, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax:  360, hardMin: 235, hardMax:  450, aspectBaseline: 1, aspectAllowance: 40 }
+// Jupiter/Saturn, BOTH frames. Split out of the secondary bands in v10.36 for a
+// mechanistic reason, not to fit a curve: this is the one "secondary" with no
+// OPENER_MODE and no CLOSER_MODE (see OPENER_MODES/CLOSER_MODES — sun, moon,
+// mercury, venus, mars only), so it carries a materially lighter brief than the
+// personal planets it used to share a band with, and its implied base was the
+// LOWEST in that class (303/356 tropical, 297/367 sidereal — both frames landing
+// near 330 at BASELINE aspect count, which is why one band now serves both).
+//
+// The target is 440, not that 330. Backing the allowance out of an observation
+// gives what a section would need at BASELINE aspect count — the right input for a
+// band that keeps scaling, since the scaling then adds the rest back. This band
+// does NOT keep scaling (below), so it has to cover the section's ACTUAL output at
+// its actual density: 415 and 468 words, both now inside 370–515.
+//
+// It also carries NO aspect scaling, which is the part worth reading twice. Its
+// length shows no relationship to its aspect count at all: 7 aspects produced
+// 303 and 356 words, 5 aspects produced 297 and 367. Left in the secondary band
+// after that band rose 1.69x, the allowance pushed its scaled FLOOR to 467 words
+// against an observed 415 — a floor above what the section has to say, which is
+// precisely the "a floor is an instruction to pad" failure the v10.30 note below
+// warns about. Granting it nothing is what the evidence supports.
+const BAND_JUPSAT:             WordBand = { target: 440, fullMin: 370, fullMax:  515, hardMin: 320, hardMax:  640 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 230, fullMin: 190, fullMax:  280, hardMin: 165, hardMax:  350 }
+const BAND_NODES_TROP:         WordBand = { target: 235, fullMin: 195, fullMax:  275, hardMin: 170, hardMax:  340 }
+const BAND_DIVERGENCE:         WordBand = { target: 780, fullMin: 650, fullMax:  915, hardMin: 565, hardMax: 1010, evidenceBaseline: 4, evidenceAllowance: 130, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 400, fullMin: 315, fullMax:  520, hardMin: 265, hardMax:  605, evidenceBaseline: 3, evidenceAllowance:  95, evidenceUpCap: 3 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 275, fullMin: 220, fullMax:  350, hardMin: 185, hardMax:  425 }
+const BAND_CLOSING:            WordBand = { target: 230, fullMin: 175, fullMax:  325, hardMin: 140, hardMax:  390 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
 const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
 const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
@@ -353,10 +409,10 @@ export const DEFAULT_WORD_BAND: WordBand = { target: 400, fullMin: 250, fullMax:
 export const SECTION_WORD_BANDS: Record<string, WordBand> = {
   'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
   'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
-  'tropical:jupiter_saturn': BAND_SECONDARY, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
+  'tropical:jupiter_saturn': BAND_JUPSAT, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
   'sidereal:lagna': BAND_SIDEREAL_PRIMARY, 'sidereal:sun': BAND_SIDEREAL_PRIMARY, 'sidereal:moon': BAND_SIDEREAL_PRIMARY,
   'sidereal:mercury': BAND_SIDEREAL_SECONDARY, 'sidereal:venus': BAND_SIDEREAL_SECONDARY, 'sidereal:mars': BAND_SIDEREAL_SECONDARY,
-  'sidereal:jupiter_saturn': BAND_SIDEREAL_SECONDARY, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
+  'sidereal:jupiter_saturn': BAND_JUPSAT, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
   'synthesis:agree': BAND_CONCORDANCE, 'synthesis:diverge': BAND_DIVERGENCE, 'synthesis:tension': BAND_CENTRAL_TENSION, 'synthesis:closing': BAND_CLOSING,
   'synastry:luminaries': BAND_SYN_LARGE, 'synastry:venus_mars': BAND_SYN_MED, 'synastry:outer_planets': BAND_SYN_MED,
   'synastry:composite_chart': BAND_SYN_LARGE, 'synastry:central_dynamic': BAND_SYN_SMALL, 'synastry:navigation': BAND_SYN_LARGE,
