@@ -446,3 +446,38 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
     expect(part1).toMatch(/Placements explain; they do not act in a life/)
   })
 })
+
+// ── v10.38: the scene is narrated in the present tense ──────────────────────
+// v10.37's run produced three hard `prediction` breaches — "you will feel the
+// pull", "You will feel the conviction" — and all three came from the scene
+// finally being attempted: narrating a recurring moment pulls toward the future
+// tense, so the breach arrives exactly when PART 1 is being obeyed. PART 4 bans
+// predictions, so the two PARTs were pulling against each other with nothing
+// saying which tense to use.
+describe('PART 1 — the moment is written in the present tense (v10.38)', () => {
+  const part1 = SHARED_RULES
+    .slice(SHARED_RULES.indexOf('PART 1 — THE SCENE REQUIREMENT'))
+    .split('── PART 2')[0]
+
+  it('states the present tense as the rule', () => {
+    expect(part1).toMatch(/Write all three in the PRESENT tense/)
+  })
+
+  it('names the banned future forms, so the rule is checkable from the text', () => {
+    expect(part1).toMatch(/you will feel the pull/)
+    expect(part1).toMatch(/you will find/)
+  })
+
+  it('cross-references the PART that actually bans predictions', () => {
+    // PART 4, not 3 — asserted because a wrong cross-reference sends the model
+    // looking for a rule that is not where it was told.
+    expect(part1).toMatch(/which PART 4 bans/)
+    const part4 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 4 — VOICE')).split('── PART 5')[0]
+    expect(part4).toMatch(/Banned outright: predictions/)
+  })
+
+  it('is obeyed by the exemplar, or the prompt models what it forbids again', () => {
+    // The v10.34/v10.35 failure mode: a rule whose own example breaches it.
+    expect(SCENE_EXEMPLAR).not.toMatch(/\byou will\b|\byou'll\b/i)
+  })
+})

@@ -161,3 +161,13 @@ Example is what moves this model. We know because it moved it the wrong way twic
 - one antithesis in the whole section, and a close naming best and worst conditions as two situations, under no heading.
 
 **Two things to know if you edit it.** It is held to the rules it teaches — zero findings from `scanSectionRules`, length score 5 — and the tests fail the build otherwise. And its chart is not any real chart in the repo: PART 1 pairs it with a hard "ITS CHART IS NOT YOUR CHART" block, because a concrete example carries concrete placements and the failure mode is those placements turning up in readings of charts that do not have them.
+
+## Two things v10.38 added, both from one eval run
+
+**Write the moment in the present tense.** A recurring moment is something that happens, not something that is going to happen: *"you match their certainty, and hours later you notice…"*, never *"you will feel the pull"*. The future tense turns the same observation into a prediction, which is banned outright — and it is the easiest rule to breach by accident, because the pull toward it comes from narrating a moment at all. It arrives exactly when the scene requirement is being obeyed: v10.37 produced three such breaches, all in sections that were finally attempting a scene.
+
+**Figures are checked against the chart.** `reading-fact-check.ts` now compares every degree in the prose against the context the section was given. The case that prompted it:
+
+> "Venus sits in Scorpio, in detriment, **half a degree from your Sun and Pluto**"
+
+Venus was 18.7° from the Sun. The half-degree pair was Sun–Pluto. The model took a real fact and reassigned it, the prose criteria scored that section 3–4, and the reader got a confident, specific falsehood about their own chart. A figure the context does not state is either invented or miscopied, and a reader cannot tell those apart — so if a claim cannot be traced to a line in the context block, it does not go in the prose.

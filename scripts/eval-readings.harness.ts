@@ -36,6 +36,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { calculateDualChart, type DualChartData, type PlanetPosition } from '@/lib/astro-calc'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
+import { checkNumericFacts, formatFactCheckLog } from '@/lib/reading-fact-check'
 import { isNearStation, cuspNeighbour, currentDashaKey } from '@/lib/interpretation-engine'
 import { countPlanEvidence, wordBandFor } from '@/lib/prompts'
 import { gateForCache, countWords, countAspectsInContext, scoreLength, type GateScores } from '@/lib/reading-quality-gate'
@@ -145,6 +146,9 @@ interface SectionRecord {
   rules_hard: number | null; rules_doctrine: number | null; rules_soft: number | null
   rules_by_rule: Record<string, number> | null
   rules_detail: string | null
+  // Numeric fact-check of the prose against the context it was given.
+  facts_hard: number | null; facts_soft: number | null
+  facts_detail: string | null
   // Gate (--gate only; all null otherwise).
   gate_reason: string | null
   first_pass_clean: boolean | null      // passed the gate with no repair (reason === 'passed')
@@ -321,6 +325,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         aspects: 0, plan_evidence: null, length_score: null, length_status: null,
         max_tokens: null, stop_reason: null, truncated: null, gen_ms: null, error: null, error_fatal: null,
         rules_hard: null, rules_doctrine: null, rules_soft: null, rules_by_rule: null, rules_detail: null,
+        facts_hard: null, facts_soft: null, facts_detail: null,
         prompt_chars: null,
         gate_reason: null, first_pass_clean: null, first_pass_rubric_pass: null, first_pass_scores: null,
         first_pass_critique: null, final_scores: null, repair_attempted: null, repaired: null, cached: null,
@@ -397,14 +402,26 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         const lengthScore = scoreLength(words, band)
         // Deterministic rule scan on the first pass, free and instant.
         const ruleScan = summariseRuleScan(firstText, { frame: section })
+        // Numeric fact-check against the exact context this section was given.
+        // Catches the confident-false-figure class the rule scan structurally
+        // cannot see (it is not a string pattern) and the LLM evaluator missed on
+        // the 2026-11-05 run: "half a degree from your Sun and Pluto" when Venus
+        // was 18.7 degrees from the Sun. Free and instant, like the rule scan.
+        const factCheck = checkNumericFacts(firstText, req.userContent)
         Object.assign(rec, {
+          facts_hard:   factCheck.filter(f => f.severity === 'hard').length,
+          facts_soft:   factCheck.filter(f => f.severity === 'soft').length,
+          facts_detail: factCheck.map(f => `${f.check}: ${f.match}`).join(' | ') || null,
           words, length_score: lengthScore, length_status: lengthStatus(words, band, lengthScore),
           stop_reason: finalMessage.stop_reason, truncated, gen_ms: Date.now() - startedAt,
           rules_hard: ruleScan.hard, rules_doctrine: ruleScan.doctrine, rules_soft: ruleScan.soft,
           rules_by_rule: ruleScan.byRule,
           rules_detail: ruleScan.findings.map(f => `L${f.line} ${f.rule}: ${f.match}`).join(' | ') || null,
         })
-        if (process.env.AXIS_EVAL_VERBOSE === '1') say(formatRuleScanLog(label, ruleScan))
+        if (process.env.AXIS_EVAL_VERBOSE === '1') {
+          say(formatRuleScanLog(label, ruleScan))
+          if (factCheck.length > 0) say(formatFactCheckLog(label, factCheck))
+        }
         writeFileSync(`${fileStem}.md`, truncated ? `${firstText}\n\n[AXIS_TRUNCATED]` : firstText)
         say(`[${spec.id}] ${label.padEnd(26)} ${String(words).padStart(5)}w band ${band.fullMin}–${band.fullMax} (${rec.length_status}) stop=${finalMessage.stop_reason} ${(rec.gen_ms! / 1000).toFixed(1)}s${ruleScan.hard > 0 ? ` ⚠ ${ruleScan.hard} rule breach${ruleScan.hard === 1 ? '' : 'es'}` : ''}`)
 
@@ -502,6 +519,17 @@ function aggregate(records: SectionRecord[]) {
   // carrying an unambiguous breach of a stated rule. `by_rule` says WHICH rule,
   // which is what turns "the output breaks my rules" into a work queue.
   const scanned = generated.filter(r => r.rules_hard != null)
+  // Sections whose first-pass critique states that no concrete moment exists.
+  // Phrase-matched against what the evaluator actually writes; kept loose on
+  // purpose, since it is a measuring instrument and not a gate, but anchored on
+  // "no"/"not" + moment/scene so a critique merely ASKING for a better scene
+  // does not count as the scene being absent.
+  const SCENE_ABSENT_RE = /(?:no|not a|without a|lacks a|there is no)\s+(?:single\s+|one\s+|concrete\s+|lived\s+|real\s+)*(?:moment|scene)|no (?:concrete|lived) (?:moment|scene)|nowhere (?:a|any) (?:moment|scene)/i
+  const sceneAbsent = (r: SectionRecord) => SCENE_ABSENT_RE.test(r.first_pass_critique ?? '')
+  const isNatal = (r: SectionRecord) => r.section === 'tropical' || r.section === 'sidereal'
+  const checkedFacts = records.filter(r => r.facts_hard !== null)
+  const scored = records.filter(r => typeof r.first_pass_critique === 'string' && r.first_pass_critique.length > 0)
+
   const byRule: Record<string, number> = {}
   for (const r of scanned)
     for (const [k, v] of Object.entries(r.rules_by_rule ?? {})) byRule[k] = (byRule[k] ?? 0) + v
@@ -522,6 +550,44 @@ function aggregate(records: SectionRecord[]) {
       total_doctrine:            scanned.reduce((n, r) => n + r.rules_doctrine!, 0),
       total_soft:                scanned.reduce((n, r) => n + r.rules_soft!, 0),
       by_rule:                   byRule,
+    },
+    // ── The scene, measured from the critiques ───────────────────────────────
+    // THE headline for PART 1, and the reason it exists as its own metric: the
+    // `specificity` criterion is supposed to measure whether a concrete moment
+    // is present, and it does not move when that changes. Across v10.34–v10.37
+    // it went 2.24 -> 2.33 -> 2.38 -> 2.43, about +0.05 per version regardless
+    // of what each version did — while the share of sections whose critique says
+    // there is no moment AT ALL went 14/21 -> 9/21 on the exemplar alone. Two of
+    // three "this did not work" verdicts in that sequence were called on the
+    // flat score and were wrong. The critique text is the sensitive instrument;
+    // it was already being written and was going nowhere.
+    //
+    // Counted on the FIRST PASS, like the rule scan, because that is the text a
+    // reader actually receives. Reported natal-only as well as overall: the four
+    // Divergence sections are third person and comparative by their own
+    // instruction, so a missing "scene" there is not the same failure.
+    scene: scored.length === 0 ? null : {
+      scored:                 scored.length,
+      sections_without_scene: scored.filter(sceneAbsent).length,
+      without_scene_rate:     rate(scored.filter(sceneAbsent).length, scored.length),
+      natal_scored:           scored.filter(isNatal).length,
+      natal_without_scene:    scored.filter(r => isNatal(r) && sceneAbsent(r)).length,
+      natal_without_scene_rate: rate(
+        scored.filter(r => isNatal(r) && sceneAbsent(r)).length,
+        scored.filter(isNatal).length,
+      ),
+    },
+    // Numeric fact errors on the first pass. `sections_with_fact_error` is the
+    // headline: the share of sections a reader receives carrying a figure the
+    // chart context does not support. That is the most serious thing this
+    // pipeline can ship — a confident, specific, false claim about the person's
+    // own chart — and until now nothing measured it at all.
+    facts: checkedFacts.length === 0 ? null : {
+      checked:                  checkedFacts.length,
+      sections_with_fact_error: checkedFacts.filter(r => (r.facts_hard ?? 0) > 0).length,
+      fact_error_rate:          rate(checkedFacts.filter(r => (r.facts_hard ?? 0) > 0).length, checkedFacts.length),
+      total_hard:               checkedFacts.reduce((n, r) => n + (r.facts_hard ?? 0), 0),
+      total_soft:               checkedFacts.reduce((n, r) => n + (r.facts_soft ?? 0), 0),
     },
     length: {
       in_band_rate:     rate(withWords.filter(r => r.length_status === 'in').length, withWords.length),
