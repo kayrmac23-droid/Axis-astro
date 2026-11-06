@@ -88,8 +88,15 @@ async function readWholeReading(birth: Record<string, unknown>) {
 
 describe('eval harness ↔ /api/reading parity', () => {
   const priorKey = process.env.ANTHROPIC_API_KEY
-  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key' })
+  // ⚠ Pre-flight OFF. This asserts the route sends byte-for-byte what the eval
+  // harness sends, and the harness measures the FIRST PASS — it has no hot-path
+  // pre-flight and should not, since a rewritten section is no longer the first
+  // pass the harness exists to measure. With pre-flight on, the stub fixtures
+  // trip the length floor and the route sends a second, extra turn, which is a
+  // real difference but not the drift this test guards.
+  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key'; process.env.AXIS_PREFLIGHT_ENABLED = 'false' })
   afterAll(() => {
+    delete process.env.AXIS_PREFLIGHT_ENABLED
     if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
     else process.env.ANTHROPIC_API_KEY = priorKey
   })

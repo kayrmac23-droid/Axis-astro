@@ -62,8 +62,15 @@ const lastUserBlocks = () => streamCalls[streamCalls.length - 1].messages[0].con
 
 describe('/api/reading — sections are written after the reading so far', () => {
   const priorKey = process.env.ANTHROPIC_API_KEY
-  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key' })
+  // ⚠ Pre-flight OFF. These fixtures are deliberately tiny ("## The Sun\n\nSUN-PROSE.")
+  // because this file is about WHAT THE ROUTE SENDS, not about prose quality. With
+  // the hot-path pre-flight on, every one of them fails the length floor and earns
+  // a rewrite turn, so each test would be measuring reading-preflight.ts instead of
+  // its own subject. The pre-flight has its own coverage in reading-preflight.test.ts
+  // and reading-route-preflight.test.ts.
+  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key'; process.env.AXIS_PREFLIGHT_ENABLED = 'false' })
   afterAll(() => {
+    delete process.env.AXIS_PREFLIGHT_ENABLED
     if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
     else process.env.ANTHROPIC_API_KEY = priorKey
   })

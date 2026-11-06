@@ -98,8 +98,14 @@ async function run(ip: string) {
 
 describe('/api/reading — the daily budget counts calls started', () => {
   const priorKey = process.env.ANTHROPIC_API_KEY
-  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key' })
+  // ⚠ Pre-flight OFF for the existing cases: their fixtures are stub prose that
+  // fails the length floor, so each would also pay a `preflight-rewrite` call and
+  // these assertions are about the GENERATION reservation and the GATE's calls.
+  // The rewrite's own budget accounting is asserted in its own case below, with
+  // pre-flight explicitly enabled.
+  beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key'; process.env.AXIS_PREFLIGHT_ENABLED = 'false' })
   afterAll(() => {
+    delete process.env.AXIS_PREFLIGHT_ENABLED
     if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
     else process.env.ANTHROPIC_API_KEY = priorKey
   })
@@ -131,12 +137,20 @@ describe('/api/reading — the daily budget counts calls started', () => {
     expect(events).not.toContain('gate')
   })
 
-  it('still gates and caches a paid generation when the reader disconnects mid-stream', async () => {
+  it('still gates and caches a paid generation when the reader disconnects while it generates', async () => {
     // Navigating away (or casting another chart) cancels the response body while
     // the model is still generating. The finished text must still reach the gate
     // and the cache: it has been billed in full. An unguarded controller.close()
     // threw into the failure path instead — skipping both and logging a false
     // [AXIS_GEN_FAIL].
+    //
+    // ⚠ The choreography changed with the hot-path pre-flight, and the change is
+    // the point rather than an inconvenience: the section is BUFFERED now, so
+    // there is no longer any such thing as disconnecting "mid-stream". Nothing
+    // is enqueued until generation (and any pre-flight rewrite) has finished, so
+    // this cancels the body while the model is still working — which is the same
+    // reader behaviour and the same risk to the cache write. The old version
+    // waited on a first delta that, by design, can no longer arrive.
     let release!: () => void
     streamHold = new Promise<void>(r => { release = r })
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -147,10 +161,9 @@ describe('/api/reading — the daily budget counts calls started', () => {
         body: JSON.stringify({ birthData: BIRTH, section: 'tropical', planetSection: 'sun' }),
       }))
       const reader = res.body!.getReader()
-      await reader.read()            // first delta arrives
-      await reader.cancel('navigated away')
-      release()
-      for (let i = 0; i < 10 && !events.includes('gate'); i++) await new Promise(r => setTimeout(r, 0))
+      await reader.cancel('navigated away')   // gone before a byte is written
+      release()                               // the generation then completes
+      for (let i = 0; i < 20 && !events.includes('gate'); i++) await new Promise(r => setTimeout(r, 0))
       expect(events).toContain('gate')
       expect(errors.mock.calls.some(c => String(c[0]).includes('[AXIS_GEN_FAIL]'))).toBe(false)
     } finally {

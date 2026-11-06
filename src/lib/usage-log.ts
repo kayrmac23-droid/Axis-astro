@@ -6,7 +6,11 @@
 // should show a large cache_read and a small uncached `in`. Grep `[AXIS_USAGE]`.
 import type Anthropic from '@anthropic-ai/sdk'
 
-export type ModelCallKind = 'generate' | 'evaluate' | 'recheck' | 'repair' | 'doctrine-repair'
+// 'preflight-rewrite' is the hot-path regeneration: the one extra generation a
+// section pays when the deterministic pre-flight (reading-preflight.ts) catches
+// a hard fault before the reader has seen anything. Distinct from 'repair',
+// which is the gate's post-response rewrite against an LLM critique.
+export type ModelCallKind = 'generate' | 'preflight-rewrite' | 'evaluate' | 'recheck' | 'repair' | 'doctrine-repair'
 
 // Pure, so the line format is testable. Returns null when the response carried
 // no usage (a mocked SDK, or a malformed response) — nothing is logged then.
