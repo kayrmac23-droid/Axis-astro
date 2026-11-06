@@ -146,8 +146,11 @@ interface SectionRecord {
   rules_hard: number | null; rules_doctrine: number | null; rules_soft: number | null
   rules_by_rule: Record<string, number> | null
   rules_detail: string | null
-  // Numeric fact-check of the prose against the context it was given.
+  // Fact-check of the prose against the context it was given: invented or
+  // reassigned figures, plus placements carried out of the prompt's own worked
+  // example (v10.40 `exemplar-bleed`).
   facts_hard: number | null; facts_soft: number | null
+  facts_by_check: Record<string, number> | null
   facts_detail: string | null
   // Gate (--gate only; all null otherwise).
   gate_reason: string | null
@@ -325,7 +328,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         aspects: 0, plan_evidence: null, length_score: null, length_status: null,
         max_tokens: null, stop_reason: null, truncated: null, gen_ms: null, error: null, error_fatal: null,
         rules_hard: null, rules_doctrine: null, rules_soft: null, rules_by_rule: null, rules_detail: null,
-        facts_hard: null, facts_soft: null, facts_detail: null,
+        facts_hard: null, facts_soft: null, facts_by_check: null, facts_detail: null,
         prompt_chars: null,
         gate_reason: null, first_pass_clean: null, first_pass_rubric_pass: null, first_pass_scores: null,
         first_pass_critique: null, final_scores: null, repair_attempted: null, repaired: null, cached: null,
@@ -418,6 +421,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
         Object.assign(rec, {
           facts_hard:   factCheck.filter(f => f.severity === 'hard').length,
           facts_soft:   factCheck.filter(f => f.severity === 'soft').length,
+          facts_by_check: factCheck.reduce<Record<string, number>>((a, f) => ((a[f.check] = (a[f.check] ?? 0) + 1), a), {}),
           facts_detail: factCheck.map(f => `${f.check}: ${f.match}`).join(' | ') || null,
           words, length_score: lengthScore, length_status: lengthStatus(words, band, lengthScore),
           stop_reason: finalMessage.stop_reason, truncated, gen_ms: Date.now() - startedAt,
@@ -548,6 +552,15 @@ function aggregate(records: SectionRecord[]) {
   for (const r of scanned)
     for (const [k, v] of Object.entries(r.rules_by_rule ?? {})) byRule[k] = (byRule[k] ?? 0) + v
 
+  // Broken out per check, because the two live checks answer different
+  // questions and the headline conflates them: `unstated-degree` measures
+  // whether the model invents figures, `exemplar-bleed` measures whether PART
+  // 1's worked example contaminates readings about other people — the open
+  // question v10.37 shipped the exemplar with.
+  const byFactCheck: Record<string, number> = {}
+  for (const r of checkedFacts)
+    for (const [k, v] of Object.entries(r.facts_by_check ?? {})) byFactCheck[k] = (byFactCheck[k] ?? 0) + v
+
   return {
     sections:           records.length,
     generated:          generated.length,
@@ -605,6 +618,8 @@ function aggregate(records: SectionRecord[]) {
       fact_error_rate:          rate(checkedFacts.filter(r => (r.facts_hard ?? 0) > 0).length, checkedFacts.length),
       total_hard:               checkedFacts.reduce((n, r) => n + (r.facts_hard ?? 0), 0),
       total_soft:               checkedFacts.reduce((n, r) => n + (r.facts_soft ?? 0), 0),
+      by_check:                 byFactCheck,
+      sections_with_exemplar_bleed: checkedFacts.filter(r => (r.facts_by_check?.['exemplar-bleed'] ?? 0) > 0).length,
     },
     length: {
       in_band_rate:     rate(withWords.filter(r => r.length_status === 'in').length, withWords.length),

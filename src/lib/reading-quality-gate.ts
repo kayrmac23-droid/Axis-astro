@@ -80,7 +80,9 @@ import {
 import {
   detectAntithesisTic,
   antithesisHardThresholdFor,
+  scanSectionRules,
 } from '@/lib/reading-rule-scan'
+import { checkNumericFacts } from '@/lib/reading-fact-check'
 
 // The evaluator needs discriminating judgment on subtle failure modes
 // (pseudo-synthesis, compensatory reframes, under-grounded prose), which is why
@@ -336,7 +338,7 @@ export function isTruncated(text: string): boolean {
 // banned moves stated in prompts.ts. Not used outside this module at runtime.
 export const EVAL_SYSTEM_PROMPT = `You are the AXIS reading quality evaluator.
 
-Your job is to score one generated section of an AXIS reading (natal or synastry) against AXIS's elite-reading criteria. Assess only this section and the chart context supplied below; never claim to have inspected other sections or a complete dossier unless it is actually present. You return STRICT JSON only — no prose, no markdown, no preamble.
+Your job is to score one generated section of an AXIS reading (natal or synastry) against AXIS's elite-reading criteria. The user turn carries the section inside <section_under_review>, the chart data it was written from inside <chart_context>, and the section's cadence allowance inside <section_meta>. Score <section_under_review> and nothing else; never claim to have inspected other sections or a complete dossier unless it is actually present. You return STRICT JSON only — no prose, no markdown, no preamble.
 
 When THE READING SO FAR precedes the chart context, it is the earlier sections the reader has already read, verbatim. Do not score those sections — score only the generated section. Use them to judge REPETITION ACROSS THE READING: a section that re-explains what the reading so far already established (the same trait, defence pattern, scene, ruler chain or aspect, re-derived rather than referred to and built on), or that repeats an earlier section's opening or closing shape, is padding however well written — score it LOW on synthesis (each part must advance a claim the reader has not already been given) and on voice_quality. A brief, specific reference back that the section then builds on is correct and must not be penalised. Score LOW on contradiction_handling for a behavioural claim that flatly contradicts one the reading so far made (e.g. "anger passes fast" earlier, "frustration compresses and waits" here) without naming the condition under which each holds. Chart facts still come only from the chart context, never from the earlier prose.
 
@@ -602,16 +604,25 @@ export async function evaluateSection({
   )
   const antithesisCap = antithesisCapFor(band)
 
-  const evalUserContent = `SECTION TYPE: ${section} → ${planetSection}
-CADENCE ALLOWANCE FOR THIS SECTION: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") may appear at most ${antithesisCap} time(s). This is scaled to the section's word band; judge the ANTITHESIS TIC against this number, not against a fixed one.
+  // Three bodies of text the evaluator must keep apart — earlier sections, the
+  // chart context, and the section under review — were separated only by
+  // visually identical rule lines, one of them followed by model-generated
+  // prose free to contain anything. Tags make "score only this section"
+  // referable instead of merely stated.
+  const evalUserContent = `<section_meta>
+type: ${section} → ${planetSection}
+cadence_allowance: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") may appear at most ${antithesisCap} time(s). This number is scaled to this section's word band. Judge the ANTITHESIS TIC against it and against no other number.
+</section_meta>
 
-──────────── CHART CONTEXT THE SECTION WAS GENERATED FROM ────────────
+<chart_context>
 ${chartContext}
+</chart_context>
 
-──────────── GENERATED SECTION TO EVALUATE ────────────
+<section_under_review>
 ${generatedText}
+</section_under_review>
 
-Score the generated section against the criteria and return the JSON object specified in the system prompt.`
+Score <section_under_review> against the nine criteria. Chart facts come from <chart_context>. Earlier sections, where present, are evidence of repetition only. Return the JSON object the system prompt specifies.`
 
   try {
     const msg = await getAnthropic().messages.create({
@@ -710,6 +721,57 @@ Score the generated section against the criteria and return the JSON object spec
           : MIN_INDIVIDUAL,
       )
     }
+    // ── Deterministic FACT backstop (reading-fact-check.ts).
+    //
+    // WHY THIS IS NOW A CLAMP. checkNumericFacts was calibrated against 84 real
+    // sections and produced 0 false positives on `hard`, which makes it the
+    // best-validated signal in this pipeline — better calibrated than the LLM
+    // evaluator's own `chart_evidence`, which scored the "half a degree from
+    // your Sun" fabrication 3-4. It fed a log line and nothing else, because
+    // the only options considered were "veto the cache" (a false positive makes
+    // a section uncacheable forever: a model call on every page load) and "do
+    // nothing". There is a third, and the opener and antithesis backstops
+    // already use it: clamp the criterion and name the fault in the critique.
+    // A false positive then costs one repair pass, not permanent uncacheability.
+    //
+    // chart_evidence is the criterion, and the clamp goes BELOW the bar rather
+    // than to it: a confident, specific, false claim about this person's chart
+    // is the worst output this product can produce, so it earns a repair on its
+    // own. Applied BEFORE rubricPass, like the opener, because the doctrine-only
+    // route splices sentences for a doctrine breach and cannot correct a fact.
+    //
+    // Inside evaluateSection, so the repair's re-score (usageCall 'recheck')
+    // runs the same check — a repair that introduces a fabricated degree was
+    // previously cacheable for the full 30-day TTL.
+    const factHits = checkNumericFacts(generatedText, chartContext).filter(f => f.severity === 'hard')
+    if (factHits.length > 0) {
+      scores.chart_evidence = Math.min(scores.chart_evidence, MIN_INDIVIDUAL - 1)
+    }
+
+    // ── Deterministic STATED-RULE backstop (reading-rule-scan.ts).
+    //
+    // `hard` findings are unambiguous breaches of a rule SHARED_RULES states:
+    // second-person prescriptions and predictions, bullet points, greetings and
+    // sign-offs, American spelling, a reintroduced summary heading, a natal
+    // section with no second-person address at all. The reader notices every
+    // one of them immediately and each is a string fact about the output.
+    //
+    // Clamped TO the bar, not below it, which is the graduated treatment the
+    // antithesis tic got in v10.39: a real deduction that drags
+    // MIN_PASS_AVERAGE and earns the critique, without making a single slip an
+    // automatic repair. The scan carries more rules than the fact check and its
+    // false-positive budget has not been measured in production, so it gets the
+    // more conservative clamp of the two.
+    //
+    // `doctrine` and `soft` findings still feed nothing: DOCTRINE.md is explicit
+    // that the grep finds candidates and THE LAW decides, and a soft finding is
+    // a breach only in aggregate.
+    const ruleHits = scanSectionRules(generatedText, { frame: section, antithesisCap })
+      .filter(f => f.severity === 'hard')
+    if (ruleHits.length > 0) {
+      scores.voice_quality = Math.min(scores.voice_quality, MIN_INDIVIDUAL)
+    }
+
     const rubricPass = computePassFromScores(scores)
 
     // Deterministic rescue-clause backstop (ease → hidden strength). A literal
@@ -765,6 +827,24 @@ Score the generated section against the criteria and return the JSON object spec
     if (!pass && antithesisOverCap) {
       console.warn(`Reading quality gate: antithesis tic x${antithesisHits.length} for ${section}/${planetSection}: ${antithesisHits.map(h => h.match).join('; ')}`)
       critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; this section's CADENCE ALLOWANCE (SHARED_RULES PART 4, scaled to its ${band.target}-word band) permits at most ${antithesisCap}. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the ${antithesisCap} most load-bearing and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
+    }
+
+    // Name the figure and the sentence, so the repair corrects the claim rather
+    // than rewriting prose that was accurate. The instruction is to re-derive
+    // from the context, never to delete the number: a section that drops every
+    // figure to clear the check has lost the anchoring criterion 1 rewards.
+    if (!pass && factHits.length > 0) {
+      console.warn(`Reading quality gate: numeric fact error(s) for ${section}/${planetSection}: ${factHits.map(f => f.match).join('; ')}`)
+      const items = factHits.map(f => `· "${f.match}" in: ${f.context}`).join('\n')
+      critique = `FACT FAILURE \u2014 the section states ${factHits.length === 1 ? 'a figure' : 'figures'} the chart context does not support. Each of these is either invented or copied onto the wrong pair of bodies:\n${items}\nRe-derive every figure from the chart context, which states each degree and orb the section is entitled to use. Where the context gives no figure for a claim, make the claim without one \u2014 do not approximate and do not strip the surrounding anchoring, which criterion 1 scores.\n\n${critique}`.trim()
+    }
+
+    // One line per breached rule, with the matched text, so the repair fixes the
+    // specific construction instead of re-reading 11,000 tokens of rules.
+    if (!pass && ruleHits.length > 0) {
+      console.warn(`Reading quality gate: ${ruleHits.length} hard rule breach(es) for ${section}/${planetSection}: ${ruleHits.map(f => f.rule).join('; ')}`)
+      const items = ruleHits.map(f => `· ${f.rule} (line ${f.line}): "${f.match}"`).join('\n')
+      critique = `STATED-RULE BREACH \u2014 the section breaks ${ruleHits.length === 1 ? 'a rule' : 'rules'} SHARED_RULES states outright:\n${items}\nFix each at the construction named. A \`prescription\` or \`prediction\` finding is repaired by stating what the pattern DOES in the present tense, not by hedging the advice; \`register-drift\` is repaired by making the reader the grammatical subject throughout (PART 4); \`summary-heading\` is repaired by deleting the heading and letting the closing paragraph run on from the last sub-section (PART 8).\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater
@@ -824,21 +904,27 @@ export interface RepairInput {
 export async function repairSection({
   originalUserContent, priorBlocks, systemBlocks, failedDraft, critique, maxTokens, model, label = 'unknown', timeoutMs,
 }: RepairInput): Promise<string> {
+  // The failed draft sits ABOVE the instruction, not below it. Sent last it
+  // occupied the strongest recency position in the prompt with the prose the
+  // rewrite is supposed to discard, which is the likeliest contributor to
+  // `repair-failed-recheck` — a repair that fails its re-score caches
+  // provisionally for 24h and is then regenerated for every reader, daily.
+  // Tagged for the same reason the exemplar is: quoted material must not be
+  // formatted identically to the output the model is about to produce.
   const repairInstruction = `──────────── QUALITY-GATE REPAIR PASS ────────────
-The first draft of this section did not meet the AXIS quality threshold. The evaluator's critique follows. Rewrite the section from scratch, addressing every point in the critique while keeping the same structure, sub-headers, and depth target.
+A first draft of this section fell below the AXIS quality threshold. It appears below inside <failed_draft>, for diagnosis only. Its wording is spent: a phrase that appears in it does not appear in your rewrite unless the critique specifically commended it.
 
-CRITIQUE TO ADDRESS:
+<failed_draft>
+${failedDraft}
+</failed_draft>
+
+<critique>
 ${critique}
+</critique>
 
-DO NOT:
-- Reference this critique in your output
-- Apologise, hedge, or explain that you are rewriting
-- Reuse phrasing from the first draft unless it was specifically commended
+Write the section again, in full, from the chart context and the rules. Keep the structure, the sub-headers and the depth target. Address every point in the critique, and preserve what the critique names as already working.
 
-Produce only the rewritten section. The first character of your reply must be the section's first character (typically the ## heading).
-
-For reference only — the first draft that failed (do NOT quote, echo, or recycle it):
-${failedDraft}`
+Your reply is the section and nothing else. Its first character is the section's first character — typically the ## heading. The critique is invisible to the reader, so the prose never mentions a rewrite, a first draft, or a correction.`
 
   const msg = await getAnthropic().messages.create({
     model,

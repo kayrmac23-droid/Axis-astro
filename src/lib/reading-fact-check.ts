@@ -187,6 +187,89 @@ const DEGREE_TOLERANCE = 0.55
  *   a pair the section's own context block does not carry aspects for, which is
  *   a reporting gap rather than certainly a false claim.
  */
+/**
+ * The placements belonging to SCENE_EXEMPLAR in prompts.ts — the worked section
+ * interpolated into SHARED_RULES PART 1.
+ *
+ * ⚠ WHY THIS LIST EXISTS. v10.37 added a concrete worked example because three
+ * prompt versions of rule prose had failed to produce a scene. It worked, and it
+ * carries a standing risk the prompt names in a prose warning and nothing
+ * measured: a concrete example is a specific chart, so the model can carry its
+ * placements into a reading about someone else. "Whether that holds is an eval
+ * question" — and an eval question with no instrument is an open question
+ * forever. The exemplar's chart is a closed, compile-time set, so the check is
+ * deterministic: these pairs appear in a section either because the reader's own
+ * chart contains them, which the context states, or because they bled out of the
+ * example.
+ *
+ * Kept as an explicit constant rather than parsed out of SCENE_EXEMPLAR, so that
+ * rewriting the exemplar fails a test (reading-fact-check.test.ts asserts every
+ * pair still appears in it) instead of silently switching the check off.
+ */
+export const EXEMPLAR_PLACEMENTS: readonly { body: string; sign: string }[] = [
+  { body: 'Mercury', sign: 'Aries' },
+  { body: 'Mars',    sign: 'Aquarius' },
+] as const
+
+/** How far apart body and sign may sit and still read as one placement claim. */
+const PLACEMENT_PROXIMITY_CHARS = 24
+
+/**
+ * True when `chartContext` states this body in this sign.
+ *
+ * Line-scoped, like contextAspectOrbs: the engine renders a placement as
+ * "Mercury 12.3° Aries", "Mercury in Aries, House 12" and as a bare row, so the
+ * reliable signal is the body and the sign appearing on ONE line of the context.
+ * A context that genuinely carries the placement therefore always clears it,
+ * whichever shape it was rendered in.
+ */
+function contextHasPlacement(chartContext: string, body: string, sign: string): boolean {
+  const b = new RegExp(`\\b${body}\\b`, 'i')
+  const g = new RegExp(`\\b${sign}\\b`, 'i')
+  return chartContext.split('\n').some(line => b.test(line) && g.test(line))
+}
+
+/**
+ * Placements from the prompt's worked example asserted about THIS reader.
+ *
+ * Runs on the WHOLE text, headings included — unlike the numeric checks, which
+ * use proseOnly. A bled placement's likeliest home is the sub-header the
+ * exemplar models ("### Mercury in Aries, House 12"), so stripping headings
+ * would blind the check to its most probable form.
+ *
+ * `hard`: the chart in front of the model does not contain the placement, so the
+ * sentence is a confident, specific falsehood about this person's chart — the
+ * failure class FACT DISCIPLINE exists to prevent.
+ */
+export function checkExemplarBleed(text: string, chartContext: string): FactFinding[] {
+  const out: FactFinding[] = []
+  if (!text || !chartContext) return out
+
+  for (const { body, sign } of EXEMPLAR_PLACEMENTS) {
+    if (contextHasPlacement(chartContext, body, sign)) continue
+    const gap = PLACEMENT_PROXIMITY_CHARS
+    const forward = new RegExp(`\\b${body}\\b[\\s\\S]{0,${gap}}\\b${sign}\\b`, 'i')
+    const reverse = new RegExp(`\\b${sign}\\b[\\s\\S]{0,${gap}}\\b${body}\\b`, 'i')
+    // Scoped to a SENTENCE, not a line. Across a line the proximity window
+    // reaches over a full stop — "your Mercury works in private. The Aries
+    // emphasis belongs to Mars" put the two 23 characters apart in unrelated
+    // sentences and reported as a placement claim. A heading is its own
+    // sentence, so headings stay in scope.
+    const units = text.split('\n').flatMap(line => sentences(line))
+    const hit = units.find(u => forward.test(u) || reverse.test(u))
+    if (hit) {
+      out.push({
+        check: 'exemplar-bleed',
+        severity: 'hard',
+        match: `${body} in ${sign}`,
+        context: hit.trim(),
+      })
+    }
+  }
+
+  return out
+}
+
 export function checkNumericFacts(text: string, chartContext: string): FactFinding[] {
   const out: FactFinding[] = []
   if (!text || !chartContext) return out
@@ -226,6 +309,11 @@ export function checkNumericFacts(text: string, chartContext: string): FactFindi
       }
     }
   }
+
+  // Placements carried out of the prompt's worked example. Appended here rather
+  // than left as a separate call so every existing caller — the eval harness,
+  // the gate — picks it up without a wiring change.
+  out.push(...checkExemplarBleed(text, chartContext))
 
   return out
 }

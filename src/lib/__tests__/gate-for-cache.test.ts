@@ -22,8 +22,15 @@ import { READING_SO_FAR_FOOTER } from '../reading-thread'
 
 // A section long enough to sit inside the tropical/sun word band, so the
 // deterministic `length` criterion is not what decides these tests.
+//
+// ⚠ It opens on a second-person sentence deliberately. v10.40 clamps
+// voice_quality on `hard` findings from scanSectionRules, and `register-drift`
+// is hard for a natal section containing no second-person pronoun at all — which
+// filler prose is. Without this the clamp fires on every fixture here and these
+// tests measure the register check instead of the thing each one is about.
 function sectionOfWords(n: number): string {
-  return '## The Sun\n\n' + Array.from({ length: n }, (_, i) => `word${i}`).join(' ') + '.'
+  const filler = Array.from({ length: Math.max(0, n - 6) }, (_, i) => `word${i}`).join(' ')
+  return `## The Sun\n\nYou notice it first in the ordinary case. ${filler}.`
 }
 
 const IN_BAND_WORDS = wordBandFor('tropical', 'sun', 0).fullMin + 20
@@ -498,8 +505,12 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
     create.mockResolvedValueOnce(evalReply(5))
     await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     const content = JSON.stringify(create.mock.calls[0][0].messages[0].content)
-    expect(content).toContain('CADENCE ALLOWANCE FOR THIS SECTION')
+    expect(content).toContain('<section_meta>')
+    expect(content).toContain('cadence_allowance:')
     expect(content).toContain('at most 2 time(s)')
+    // The three bodies the evaluator must keep apart are each fenced.
+    expect(content).toContain('<chart_context>')
+    expect(content).toContain('<section_under_review>')
 
     create.mockReset()
     create.mockResolvedValueOnce(evalReply(5))
@@ -760,5 +771,125 @@ describe('gateForCache — the critique survives a pass', () => {
     expect(r.modelCalls).toBe(1)
     expect(r.repaired).toBe(false)
     expect(r.cacheText).toBe(GOOD_SECTION)
+  })
+})
+
+// ── v10.40: the two deterministic instruments that measured and enforced nothing
+//
+// `reading-fact-check.ts` and `reading-rule-scan.ts` are pure, microsecond-fast
+// and better calibrated than the LLM evaluator (checkNumericFacts: 0 false
+// positives on `hard` across 84 real sections, against a `chart_evidence` score
+// of 3-4 for the fabrication that motivated it). Both fed a log line, because
+// the only options weighed were "veto the cache" — a false positive then costs a
+// model call on every page load, forever — and "do nothing". The third option is
+// the one the opener and antithesis backstops already use: clamp the criterion
+// and name the fault in the critique, so a false positive costs one repair pass.
+describe('gateForCache — deterministic fact and rule backstops (v10.40)', () => {
+  it('a fabricated degree clamps chart_evidence below the bar and forces a repair', async () => {
+    // 44.4° is in no chart: the context states one figure, 14°22'.
+    const invented = `${GOOD_SECTION}\n\nThe square sits at 44.4° of separation.`
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(GOOD_SECTION))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: invented, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.chart_evidence).toBeLessThan(3)
+    expect(r.repaired).toBe(true)
+  })
+
+  it('names the figure and the sentence, and tells the repair to re-derive rather than delete', async () => {
+    const invented = `${GOOD_SECTION}\n\nThe square sits at 44.4° of separation.`
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(GOOD_SECTION))
+      .mockResolvedValueOnce(evalReply(5))
+
+    await gateForCache({ ...BASE, firstPassText: invented, startedAt: JUST_NOW() })
+    const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
+    expect(content).toContain('FACT FAILURE')
+    expect(content).toContain('44.4°')
+    expect(content).toContain('Re-derive every figure from the chart context')
+    // Stripping the number to clear the check would cost criterion 1 the
+    // anchoring it rewards, so the critique rules that repair out explicitly.
+    expect(content).toContain('do not strip the surrounding anchoring')
+  })
+
+  it('leaves a figure the context DOES state alone', async () => {
+    const accurate = `${GOOD_SECTION}\n\nThe Sun sits at 14.4° of its sign.`
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: accurate, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.chart_evidence).toBe(5)
+    expect(r.reason).toBe('passed')
+  })
+
+  it('runs on the REPAIR too, so a repair cannot introduce a fabricated figure and be cached', async () => {
+    // First pass fails the rubric; the repair comes back fluent and false.
+    const badRepair = `${GOOD_SECTION}\n\nThe aspect perfects at 44.4°.`
+    create
+      .mockResolvedValueOnce(evalReply(2))
+      .mockResolvedValueOnce(textReply(badRepair))
+      .mockResolvedValueOnce(evalReply(5))   // the re-score likes the prose
+
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    // The clamp inside evaluateSection applies to the recheck as well, so the
+    // re-score cannot pass and the fabrication is never cached as final.
+    expect(r.cacheText).not.toBe(badRepair)
+    expect(r.reason).toBe('repair-failed-recheck')
+  })
+
+  it('a hard stated-rule breach clamps voice_quality TO the bar, not below it', async () => {
+    // `prescription` — a second-person "you should", which SHARED_RULES bans
+    // outright. Clamped to the bar: a real deduction that drags the average and
+    // earns a critique, without making one slip an automatic repair. The scan
+    // carries more rules than the fact check and has not been measured in
+    // production, so it gets the more conservative of the two clamps.
+    const prescriptive = `${GOOD_SECTION}\n\nYou should sit with that for a while.`
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(GOOD_SECTION))
+      .mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: prescriptive, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(3)
+  })
+
+  it('names the breached rule and its repair, so the fix is not a re-read of the rules', async () => {
+    const prescriptive = `${GOOD_SECTION}\n\nYou should sit with that for a while.`
+    create
+      .mockResolvedValueOnce(evalReply(3))
+      .mockResolvedValueOnce(textReply(GOOD_SECTION))
+      .mockResolvedValueOnce(evalReply(5))
+
+    await gateForCache({ ...BASE, firstPassText: prescriptive, startedAt: JUST_NOW() })
+    const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
+    expect(content).toContain('STATED-RULE BREACH')
+    expect(content).toContain('prescription')
+    expect(content).toContain('present tense')
+  })
+
+  it('leaves clean prose at 5 on both criteria', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.chart_evidence).toBe(5)
+    expect(r.firstPass?.scores?.voice_quality).toBe(5)
+    expect(r.reason).toBe('passed')
+  })
+
+  it('passes the frame, so register-drift is scoped to the natal sections', async () => {
+    // The Divergence is third person by its own instruction and synastry is
+    // second person plural, so the register check must not fire there. It is
+    // frame-aware and fails closed, and the gate has the frame in `section`.
+    const thirdPerson = '## The Divergence\n\n' +
+      Array.from({ length: wordBandFor('synthesis', 'diverge', 0, 4).fullMin + 10 }, (_, i) => `word${i}`).join(' ') + '.'
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({
+      ...BASE, section: 'synthesis', planetSection: 'diverge',
+      chartContext: 'DIVERGENCE PLAN\nPLAN WEIGHT: 4\nSun: Leo → Cancer',
+      firstPassText: thirdPerson, startedAt: JUST_NOW(),
+    })
+    expect(r.firstPass?.scores?.voice_quality).toBe(5)
   })
 })
