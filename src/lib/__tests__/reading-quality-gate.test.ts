@@ -435,9 +435,28 @@ describe('banned rescue / hierarchy phrasings — shared consts', () => {
     }
   })
 
-  it('keeps the rescue and hierarchy bans live in the shared prompt rules', () => {
-    expect(SHARED_RULES).toContain(BANNED_RESCUE_LIST)
-    expect(SHARED_RULES).toContain(BANNED_HIERARCHY_LIST)
+  // The lists are the GATE's instrument, not the generator's. Quoting a banned
+  // phrasing into the generation prompt puts that phrasing in the writing
+  // model's context, in the register it is about to write in — the mechanism
+  // that made v10.34's antithesis rule teach "rather than" and v10.35's PART 1
+  // teach the third person. The evaluator is a judge, not a writer, so paradigm
+  // failures belong in its rubric; the generator gets the general form plus a
+  // demonstrated positive instead.
+  it('keeps the rescue and hierarchy bans in the gate and OUT of the generation prompt', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain(BANNED_RESCUE_LIST)
+    expect(EVAL_SYSTEM_PROMPT).toContain(BANNED_HIERARCHY_LIST)
+    expect(SHARED_RULES).not.toContain(BANNED_RESCUE_LIST)
+    expect(SHARED_RULES).not.toContain(BANNED_HIERARCHY_LIST)
+  })
+
+  it('states both rules positively in the generation prompt', () => {
+    // (b) the rescue clause keeps its deletion test and its two legitimate forms.
+    expect(SHARED_RULES).toContain('if deleting')
+    expect(SHARED_RULES).toContain('load-bearing mechanism against a named difficulty')
+    // (c) resolution-by-hierarchy gains the demonstrated move it previously lacked:
+    // two accounts in the same tense, each with its own evidence and consequence.
+    expect(SHARED_RULES).toContain('two accounts in the same tense')
+    expect(SHARED_RULES).toContain('states both and ranks neither')
   })
 })
 
@@ -471,8 +490,18 @@ describe('falsifiability criterion — Barnum doctrine', () => {
     }
   })
 
-  it('keeps the banned phrasings live in the shared prompt rules', () => {
-    expect(SHARED_RULES).toContain(BANNED_BARNUM_LIST)
+  it('keeps the banned phrasings in the gate and OUT of the generation prompt', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain(BANNED_BARNUM_LIST)
+    expect(SHARED_RULES).not.toContain(BANNED_BARNUM_LIST)
+  })
+
+  it('describes the failing claim CLASS to the generator instead of quoting it', () => {
+    // The generator needs to recognise the shape, which is a claim about a
+    // universal human want; it does not need five ready-made examples of one.
+    expect(SHARED_RULES).toContain('about a universal human want')
+    expect(SHARED_RULES).toContain('under what conditions')
+    // The inversion test and the anchoring repair are unchanged.
+    expect(SHARED_RULES).toContain('Test each claim with the inversion')
   })
 
   it('anchors the divergence fixture to the banned universal it collapses to', () => {
@@ -549,9 +578,9 @@ describe('contextual hierarchy detection', () => {
   })
 
   it("does not flag AXIS's own prompt copy as a doctrine breach", () => {
-    // SHARED_RULES states the anti-hierarchy rule by quoting the banned moves, and
-    // its Leo entry uses "underneath" innocently. A scan that flags the prompt
-    // teaching the rule will flag a model dutifully restating it.
+    // SHARED_RULES states the anti-hierarchy rule in its own words, and its Leo
+    // entry is ordinary English. A scan that flags the prompt teaching the rule
+    // will flag a model dutifully restating it.
     const leo = SHARED_RULES.split('\n').find(l => l.startsWith('LEO:'))
     expect(leo).toBeDefined()
     expect(detectContextualHierarchy(leo!)).toEqual([])
@@ -632,10 +661,14 @@ describe('banned opener — prompt and gate parity', () => {
     }
   })
 
-  it('renders every example into the list, and the list into the shared rules and the evaluator', () => {
+  it('renders every example into the list, and the list into the evaluator only', () => {
     for (const { example } of BANNED_OPENER_PATTERNS) expect(BANNED_OPENER_LIST).toContain(example)
-    expect(SHARED_RULES).toContain(BANNED_OPENER_LIST)
     expect(EVAL_SYSTEM_PROMPT).toContain(BANNED_OPENER_LIST)
+    // Not the generation prompt: quoting the opener it must not use is how the
+    // opener gets written. PART 6 states what the first sentence DOES instead.
+    expect(SHARED_RULES).not.toContain(BANNED_OPENER_LIST)
+    expect(SHARED_RULES).toMatch(/A section's FIRST sentence names its subject and does\s*\n?\s*something with it/)
+    expect(SHARED_RULES).toMatch(/open on\s+the\s+behaviour,\s+the\s+need,\s+or\s+the\s+chart\s+factor\s+itself/)
   })
 
   it('a detected opener drives specificity below the pass bar', () => {

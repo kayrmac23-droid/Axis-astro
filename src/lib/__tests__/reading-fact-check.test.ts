@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { checkNumericFacts, formatFactCheckLog } from '@/lib/reading-fact-check'
+import { checkNumericFacts, checkExemplarBleed, formatFactCheckLog, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
+import { SCENE_EXEMPLAR } from '@/lib/prompts'
 
 // A context block in the shape interpretation-engine.ts emits. The aspect bullet
 // format is the one aspect-count-coupling.test.ts pins, so this fixture and the
@@ -250,5 +251,76 @@ describe('checkNumericFacts — worded degree figures', () => {
     const t = 'Mercury sits twelve degrees from your Sun.'
     expect(checkNumericFacts(t, CONTEXT)).toEqual(checkNumericFacts(t, CONTEXT))
     expect(checkNumericFacts(t, CONTEXT)).toHaveLength(1)
+  })
+})
+
+// ── v10.40: placements carried out of the prompt's own worked example ────────
+//
+// v10.37 added SCENE_EXEMPLAR because three prompt versions of rule prose had
+// failed to produce a scene. It worked, and it brought a risk the prompt names
+// in a prose warning and nothing measured: a concrete example is a specific
+// chart, so its placements can be carried into a reading about someone else.
+// CLAUDE.md records this as "an eval question" — and an eval question with no
+// instrument stays open forever. The exemplar's chart is a compile-time
+// constant, so the check is deterministic.
+describe('checkExemplarBleed — the worked example\'s chart leaking into a reading', () => {
+  const FOREIGN = 'MERCURY: Gemini 14.2°, House 3\nMARS: Cancer 3.1°, House 4'
+
+  it('every pinned placement really is in the exemplar, or the check guards nothing', () => {
+    for (const { body, sign } of EXEMPLAR_PLACEMENTS) {
+      expect(SCENE_EXEMPLAR).toMatch(new RegExp(`\\b${body}\\b[\\s\\S]{0,24}\\b${sign}\\b`, 'i'))
+    }
+  })
+
+  it('catches the bleed in a sub-header, which is its likeliest form', () => {
+    // The exemplar models "### Mercury in Aries, House 12" and the section
+    // instructions ask for that exact heading shape, so the heading is where a
+    // bled placement lands first. proseOnly() would strip it, which is why this
+    // check reads the whole text.
+    const f = checkExemplarBleed('### Mercury in Aries, House 12\n\nYou draft on the walk.', FOREIGN)
+    expect(f).toHaveLength(1)
+    expect(f[0].check).toBe('exemplar-bleed')
+    expect(f[0].severity).toBe('hard')
+    expect(f[0].match).toBe('Mercury in Aries')
+  })
+
+  it('catches it in prose, and reports each placement once', () => {
+    const f = checkExemplarBleed(
+      'Your Mercury in Aries answers first. Your Mars in Aquarius holds the line. The Aries Mercury again.',
+      FOREIGN,
+    )
+    expect(f.map(x => x.match).sort()).toEqual(['Mars in Aquarius', 'Mercury in Aries'])
+  })
+
+  it('says nothing when the reader\'s own chart carries the placement', () => {
+    const own = 'MERCURY: Aries 2.1°, House 12\nMARS: Aquarius 9.9°, House 10'
+    expect(checkExemplarBleed('### Mercury in Aries, House 12\n\nYour Mars in Aquarius.', own)).toEqual([])
+  })
+
+  // ⚠ FALSE POSITIVES ARE THE DESIGN CONSTRAINT, as everywhere in this file.
+  it('does not pair a body and a sign that sit in different sentences', () => {
+    // The proximity window is 24 characters, which reaches across a full stop.
+    // Scoped to the line rather than the sentence, this read as a placement
+    // claim at 23 characters apart.
+    expect(checkExemplarBleed(
+      'Your Mercury works in private. The Aries emphasis belongs to Mars.',
+      FOREIGN,
+    )).toEqual([])
+  })
+
+  it('does not fire on a body and a sign merely co-occurring far apart', () => {
+    expect(checkExemplarBleed(
+      'Your Mercury in Gemini reaches the answer before the Aquarius placements have finished weighing it.',
+      FOREIGN,
+    )).toEqual([])
+  })
+
+  it('is folded into checkNumericFacts, so every existing caller gets it', () => {
+    const f = checkNumericFacts('### Mercury in Aries, House 12', FOREIGN)
+    expect(f.map(x => x.check)).toContain('exemplar-bleed')
+  })
+
+  it('returns nothing without a context to check against', () => {
+    expect(checkExemplarBleed('### Mercury in Aries, House 12', '')).toEqual([])
   })
 })

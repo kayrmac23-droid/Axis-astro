@@ -14,7 +14,8 @@ import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-qual
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
 import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisCapFor, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
 import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
-import { countWords, scoreLength } from '@/lib/reading-quality-gate'
+import { checkExemplarBleed, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
+import { countWords, scoreLength, EVAL_SYSTEM_PROMPT } from '@/lib/reading-quality-gate'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
 
 const BIRTH: BirthData = {
@@ -176,8 +177,17 @@ describe('doctrine scan — the stacking form of resolution-by-hierarchy and met
     expect(detectBannedPhrasings('Deadlines pile on top of the existing workload.')).toEqual([])
   })
 
-  it('states the meta-narration ban in the shared rules', () => {
-    for (const p of BANNED_META_PHRASINGS) expect(SHARED_RULES).toContain(p)
+  it('states the meta-narration ban to the evaluator, not to the writer', () => {
+    // Same reasoning as the rescue/hierarchy/Barnum/opener lists: a rule-echo
+    // quoted into the generation prompt is a rule-echo in the writing model's
+    // context. The gate keeps the specimens; APPLY THE RULES SILENTLY keeps the
+    // positive instruction.
+    for (const p of BANNED_META_PHRASINGS) expect(EVAL_SYSTEM_PROMPT).toContain(p)
+    for (const p of BANNED_META_PHRASINGS) expect(SHARED_RULES).not.toContain(p)
+    expect(SHARED_RULES).toMatch(/State the\s*\n?\s*cost and move on/)
+    expect(SHARED_RULES).toMatch(/without announcing that you\s*\n?\s*are doing so/)
+    // And the positive generalisation that replaces the specimen list.
+    expect(SHARED_RULES).toMatch(/satisfied by the shape of the\s*\n?\s*prose/)
   })
 })
 
@@ -377,6 +387,20 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
     expect(detectAntithesisTic(unquoted(block))).toEqual([])
   })
 
+  // ⚠ SCOPE: the whole cached block, not just the rule that states the cap.
+  // Guarding only PART 4 fixed the instance and left the class: an audit of
+  // SHARED_RULES found the construction five more times in the prompt's own
+  // descriptive voice, one of them inside PART 1's exemplar commentary — the
+  // single most emphatic block in the prompt, telling the model what to
+  // imitate, in the construction capped at one or two uses per section. That is
+  // the v10.35 mechanism exactly. Quoted spans are stripped, so the rule may
+  // still NAME the forms it bans and the worked example may still quote the
+  // fault; what it may not do is write that way itself.
+  it('does not model the tic anywhere in the cached rules', () => {
+    const body = SHARED_RULES.slice(0, SHARED_RULES.indexOf('── APPENDIX'))
+    expect(detectAntithesisTic(unquoted(body))).toEqual([])
+  })
+
   it('renders a cadence clause that is itself clean of the construction', () => {
     for (const cap of [1, 2, 3])
       expect(detectAntithesisTic(unquoted(antithesisClause(cap))), `cap ${cap}`).toEqual([])
@@ -507,9 +531,50 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
     // Without this, another chart's Aries Mercury in the twelfth starts turning
     // up in charts that have neither.
     const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
-    expect(part1).toMatch(/ITS CHART IS NOT YOUR CHART/)
-    expect(part1).toMatch(/NEVER carry any of those/i)
-    expect(part1).toMatch(/it does not exist, no matter what the example says/i)
+    expect(part1).toMatch(/another person's reading/i)
+    expect(part1).toMatch(/only if your own chart context states them/i)
+    expect(part1).toMatch(/from your\s*\n?\s*chart context and nowhere else/i)
+    expect(part1).toMatch(/leave every fact inside the tags/i)
+  })
+
+  // ⚠ The exemplar is the only block in the prompt formatted exactly like the
+  // model's own output: it opens on a `## Planet` heading, which is what the
+  // section instructions ask the model to emit. Delimited by nothing but that
+  // heading, the boundary between quoted material and instruction is a prose
+  // warning. The tags make it a token.
+  it('is fenced in tags, so quoted material is not formatted like the output', () => {
+    const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
+    expect(part1).toContain('<worked_example>')
+    expect(part1).toContain('</worked_example>')
+    // The example sits INSIDE them, and the warning OUTSIDE — a warning fenced
+    // in with the material it warns about reads as part of the example.
+    // The fences are matched on their own lines: PART 1 also NAMES the tag in
+    // prose ("Below, inside <worked_example>, is one complete section"), and a
+    // bare indexOf finds that mention instead of the opening fence.
+    const open = part1.indexOf('\n<worked_example>\n')
+    const close = part1.indexOf('\n</worked_example>')
+    expect(open).toBeGreaterThan(-1)
+    expect(close).toBeGreaterThan(open)
+    expect(part1.indexOf('Mercury in Aries, House 12')).toBeGreaterThan(open)
+    expect(part1.indexOf('Mercury in Aries, House 12')).toBeLessThan(close)
+    expect(part1.indexOf('leave every fact inside the tags')).toBeLessThan(open)
+  })
+
+  // The deterministic counterpart: the prose warning is now backed by a check,
+  // so "whether it holds is an eval question" has an instrument.
+  it('has its placements pinned by the exemplar-bleed check', () => {
+    for (const { body, sign } of EXEMPLAR_PLACEMENTS) {
+      expect(SCENE_EXEMPLAR).toMatch(new RegExp(`\\b${body}\\b[\\s\\S]{0,24}\\b${sign}\\b`, 'i'))
+    }
+    // A section asserting the example's chart against a chart that lacks it.
+    const foreign = checkExemplarBleed(
+      '### Mercury in Aries, House 12\n\nYou draft the argument on the walk.',
+      'Mercury 14.2° Gemini (House 3)\nMars 3.1° Cancer (House 4)',
+    )
+    expect(foreign.map(f => f.match)).toContain('Mercury in Aries')
+    expect(foreign.every(f => f.severity === 'hard')).toBe(true)
+    // And the reader whose chart genuinely carries it is not flagged.
+    expect(checkExemplarBleed('### Mercury in Aries, House 12', 'Mercury 2.1° Aries (House 12)')).toEqual([])
   })
 
   it('keeps PART 1 stating the rules, so the example supplements rather than replaces them', () => {
