@@ -23,9 +23,31 @@ function newThreadId(): string {
 
 interface ReadingPanelProps {
   chartData: DualChartData
-  // The panel shows one system's reading, driven by the frame toggle
-  // (DOCTRINE.md amendment July 2026). The Divergence renders below it in
-  // every frame state; positional data never follows the frame.
+  // The frame toggle no longer SWAPS the prose. It opens PART 2.
+  //
+  // ⚠ WHY (v10.40). The prompts build one strictly linear document: every
+  // Sidereal section is generated with the whole Tropical reading as prior
+  // context ("WRITTEN AFTER THE TROPICAL READING"), and The Divergence with
+  // BOTH ("WRITTEN AFTER BOTH READINGS" — "the reader has read the whole
+  // Tropical reading and the whole Sidereal reading … do not re-describe what
+  // those readings already portrayed … so The Divergence lands on what the
+  // reader already holds"). `priorSectionsFor` enforces that order and
+  // reading-route-thread.test.ts pins it.
+  //
+  // Presenting Tropical and Sidereal as mutually exclusive toggle states, with
+  // The Divergence rendered underneath regardless, contradicted that: a reader
+  // who never flipped the toggle reached a payoff section written to allude in
+  // one phrase to ~2,900 words they had never seen, under explicit instruction
+  // not to re-derive them. A frame switcher is right for the wheel and wrong
+  // for a three-part document.
+  //
+  // So the prose is stacked in reading order — PART 1 Tropical, PART 2
+  // Sidereal, PART 3 The Divergence — and PART 2 is collapsed behind a stated
+  // heading rather than hidden behind a toggle, so a reader who skips it knows
+  // they skipped it. Co-visibility is untouched: it is satisfied by the
+  // always-rendered readout table and the persistent Δ chip, never by the prose
+  // (DOCTRINE.md: CO-VISIBILITY, as amended July 2026), and "The Divergence is
+  // read after and below both" is now literally what the page does.
   frame: 'tropical' | 'sidereal'
 }
 
@@ -43,6 +65,12 @@ const SECTION_DISPLAY: Record<string, string> = {
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
+
+// Words per minute for PART 2's length estimate. Deliberately conservative:
+// this is dense analytical prose about the reader's own chart, which is read
+// more slowly than narrative, and an estimate that undersells the time is worse
+// than one that oversells it.
+const WORDS_PER_MINUTE = 220
 
 // The band kicker beside the frame name — what this frame is a reading OF.
 const FRAME_KICKER: Record<string, string> = {
@@ -276,6 +304,11 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const [activePlanetSection, setActivePlanetSection] = useState<string | null>(null)
   const [streamingTab, setStreamingTab] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
+  // PART 2 (the Sidereal reading) starts collapsed: it keeps the default path
+  // at roughly the Tropical reading plus The Divergence, while stating what is
+  // behind it, so skipping it is a choice the reader can see themselves making.
+  const [part2Open, setPart2Open] = useState(false)
+  const part2Ref = useRef<HTMLElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   // The reading thread for the chart currently on screen. Replaced whenever a new
@@ -283,6 +316,16 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const threadIdRef = useRef<string>('')
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
+
+  // The frame toggle's new job for the prose: selecting SIDEREAL opens PART 2 and
+  // brings it into view. Selecting TROPICAL does NOT close it again — collapsing
+  // something the reader deliberately opened is hostile, and PART 1 is above it
+  // on the page either way.
+  useEffect(() => {
+    if (frame !== 'sidereal') return
+    setPart2Open(true)
+    part2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [frame])
 
   const generateSingleReading = useCallback(async (
     sec: SystemSection,
@@ -459,6 +502,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     setTabErrors({ tropical: null, sidereal: null, synthesis: null })
     setPlanetSectionErrors({})
     setReadings({})
+    setPart2Open(false)
 
     const id = setTimeout(async () => {
       const { signal } = controller
@@ -782,14 +826,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     )
   }
 
-  // Band head counter: which planet section of this frame is streaming.
-  const frameSections = PLANET_SECTIONS[frame]
-  const frameStreaming = streamingTab === frame && tabStatus[frame] === 'loading'
-  const activeIdx = activePlanetSection ? frameSections.indexOf(activePlanetSection) : -1
-  const counter = frameStreaming && activeIdx >= 0
-    ? `SECTION ${activeIdx + 1} OF ${frameSections.length}`
-    : `${frameSections.length} SECTIONS`
-
   const railState = (key: string) => {
     const st = sectionStates[key] ?? 'pending'
     return st === 'loading' ? styles.railLive
@@ -803,6 +839,51 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const flips = buildFlips(readoutRows)
   const bodyCount = countBodies(readoutRows)
 
+  // PART 2's header metadata. The minute estimate comes from the prose actually
+  // loaded, not from the band table, so it never promises a length the reader is
+  // not about to get; it is withheld until there is text to measure.
+  const sidStreaming = streamingTab === 'sidereal' && tabStatus.sidereal === 'loading'
+  const sidWords = (readings.sidereal || '').trim().split(/\s+/).filter(Boolean).length
+  const sidMinutes = sidStreaming || sidWords === 0 ? null : Math.max(1, Math.round(sidWords / WORDS_PER_MINUTE))
+
+  // One frame's prose band. Called twice now, in reading order, rather than once
+  // for whichever frame the toggle selected.
+  const frameBand = (f: 'tropical' | 'sidereal', part: number) => {
+    const frameSections  = PLANET_SECTIONS[f]
+    const frameStreaming = streamingTab === f && tabStatus[f] === 'loading'
+    const activeIdx      = frameStreaming && activePlanetSection ? frameSections.indexOf(activePlanetSection) : -1
+    const counter = activeIdx >= 0
+      ? `SECTION ${activeIdx + 1} OF ${frameSections.length}`
+      : `${frameSections.length} SECTIONS`
+    return (
+      <div className={styles.bandInner}>
+        <div className={styles.bandHead}>
+          <span>{`// PART ${part} · ${f.toUpperCase()} FRAME · ${FRAME_KICKER[f]}`}</span>
+          <span className={styles.bandHeadRight}>
+            <span>{counter}</span>
+            {frameStreaming && <span className={styles.streaming}>● STREAMING</span>}
+          </span>
+        </div>
+        <div className={styles.bandGrid}>
+          <div className={styles.bandProse}>
+            {renderSection(f, true)}
+          </div>
+          <aside className={styles.rail} aria-label={`Sections in the ${f} reading`}>
+            <div className={styles.railHead}>SECTIONS</div>
+            <div className={styles.railList}>
+              {frameSections.map(key => (
+                <span key={key} className={railState(`${f}:${key}`)}>
+                  {(sectionStates[`${f}:${key}`] === 'loading' ? '● ' : '')}
+                  {(SECTION_DISPLAY[key] ?? key).toUpperCase()}
+                </span>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.panel}>
       {/* Screen-reader live region */}
@@ -810,46 +891,68 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         {liveStatus}
       </div>
 
-      {/* ── The frame reading ───────────────────────────────
-          Prose follows the frame; positional data never does — it is pinned
-          beside each placement in both frames (DOCTRINE.md: CO-VISIBILITY).
+      {/* ── PART 1 — the Tropical reading ───────────────────
           The long-form prose takes the raised reading surface
-          (DOCTRINE.md: READING SURFACE EXCEPTION). */}
-      <section className={styles.band} aria-label={`${frame === 'sidereal' ? 'Sidereal' : 'Tropical'} reading`}>
-        <div className={styles.bandInner}>
-          <div className={styles.bandHead}>
-            <span>{`// ${frame.toUpperCase()} FRAME · ${FRAME_KICKER[frame]}`}</span>
-            <span className={styles.bandHeadRight}>
-              <span>{counter}</span>
-              {frameStreaming && <span className={styles.streaming}>● STREAMING</span>}
+          (DOCTRINE.md: READING SURFACE EXCEPTION). Positional data is pinned
+          beside each placement in BOTH frames, as it always was
+          (DOCTRINE.md: CO-VISIBILITY). */}
+      <section className={styles.band} aria-label="Part 1 — Tropical reading">
+        {frameBand('tropical', 1)}
+      </section>
+
+      {/* ── PART 2 — the Sidereal reading ───────────────────
+          Written after the whole of Part 1, so it is read after it. Collapsed
+          by default behind a heading that states what it is and how long it
+          runs: a reader who skips it knows they skipped it, which is what the
+          frame toggle could not tell them. The frame control opens it. */}
+      <section
+        ref={part2Ref}
+        className={styles.band}
+        aria-label="Part 2 — Sidereal reading"
+      >
+        <button
+          type="button"
+          className={`${styles.partToggle}${part2Open ? ` ${styles.partToggleOpen}` : ''}`}
+          aria-expanded={part2Open}
+          aria-controls="axis-part-2"
+          onClick={() => setPart2Open(o => !o)}
+        >
+          <span className={styles.partToggleMain}>
+            {/* No frame kicker here: the band head inside carries it, and the
+                band head is what survives into the printed dossier once this
+                control is hidden. Repeating it read as a duplicate heading the
+                moment PART 2 was open. */}
+            <span className={styles.partToggleTitle}>PART 2 — THE SIDEREAL READING</span>
+            <span className={styles.partToggleMeta}>
+              {sidMinutes ? `${PLANET_SECTIONS.sidereal.length} SECTIONS · ~${sidMinutes} MIN` : `${PLANET_SECTIONS.sidereal.length} SECTIONS`}
+              {' · READ AFTER PART 1'}
             </span>
-          </div>
-          <div className={styles.bandGrid}>
-            <div className={styles.bandProse}>
-              {renderSection(frame, true)}
-            </div>
-            <aside className={styles.rail} aria-label="Sections in this reading">
-              <div className={styles.railHead}>SECTIONS</div>
-              <div className={styles.railList}>
-                {frameSections.map(key => (
-                  <span key={key} className={railState(`${frame}:${key}`)}>
-                    {(sectionStates[`${frame}:${key}`] === 'loading' ? '● ' : '')}
-                    {(SECTION_DISPLAY[key] ?? key).toUpperCase()}
-                  </span>
-                ))}
-              </div>
-            </aside>
-          </div>
+          </span>
+          <span className={styles.partToggleRight}>
+            {sidStreaming && <span className={styles.streaming}>● STREAMING</span>}
+            <span className={styles.partToggleChevron} aria-hidden="true">{part2Open ? '−' : '+'}</span>
+          </span>
+        </button>
+        {/* ⚠ Rendered whether or not it is open, and collapsed with CSS rather
+            than the `hidden` attribute or a conditional. SAVE DOSSIER · PDF is
+            window.print(), so anything absent from the DOM is absent from every
+            saved dossier — a collapsed PART 2 would have silently dropped the
+            whole Sidereal reading out of the artefact people keep. The print
+            stylesheet re-opens it; `display: none` still takes it out of the
+            accessibility tree, which is what aria-expanded=false claims. */}
+        <div id="axis-part-2" className={part2Open ? styles.partBody : styles.partCollapsed}>
+          {frameBand('sidereal', 2)}
         </div>
       </section>
 
-      {/* ── The Divergence ──────────────────────────────────
+      {/* ── PART 3 — The Divergence ─────────────────────────
           Frame-independent: it never toggles off, and it is read after both.
           The flip table is the evidence; the prose below it is the reading. */}
-      <section className={styles.divergence} aria-label="The Divergence">
+      <section className={styles.divergence} aria-label="Part 3 — The Divergence">
         <div className={styles.divRule} />
         <div className={styles.divTop}>
           <div>
+            <div className={styles.divKicker}>{'// PART 3'}</div>
             <div className={styles.divTitle}>THE DIVERGENCE</div>
             <div className={styles.divSub}>FRAME-INDEPENDENT · READ AFTER BOTH · NEVER TOGGLES OFF</div>
             <div className={styles.divCount}>
