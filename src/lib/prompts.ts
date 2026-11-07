@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.40
+// AXIS Production System Prompts v10.44
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -192,9 +192,41 @@ export const PERSONAL_PLANET_SECTIONS = ['sun', 'moon', 'mercury', 'venus', 'mar
 export type PersonalPlanetSection = typeof PERSONAL_PLANET_SECTIONS[number]
 type NatalFrame = 'tropical' | 'sidereal'
 
+// ⚠ v10.44 — AN OPENER MODE MUST NAME A CHART QUANTITY TO LOOK UP, NOT A THING
+// TO INVENT. Three of these five always did: mercury selects a dignity, venus
+// the smallest-orb aspect, mars a named placement. Those vary with the chart
+// automatically, because the instruction points at something the context
+// states. `tropical:sun` named no chart quantity at all — "a concrete
+// behavioural moment" — so nothing in it differed from chart to chart, and the
+// model filled the vacuum from the nearest strong example in the prompt,
+// SCENE_EXEMPLAR (a MERCURY section, PART 1). Measured with
+// `npm run openers` on five charts spanning five Sun signs: lexical overlap was
+// genuinely low (jaccard 0.062 — the words do vary) while **5 of 5 opened on a
+// second-person scene and 5 of 5 closed it on "you notice"**, three of them on
+// the literal clause "You walk into the room". The model varies vocabulary
+// competently and holds the SHAPE fixed, which is why no existing instrument
+// caught this: `specificity` scores a template scene as a scene (it has a
+// trigger, an action and an aftermath), `anti_cliche` is defined against SIGN
+// keywords rather than the pipeline's own habits, and every other check is
+// scoped to one section of one reading. Nothing compared two charts until
+// scripts/opener-diversity.mjs.
+//
+// So `tropical:sun` now SELECTS (dignity, else the sign ruler's state), exactly
+// as `mercury` does, and says "NOT a scene" as `moon` already did. The scene is
+// not abolished — PART 1 still requires one in the section; it is no longer the
+// COLD OPEN. That slot was the worst place for it: the chart supplies
+// placements, dignities and orbs and does not supply "someone in the room
+// raises a philosophical argument", so opening on a scene put the most invented
+// content first and the evidence after, in the highest-risk Barnum position —
+// the one the rubric's own "SCENE-CRAFT DOES NOT EXEMPT A CLAIM" is about.
+//
+// Keep the mechanism. It exists because five sections of ONE reading converged
+// on one opener (v10.27), and deleting it returns that. What would justify
+// deleting it is a cross-section equivalent of the opener-diversity measurement
+// showing convergence no longer happens without it.
 export const OPENER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, string>> = {
   tropical: {
-    sun:     'a concrete behavioural moment — one recurring situation in which this Sun acts, told from the inside: what the person does and what sets it off. Build it from chart factors you can name; invent no durations, counts or circumstances the chart does not supply.',
+    sun:     "the Sun's condition — its dignity, or, where it is peregrine, the state of its sign ruler — stated as what that condition does to how this identity asserts itself. Lead with the effect on the person, never with a definition of the dignity. NOT a scene: the section's concrete moment comes later, where this has given it something to demonstrate.",
     moon:    'the need itself — the one condition this person must have in place to feel emotionally safe, stated plainly as a need. Not a scene and not a trait list; what happens when the need goes unmet comes after.',
     mercury: "Mercury's condition — its dignity, or its sign ruler's state where the dignity is peregrine — stated as what that condition does to this person's thinking in a live exchange. Lead with the effect, never with a definition of the dignity.",
     venus:   "the strongest modifier of this Venus — the aspect it receives with the smallest orb the context gives, naming the aspecting planet (choose it by the orbs; do not call it the tightest unless the context does), or, if it receives none, the condition of its sign ruler — stated as what that modifier does to what this person finds worth giving and worth having.",

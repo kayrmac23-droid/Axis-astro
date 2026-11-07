@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:smoke": "AXIS_LIVE_SMOKE=1 vitest run src/lib/__tests__/reading-pipeline-smoke.test.ts",
     "eval": "node scripts/eval-readings.mjs",
-    "rescore": "node scripts/rescore-bench.mjs"
+    "rescore": "node scripts/rescore-bench.mjs",
+    "openers": "node scripts/opener-diversity.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.137.0",
