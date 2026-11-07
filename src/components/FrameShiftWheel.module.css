@@ -16,10 +16,27 @@
 }
 .root * { border-radius: 0 !important; }
 
+.stage {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+
 .wheel {
   width: 100%;
   max-width: 700px;
   display: block;
+}
+
+/* DESIGN.md, Responsive behaviour: "allow it to approach viewport width".
+   Below the stacking breakpoint the wheel breaks out of --page-pad and runs
+   edge to edge — every millimetre is legibility, since the SVG's smallest
+   type scales with the rendered width. */
+@media (max-width: 760px) {
+  .root { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); }
+  .wheel { max-width: 100vw; }
+  .legend { padding: 0 var(--page-pad); }
 }
 
 /* ---------- legend ---------- */
@@ -56,4 +73,91 @@
 
 @media (max-width: 460px) {
   .legend { gap: 8px 18px; font-size: 10px; }
+}
+
+/* ============================================================
+   MOBILE LEGIBILITY
+
+   The stage is a 1000-unit viewBox. Edge to edge on a 393px phone the
+   render scale is ~0.39, so the SVG's own type lands at:
+     nakshatra labels   8u → 3.1px
+     planet degrees   9.6u → 3.8px
+     house numerals    10u → 3.9px
+     planet glyphs     21u → 8.3px
+   To put an 8-unit label at a readable 10px you would need a 1250px-wide
+   render, which no phone has. So "make the wheel bigger" cannot fix this
+   and the smallest labels are dropped rather than shipped as grey texture:
+   on a phone the wheel's job is WHERE things sit, the READOUT rail beside
+   it carries every position in both frames, and EXPAND WHEEL restores the
+   full instrument. DESIGN.md's order — decoration before functional labels
+   — is honoured by the expand route: nothing is unreachable, only moved.
+   ============================================================ */
+@media (max-width: 760px) {
+  .root:not(.rootExpanded) .nakLabels,
+  .root:not(.rootExpanded) .signNames,
+  .root:not(.rootExpanded) .microLabel { display: none; }
+
+  .root:not(.rootExpanded) .signGlyph,
+  .root:not(.rootExpanded) .planetGlyph { font-size: 30px; }
+  .root:not(.rootExpanded) .houseNum { font-size: 20px; }
+  .root:not(.rootExpanded) .deltaLabel { font-size: 20px; }
+  .root:not(.rootExpanded) .angleLabel { font-size: 22px; }
+}
+
+/* ---------- expand control ---------- */
+.expandBtn {
+  display: none;
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-2);
+  background: transparent;
+  border: 1px solid var(--copper-dim);
+  padding: 9px 16px;
+  cursor: pointer;
+}
+.expandBtn:hover { color: var(--text); border-color: var(--copper-bright); }
+.expandBtn:focus-visible { outline: 1px solid var(--cyan); outline-offset: 2px; }
+
+@media (max-width: 760px) {
+  .expandBtn { display: inline-block; }
+}
+
+/* ---------- expanded stage ---------- */
+/* The wheel is drawn at a fixed 900px and the stage pans, so every label is
+   at the size it was designed for instead of being scaled into illegibility. */
+.rootExpanded {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  width: 100%;
+  margin: 0;
+  background: var(--void, #02030a);
+  padding: 12px;
+  gap: 8px;
+  justify-content: center;
+  overscroll-behavior: contain;
+}
+.rootExpanded .stage {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
+}
+.rootExpanded .wheel {
+  width: 900px;
+  max-width: none;
+  height: auto;
+  margin: auto;
+}
+.rootExpanded .expandBtn { display: inline-block; flex: none; }
+.rootExpanded .legend { display: none; }
+
+@media print {
+  .expandBtn { display: none !important; }
 }

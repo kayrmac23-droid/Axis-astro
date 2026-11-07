@@ -24,7 +24,7 @@
 
    Every astrological glyph carries VS-15 (U+FE0E); no emoji.
    ============================================================ */
-import { useEffect, useRef, type RefObject } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import {
   ZODIAC_GLYPHS as SG, PLANET_GLYPH, PLANET_ORDER, norm, dms,
@@ -92,6 +92,12 @@ export default function FrameShiftWheel({
   const pointerElsRef = useRef<Record<string, SVGElement>>({})
   const selectedIdRef = useRef<string | null>(selected)
   const onSelectRef = useRef<(id: string) => void>(() => {})
+  // Below the stacking breakpoint the inline wheel drops its smallest labels
+  // (see the module CSS) because they render at ~3px. Expanded, the SAME DOM
+  // node is restyled into a pannable full-screen stage at natural size, so
+  // every label comes back — one build, one wheel, no second instance to
+  // keep in step with selection or the rotation.
+  const [expanded, setExpanded] = useState(false)
 
   const { tropical, sidereal, ayanamsa } = data
 
@@ -221,11 +227,11 @@ export default function FrameShiftWheel({
       const [x0, y0] = pt(i * 30, 336), [x1, y1] = pt(i * 30, 408)
       mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.55)', 'stroke-width': 1 }, gBand)
       const [gx, gy] = pt(i * 30 + 15, 367)
-      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#F0B978' }, gBand)
+      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#F0B978', class: styles.signGlyph }, gBand)
       t.textContent = SG[i]
       glyphEls.push({ el: t, x: gx, y: gy })
     }
-    const gNames = mk('g', {}, gBand)
+    const gNames = mk('g', { class: styles.signNames }, gBand)
     ;(gNames as SVGElement).style.transition = 'opacity .28s'
     const rebuildNames = () => {
       while (gNames.firstChild) gNames.removeChild(gNames.firstChild)
@@ -239,9 +245,10 @@ export default function FrameShiftWheel({
       mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.24)', 'stroke-width': 1 }, gNak)
     }
     mk('circle', { cx: CX, cy: CY, r: 312, fill: 'none', stroke: 'rgba(234,232,248,.10)', 'stroke-width': 1 }, gNak)
+    const gNakLabels = mk('g', { class: styles.nakLabels }, gNak)
     for (let n = 0; n < 27; n++) {
       const Lc = n * (360 / 27) + 360 / 27 / 2 + AY
-      straightLabel(gNak, Lc, 321, NAKS[n], '8', '.7', 'rgba(234,232,248,.55)', '1')
+      straightLabel(gNakLabels, Lc, 321, NAKS[n], '8', '.7', 'rgba(234,232,248,.55)', '1')
     }
 
     // ghost anchors — both rulers (plate)
@@ -258,9 +265,9 @@ export default function FrameShiftWheel({
     for (let h = 0; timeKnown && h < 12; h++) {
       const sT = (TROP_ASC_SIGN + h) % 12, sS = (SID_ASC_SIGN + h) % 12
       const [tx, ty] = pt(sT * 30 + 15, 296)
-      const tT = mk('text', { x: tx, y: ty, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8' }, gNumT); tT.textContent = ROMAN[h]
+      const tT = mk('text', { x: tx, y: ty, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8', class: styles.houseNum }, gNumT); tT.textContent = ROMAN[h]
       const [sx, sy] = pt(sS * 30 + 15 + AY, 296)
-      const tS = mk('text', { x: sx, y: sy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8' }, gNumS); tS.textContent = ROMAN[h]
+      const tS = mk('text', { x: sx, y: sy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8', class: styles.houseNum }, gNumS); tS.textContent = ROMAN[h]
     }
 
     // axes — not drawn for an unknown birth time: the angles are a noon
@@ -299,11 +306,11 @@ export default function FrameShiftWheel({
       const [hx0, hy0] = pt(b.lon, 336), [hx1, hy1] = pt(b.lon, b.r + 18)
       const pointer = mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
       pointerElsRef.current[b.id] = pointer
-      const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer' }, gSky)
+      const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer', class: styles.planetGlyph }, gSky)
       glyph.textContent = b.g
       glyphElsRef.current[b.id] = glyph
       const [dx, dy] = pt(b.lon, b.r - 24)
-      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)' }, gSky)
+      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)', class: styles.microLabel }, gSky)
       const selRing = mk('circle', {
         cx: px, cy: py, r: 17, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
       }, gSky)
@@ -323,9 +330,9 @@ export default function FrameShiftWheel({
     }
     if (timeKnown) ANGLES.forEach(ax => {
       const cfg = ANGLE_LBL[ax.id]
-      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)' }, gSky)
+      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)', class: styles.angleLabel }, gSky)
       t.textContent = ax.n
-      const d = mk('text', { x: cfg.x, y: cfg.y + 14, 'text-anchor': cfg.anchor, 'font-size': 8.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.5)' }, gSky)
+      const d = mk('text', { x: cfg.x, y: cfg.y + 14, 'text-anchor': cfg.anchor, 'font-size': 8.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.5)', class: styles.microLabel }, gSky)
       SWEEP.push({ id: ax.id, lon: ax.lon, px: cfg.x, py: cfg.y, glyphEl: null, degEl: d, lastS: Math.floor(ax.lon / 30) })
     })
 
@@ -337,13 +344,13 @@ export default function FrameShiftWheel({
       mk('line', { x1: s0x, y1: s0y, x2: s1x, y2: s1y, stroke: '#F0B978', 'stroke-width': 1, opacity: .9, 'stroke-dasharray': '3 3' }, gFid)
       mk('path', { d: arcPath(0, AY, 426), fill: 'none', stroke: '#F0B978', 'stroke-width': 1.2, opacity: .85 }, gFid)
       const [mx, my] = pt(AY / 2, 449)
-      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 12.5, 'letter-spacing': 1.5, fill: '#F0B978' }, gFid)
+      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 12.5, 'letter-spacing': 1.5, fill: '#F0B978', class: styles.deltaLabel }, gFid)
       lbl.textContent = 'Δ ' + dms(AY)
       const [ax0, ay0] = pt(0, 452)
-      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
+      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85, class: styles.microLabel }, gFid)
       l1.textContent = '0°' + SG[0] + ' TROPICAL'
       const [bx, by] = pt(AY, 452)
-      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85 }, gFid)
+      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85, class: styles.microLabel }, gFid)
       l2.textContent = '0°' + SG[0] + ' SIDEREAL'
     }
 
@@ -450,8 +457,22 @@ export default function FrameShiftWheel({
       el.setAttribute('opacity', id === selected ? '1' : '0'))
   }, [selected])
 
+  // Esc closes the expanded stage, and the page behind it does not scroll.
+  useEffect(() => {
+    if (!expanded) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [expanded])
+
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} ${expanded ? styles.rootExpanded : ''}`}>
+      <div className={styles.stage}>
       <svg
         ref={svgRef}
         className={styles.wheel}
@@ -460,6 +481,13 @@ export default function FrameShiftWheel({
         aria-label="Frame-shift chart wheel: one sky, the zodiac ring rotates between tropical and sidereal alignment"
         onClick={() => onSelect?.(null)}
       />
+      </div>
+      <button
+        type="button"
+        className={styles.expandBtn}
+        onClick={() => setExpanded(v => !v)}
+        aria-expanded={expanded}
+      >{expanded ? 'CLOSE' : 'EXPAND WHEEL'}</button>
       <div className={styles.legend}>
         <span><i className={styles.lineHard} />CONJUNCTION · SQUARE · OPPOSITION</span>
         <span><i className={styles.lineSoft} />TRINE · SEXTILE</span>
