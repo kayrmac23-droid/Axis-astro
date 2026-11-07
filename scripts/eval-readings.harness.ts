@@ -341,6 +341,53 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
   let order = 0
 
   const frames = FRAMES.slice(0, FRAMES.indexOf(THROUGH) + 1)
+
+  // ⚠ Seed completeness is checked BEFORE any model call, not discovered
+  // halfway through a billable run.
+  //
+  // The launcher refuses `--sections` without `--thread-from`, which was meant
+  // to guarantee the skipped sections still stand as prior context. It only
+  // checked that the seed DIRECTORY exists. A seed that is missing the prose
+  // for a skipped predecessor — which is exactly what an earlier NARROWED run
+  // produces, since it never wrote the sections it skipped — then fell through
+  // the `existsSync` below and the section was quietly left out of the thread.
+  // `--sections=sidereal/sun --thread-from=<narrowed run>` generated with
+  // `prior=0` instead of its ten predecessors: a request that matches neither
+  // production nor the baseline, scored and billed as though it did. The whole
+  // point of the flag is comparability, so an incomplete seed has to be an
+  // error rather than a silent downgrade.
+  if (SECTIONS.length > 0) {
+    const missing: string[] = []
+    let probe = 0
+    const seedPath = new Map<string, string>()
+    for (const section of frames) {
+      for (const planetSection of NATAL_SECTION_ORDER[section] as readonly string[]) {
+        probe++
+        seedPath.set(`${section}/${planetSection}`, join(THREAD_FROM, spec.id, `${pad(probe)}-${section}-${planetSection}.md`))
+      }
+    }
+    for (const section of frames) {
+      for (const planetSection of NATAL_SECTION_ORDER[section] as readonly string[]) {
+        if (!sectionSelected(section, planetSection)) continue
+        // Only the predecessors this selected section actually carries.
+        for (const ref of priorSectionsFor(section, planetSection)) {
+          const key = `${ref.section}/${ref.planetSection}`
+          if (sectionSelected(ref.section, ref.planetSection)) continue  // generated this run
+          const f = seedPath.get(key)
+          if (!f || !existsSync(f) || !readFileSync(f, 'utf8').trim()) missing.push(key)
+        }
+      }
+    }
+    const unique = Array.from(new Set(missing))
+    if (unique.length > 0) {
+      throw new Error(
+        `--thread-from is missing prose for ${unique.length} section(s) that the selected sections are written after: ` +
+        `${unique.join(', ')}. Seed from a FULL run of this chart (one with no --sections), or widen --sections to include them. ` +
+        `Generating without them would send a different reading so far than production does, and the scores would not be comparable to the baseline.`,
+      )
+    }
+  }
+
   for (const section of frames) {
     for (const planetSection of NATAL_SECTION_ORDER[section] as readonly string[]) {
       if (ctx.aborted.reason) break
