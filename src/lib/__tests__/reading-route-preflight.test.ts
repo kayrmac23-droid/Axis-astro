@@ -91,7 +91,7 @@ describe('/api/reading — the reader is served the pre-flighted text', () => {
   })
   beforeEach(() => {
     attempts = []; sentTurns.length = 0; reserved.length = 0
-    delete process.env.AXIS_PREFLIGHT_ENABLED
+    process.env.AXIS_PREFLIGHT_ENABLED = 'true'   // OFF by default since v10.41; these tests are about it
     _resetThreadMemoryForTests()
   })
 
@@ -144,8 +144,10 @@ describe('/api/reading — the reader is served the pre-flighted text', () => {
     expect(served).toBe(bad)
   })
 
-  it('does nothing when AXIS_PREFLIGHT_ENABLED=false — the kill switch is real', async () => {
-    process.env.AXIS_PREFLIGHT_ENABLED = 'false'
+  it('does nothing unless AXIS_PREFLIGHT_ENABLED is exactly "true" — it is OFF by default', async () => {
+    // Flipped to opt-in in v10.41: the measured catch rate (3 of 21 sections)
+    // did not justify making every reader lose streaming.
+    delete process.env.AXIS_PREFLIGHT_ENABLED
     const bad = clean('There is a particular kind of restlessness here.')
     attempts = [bad, clean()]
     expect(await read()).toBe(bad)

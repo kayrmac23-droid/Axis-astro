@@ -80,11 +80,25 @@ function buildPlutoOverride(lon: unknown, source: unknown): ChartOverrides | und
 
 export async function POST(req: NextRequest) {
   // ── Hot-path pre-flight ──────────────────────────────────────────────────────
-// On by default: the checks are pure and cost nothing, and the rewrite fires
-// only on a hard finding. `AXIS_PREFLIGHT_ENABLED=false` turns it off without a
-// redeploy, mirroring AXIS_READINGS_ENABLED and AXIS_GATE_ENABLED — if buffering
-// ever proves worse for readers than streaming did, that is one env var away.
-const PREFLIGHT_ENABLED = process.env.AXIS_PREFLIGHT_ENABLED !== 'false'
+// ⚠ OFF by default, on the 2026-11-07 gated eval of control-chicago-1987.
+//
+// The checks themselves are free, but running them requires BUFFERING the
+// section, which costs every reader token-by-token streaming. That price is
+// paid on 100% of sections, and the measured catch rate was 3 of 21 — four
+// hard findings, all `prediction`. Fourteen percent of sections get cleaner
+// and the other 86% lose streaming for nothing.
+//
+// What the same run showed is where the prose actually fails: `specificity`
+// 2.43 with 12 of 21 below the bar, `voice_quality` 2.57 with 9 below, a 5%
+// first-pass pass rate. None of that is a string fact, so no deterministic
+// check can see it. The pre-flight was built to fix the first impression and
+// it addresses the wrong fault.
+//
+// Kept, not deleted, because the catch rate is one chart's and the machinery
+// is already paid for: `AXIS_PREFLIGHT_ENABLED=true` turns it on without a
+// redeploy the moment a wider sample, or a prompt fix that leaves
+// deterministic breaches as the residue, justifies the buffering.
+const PREFLIGHT_ENABLED = process.env.AXIS_PREFLIGHT_ENABLED === 'true'
 
 // No rewrite starts after this many ms from the top of the handler. A
 // regeneration is a full section (~15-25s) and maxDuration is 120s, so the
