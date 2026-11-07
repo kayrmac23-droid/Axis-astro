@@ -180,6 +180,23 @@ export interface GateResult {
   // copy edit from prose that genuinely failed the evaluator rubric.
   rubricPass: boolean
   scores:   GateScores | null
+  // The nine scores EXACTLY as the evaluator returned them, before any
+  // deterministic clamp (opener, antithesis tic, rescue phrasing, numeric fact,
+  // hard rule breach) lowered one. `scores` is what the verdict is computed
+  // from; this is what the rater actually said. Keeping both separable is what
+  // lets a rubric change be measured against the rater's own output rather than
+  // against a number a code-side clamp had already decided — the confound that
+  // made `specificity` look like a prose problem when a floor was setting it.
+  // Null on truncation and on evaluator error, where no rater output exists.
+  llmScores: LlmScores | null
+  // One short entry per criterion: the span the rater copied to justify a 4 or
+  // 5, or the specific absence it named for a 3 or below. The rubric requires it
+  // at EVERY point on the scale, which is the point — a one-sided audit
+  // obligation creates a floor exactly where the obligation starts, and that is
+  // the mechanism behind the old rubric pinning `falsifiability` at 3 in 98% of
+  // sections while asking for an inversion only below 3. Diagnostic: it is what
+  // tells you whether a low score found something or merely failed to look.
+  evidence: Record<string, string> | null
   critique: string
   // Internal — true when the evaluator itself errored and we defaulted to a pass.
   // We never block the user on evaluator failure; we cache the first pass.
@@ -196,9 +213,26 @@ export interface GateResult {
 // 3.75 was unreachable — 0 of 62 sections passed. The v10.31 rubric adds 5→1
 // anchors to every criterion; this bar sits above the old post-repair mean
 // (3.25) so the gate still discriminates while the new anchors are measured.
-// Restore 3.75 once an eval run shows the rater using 4 and 5. Note the gate
-// runs under after(): this changes what the cache serves later readers, not the
-// first-pass prose the first reader sees.
+// ⚠ MEASURED 2026-11-07 — THE STANDING NOTE HERE ("restore 3.75 once an eval
+// run shows the rater using 4 and 5") IS RETIRED, AND THIS IS NOT THE BINDING
+// PARAMETER. On fixtures/rater-bench/ (21 frozen sections, re-scored twice per
+// rubric) the rater awarded 0 of 378 prose scores a 5 under three successive
+// rubrics, including one that nearly doubled the 4s — and 43% of those 4s carry
+// an `evidence` entry naming no shortfall at all, several asserting the 5
+// condition outright. That is end-of-scale avoidance, so 3.75 is not coming
+// back by waiting for it.
+//
+// More importantly, sweeping this constant from 2.90 to 3.40 on that corpus
+// moves the pass rate only 14% → 10%, while MIN_INDIVIDUAL decides everything:
+// at MIN_INDIVIDUAL 3 every bar in that range gives 4–6 of 42, at 2 it gives 14
+// to 41. 36 of 42 sections are blocked by a single sub-3 criterion, and 27 of
+// those are blocked ONLY by `specificity` and/or `voice_quality` — the one
+// criterion where the prose genuinely has no scene (13 of 21 sections, the
+// rater quoting the gestured-at phrase each time) and the one that is mostly
+// the deterministic antithesis clamp (7 of 9 twos). So the pass rate is set by
+// two real prose defects through MIN_INDIVIDUAL, not by this average. Tune this
+// number only with that in hand. Note the gate runs under after(): either
+// changes what the cache serves later readers, not the first-pass prose.
 const MIN_PASS_AVERAGE = 3.40
 export const MIN_INDIVIDUAL   = 3
 
@@ -342,24 +376,50 @@ Your job is to score one generated section of an AXIS reading (natal or synastry
 
 When THE READING SO FAR precedes the chart context, it is the earlier sections the reader has already read, verbatim. Do not score those sections — score only the generated section. Use them to judge REPETITION ACROSS THE READING: a section that re-explains what the reading so far already established (the same trait, defence pattern, scene, ruler chain or aspect, re-derived rather than referred to and built on), or that repeats an earlier section's opening or closing shape, is padding however well written — score it LOW on synthesis (each part must advance a claim the reader has not already been given) and on voice_quality. A brief, specific reference back that the section then builds on is correct and must not be penalised. Score LOW on contradiction_handling for a behavioural claim that flatly contradicts one the reading so far made (e.g. "anger passes fast" earlier, "frustration compresses and waits" here) without naming the condition under which each holds. Chart facts still come only from the chart context, never from the earlier prose.
 
-HOW TO USE THE SCALE — read this before scoring:
+THE SCORING PROCEDURE — this is not advice about attitude, it is the order of operations. Follow it for every criterion, one criterion at a time.
 
-Each criterion is scored 1–5 against the anchors given with it. The anchors describe what the TEXT does, not how much you like it. Use the whole scale.
+Each criterion below gives you an AWARD TEST (a specific feature to go and find in the text) and a list of faults (specific things to go and find). Both are things you LOCATE, not impressions you form. For each criterion, in this order:
 
-- 5 is attainable and is awarded whenever the section meets the 5 anchor. It does not mean flawless, unimprovable, or the best section you can imagine. It means the section does what the 5 anchor describes. A well-executed section can reach 5 on several criteria at once; a rubric on which nothing ever scores 5 is measuring nothing.
-- 3 means adequate: the requirement is met in a plain, unremarkable way. 3 is NOT a default or a safe answer. Do not use it for a section you have no specific complaint about — if you cannot name what is missing, the section is a 4 or a 5 on that criterion and must be scored as one.
-- Score each criterion INDEPENDENTLY, on its own anchors. A section can be 5 on chart_evidence and 2 on specificity. Do not let a weakness on one criterion pull the others down, and do not average your overall impression across the row.
-- A verdict in which every criterion receives the same score is almost always wrong, and reports nothing the repair pass can act on. Before you return your scores, check that they discriminate: if your nine scores are identical, re-read the section against each criterion's own anchors. Do not move a score merely to create spread — a score changes only when its anchor says it should.
-- Deductions must be earned by something you can point to in the text. Where a criterion lists faults to penalise, those faults are the grounds for deducting. Absence of a listed fault is not a deduction; it is the ordinary case.
+STEP 1 — Run the AWARD TEST. Search the section for the feature it names. If the feature is there, copy the shortest span of the section that shows it.
+STEP 2 — Run the fault list. Search the section for each fault the criterion names. If one is there, copy the span that shows it.
+STEP 3 — Score from what you found, not from how the section felt:
+  · feature found, no fault found → 5
+  · feature found but thin in one respect, or one fault found → 4
+  · feature not found, requirement met plainly anyway → 3
+  · feature not found and a listed fault present → 2
+  · the criterion's own 1 anchor describes the section → 1
+
+Then write the \`evidence\` entry for that criterion: at 4 or 5, the span you copied in STEP 1; at 3 or below, the specific thing you searched for and did not find, or the fault span from STEP 2. Keep it under about fifteen words.
+
+THE EVIDENCE ENTRY IS NOT OPTIONAL AND IT IS THE CHECK ON THE SCORE. Every score costs the same to justify, in both directions:
+- If you scored 4 or 5 and cannot copy a span that shows the feature, you have not found it — the score is 3 or below.
+- If you scored 3 or below and cannot name the specific thing that is absent, you did not search — go back to STEP 1. "Adequate", "competent", "could be stronger" and "lacks depth" are not absences; they are the absence of a search.
+
+A 3 is a finding, not a resting place. It costs exactly as much to justify as a 5, and it is correct only when you can say what the section would have had to contain to score higher.
+
+Two further rules:
+- Score each criterion INDEPENDENTLY, on its own anchors and its own AWARD TEST. A section can be 5 on chart_evidence and 2 on specificity. Do not let a weakness on one criterion pull the others down, and do not average your overall impression across the row.
+- Absence of a listed fault is not a deduction; it is the ordinary case. A section with no fault on a criterion and the feature present is a 5 on that criterion, and a rubric on which nothing ever scores 5 is measuring nothing.
+
+WHAT COUNTS AS A SHORTFALL — read this with the anchors below, which are written in its terms.
+
+The anchors ask whether the criterion's feature is present and whether it is doing the section's work. They do NOT ask you to verify a property of every sentence. A shortfall is LOAD-BEARING when it touches one of the section's major claims — the two or three claims the section is actually built on. It is INCIDENTAL when it touches a passing clause the section would survive losing.
+
+- Incidental shortfalls do not move a score. A section whose feature is present and worked is a 5 even though some minor clause somewhere could have been tighter. There is always such a clause; requiring that there be none would make the top of this scale unreachable by construction, and a scale with an unreachable top measures nothing.
+- One load-bearing shortfall is the 4.
+- The feature absent, or two or more load-bearing shortfalls, is the 3 or below per the anchors.
+
+Length is part of this judgement. These sections range from about 230 words to about 1000, and a longer section contains proportionally more passing clauses — so the same NUMBER of small blemishes is a lower density in a 1000-word section than in a 230-word one. Judge the density of load-bearing shortfalls, not the raw count, exactly as you are told to for the cadence allowance. Do not let a long section accumulate deductions simply by being long enough to contain more sentences.
 
 CRITERIA (score each 1–5):
 
 1. chart_evidence — Are major claims traceable to specific placements, houses, aspects, dignity, rulership, dispositors, nodes, dashas, or synthesis factors actually present in the chart context?
-   5 = every substantive claim is tied to a named chart factor, and the factors are worked rather than merely cited: dignity, the dispositor's condition and the orb class each do visible work in the argument.
-   4 = all major claims are anchored; a minor claim or two float free, or one factor is named without being worked.
-   3 = the central claims are anchored but the supporting material drifts into unanchored generality.
+   5 = the section's major claims are each tied to a named chart factor, and the factors are WORKED rather than merely cited — dignity, the dispositor's condition or the orb class visibly drives an argument. Passing clauses that carry no factor are incidental and do not cost the 5.
+   4 = the major claims are anchored, but one of them rests on a factor that is named without being worked.
+   3 = one major claim is unanchored, or the anchoring throughout is citation beside a claim rather than a factor doing work.
    2 = anchoring is decorative — placements are named beside claims they do not actually support, or most of the section would read the same for a different chart.
    1 = unanchored, or built on a factor the chart does not contain.
+   AWARD TEST: find a passage where a named chart factor is WORKED — the dignity, the dispositor's condition, or the orb class is used to drive the claim, not just cited beside it. Copy that passage.
    Score LOW for a factual claim the context contradicts: a superlative the context does not state ("the tightest aspect in the chart"), a house restated as a distance, a Sidereal shift called "forward", a wide (>6°) aspect given "real force" or made a recurring theme, a nakshatra's deity called its ruler, or Western aspects re-walked in a Sidereal section. Where the context carries a ⚠ BIRTH TIME UNKNOWN notice, score LOW for any house placement, Midheaven or dasha-timing claim stated as fact rather than marked conditional — and equally for a house claim made by describing its arena without the number ("how they are known professionally" is a 10th-house claim).
 
 2. specificity — Does the section describe recognisable lived patterns from INSIDE the native's experience, rather than abstract trait labels?
@@ -368,30 +428,34 @@ CRITERIA (score each 1–5):
    3 = situational language is present but generic: a described tendency with a gestured-at setting rather than a moment ("in relationships, you tend to…").
    2 = trait labels and abstraction throughout, with no situation the reader could place.
    1 = unanchored abstraction, or an invented specific the chart does not support (a fabricated duration, count, job or circumstance is worse than an abstraction and caps this criterion at 1).
+   AWARD TEST: find the concrete moment and locate its THREE parts — the trigger, the action, and what the person registers afterwards. Copy the aftermath clause specifically, since that is the part most often missing. All three present and carrying the claim is a 5; the moment present with the aftermath missing is the 4.
    Score LOW for opening on what other people notice first, and for measuring the native against other people ("the gap that plagues so many people"). Score LOW too for opening the section on the existential frame (${BANNED_OPENER_LIST}): it announces that a quality exists instead of naming it. Score LOW for the observer-frame inversion: insights framed as the audience's verdict on the person ("others experience this as rare", "becomes most visible and most vulnerable", "what people receive from you") instead of the person's own interior — this is a hard fault even when it reads as flattering praise.
 
 3. synthesis — Does the closing paragraph name the single live tension the person NAVIGATES and show how they inhabit it, and does each subsection advance a DIFFERENT claim?
-   5 = the close names one live tension, leaves it open, and shows what inhabiting it costs; every subsection has advanced a distinct mechanism, consequence or cost, and the cross-references (sign × house × aspect × dignity × ruler chain) are genuinely combined rather than listed.
-   4 = a real tension is named and held open, but one subsection repeats another's claim, or the close states the tension without showing it being lived.
+   5 = the close names one live tension, leaves it open, and shows what inhabiting it costs; the subsections advance different claims, and at least one cross-reference (sign × house × aspect × dignity × ruler chain) is genuinely combined rather than listed. A subsection that briefly touches a neighbour's ground is incidental.
+   4 = the tension is named and held open, but one of: a subsection re-arrives at another's central claim, or the close states the tension without showing it being lived.
    3 = the close is a competent wrap that neither re-lists the parts nor names a live tension — it ends, rather than resolving.
    2 = the close re-lists placements already covered, or two or more subsections re-arrive at the same central note in new clothes.
    1 = a summary with a summary heading, or a tension flattened into addition.
+   AWARD TEST: find the closing paragraph and locate the one live tension it names and the cost of inhabiting it. Copy the clause that states the cost. Then check that no two subsections arrive at the same claim.
    The closing paragraph is unheaded: a section that heads it "Putting It Together", "Synthesis", "In Summary" or any variant has broken FORMATTING — score that LOW here. Score LOW for pseudo-synthesis: a summary that re-states the parts, or a flattening closer that resolves the tension by addition ("carries both simultaneously", "holds both at once", "needs both"). Score LOW for RESOLUTION-BY-HIERARCHY in dual-system (sidereal / synthesis) sections: resolving the Tropical/Sidereal divergence by depth-ranking the systems — positioning one as more true, deeper, more essential, more authentic, or more real than the other (the Sidereal as "what the identity is actually made of underneath" a Tropical "performance", one as essence and the other as mask/surface). Phrasings such as ${BANNED_HIERARCHY_LIST} are the paradigm failures. The same breach made with STACKING language counts identically: one frame built "on top of" the other, one as the "core", "engine" or "foundation", one as what the person "actually" wants, one as a defence against the other. The two systems are held simultaneously, neither subordinate to the other; ranking one beneath the other flattens the divergence exactly as pseudo-synthesis flattens a tension. Score LOW too for a claimed conflict the supplied evidence does not earn — a changed placement is a divergence, not proof of conflict, suffering, or a coping history — and for counting one unchanged angular relationship twice as if both frameworks produced it independently. Concordance is consistency across frameworks, not independent psychological proof. A divergence the chart shows as narrow, named at that size and left open, is correct: score that as accurate, not thin. Inflating it into drama and resolving it away are both failures.
 
 4. contradiction_handling — Does it name paradoxes, compensations, tensions and mixed expressions, and hold them open rather than averaging them away?
-   5 = at least one difficulty stands as an uncompensated cost; every strength is given either plain function or a load-bearing mechanism, with no appended reassurance; where a shadow is named it is the same quality under stress; and a real cross-chart contradiction is opened and carried rather than resolved.
-   4 = the contradictions are held, with one soft edge — a strength stated slightly warmly, or a shadow named but not followed through.
+   5 = at least one difficulty stands as an uncompensated cost, and the section's strengths are given plain function or a load-bearing mechanism rather than appended reassurance. Where a shadow is named it is the same quality under stress. A single slightly warm phrasing on a minor strength is incidental.
+   4 = the contradictions are held, with one load-bearing soft edge — a major strength carrying reassurance, or a named shadow not followed through.
    3 = both sides appear but the tension is stated rather than inhabited; nothing is rescued and nothing is manufactured.
    2 = a difficulty is rescued into a virtue, OR a strength carries a trailing reassurance that fails the deletion test, OR a shadow is bolted on that is not that quality under stress.
    1 = the section systematically redeems what it names, or every quality arrives one-sided.
+   AWARD TEST: find a difficulty that is left standing as a cost with nothing appended to redeem it. Copy the sentence where it is left standing. A section that leaves one such cost uncompensated and rescues nothing has met the 5 anchor's main requirement.
    Score LOW for the compensatory-reframe compulsion: a hard placement (fall, detriment, debilitation, tight hard aspect) rescued into a virtue in the breath that named it — "fall does not mean broken → genuinely uncommon", "serial destabilisation → a form of resilience". A difficulty is allowed to stand as a cost; a real strength located on its OWN separate placement is fine, but converting the wound just named into its own silver lining is the fault. Score LOW too for the MIRROR move — the RESCUE CLAUSE on a strength (ease → hidden strength): a plain placement or soft aspect described accurately, then followed by a trailing value-assertion that adds no astrological information, only reassurance about how valuable, rare, or underrated it is. Apply the DELETION TEST: if removing the clause leaves the astrological claim fully intact, the clause is flattery and must be flagged. Phrasings such as ${BANNED_RESCUE_LIST} are paradigm failures. A strength is legitimate ONLY as plain function ("the Pluto trine gives access to transformative experience without a hard aspect's destabilisation") or as a load-bearing mechanism against a named difficulty ("the Moon trine is what keeps the identity from fragmenting under the Neptune pressure") — never as an appended reassurance about its worth. Score LOW for the THIRD member of the same family — MANUFACTURED SHADOW: a strength followed by a flaw that is not that strength under stress but an unrelated trait bolted on to make the paragraph look balanced ("Leo warmth, but also secretly anxious" — the anxiety is not the warmth). A genuine shadow is the SAME quality in its distorted or unconscious expression ("Leo warmth hardening into needing to be central"); anything else is an invented claim with no chart behind it and is worse than leaving the shadow unstated. Conversely, score LOW for one-sided praise: a quality presented as if it had no stress-state at all. Where a placement's distorted expression is genuinely mild, stating it plainly and briefly is correct and must NOT be penalised as thin coverage.
 
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo = critical, Leo = needing spotlight), vague affirmations ("your sensitivity is a gift"), and horoscope-voice phrasing?
-   5 = the section could not be reassembled from sign keywords; every characterisation is produced by this chart's particular combination of factors.
-   4 = clean of cliché, with one characterisation that leans on the archetype more than the placement.
+   5 = the section could not be reassembled from sign keywords: its characterisations are produced by this chart's particular combination of factors.
+   4 = clean of cliché, with one load-bearing characterisation leaning on the archetype more than the placement.
    3 = no outright cliché, but the sign descriptions would broadly fit any chart with that sign.
    2 = one or more listed clichés, or a vague affirmation.
    1 = horoscope voice throughout.
+   AWARD TEST: find a characterisation that could NOT be produced from the sign's keywords alone — one that needs this chart's particular combination of factors. Copy it. If the section's characterisations all require the combination, it is a 5.
 
 6. psychological_depth — Does it explain defence patterns, relational dynamics, self-perception, blind spots, gifts and shadow with real psychological grain, or stay at trait-level surface?
    5 = the section explains a mechanism — why this pattern formed, what it protects against, what the person believes about it that is not accurate — and the explanation is specific to these placements.
@@ -399,6 +463,7 @@ CRITERIA (score each 1–5):
    3 = accurate description of behaviour without an account of what drives it.
    2 = trait-level throughout; the section describes what the person is like, not how they work.
    1 = restates placement keywords as psychology.
+   AWARD TEST: find the mechanism — a passage saying why the pattern formed, what it protects against, or what the person believes about it that is not accurate. Copy it. Behaviour described without any such account is the 3.
 
 7. practical_usefulness — Will the reader leave with clearer self-understanding — a recognisable pattern they can now see — rather than just aesthetic prose?
    5 = the section hands the reader something they can use: a named pattern plus the situations in which it fires, such that they would recognise it next time it happened.
@@ -407,31 +472,36 @@ CRITERIA (score each 1–5):
    2 = accurate but inert — nothing the reader could notice happening.
    1 = decorative.
    This criterion asks what the reader can DO with the section, not whether it gives advice. Advice is banned: do not reward a prescription, and do not penalise its absence.
+   AWARD TEST: find a named pattern together with the situations in which it fires. Copy the clause naming the situation. If the reader could watch for it next week, that is the 5.
 
 8. voice_quality — Does it sound like AXIS: precise, elegant, unsentimental, warm-but-honest, British spelling (favour/colour/recognised/practise), no mystical fluff, no wellness-industry softness, no predictions, no prescriptions?
-   5 = the register holds throughout, sentence shapes vary, and the prose is dense rather than ornamental — nothing performs depth, and no construction repeats as a rhythm.
-   4 = the register holds, with one lapse: a single ornamental sentence, a borrowed phrase, or one repeated construction.
+   5 = the register holds, sentence shapes vary, and the prose is dense rather than ornamental — no construction has become a rhythm. One ornamental sentence in a long section is incidental; a shape that recurs is not.
+   4 = the register holds, with one load-bearing lapse: a borrowed phrase, or one construction used as a rhythm.
    3 = correct register, flat execution — the prose is competent and uniform in shape.
    2 = a recurring tic: the struck fragment used more than once, the antithesis past its cap, or spelling slips.
    1 = wrong register — mystical, wellness, prescriptive, or predictive.
+   AWARD TEST: read the last sentence of each paragraph in turn and check that they do not share one shape, then check that sentence lengths vary within a paragraph. Copy two paragraph-final sentences of genuinely different shape. Varied cadence with the register holding is a 5; correct register in uniform shapes is the 3.
    Score LOW for cadence over content: the weighted aphoristic fragment dropped after a dash to close paragraphs ("…not a consolation, but a fact.", "…it already has it.") used MORE THAN ONCE in the section — a predictable struck-chord rhythm is prose performing depth, not delivering it. Most paragraphs should end on an ordinary, fully-loaded sentence. Score LOW for the ANTITHESIS TIC: "X rather than Y", and its variants "not X but Y" / "less X than Y", used more often than the CADENCE ALLOWANCE stated for this section in the user turn. That allowance is scaled to the section's length, because the fault is density — do not judge against a fixed number of your own. Count the occurrences: one over the allowance is a deduction, and two or more over it caps this criterion at 2. Score LOW too for META-NARRATION — the prose announcing its own compliance with AXIS rules to a reader who has never seen them ("the cost is real rather than a secretly deeper form of love", "these are not mask and face", "this does not resolve into a hidden virtue"); paradigm phrasings: ${BANNED_META_LIST}. And score LOW for phrasing lifted from the reading so far or from the context's knowledge-base wording and repeated as a refrain.
 
 9. falsifiability — Apply the INVERSION TEST to each major psychological claim, and ONLY the inversion test. Negate the claim: if the negation would ALSO sound broadly, plausibly true of almost any reader, then the claim excludes no one — it is a Barnum statement doing comfort work, not astrological work — and you deduct. A claim earns its place only if a neighbouring chart could plausibly falsify it.
-   5 = every major claim fails its own inversion — negate it and the negation reads as false for this chart. The section would be wrong about a neighbouring chart, which is what makes it worth asserting about this one.
-   4 = the major claims invert cleanly; one secondary claim is universally endorsable.
-   3 = the central claim inverts, but several supporting claims would be endorsed by almost anyone.
+   5 = the section's major claims each fail their own inversion — negate one and the negation reads as false for this chart. The section would be wrong about a neighbouring chart, which is what makes it worth asserting about this one. Judge the MAJOR claims, as this criterion's opening sentence says: broadly-endorsable phrasing in passing supporting clauses is incidental and does not cost the 5, because any section of this length contains some.
+   4 = the major claims invert, but one of them does so only weakly — its negation is arguable rather than false for this chart.
+   3 = the central claim inverts and a second major claim does not — it would be endorsed by almost any reader.
    2 = most major claims survive their inversion — the section would flatter most readers.
    1 = the section is built on universal endorsement.
+   AWARD TEST: take the section's single biggest psychological claim and write its negation. If the negation reads as FALSE for this chart, the claim has earned its place — copy the claim. A section whose major claims all invert this way is a 5, and scoring 3 here means you found a central claim that inverts but several supporting claims that do not: name one of them in the evidence entry.
    Universal-endorsement phrasings such as ${BANNED_BARNUM_LIST} are the paradigm failures — mirror this list; a section that trades in them scores 2 or below. Do NOT re-score chart-anchoring here — whether a claim is tied to a named placement is criterion 1 (chart_evidence); this criterion asks only whether the claim, however anchored, could be false for someone. SCENE-CRAFT DOES NOT EXEMPT A CLAIM: a statement can be vivid, interior, and behaviourally concrete — scoring well on specificity (criterion 2) — and still be universally endorsable. The two axes are orthogonal. Worked example: "${FALSIFIABILITY_DIVERGENCE_EXAMPLE}" reads as a specific interior scene (it PASSES specificity) yet its negation is equally endorsable and it collapses to the banned "you want to be understood" line (it FAILS falsifiability). Score LOW when major claims survive only because they are too universal to be false.
 
 DECISION RULES:
-- Score all nine criteria above against their anchors. A tenth criterion, length, is scored deterministically outside this prompt from the section's word count against its band: do NOT score or mention length. The pass/fail verdict is computed outside this prompt from all ten scores; your job is to describe the section accurately, not to aim at a threshold. Return the "pass" field as your own honest read of whether this section is ready to ship, and score the criteria independently of it.
+- Score all nine criteria above by running each one's AWARD TEST and fault list, in that order. A tenth criterion, length, is scored deterministically outside this prompt from the section's word count against its band: do NOT score or mention length.
+- The pass/fail verdict is computed outside this prompt from all ten scores. You do not return a verdict, and you must not aim at one. Do not reason about whether the section is ready to ship, whether it would pass, or what a threshold might be: a judgement about shippability made alongside the scores contaminates them, because a section you have decided is not ready will not be given the 5s its individual criteria have earned. Score the nine criteria on their own evidence and stop there.
+- Every score needs its \`evidence\` entry, at every point on the scale. Write them as you go, one per criterion, in the same order as the scores.
 - If ANY criterion scores below 4, write a CRITIQUE that is a list of concrete, actionable repair instructions. Reference specific chart factors the section ignored, specific clichés to remove, specific contradictions left unnamed, specific voice problems to fix. The critique will be fed back into a regeneration pass — write it for the model that has to rewrite the section, not for a human review committee. Keep it concise: cover ONLY the criteria that scored below 4, do NOT write a paragraph for every criterion, and stay under roughly 150 words.
 - A repair must not cost the section what it already has. Where you ask for a change, say what to leave intact — the criteria currently scoring 4 or 5 are what the rewrite has to preserve. Name them in one clause.
-- AUDITABILITY: if falsifiability scores below 3, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is your evidence for the deduction, not a bare integer. When falsifiability is 3 or above, set "falsifiability_inversion" to an empty string.
+- AUDITABILITY: if falsifiability scores below 4, set "falsifiability_inversion" to the single most-endorsable claim you found in the section AND its negation, written out so a reviewer can see that BOTH read as broadly true — this is the expanded form of that criterion's evidence entry, and it is what justifies awarding less than full marks. When falsifiability is 4 or 5, set "falsifiability_inversion" to an empty string.
 - If every criterion scores 4 or 5, critique should be an empty string.
 
-OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
+OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text). "scores" comes first and must be complete; "evidence" carries one entry per criterion, under about fifteen words each — the span you copied at 4 or 5, the specific absence at 3 or below:
 {
   "scores": {
     "chart_evidence": <1-5>,
@@ -444,9 +514,19 @@ OUTPUT FORMAT (strict JSON, no markdown fence, no surrounding text):
     "voice_quality": <1-5>,
     "falsifiability": <1-5>
   },
-  "pass": <true|false>,
+  "evidence": {
+    "chart_evidence": "<span found, or the specific absence>",
+    "specificity": "<span found, or the specific absence>",
+    "synthesis": "<span found, or the specific absence>",
+    "contradiction_handling": "<span found, or the specific absence>",
+    "anti_cliche": "<span found, or the specific absence>",
+    "psychological_depth": "<span found, or the specific absence>",
+    "practical_usefulness": "<span found, or the specific absence>",
+    "voice_quality": "<span found, or the specific absence>",
+    "falsifiability": "<span found, or the specific absence>"
+  },
   "critique": "<repair instructions or empty string>",
-  "falsifiability_inversion": "<constructed claim + negation when falsifiability < 3, else empty string>"
+  "falsifiability_inversion": "<constructed claim + negation when falsifiability < 4, else empty string>"
 }`
 
 // One client per instance, created on first use: a fresh client per call threw
@@ -584,6 +664,8 @@ export async function evaluateSection({
       pass:     false,
       rubricPass: false,
       scores:   null,
+      llmScores: null,
+      evidence: null,
       critique: 'Section is truncated — it carries the truncation sentinel or ends mid-sentence. It must be regenerated in full; truncated output must never be cached or shown as final.',
       evaluatorErrored: false,
       truncated: true,
@@ -639,7 +721,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
 
     let parsed: {
       scores?:                   unknown
-      pass?:                     unknown
+      evidence?:                 unknown
       critique?:                 unknown
       falsifiability_inversion?: unknown
     } | null
@@ -658,7 +740,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     const llmScores = (parsed && validateScores(parsed.scores)) || extractScoresFromRaw(raw)
     if (!llmScores) {
       console.error('Reading quality gate: invalid scores object in evaluator output')
-      return { pass: true, rubricPass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
+      return { pass: true, rubricPass: true, scores: null, llmScores: null, evidence: null, critique: '', evaluatorErrored: true, truncated: false }
     }
 
     // Merge the deterministic length score against this section's typed band, so
@@ -869,10 +951,25 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     // metric reads these critiques, and with the critique blanked on pass its
     // numerator could only ever come from failing sections, so the metric moved
     // the wrong way as the pass rate improved.
+    // Strings only, and only for real criteria — the field is model output and
+    // is used for diagnosis, never for the verdict.
+    const rawEvidence = parsed && typeof parsed.evidence === 'object' && parsed.evidence !== null
+      ? parsed.evidence as Record<string, unknown>
+      : null
+    const evidence = rawEvidence
+      ? Object.fromEntries(
+          LLM_CRITERIA
+            .filter(c => typeof rawEvidence[c] === 'string')
+            .map(c => [c, (rawEvidence[c] as string).trim()]),
+        )
+      : null
+
     return {
       pass,
       rubricPass,
       scores,
+      llmScores,
+      evidence,
       critique,
       evaluatorErrored: false,
       truncated: false,
@@ -882,7 +979,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     // first pass. The prompt's own constraints remain in force; the gate is
     // an additional safety net, not a single point of failure.
     console.error('Reading quality gate evaluator error:', err instanceof Error ? err.message : err)
-    return { pass: true, rubricPass: true, scores: null, critique: '', evaluatorErrored: true, truncated: false }
+    return { pass: true, rubricPass: true, scores: null, llmScores: null, evidence: null, critique: '', evaluatorErrored: true, truncated: false }
   }
 }
 
