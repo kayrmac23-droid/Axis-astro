@@ -17,7 +17,7 @@
 //
 // But the gate is two different things wearing one name. The LLM evaluator is
 // slow, expensive and nondeterministic. The rest — `scoreLength`,
-// `detectBannedOpeners`, `antithesisTicExceeded`, `detectRescuePhrasings`,
+// `detectBannedOpeners`, `antithesisVerdict`, `detectRescuePhrasings`,
 // `scanSectionRules`, `checkNumericFacts` — is pure, makes no model calls, and
 // runs in microseconds. reading-rule-scan.ts says so in its own header: "unlike
 // the LLM gate it *could* run on the hot path." Nothing was stopping it except
@@ -45,9 +45,9 @@
 import {
   countWords, scoreLength, detectBannedOpeners, detectRescuePhrasings, MIN_INDIVIDUAL,
 } from '@/lib/reading-quality-gate'
-import { scanSectionRules, detectAntithesisTic, antithesisHardThresholdFor, type RuleFinding } from '@/lib/reading-rule-scan'
+import { scanSectionRules, antithesisVerdict, type RuleFinding } from '@/lib/reading-rule-scan'
 import { checkNumericFacts, type FactFinding } from '@/lib/reading-fact-check'
-import { antithesisCapFor, openerModeFor, type WordBand } from '@/lib/prompts'
+import { openerModeFor, type WordBand } from '@/lib/prompts'
 
 export interface PreflightFinding {
   /** Stable id for the log line and the regeneration instruction. */
@@ -116,13 +116,16 @@ export function preflightSection(opts: {
     })
   }
 
-  // ── The antithesis tic, against THIS section's band-scaled allowance.
-  const cap = antithesisCapFor(band)
-  const tics = detectAntithesisTic(text)
-  if (tics.length > cap) {
+  // ── The antithesis tic, measured as density (v10.45; see reading-rule-scan.ts).
+  const antithesis = antithesisVerdict(text)
+  if (antithesis.severity !== 'clean') {
     findings.push({
       check: 'antithesis-tic',
-      detail: `the contrastive construction appears ${tics.length} times; this section's CADENCE ALLOWANCE permits at most ${cap}. The instances: ${tics.map(t => `"${t.match}"`).join(', ')}. Keep at most the ${cap} most load-bearing and state every other claim directly. A dash-balanced or "not merely…but" equivalent is the same tic.`,
+      detail: `the contrastive construction is too dense: ${
+        antithesis.cause === 'paragraph'
+          ? `${antithesis.maxPerParagraph} in one paragraph (${antithesis.hits.length} in the section), where the CADENCE ALLOWANCE permits at most one per paragraph`
+          : `${antithesis.hits.length} across ${antithesis.paragraphs} paragraphs, where the CADENCE ALLOWANCE permits ${antithesis.allowance}`
+      }. The instances: ${antithesis.hits.map(t => `"${t.match}"`).join(', ')}. Keep the most load-bearing one in each affected paragraph and state every other claim directly. A dash-balanced or "not merely…but" equivalent is the same tic.`,
     })
   }
 
@@ -136,7 +139,7 @@ export function preflightSection(opts: {
   }
 
   // ── Stated-rule breaches. Hard only.
-  const rules: RuleFinding[] = scanSectionRules(text, { frame: section, antithesisCap: cap })
+  const rules: RuleFinding[] = scanSectionRules(text, { frame: section })
     .filter(f => f.severity === 'hard' && f.rule !== 'antithesis-tic')
   for (const r of rules) {
     findings.push({ check: r.rule, detail: `${r.rule} at line ${r.line}: "${r.match}".` })
@@ -198,4 +201,4 @@ export function pickBetter(
     : { text: first.text, kept: 'first' }
 }
 
-export { antithesisHardThresholdFor }
+export { antithesisVerdict }

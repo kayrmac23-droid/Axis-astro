@@ -477,11 +477,17 @@ describe('gateForCache — every model call is logged with its token usage', () 
   })
 })
 
-describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () => {
-  // The cap is no longer flat: it is this section's band-scaled CADENCE
-  // ALLOWANCE (antithesisCapFor), one permitted use per ~450 words of target.
-  // So the boundary has to be tested at BOTH caps, on real sections — the
-  // 230-word `key_aspects` band (cap 1) and the 760-word Sun band (cap 2).
+describe('gateForCache — the antithesis tic (v10.34, density-scoped v10.45)', () => {
+  // ⚠ v10.45 — the clamp fires on DENSITY IN A PARAGRAPH, not on a total
+  // against a band-derived cap. The band-scaled cap of v10.39 did not hold (10
+  // of 21 frozen bench sections breached it, 6 hard) and was not tracking
+  // density: see reading-rule-scan.ts. Two consequences are pinned below. A
+  // section's LENGTH no longer buys room WITHIN a paragraph — two uses in one
+  // paragraph are adjacent repetition whether the section is 230 words or 760
+  // — while across the section the allowance scales with the paragraph count,
+  // which is where earned length earns cadence room.
+  // `tics()` puts every construction in ONE paragraph, so n is the paragraph
+  // density; the spread cases are built separately.
   const CAP1 = { ...BASE, planetSection: 'key_aspects' }
   const CAP1_WORDS = wordBandFor('tropical', 'key_aspects', 0).fullMin + 10
   const shortSection = () => sectionOfWords(CAP1_WORDS)
@@ -507,15 +513,24 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
     const content = JSON.stringify(create.mock.calls[0][0].messages[0].content)
     expect(content).toContain('<section_meta>')
     expect(content).toContain('cadence_allowance:')
-    expect(content).toContain('at most 2 time(s)')
+    // The rater is told the DENSITY rule, and explicitly not to invent a total
+    // of its own — the clamp and the rubric must agree on what is counted.
+    expect(content).toContain('at most once in any one paragraph')
+    expect(content).toContain('once every two paragraphs')
+    expect(content).toContain('against no number of your own')
     // The three bodies the evaluator must keep apart are each fenced.
     expect(content).toContain('<chart_context>')
     expect(content).toContain('<section_under_review>')
 
+    // ⚠ And it is byte-identical for a different band: the allowance is a
+    // property of the text now, so no number travels per section.
+    const sunTurn = content
     create.mockReset()
     create.mockResolvedValueOnce(evalReply(5))
     await gateForCache({ ...CAP1, firstPassText: shortSection(), startedAt: JUST_NOW() })
-    expect(JSON.stringify(create.mock.calls[0][0].messages[0].content)).toContain('at most 1 time(s)')
+    const shortTurn = JSON.stringify(create.mock.calls[0][0].messages[0].content)
+    const allowance = (t: string) => t.slice(t.indexOf('cadence_allowance:'), t.indexOf('</section_meta>'))
+    expect(allowance(shortTurn)).toBe(allowance(sunTurn))
   })
 
   // ── The 230-word band: cap 1 ───────────────────────────────────────────────
@@ -545,29 +560,41 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
     expect(r.repaired).toBe(true)
   })
 
-  // ── The 760-word Sun band: cap 2 ──────────────────────────────────────────
-  // This is the case the flat cap got wrong. A 780-word comparative section
-  // with two contrasts is not doing what a 230-word one with two is doing, and
-  // the gate was failing it as if it were.
-  it('leaves two instances in a cap-2 section completely clean', async () => {
-    const text = tics(GOOD_SECTION, 2)
+  // ── A long section: length does NOT buy room inside one paragraph ─────────
+  // The v10.39 cap gave the 760-word Sun band two uses anywhere in the section,
+  // so two in the SAME sentence pair scored clean. That is the adjacent
+  // repetition the rule exists to stop, and it is a fault at any length.
+  it('deducts for two instances in ONE paragraph however long the section is', async () => {
     create.mockResolvedValueOnce(evalReply(5))
 
-    const r = await gateForCache({ ...BASE, firstPassText: text, startedAt: JUST_NOW() })
+    const r = await gateForCache({ ...BASE, firstPassText: tics(GOOD_SECTION, 2), startedAt: JUST_NOW() })
+    expect(r.firstPass?.scores?.voice_quality).toBe(3)
+    expect(r.repaired).toBe(false)
+  })
+
+  // ── …but it DOES buy room across the section ──────────────────────────────
+  it('leaves the same two instances clean when they sit in separate paragraphs', async () => {
+    const spread = `${GOOD_SECTION}\n\nIt asserts rather than asks.\n\nThe ruler is peregrine, so the assertion arrives already settled.\n\nIt leads rather than follows.\n\nYou read the silence after as agreement.`
+    create.mockResolvedValueOnce(evalReply(5))
+
+    const r = await gateForCache({ ...BASE, firstPassText: spread, startedAt: JUST_NOW() })
     expect(r.firstPass?.scores?.voice_quality).toBe(5)   // not even a deduction
     expect(r.reason).toBe('passed')
     expect(r.modelCalls).toBe(1)
   })
 
-  it('treats three instances in a cap-2 section as a deduction', async () => {
-    create.mockResolvedValueOnce(evalReply(5))
+  it('hard-fails three instances in one paragraph at any band', async () => {
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
+      .mockResolvedValueOnce(evalReply(5))
 
     const r = await gateForCache({ ...BASE, firstPassText: tics(GOOD_SECTION, 3), startedAt: JUST_NOW() })
-    expect(r.firstPass?.scores?.voice_quality).toBe(3)
-    expect(r.repaired).toBe(false)
+    expect(r.firstPass?.scores?.voice_quality).toBeLessThan(3)
+    expect(r.repaired).toBe(true)
   })
 
-  it('hard-fails four instances in a cap-2 section — the margin holds at every band', async () => {
+  it('hard-fails four instances in one paragraph', async () => {
     create
       .mockResolvedValueOnce(evalReply(5))
       .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
@@ -578,7 +605,7 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
     expect(r.repaired).toBe(true)
   })
 
-  it('leaves a section at its cap untouched', async () => {
+  it('leaves a section with a single use untouched', async () => {
     const atCap = tics(shortSection(), 1)
     create.mockResolvedValueOnce(evalReply(5))
 
@@ -589,7 +616,7 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
   })
 
   // ── The critique ──────────────────────────────────────────────────────────
-  it('names every instance and THIS section\'s cap, not a fixed one', async () => {
+  it('names every instance and what was actually measured', async () => {
     create
       .mockResolvedValueOnce(evalReply(5))
       .mockResolvedValueOnce(textReply(sectionOfWords(IN_BAND_WORDS)))
@@ -601,13 +628,10 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
 
     const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
     expect(content).toContain('ANTITHESIS-TIC FAILURE')
-    // The count leads — the breach is the repetition, not any single use.
-    expect(content).toMatch(/appears 4 times/)
-    // And the cap quoted is the Sun band's 2, so the repair is not told to cut
-    // to one in a section the rules allow two.
-    expect(content).toContain('permits at most 2')
-    expect(content).toContain('760-word band')
-    expect(content).toContain('Keep at most the 2 most load-bearing')
+    // The measurement leads — the breach is the repetition, not any single use.
+    expect(content).toContain('One paragraph carries 4 of them')
+    expect(content).toContain('at most one per paragraph')
+    expect(content).toContain('Keep the most load-bearing one in each affected paragraph')
     // Each instance is quoted, so the repair cuts the right ones.
     expect(content).toContain('rather than asks')
     expect(content).toContain('rather than follows')
@@ -625,8 +649,7 @@ describe('gateForCache — the antithesis tic (v10.34, band-scaled v10.39)', () 
     await gateForCache({ ...CAP1, firstPassText: tics(shortSection(), 2), startedAt: JUST_NOW() })
     const content = JSON.stringify(create.mock.calls[1][0].messages[0].content)
     expect(content).toContain('ANTITHESIS-TIC FAILURE')
-    expect(content).toMatch(/appears 2 times/)
-    expect(content).toContain('permits at most 1')
+    expect(content).toContain('One paragraph carries 2 of them')
   })
 
   it('does not take the surgical doctrine edit when a tic rides alongside a doctrine hit', async () => {

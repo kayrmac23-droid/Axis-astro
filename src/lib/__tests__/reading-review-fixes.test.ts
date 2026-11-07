@@ -12,7 +12,7 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisCapFor, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
+import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
 import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
 import { checkExemplarBleed, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
 import { countWords, scoreLength, EVAL_SYSTEM_PROMPT } from '@/lib/reading-quality-gate'
@@ -335,7 +335,7 @@ describe('register — the prompt states its rules in the register it requires (
 // template rather than the content" used the construction inside the sentence
 // prohibiting it. Examples outrank instructions. The rule may now QUOTE the
 // banned forms as named specimens, but must not use one in its own prose.
-describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => {
+describe('PART 4 — the antithesis limit does not model the tic (v10.34)', () => {
   const block = SHARED_RULES
     .slice(SHARED_RULES.indexOf('VARY THE ANTITHESIS'))
     .split('\n- Banned outright')[0]
@@ -344,7 +344,7 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
     expect(block).not.toMatch(/hears\s+the\s+template\s+rather\s+than\s+the\s+content/)
   })
 
-  it('states that the cap is enforced on the finished text', () => {
+  it('states that the limit is enforced on the finished text', () => {
     expect(block).toMatch(/enforced on the finished text/i)
   })
 
@@ -369,9 +369,10 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
     expect(block).not.toMatch(/may appear\s+(?:at most\s+)?(?:once|one time)/i)
   })
 
-  it('points at the section instruction for this section\'s allowance', () => {
+  it('points at the section instruction for the limit', () => {
     expect(block).toMatch(/CADENCE\s*\n?\s*ALLOWANCE/)
-    expect(block).toMatch(/scales with the section's\s*\n?\s*length/i)
+    // v10.45: what governs is proximity, not the section's length.
+    expect(block).toMatch(/how closely the construction falls to\s*\n?\s*itself/i)
   })
 
   // ⚠ THE RULE MUST NOT MODEL THE TIC IT BANS. Measured twice in this prompt:
@@ -402,19 +403,32 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
   })
 
   it('renders a cadence clause that is itself clean of the construction', () => {
-    for (const cap of [1, 2, 3])
-      expect(detectAntithesisTic(unquoted(antithesisClause(cap))), `cap ${cap}`).toEqual([])
+    expect(detectAntithesisTic(unquoted(antithesisClause()))).toEqual([])
   })
 
-  it('stays identical for every section, so the prompt cache is not broken', () => {
-    // The allowance differs between these two (1 vs 2) — if that number had
-    // been interpolated into SHARED_RULES, this would differ too and every
-    // section after the first would pay full price for the whole block.
-    expect(SHARED_RULES).toBe(SHARED_RULES)
+  it('states the limit as density, not as a total for the section (v10.45)', () => {
+    // ⚠ The v10.39 per-section cap did not hold — 10 of the 21 frozen bench
+    // sections breached it, 6 hard — and was not tracking density at all (see
+    // reading-rule-scan.ts). PART 4 and the clause must now say what is
+    // actually measured, or the model is told one rule and scored on another.
+    expect(block).toMatch(/density/i)
+    const clause = antithesisClause()
+    expect(clause).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
+    expect(clause).toContain('once every two paragraphs')
+    // And no absolute total survives, in either place.
+    expect(clause).not.toMatch(/AT MOST \d+ TIMES in this section/)
+    expect(block).not.toMatch(/the number stated in its instruction/)
+  })
+
+  it('renders the SAME clause for every section, so the prompt cache is not broken', () => {
+    // The allowance is a property of the finished text now, so no per-section
+    // number travels at all — the clause is byte-identical across bands, which
+    // is strictly safer for the cache than the v10.39 interpolated cap was.
     const a = renderSectionInstruction('tropical', 'key_aspects')!
     const b = renderSectionInstruction('tropical', 'sun')!
-    expect(a).toContain('AT MOST ONCE in this section')
-    expect(b).toContain('AT MOST 2 TIMES in this section')
+    const clause = (t: string) => t.slice(t.indexOf('CADENCE ALLOWANCE'))
+    expect(clause(a)).toBe(clause(b))
+    expect(clause(a)).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
   })
 })
 
@@ -425,15 +439,14 @@ describe('PART 4 — the antithesis cap does not model the tic (v10.34)', () => 
 // band the gate scores against — the same coupling prompts-length-wiring.ts
 // pins for the length clause, and for the same reason: a section told one cap
 // and scored against another pays a repair the pipeline levied on itself.
-describe('the cadence allowance is wired to every section (v10.39)', () => {
-  it('appears in every section instruction, with the cap its band implies', () => {
+describe('the cadence allowance is wired to every section (v10.39, density v10.45)', () => {
+  it('appears in every section instruction, stating the density rule', () => {
     for (const key of Object.keys(SECTION_WORD_BANDS)) {
       const [section, planetSection] = key.split(':')
       const rendered = renderSectionInstruction(section, planetSection)
       expect(rendered, key).toBeDefined()
       expect(rendered!, key).toContain('CADENCE ALLOWANCE')
-      const cap = antithesisCapFor(wordBandFor(section, planetSection))
-      expect(rendered!, key).toContain(cap === 1 ? 'AT MOST ONCE' : `AT MOST ${cap} TIMES`)
+      expect(rendered!, key).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
     }
   })
 

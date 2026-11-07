@@ -41,8 +41,8 @@ import {
   detectBannedOpeners, detectRescuePhrasings,
   type LlmScores, type GateScores,
 } from '@/lib/reading-quality-gate'
-import { detectAntithesisTic, scanSectionRules } from '@/lib/reading-rule-scan'
-import { antithesisCapFor } from '@/lib/prompts'
+import { antithesisVerdict, scanSectionRules } from '@/lib/reading-rule-scan'
+
 import { checkNumericFacts } from '@/lib/reading-fact-check'
 import { buildSectionRequest, type NatalFrame } from './eval-readings.request'
 
@@ -131,16 +131,16 @@ describe('rater bench', () => {
     for (const r of rows) {
       const text = benchText(r.file)
       const req  = buildSectionRequest(dual, r.section, r.planet_section, priorsFor(r.section, r.planet_section, allRows))
-      const cap  = antithesisCapFor(req.band)
-      const tic  = detectAntithesisTic(text)
-      const rules = scanSectionRules(text, { frame: r.section, antithesisCap: cap })
+      const anti = antithesisVerdict(text)
+      const rules = scanSectionRules(text, { frame: r.section })
       audit.push({
         file: r.file,
         section: `${r.section}/${r.planet_section}`,
         opener_hit:     detectBannedOpeners(text).length,
-        antithesis:     tic.length,
-        antithesis_cap: cap,
-        antithesis_over: tic.length > cap,
+        antithesis:         anti.hits.length,
+        antithesis_max_para: anti.maxPerParagraph,
+        antithesis_allowance: anti.allowance,
+        antithesis_severity: anti.severity,
         rescue_hit:     detectRescuePhrasings(text).length,
         fact_hard:      checkNumericFacts(text, req.userContent).filter(f => f.severity === 'hard').length,
         rule_hard:      rules.filter(f => f.severity === 'hard').length,
@@ -151,19 +151,22 @@ describe('rater bench', () => {
     }
 
     console.log('\n=== DETERMINISTIC CLAMP AUDIT (free, no API) ===')
-    console.log('section'.padEnd(30), 'opener', 'antith/cap', 'rescue', 'fact', 'ruleHard')
+    console.log('section'.padEnd(30), 'opener', 'antith hits/maxPara/allow', 'verdict', 'rescue', 'fact', 'ruleHard')
     for (const a of audit) {
       console.log(
         String(a.section).padEnd(30),
         String(a.opener_hit).padStart(6),
-        `${a.antithesis}/${a.antithesis_cap}`.padStart(10) + (a.antithesis_over ? ' OVER' : '     '),
+        `${a.antithesis}/${a.antithesis_max_para}/${a.antithesis_allowance}`.padStart(16) +
+          (a.antithesis_severity === 'clean' ? '  ·     ' : a.antithesis_severity === 'hard' ? '  HARD  ' : '  deduct'),
         String(a.rescue_hit).padStart(6),
         String(a.fact_hard).padStart(4),
         String(a.rule_hard).padStart(8), a.rule_hard_names || '',
       )
     }
-    const clampCount = (k: string) => audit.filter(a => (k === 'antithesis' ? a.antithesis_over : Number(a[k]) > 0)).length
-    console.log(`\nsections clamped: opener ${clampCount('opener_hit')} · antithesis ${clampCount('antithesis')} · rescue ${clampCount('rescue_hit')} · fact ${clampCount('fact_hard')} · rule ${clampCount('rule_hard')} (of ${audit.length})`)
+    const clampCount = (k: string) =>
+      audit.filter(a => (k === 'antithesis' ? a.antithesis_severity !== 'clean' : Number(a[k]) > 0)).length
+    const hardCount = audit.filter(a => a.antithesis_severity === 'hard').length
+    console.log(`\nsections clamped: opener ${clampCount('opener_hit')} · antithesis ${clampCount('antithesis')} (${hardCount} hard) · rescue ${clampCount('rescue_hit')} · fact ${clampCount('fact_hard')} · rule ${clampCount('rule_hard')} (of ${audit.length})`)
 
     mkdirSync(OUT_DIR, { recursive: true })
     writeFileSync(join(OUT_DIR, 'clamp-audit.json'), JSON.stringify(audit, null, 2))
