@@ -199,3 +199,21 @@ Four changes, all from one finding: **this prompt teaches by demonstration, and 
 **4. The repair prompt stopped putting the failed draft last.** It had ended with ~800 words of the prose the rewrite must discard, in the strongest recency position, with the critique above it — and "rewrite from scratch" contradicting "for reference only". The draft now sits above the instruction inside `<failed_draft>`, the critique inside `<critique>`, and the task is stated last. Watch `repair-failed-recheck` in `summary.json`.
 
 Also in v10.40, for the same reasons: the persona moved into the head of the cached block (it had been duplicated across the three frame prompts and arriving at context position ~13,900, with the thinnest definition on the frame covering 9 of 21 sections); the status flattery went; the five priorities are labelled PRIORITY 1–5, so "the lower number wins" has one referent and cannot be read as PART order; the eval call fences its three text bodies in `<section_meta>` / `<chart_context>` / `<section_under_review>`; and the knowledge base was compressed to the places where AXIS reads a sign, house or aspect **differently** from the textbook — the generic entries were tokens spent telling the model what it already knows, and the Leo line's distinctive phrasing is documented in the repo as having been lifted into live readings.
+
+## The scene requirement is per-frame (v10.42)
+
+The 2026-11-07 gated eval split `specificity` by frame and found the scene requirement was never failing evenly:
+
+| frame | at or above the bar | mean |
+|---|---|---|
+| tropical | **7 of 9** | 2.78 |
+| sidereal | **1 of 8** | 2.12 |
+| synthesis | **1 of 4** | 2.25 |
+
+It is not length — `sidereal/jupiter_saturn` has a bigger band target than `tropical/mercury` and scores lower. It is not rater calibration — the critique is *"no concrete scene anywhere"*, absence rather than thinness. What distinguishes Tropical is that **it is the only frame that was shown an example**. v10.37 established that example is what moves this model and then applied that finding to one frame out of three; the other two were left with rule prose ~11,000 tokens upstream *and* a nearer, competing instruction in their own frame prompt — sidereal's *"spend the words on … the shifted sign, the Jyotish sign status, the house lordships, the drishti, the nakshatra, the Lagna lord, the dasha"* and synthesis's *"spend the words on the relationship between the frames"*. Neither mentioned a scene; both read as a coverage list.
+
+**Both now carry a worked example, placed in the FRAME prompt rather than in `SHARED_RULES`** — adjacent to the instruction it has to outweigh, and paid for only by the frame that uses it. Both are engine-computed from the same Perth 14 Mar 1992 chart as `SCENE_EXEMPLAR`, and both are held to the rules they teach.
+
+**Writing or reviewing a Sidereal section:** the Jyotish list is the *evidence step*, not the output. Working the sign status, the lordships, the drishti and the nakshatra accurately and showing no moment is the easier half of the job.
+
+**Writing or reviewing The Divergence:** the scene requirement applies in the **third person**, and this was a flat contradiction until v10.42 — PART 1 defines the moment as addressed to the reader as "you", while The Divergence is third person by its own instruction, so the scene as stated was literally unsatisfiable and 3 of 4 sections had none. It is written *about* the person rather than *to* them, and it is not waived by the register. Naming what each frame produces without showing the person living at both ends of it stops at the architecture.

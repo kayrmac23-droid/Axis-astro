@@ -29,7 +29,7 @@
 // the client forwards it, and an offline harness keeps runs reproducible.
 import { describe, it, expect, vi } from 'vitest'
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { execSync } from 'node:child_process'
 import Anthropic from '@anthropic-ai/sdk'
@@ -77,6 +77,38 @@ const ROOT        = resolve(__dirname, '..')
 const CHARTS_FILE = resolve(ROOT, process.env.AXIS_EVAL_CHARTS_FILE ?? 'scripts/eval-charts.json')
 const ONLY        = (process.env.AXIS_EVAL_CHARTS ?? '').split(',').map(s => s.trim()).filter(Boolean)
 const THROUGH     = (process.env.AXIS_EVAL_THROUGH ?? 'synthesis') as NatalFrame
+
+// ── Narrowing a run to the sections a change actually touches ────────────────
+//
+// WHY. A full gated chart is ~$2.11 and 21 sections. Testing a change that
+// affects 8 of them by regenerating all 21 is paying ~2.5x for the answer, and
+// the 2026-11-07 run showed the measurements worth iterating on are per-FRAME
+// (tropical 7/9 above the specificity bar, sidereal 1/8, synthesis 1/4), so the
+// loop that matters is "change one frame, re-measure that frame".
+//
+// `AXIS_EVAL_SECTIONS` restricts what is generated and scored. Entries are
+// `frame` for a whole frame or `frame/planetSection` for one section.
+const SECTIONS = (process.env.AXIS_EVAL_SECTIONS ?? '').split(',').map(x => x.trim()).filter(Boolean)
+
+// ⚠ `AXIS_EVAL_SECTIONS` ALONE WOULD INVALIDATE THE COMPARISON, which is why
+// this exists beside it. Every section is written after THE READING SO FAR —
+// sidereal/sun normally carries all nine tropical sections as prior context —
+// so generating the sidereal frame on its own produces requests that differ
+// from production AND from the baseline by the thing that dominates the prompt.
+//
+// `AXIS_EVAL_THREAD_FROM` seeds the thread from a previous run's saved prose,
+// so the skipped sections are still PRESENT as priors, exactly as the reader
+// had them. That is not a shortcut around the measurement: holding the priors
+// byte-identical between baseline and test removes a source of variance that
+// regenerating them would introduce, so the comparison is cleaner as well as
+// cheaper.
+const THREAD_FROM = process.env.AXIS_EVAL_THREAD_FROM ?? ''
+
+/** True when this section should be generated and scored this run. */
+function sectionSelected(section: string, planetSection: string): boolean {
+  if (SECTIONS.length === 0) return true
+  return SECTIONS.includes(section) || SECTIONS.includes(`${section}/${planetSection}`)
+}
 const CONCURRENCY = Math.max(1, Number(process.env.AXIS_EVAL_CONCURRENCY ?? 1) || 1)
 const SAVE_PROMPTS = process.env.AXIS_EVAL_SAVE_PROMPTS === '1'
 const NEEDS_API   = MODE === 'generate' || MODE === 'gate'
@@ -313,6 +345,19 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
     for (const planetSection of NATAL_SECTION_ORDER[section] as readonly string[]) {
       if (ctx.aborted.reason) break
       order++
+
+      // Not selected: take this section's prose from the seed run so it still
+      // stands as prior context for the sections that ARE selected, and spend
+      // nothing on it. Without a seed there is nothing to carry, and the
+      // launcher refuses that combination rather than quietly running the
+      // selected sections with a truncated reading behind them.
+      if (!sectionSelected(section, planetSection)) {
+        if (THREAD_FROM) {
+          const seed = join(THREAD_FROM, spec.id, `${pad(order)}-${section}-${planetSection}.md`)
+          if (existsSync(seed)) thread.set(`${section}/${planetSection}`, readFileSync(seed, 'utf8'))
+        }
+        continue
+      }
       const label = `${section}/${planetSection}`
       const fileStem = join(chartDir, `${pad(order)}-${section}-${planetSection}`)
 

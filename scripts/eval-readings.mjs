@@ -19,6 +19,17 @@
 //
 //   Options:
 //     --charts=id1,id2     only these chart ids (default: all)
+//     --sections=LIST      generate and score ONLY these: a frame (`sidereal`)
+//                          or one section (`sidereal/sun`), comma-separated.
+//                          REQUIRES --thread-from, because the sections you skip
+//                          still have to stand as prior context or the run is
+//                          not comparable. Use it to re-measure the one frame a
+//                          prompt change touched: a full gated chart is ~$2.11,
+//                          the sidereal frame alone is well under half that.
+//     --thread-from=DIR    seed the reading thread from a previous run's saved
+//                          prose (the run's output dir). Holding the priors
+//                          byte-identical across baseline and test also removes
+//                          variance that regenerating them would add.
 //     --through=FRAME      stop after tropical | sidereal | synthesis (default
 //                          synthesis). Later frames are written after earlier ones,
 //                          so a frame can only be dropped from the end.
@@ -83,7 +94,7 @@ import { parseEnv } from 'node:util'
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 const FLAGS = new Set(['gate', 'dry-run', 'verify', 'save-prompts', 'verbose', 'help'])
-const OPTIONS = new Set(['charts', 'through', 'concurrency', 'out'])
+const OPTIONS = new Set(['charts', 'through', 'concurrency', 'out', 'sections', 'thread-from'])
 
 function fail(msg) {
   console.error(`eval-readings: ${msg}\nRun \`npm run eval -- --help\` for usage.`)
@@ -112,6 +123,18 @@ const modes = ['gate', 'dry-run', 'verify'].filter(f => flags.has(f))
 if (modes.length > 1) fail(`--${modes.join(' and --')} are mutually exclusive`)
 const mode = modes[0] ?? 'generate'
 if (opts.through && !['tropical', 'sidereal', 'synthesis'].includes(opts.through)) fail('--through must be tropical, sidereal or synthesis')
+
+// ⚠ --sections without --thread-from would silently run the selected sections
+// with a TRUNCATED reading behind them: every section is written after THE
+// READING SO FAR, so sidereal/sun normally carries all nine tropical sections
+// as prior context. Generating the sidereal frame alone changes the requests by
+// the thing that dominates the prompt, and the numbers would not be comparable
+// to the full run they are meant to be measured against. Refuse rather than
+// produce a misleading cheap answer.
+if (opts.sections && !opts['thread-from']) {
+  fail('--sections needs --thread-from=<previous run dir>: the skipped sections still have to stand as prior context, or the run is not comparable to the baseline')
+}
+if (opts['thread-from'] && !existsSync(opts['thread-from'])) fail(`--thread-from: no such directory: ${opts['thread-from']}`)
 if (opts.concurrency && !/^[1-9]\d*$/.test(opts.concurrency)) fail('--concurrency must be a positive integer')
 
 // .env.local then .env, as Next reads them — without overriding the shell.
@@ -133,6 +156,8 @@ const env = {
   AXIS_EVAL_MODE: mode,
   ...(opts.charts && { AXIS_EVAL_CHARTS: opts.charts }),
   ...(opts.through && { AXIS_EVAL_THROUGH: opts.through }),
+  ...(opts.sections && { AXIS_EVAL_SECTIONS: opts.sections }),
+  ...(opts['thread-from'] && { AXIS_EVAL_THREAD_FROM: resolve(opts['thread-from']) }),
   ...(opts.concurrency && { AXIS_EVAL_CONCURRENCY: opts.concurrency }),
   ...(opts.out && { AXIS_EVAL_OUT: resolve(process.cwd(), opts.out) }),
   ...(flags.has('save-prompts') && { AXIS_EVAL_SAVE_PROMPTS: '1' }),
