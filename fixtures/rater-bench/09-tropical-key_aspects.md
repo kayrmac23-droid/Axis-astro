@@ -1,0 +1,9 @@
+## Key Aspects
+
+The Jupiter trine Uranus, tight at 1.6° and separating, links two placements already established separately: Jupiter's drive to overhaul the daily mechanics of work and body, and the Saturn-Uranus pairing sitting beside it in the second house. This third angle means the urge to start the improved system now finds, without friction, a corresponding appetite in Uranus for the break itself — not the discipline that follows it. Because the coordination is automatic, the readiness to disrupt your own routine rarely gets examined for whether the disruption was warranted or just available.
+
+Saturn's conjunction to Uranus, moderate at 5.6° and applying, sits inside that same house and intensifies rather than merely cooperates: structure and sudden rupture are fused into one function governing your sense of worth. You can find a long-held commitment to a belief or a standard undone abruptly, from inside, with no external provocation — and because the pairing is a merger, you experience this as conviction changing, not as two incompatible planets occupying one patch of territory.
+
+Mercury's sextile to Uranus, moderate and applying, is distinct from either: it gives your private, twelfth-house weighing a way to short-circuit when something unscripted interrupts it, producing the sharper remark Mercury's own section already named — the mechanism behind it is this contact, not the Moon-Uranus square.
+
+The wider polarities — Mercury opposite Jupiter, Mars opposite Jupiter, both wide and thinner than the above — add little beyond what the Mercury and Mars sections already carry; they are tensions you locate in other people more readily than in yourself, but they do not anchor anything new here.

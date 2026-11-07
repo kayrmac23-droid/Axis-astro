@@ -1,0 +1,428 @@
+{
+  "chart": "control-chicago-1987",
+  "prompt_version": "v10.40",
+  "run": "2026-11-07_01-48-53_gate",
+  "eval_model": "claude-sonnet-5-5",
+  "sections": [
+    {
+      "file": "01-tropical-sun.md",
+      "section": "tropical",
+      "planet_section": "sun",
+      "words": 1001,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 3,
+        "psychological_depth": 4,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "02-tropical-moon.md",
+      "section": "tropical",
+      "planet_section": "moon",
+      "words": 1056,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 2,
+        "anti_cliche": 4,
+        "psychological_depth": 4,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "03-tropical-ascendant.md",
+      "section": "tropical",
+      "planet_section": "ascendant",
+      "words": 582,
+      "scores_v10_40": {
+        "chart_evidence": 4,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 4,
+        "anti_cliche": 4,
+        "psychological_depth": 4,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "04-tropical-mercury.md",
+      "section": "tropical",
+      "planet_section": "mercury",
+      "words": 505,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "05-tropical-venus.md",
+      "section": "tropical",
+      "planet_section": "venus",
+      "words": 511,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "06-tropical-mars.md",
+      "section": "tropical",
+      "planet_section": "mars",
+      "words": 598,
+      "scores_v10_40": {
+        "chart_evidence": 4,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 4,
+        "anti_cliche": 4,
+        "psychological_depth": 4,
+        "practical_usefulness": 4,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "07-tropical-jupiter_saturn.md",
+      "section": "tropical",
+      "planet_section": "jupiter_saturn",
+      "words": 526,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "08-tropical-rahu_ketu.md",
+      "section": "tropical",
+      "planet_section": "rahu_ketu",
+      "words": 294,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "09-tropical-key_aspects.md",
+      "section": "tropical",
+      "planet_section": "key_aspects",
+      "words": 270,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 2,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repair-doctrine-hit"
+    },
+    {
+      "file": "10-sidereal-lagna.md",
+      "section": "sidereal",
+      "planet_section": "lagna",
+      "words": 466,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "11-sidereal-sun.md",
+      "section": "sidereal",
+      "planet_section": "sun",
+      "words": 397,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "12-sidereal-moon.md",
+      "section": "sidereal",
+      "planet_section": "moon",
+      "words": 594,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 4,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "13-sidereal-mercury.md",
+      "section": "sidereal",
+      "planet_section": "mercury",
+      "words": 359,
+      "scores_v10_40": {
+        "chart_evidence": 4,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "14-sidereal-venus.md",
+      "section": "sidereal",
+      "planet_section": "venus",
+      "words": 350,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 2,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "15-sidereal-mars.md",
+      "section": "sidereal",
+      "planet_section": "mars",
+      "words": 441,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 3
+      },
+      "length_score": 3,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "16-sidereal-jupiter_saturn.md",
+      "section": "sidereal",
+      "planet_section": "jupiter_saturn",
+      "words": 502,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "17-sidereal-rahu_ketu.md",
+      "section": "sidereal",
+      "planet_section": "rahu_ketu",
+      "words": 425,
+      "scores_v10_40": {
+        "chart_evidence": 4,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "18-synthesis-agree.md",
+      "section": "synthesis",
+      "planet_section": "agree",
+      "words": 512,
+      "scores_v10_40": {
+        "chart_evidence": 4,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repair-doctrine-hit"
+    },
+    {
+      "file": "19-synthesis-diverge.md",
+      "section": "synthesis",
+      "planet_section": "diverge",
+      "words": 854,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 2,
+        "synthesis": 3,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 2,
+        "voice_quality": 2,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repaired"
+    },
+    {
+      "file": "20-synthesis-tension.md",
+      "section": "synthesis",
+      "planet_section": "tension",
+      "words": 305,
+      "scores_v10_40": {
+        "chart_evidence": 2,
+        "specificity": 2,
+        "synthesis": 2,
+        "contradiction_handling": 3,
+        "anti_cliche": 4,
+        "psychological_depth": 2,
+        "practical_usefulness": 2,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "repair-failed-recheck"
+    },
+    {
+      "file": "21-synthesis-closing.md",
+      "section": "synthesis",
+      "planet_section": "closing",
+      "words": 265,
+      "scores_v10_40": {
+        "chart_evidence": 3,
+        "specificity": 3,
+        "synthesis": 3,
+        "contradiction_handling": 4,
+        "anti_cliche": 4,
+        "psychological_depth": 3,
+        "practical_usefulness": 3,
+        "voice_quality": 3,
+        "falsifiability": 3,
+        "length": 5
+      },
+      "length_score": 5,
+      "gate_reason": "passed"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+## Mars
+
+Something wants to act the moment a situation turns against you, and something else in this chart has already made sure that action will not happen in the room where the provocation occurred. That something else is your Pisces Moon, whose instinct is to dissolve a conflict by absorbing it rather than meeting it — and Mars, sitting in Libra in your twelfth house, is already built to defer and weigh before it strikes. The two don't collide so much as agree, in the wrong direction: both want the confrontation somewhere other than here.
+
+### Mars in Libra, House 12
+
+Mars in Libra is in detriment — asked to assert itself through a sign whose whole orientation is toward balance and agreement, which means the drive to act survives but has to find an indirect route to expression. The twelfth house compounds this: whatever this Mars decides, it decides out of sight, in solitude, well before anyone sees the result. When something is at stake, your first physical response is not confrontation but a kind of internal weighing that happens almost without your noticing it has started — you feel the urge to act arrive, and watch yourself set it aside to be examined later, alone. Mars's own dispositor, Venus in Scorpio in your first house and also in detriment, does not relieve the pressure; it deepens it, because the planet that should let Mars pursue what it wants cleanly is itself demanding depth and proof before it will move at all. Frustration here rarely surfaces as visible anger. It shows up as a withdrawal that looks, from outside, like composure.
+
+### Aspects
+
+The close sextile to Saturn in your second house gives this private deliberation somewhere to land: when the stakes involve discipline, a structure, a commitment already made, the weighing resolves into something workable rather than looping indefinitely. You pursue what you want most effectively when there is a framework already in place to carry it — a role, a responsibility, a form the desire can be poured into.
+
+The wide opposition to Jupiter in your sixth house pulls differently and more thinly: you tend to hold your own position tightly while expecting the other party to be the one reaching for grand justifications, when the chart suggests you do the same thing privately, in smaller doses, before any disagreement becomes visible.
+
+Cross-referenced against the Moon, the picture sharpens. Your Pisces Moon's instinct not to release an attachment would, on its own, keep you locked onto a conflict; the Moon's square to Uranus introduces an unscheduled need for distance, and its square to Neptune keeps the emotional read porous enough that you are rarely certain what you are actually angry about by the time Mars has finished its private negotiation. Mars wants resolution through withdrawal and weighing; the Moon wants fusion it cannot sustain at pitch. Together they produce a drive that acts late, acts indirectly, and often acts on a version of the conflict that has already been softened past recognition.
+
+The next time something is genuinely at stake, you will likely feel the same sequence: the urge to confront arrives, you take it somewhere private to be reasoned with, and by the time you return to the room the demand has become a proposal, the accusation a question, the want a willingness to discuss it. Nobody refuses you in that moment, because nothing sharp enough to refuse was ever actually presented — and you are left afterwards knowing exactly what you wanted and uncertain why you did not simply ask for it.
