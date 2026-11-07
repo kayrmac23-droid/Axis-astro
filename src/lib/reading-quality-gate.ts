@@ -200,7 +200,7 @@ export interface GateResult {
 // runs under after(): this changes what the cache serves later readers, not the
 // first-pass prose the first reader sees.
 const MIN_PASS_AVERAGE = 3.40
-const MIN_INDIVIDUAL   = 3
+export const MIN_INDIVIDUAL   = 3
 
 // The marker the /api/reading route appends when the model stopped on
 // max_tokens. Its presence means the section is incomplete.

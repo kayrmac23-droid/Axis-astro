@@ -54,6 +54,88 @@
 .bandHeadRight { display: flex; gap: 18px; align-items: center; }
 .streaming { color: var(--cyan); }
 
+/* ─── PART 2 disclosure ───────────────────────────────
+   The Sidereal reading's heading when collapsed. It is a heading first and a
+   control second: it states what PART 2 is and how long it runs, so a reader
+   who scrolls past it knows there is a part they skipped. Instrument aesthetic
+   — radius 0, hairline, no card, no shadow (DOCTRINE.md); the raised reading
+   surface belongs to the prose inside, not to this row. */
+.partToggle {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 36px clamp(20px, 5vw, 56px);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--hairline-strong);
+  border-radius: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+/* Open, the row is a heading above its own band head, so its rule would be the
+   second hairline in 56px. Drop it and close the gap. */
+.partToggleOpen { border-bottom: 0; padding-bottom: 8px; }
+.partBody .bandInner { padding-top: 24px; }
+
+.partToggle:hover .partToggleTitle,
+.partToggle:focus-visible .partToggleTitle { color: var(--copper); }
+.partToggle:focus-visible { outline: 1px solid var(--copper); outline-offset: -1px; }
+
+.partToggleMain { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.partToggleMeta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+}
+.partToggleTitle {
+  font-family: var(--font-wordmark);
+  font-size: 14px;
+  letter-spacing: 0.3em;
+  color: var(--text-1);
+  transition: color 120ms linear;
+}
+.partToggleRight {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+}
+.partToggleChevron {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  line-height: 1;
+  color: var(--copper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partToggleTitle { transition: none; }
+}
+
+/* The one-line explanation under the opening section's spinner. Secondary to
+   the section name above it: it is reassurance, not a status. */
+.generatingNote {
+  margin-top: 10px;
+  max-width: 44ch;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  text-align: center;
+}
+
 .bandGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
@@ -114,6 +196,14 @@
   gap: 48px;
   padding-top: 28px;
   align-items: start;
+}
+
+.divKicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+  padding-bottom: 8px;
 }
 
 .divTitle {
@@ -572,10 +662,17 @@
   .divTop { grid-template-columns: minmax(0, 1fr); gap: 32px; }
 }
 
+/* PART 2 collapsed. Not the `hidden` attribute and not a conditional render:
+   the prose must stay in the DOM so window.print() (SAVE DOSSIER · PDF) carries
+   it into the saved dossier. See the print query below. */
+.partCollapsed { display: none; }
+
 @media (max-width: 640px) {
   .paragraph { font-size: 1rem; }
   .infoText { font-size: 0.92rem; }
   .bandInner { padding: 40px clamp(16px, 5vw, 32px) 48px; }
+  .partToggle { padding: 28px clamp(16px, 5vw, 32px); gap: 16px; }
+  .partToggleTitle { letter-spacing: 0.2em; }
   .flipHead, .flipRow { grid-template-columns: 1.2fr 1fr 1fr; font-size: 11px; }
   .flipHead > span:last-child, .flipRow > span:last-child { grid-column: 1 / -1; text-align: left; }
 }
@@ -585,4 +682,10 @@
   .band::before { display: none; }
   .rail { display: none; }
   .bandGrid { grid-template-columns: minmax(0, 1fr); }
+  /* The saved dossier is the whole reading, in reading order, whatever the
+     reader had open on screen. The disclosure control itself is screen-only;
+     PART 2's heading survives as the band head inside it. */
+  .partCollapsed { display: block; }
+  .partToggle { display: none; }
+  .partBody .bandInner { padding-top: 56px; }
 }
