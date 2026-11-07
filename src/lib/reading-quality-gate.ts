@@ -73,13 +73,11 @@ import {
   HIERARCHY_IDENTITY_TOKENS,
   HIERARCHY_PROXIMITY_CHARS,
   openerModeFor,
-  antithesisCapFor,
   wordBandFor,
   WordBand,
 } from '@/lib/prompts'
 import {
-  detectAntithesisTic,
-  antithesisHardThresholdFor,
+  antithesisVerdict,
   scanSectionRules,
 } from '@/lib/reading-rule-scan'
 import { checkNumericFacts } from '@/lib/reading-fact-check'
@@ -684,7 +682,6 @@ export async function evaluateSection({
     countAspectsInContext(chartContext),
     countPlanEvidence(chartContext, planetSection) ?? undefined,
   )
-  const antithesisCap = antithesisCapFor(band)
 
   // Three bodies of text the evaluator must keep apart — earlier sections, the
   // chart context, and the section under review — were separated only by
@@ -693,7 +690,7 @@ export async function evaluateSection({
   // referable instead of merely stated.
   const evalUserContent = `<section_meta>
 type: ${section} → ${planetSection}
-cadence_allowance: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") may appear at most ${antithesisCap} time(s). This number is scaled to this section's word band. Judge the ANTITHESIS TIC against it and against no other number.
+cadence_allowance: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") is limited by DENSITY, not by a total for the section — at most once in any one paragraph, and across the section no more often than once every two paragraphs. Twice in one paragraph is a fault; three times in one paragraph is a failure. Judge the ANTITHESIS TIC against that and against no number of your own.
 </section_meta>
 
 <chart_context>
@@ -789,18 +786,20 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     // critique below — and only ANTITHESIS_HARD_THRESHOLD, where the construction
     // has become the section's default sentence shape, clamps beneath it.
     //
-    // The cap is THIS section's, scaled by its band (see antithesisCapFor): the
-    // fault is density, and a flat cap stopped being a density when v10.36 put a
-    // 3.4x spread across the bands. A 780-word comparative section with two
-    // contrasts is not doing what a 230-word one with two is doing.
-    const antithesisHits    = detectAntithesisTic(generatedText)
-    const antithesisOverCap = antithesisHits.length > antithesisCap
+    // ⚠ v10.45 — WHAT IS COUNTED IS DENSITY IN A PARAGRAPH, not a total against
+    // a band-derived cap. The per-section cap did not hold (10 of 21 frozen
+    // sections breached it, 6 hard) and was not tracking density: see the long
+    // note in reading-rule-scan.ts. Holding the rater's pre-clamp scores fixed
+    // on that corpus so only this clamp moves, the first-pass pass rate goes
+    // 2 of 21 -> 4 of 21, and the two sections still failed are the two worst by
+    // density. The graduation is unchanged.
+    const antithesis = antithesisVerdict(generatedText)
+    const antithesisHits = antithesis.hits
+    const antithesisOverCap = antithesis.severity !== 'clean'
     if (antithesisOverCap) {
       scores.voice_quality = Math.min(
         scores.voice_quality,
-        antithesisHits.length >= antithesisHardThresholdFor(antithesisCap)
-          ? MIN_INDIVIDUAL - 1
-          : MIN_INDIVIDUAL,
+        antithesis.severity === 'hard' ? MIN_INDIVIDUAL - 1 : MIN_INDIVIDUAL,
       )
     }
     // ── Deterministic FACT backstop (reading-fact-check.ts).
@@ -848,7 +847,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     // `doctrine` and `soft` findings still feed nothing: DOCTRINE.md is explicit
     // that the grep finds candidates and THE LAW decides, and a soft finding is
     // a breach only in aggregate.
-    const ruleHits = scanSectionRules(generatedText, { frame: section, antithesisCap })
+    const ruleHits = scanSectionRules(generatedText, { frame: section })
       .filter(f => f.severity === 'hard')
     if (ruleHits.length > 0) {
       scores.voice_quality = Math.min(scores.voice_quality, MIN_INDIVIDUAL)
@@ -908,7 +907,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     // breach is the repetition, not any single use.
     if (!pass && antithesisOverCap) {
       console.warn(`Reading quality gate: antithesis tic x${antithesisHits.length} for ${section}/${planetSection}: ${antithesisHits.map(h => h.match).join('; ')}`)
-      critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") appears ${antithesisHits.length} times; this section's CADENCE ALLOWANCE (SHARED_RULES PART 4, scaled to its ${band.target}-word band) permits at most ${antithesisCap}. The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep at most the ${antithesisCap} most load-bearing and rewrite every other as a direct statement \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
+      critique = `ANTITHESIS-TIC FAILURE \u2014 the contrastive "X rather than Y" construction (and its variants "not X but Y", "less a X than Y") is too DENSE. ${antithesis.cause === 'paragraph' ? `One paragraph carries ${antithesis.maxPerParagraph} of them (${antithesisHits.length} in the section); the CADENCE ALLOWANCE permits at most one per paragraph.` : `The section carries ${antithesisHits.length} across ${antithesis.paragraphs} paragraphs; the CADENCE ALLOWANCE permits at most one every two paragraphs, so ${antithesis.allowance} here.`} The instances: ${antithesisHits.map(h => `"${h.match}"`).join(', ')}. Keep the most load-bearing one in each affected paragraph and rewrite the rest as direct statements \u2014 say what the placement does, not what it does instead of. Do not swap in another antithesis frame or a dash-balanced equivalent; this is the cadence half of PROSE FAILURE MODES #1, so varying the wording while keeping the shape does not fix it.\n\n${critique}`.trim()
     }
 
     // Name the figure and the sentence, so the repair corrects the claim rather

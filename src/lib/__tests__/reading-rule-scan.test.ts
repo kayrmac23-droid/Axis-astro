@@ -1,11 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import {
   scanSectionRules, summariseRuleScan, countSentences, formatRuleScanLog,
-  detectAntithesisTic, antithesisTicExceeded, ANTITHESIS_PER_SECTION_LIMIT,
-  ANTITHESIS_HARD_MARGIN, antithesisHardThresholdFor,
+  detectAntithesisTic, antithesisTicExceeded, antithesisVerdict,
+  ANTITHESIS_PARAGRAPH_DEDUCT, ANTITHESIS_PARAGRAPH_HARD,
   hasRegisterDrift, registerFor,
 } from '@/lib/reading-rule-scan'
-import { antithesisCapFor, SECTION_WORD_BANDS, wordBandFor } from '@/lib/prompts'
 
 const rules = (text: string) => scanSectionRules(text).map(f => f.rule)
 const has   = (text: string, rule: string) => rules(text).includes(rule)
@@ -173,8 +172,10 @@ describe('reading-rule-scan — antithesis cap', () => {
     const f = tic(text)
     expect(f).toHaveLength(1)
     expect(f[0].severity).toBe('soft')
-    expect(f[0].match).toMatch(/^4 occurrences \(limit 1\)/)
-    expect(f[0].line).toBe(3) // the first occurrence past the cap
+    // v10.45: four uses across four paragraphs, none adjacent — the SECTION
+    // backstop, so the finding states the spread rather than a cap.
+    expect(f[0].match).toMatch(/^4 occurrences across 4 paragraphs \(allowance 2\)/)
+    expect(f[0].line).toBe(1) // anchored on the first instance
   })
 
   it('counts the "not X but Y" and "less X than Y" variants', () => {
@@ -226,7 +227,7 @@ describe('reading-rule-scan — summary and logging', () => {
 // no longer only a reporting input: a change in what it matches changes what
 // the pipeline repairs and caches. The scan's own false-positive controls above
 // cover the regexes; these pin the exported surface and the cap boundary.
-describe('detectAntithesisTic / antithesisTicExceeded — the gate clamp surface', () => {
+describe('detectAntithesisTic / antithesisVerdict — the gate clamp surface', () => {
   it('counts every occurrence, in document order, with whitespace collapsed', () => {
     const text = [
       '## The Sun',
@@ -244,28 +245,107 @@ describe('detectAntithesisTic / antithesisTicExceeded — the gate clamp surface
     for (const h of hits) expect(h.match).not.toMatch(/\n/)
   })
 
-  it('returns null AT the cap and hits above it, so a compliant section is never clamped', () => {
-    const atCap = '## The Sun\n\nThe Sun asserts rather than asks. It is direct and it is early.'
-    expect(detectAntithesisTic(atCap)).toHaveLength(ANTITHESIS_PER_SECTION_LIMIT)
-    expect(antithesisTicExceeded(atCap)).toBeNull()
-
-    const overCap = `${atCap} The Moon reflects rather than initiates.`
-    expect(antithesisTicExceeded(overCap)).not.toBeNull()
-    expect(antithesisTicExceeded(overCap)!.length).toBe(ANTITHESIS_PER_SECTION_LIMIT + 1)
+  // ⚠ v10.45 — the rule is DENSITY IN A PARAGRAPH, not a total per section.
+  // These cases are the whole of it, and they are the regression that matters:
+  // the v10.39 per-section cap failed 10 of 21 frozen bench sections, 6 of them
+  // hard, while ranking ordinary comparative prose alongside the two sections a
+  // reader would actually hear as a template.
+  it('is clean when the construction is used sparsely and never adjacent to itself', () => {
+    const spread = [
+      '## The Sun',
+      '',
+      'You assert rather than ask, and the room hears it before you do.',
+      '',
+      'The ruler sits in the twelfth, so the assertion arrives already settled.',
+      '',
+      'Saturn squares it, and the settling costs you the chance to be argued with.',
+      '',
+      'What you notice is the silence after, which you read as agreement.',
+    ].join('\n')
+    const v = antithesisVerdict(spread)
+    expect(v.maxPerParagraph).toBe(1)
+    expect(v.severity).toBe('clean')
+    expect(antithesisTicExceeded(spread)).toBeNull()
   })
 
-  it('stays null on the clean control section', () => {
-    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
-  })
-
-  it('agrees with the scan: a clamp fires exactly when the scan reports the tic', () => {
-    const overCap = [
+  it('DEDUCTS at two in one paragraph', () => {
+    const dense = [
       '## Venus',
       '',
       'Venus gives rather than receives, and it chooses depth rather than breadth.',
     ].join('\n')
-    expect(antithesisTicExceeded(overCap)).not.toBeNull()
-    expect(rules(overCap)).toContain('antithesis-tic')
+    const v = antithesisVerdict(dense)
+    expect(v.maxPerParagraph).toBe(ANTITHESIS_PARAGRAPH_DEDUCT)
+    expect(v.severity).toBe('deduct')
+    expect(v.cause).toBe('paragraph')
+    expect(antithesisTicExceeded(dense)).toHaveLength(2)
+  })
+
+  it('FAILS at three in one paragraph — the construction is the paragraph shape', () => {
+    const tic = [
+      '## Mars',
+      '',
+      'It pushes rather than waits, it leads rather than follows, and it corrects rather than concedes.',
+    ].join('\n')
+    const v = antithesisVerdict(tic)
+    expect(v.maxPerParagraph).toBeGreaterThanOrEqual(ANTITHESIS_PARAGRAPH_HARD)
+    expect(v.severity).toBe('hard')
+  })
+
+  it('has a section backstop at one use per two paragraphs, for the diffuse case', () => {
+    // Four paragraphs, two uses, never adjacent: allowance 2, at it, clean.
+    const spread = [
+      '## Mercury', '',
+      'You draft rather than speak, and the draft is where the thinking happens.', '',
+      'The ruler is peregrine, so it borrows its standing from Venus.', '',
+      'Venus sits in Scorpio, which tests a thing before it trusts it.', '',
+      'So the draft is revised rather than sent, and revision feels like progress.',
+    ].join('\n')
+    const v = antithesisVerdict(spread)
+    expect(v.paragraphs).toBe(4)
+    expect(v.allowance).toBe(2)
+    expect(v.maxPerParagraph).toBe(1)
+    expect(v.severity).toBe('clean')
+
+    // ⚠ The backstop's whole job: ONE use in EVERY paragraph is still a
+    // template, even though no paragraph is individually dense. Four uses
+    // against an allowance of two is a deduction, never a hard failure — the
+    // construction has not taken over any single paragraph.
+    const everyPara = [
+      '## Mercury', '',
+      'You draft rather than speak, and the draft is where the thinking happens.', '',
+      'The ruler is peregrine, so it borrows rather than owns its standing.', '',
+      'Venus tests a thing rather than trusting it on sight.', '',
+      'So the draft is revised rather than sent, and revision feels like progress.',
+    ].join('\n')
+    const e = antithesisVerdict(everyPara)
+    expect(e.hits).toHaveLength(4)
+    expect(e.maxPerParagraph).toBe(1)
+    expect(e.allowance).toBe(2)
+    expect(e.severity).toBe('deduct')
+    expect(e.cause).toBe('section')
+  })
+
+  it('never reports an allowance below one, so a single-paragraph section keeps the construction', () => {
+    const one = '## Closing\n\nYou hold the standard rather than the outcome, and that is the whole of it.'
+    const v = antithesisVerdict(one)
+    expect(v.allowance).toBe(1)
+    expect(v.severity).toBe('clean')
+  })
+
+  it('stays clean on the clean control section', () => {
+    expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
+    expect(antithesisVerdict(CLEAN_SECTION).severity).toBe('clean')
+  })
+
+  it('agrees with the scan: a clamp fires exactly when the scan reports the tic', () => {
+    const dense = [
+      '## Venus',
+      '',
+      'Venus gives rather than receives, and it chooses depth rather than breadth.',
+    ].join('\n')
+    expect(antithesisTicExceeded(dense)).not.toBeNull()
+    expect(rules(dense)).toContain('antithesis-tic')
     // And the converse, which is the regression that matters: no clamp without
     // a scan finding, or the two surfaces have drifted.
     expect(antithesisTicExceeded(CLEAN_SECTION)).toBeNull()
@@ -273,10 +353,12 @@ describe('detectAntithesisTic / antithesisTicExceeded — the gate clamp surface
   })
 
   it('is reusable across sections (no stale regex lastIndex)', () => {
-    const overCap = '## Mars\n\nIt pushes rather than waits, and it leads rather than follows.'
-    const first  = antithesisTicExceeded(overCap)
-    const second = antithesisTicExceeded(overCap)
-    expect(second).toEqual(first)
+    const dense = '## Mars\n\nIt pushes rather than waits, and it leads rather than follows.'
+    expect(antithesisTicExceeded(dense)).toEqual(antithesisTicExceeded(dense))
+  })
+
+  it('the verdict is a pure function of the text — no band, no word constant', () => {
+    expect(antithesisVerdict.length).toBe(1)
   })
 })
 
@@ -399,50 +481,6 @@ describe('prescription — conditional modals in subordinate clauses', () => {
 // measuring instrument and reports from the second); the gate's hard failure
 // waits for the third. Pinned so neither drifts onto the other.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('antithesis thresholds — the scan reports earlier than the gate fails', () => {
-  it('reports from one over the cap but reserves the hard failure for two over', () => {
-    expect(ANTITHESIS_PER_SECTION_LIMIT).toBe(1)
-    expect(ANTITHESIS_HARD_MARGIN).toBe(2)
-    expect(antithesisHardThresholdFor(1)).toBe(3)
-  })
-
-  // The margin is expressed ABOVE the cap, not as an absolute count, because
-  // the cap itself scales with the band. An absolute 3 would be "two over" for
-  // a 230-word section and "one over" for a 780-word one, so the severity of a
-  // given overrun would depend on the band — backwards.
-  it('keeps the hard failure the same distance over the cap at every band', () => {
-    for (const cap of [1, 2, 3])
-      expect(antithesisHardThresholdFor(cap) - cap).toBe(ANTITHESIS_HARD_MARGIN)
-  })
-
-  it('honours a band-scaled cap passed by the caller', () => {
-    const two = 'It asserts rather than asks. It leads rather than follows.'
-    // At a cap of 1 this is over and reported…
-    expect(scanSectionRules(two, { antithesisCap: 1 }).filter(f => f.rule === 'antithesis-tic')).toHaveLength(1)
-    // …and at a cap of 2 — the Sun/Moon and Divergence allowance — it is clean.
-    expect(scanSectionRules(two, { antithesisCap: 2 }).filter(f => f.rule === 'antithesis-tic')).toHaveLength(0)
-    expect(antithesisTicExceeded(two, 2)).toBeNull()
-    expect(antithesisTicExceeded(two, 1)).toHaveLength(2)
-  })
-
-  it('reports the cap it was given, and the line of the first instance past it', () => {
-    const three = 'It asserts rather than asks.\n\nIt leads rather than follows.\n\nIt is not a stance but a reflex.'
-    const [f] = scanSectionRules(three, { antithesisCap: 2 }).filter(r => r.rule === 'antithesis-tic')
-    expect(f.match).toContain('(limit 2)')
-    // The finding anchors on the instance that broke the cap, i.e. the third.
-    expect(f.line).toBe(detectAntithesisTic(three)[2].line)
-  })
-
-  it('counts every occurrence, leaving the threshold to the caller', () => {
-    const two = 'It asserts rather than asks. It leads rather than follows.'
-    expect(detectAntithesisTic(two)).toHaveLength(2)
-    // Over the cap, so the scan reports it…
-    expect(scanSectionRules(two).filter(f => f.rule === 'antithesis-tic')).toHaveLength(1)
-    // …and under the gate's hard threshold, so it is a deduction there.
-    expect(detectAntithesisTic(two).length).toBeLessThan(antithesisHardThresholdFor(1))
-  })
-})
-
 // ─────────────────────────────────────────────────────────────────────────────
 // THE CAP IS A DENSITY, AND THE RATE IS PINNED BY ITS TABLE.
 //
@@ -461,57 +499,43 @@ describe('antithesis thresholds — the scan reports earlier than the gate fails
 // A rate change that broke either property would be a real change in what the
 // prompt permits, and should fail here and be argued on its own merits.
 // ─────────────────────────────────────────────────────────────────────────────
-describe('antithesisCapFor — the band-scaled cadence allowance', () => {
-  const band = (target: number) => ({ target, fullMin: 0, fullMax: 0, hardMin: 0, hardMax: 0 })
+describe('the antithesis allowance is text-intrinsic (v10.45)', () => {
+  // ⚠ The v10.39 band-derived cap (`antithesisCapFor`, one use per 450 words of
+  // target, min 1) is GONE, and these are the two properties that condemned it.
+  // Measured on fixtures/rater-bench before the change: 10 of 21 sections
+  // breached it, 6 hard, and it was not tracking density at all.
+  it('does not quantise: two sections at the same rate get the same verdict', () => {
+    // `tropical/moon` ran 4 uses in 1056 words and `synthesis/closing` 1 in 265
+    // — both 3.8 per 1000 — and the old integer cap hard-failed the first and
+    // cleared the second. At the same RATE, the verdict must now agree.
+    const used  = 'You assert rather than ask, and the room hears it first.'
+    const plain = 'The ruler sits in the twelfth, so it arrives already settled.'
+    // One use per two paragraphs, at two paragraphs and at eight.
+    const short = ['## Closing', '', used, '', plain].join('\n')
+    const long  = ['## The Moon', '', used, '', plain, '', used, '', plain,
+                   '', used, '', plain, '', used, '', plain].join('\n')
+    expect(antithesisVerdict(short).severity).toBe('clean')
+    expect(antithesisVerdict(long).severity).toBe('clean')
+    expect(antithesisVerdict(long).hits).toHaveLength(4)
+  })
 
-  it('reproduces the flat cap of 1 for every section under the v10.30 bands', () => {
-    // The v10.30 targets, the table the flat cap was ratified against.
-    const v1030 = {
-      'Sun/Moon': 450, Ascendant: 400, 'sidereal primary': 350, 'tropical secondary': 250,
-      'sidereal secondary': 200, 'key aspects': 200, 'tropical nodes': 220,
-      Concordance: 330, Divergence: 650,
+  it('is monotonic in density: adding a use to one paragraph only ever worsens the verdict', () => {
+    const rank = { clean: 0, deduct: 1, hard: 2 } as const
+    const clause = ' It leads rather than follows.'
+    let body = '## Mars\n\nIt pushes rather than waits.'
+    let last = -1
+    for (let i = 0; i < 3; i++) {
+      const sev = rank[antithesisVerdict(body).severity]
+      expect(sev).toBeGreaterThanOrEqual(last)
+      last = sev
+      body += clause
     }
-    for (const [name, target] of Object.entries(v1030))
-      expect(antithesisCapFor(band(target)), name).toBe(1)
+    expect(antithesisVerdict(body).severity).toBe('hard')
   })
 
-  it('grants a second use only to the two bands v10.36 roughly doubled', () => {
-    const caps: Record<string, number> = {}
-    for (const key of Object.keys(SECTION_WORD_BANDS)) {
-      const [section, planetSection] = key.split(':')
-      caps[key] = antithesisCapFor(wordBandFor(section, planetSection))
-    }
-    expect(Object.entries(caps).filter(([, c]) => c > 1).map(([k]) => k).sort())
-      .toEqual(['synthesis:diverge', 'tropical:moon', 'tropical:sun'])
-    expect(caps['tropical:sun']).toBe(2)
-    expect(caps['synthesis:diverge']).toBe(2)
-    // The nearest band below the line stays at 1, so the boundary is not
-    // accidentally sitting on top of a section.
-    expect(caps['tropical:ascendant']).toBe(1)
-  })
-
-  it('never returns zero, however short the band', () => {
-    // The construction is legitimate once, and the prompt's own worked example
-    // uses it — a cap of 0 would ban a shape the rules teach.
-    for (const target of [0, 1, 50, 140, 229]) expect(antithesisCapFor(band(target))).toBe(1)
-  })
-
-  it('scales with the chart-scaled band, not the base band', () => {
-    // A placement dense enough to earn a much longer section earns the room to
-    // vary its cadence across those words too. Aspect scaling moves the target,
-    // so the cap follows it without a second mechanism.
-    const base   = wordBandFor('tropical', 'sun', 0)
-    const scaled = wordBandFor('tropical', 'sun', 20)
-    expect(scaled.target).toBeGreaterThan(base.target)
-    expect(antithesisCapFor(scaled)).toBeGreaterThanOrEqual(antithesisCapFor(base))
-  })
-
-  it('is monotonic in band length', () => {
-    let last = 0
-    for (const target of [100, 300, 450, 700, 900, 1400, 2000]) {
-      const cap = antithesisCapFor(band(target))
-      expect(cap).toBeGreaterThanOrEqual(last)
-      last = cap
-    }
+  it('the band table no longer carries a cadence allowance', async () => {
+    const prompts = await import('@/lib/prompts')
+    expect('antithesisCapFor' in prompts).toBe(false)
+    expect('ANTITHESIS_WORDS_PER_USE' in prompts).toBe(false)
   })
 })

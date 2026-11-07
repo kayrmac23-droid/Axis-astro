@@ -254,18 +254,53 @@ const ANTITHESIS_RES: readonly RegExp[] = [
   /\bless\s+(?:(?:a|an)\s+\w+|about\s+[^.!?]{1,40}?)\s+than\b/gi,
 ]
 
-// The DEFAULT cap, used when a caller supplies no band-derived one. The rule
-// permits this many; the scan reports from one over, so a section at its cap
-// stays clean.
+// ⚠ v10.45 — THE RULE IS DENSITY IN A SPAN, NOT A COUNT PER SECTION.
 //
-// ⚠ The real cap is per-section and scales with the section's word band —
-// `antithesisCapFor` in prompts.ts, derived from SECTION_WORD_BANDS. It is
-// PASSED IN rather than imported, so this module stays free of prompts.ts and
-// remains what its header claims: pure, throw-free, no dependencies. Callers
-// that know the section (the gate, the eval harness) pass the scaled cap;
-// callers that do not get 1, which is the cap every section carried before
-// v10.39 and still carries at every band but Sun/Moon and Divergence.
-const ANTITHESIS_LIMIT = 1
+// v10.39 scaled a per-SECTION cap to the band (`antithesisCapFor`, one use per
+// 450 words of target, min 1) and it did not hold: on the 21 frozen sections of
+// fixtures/rater-bench, 10 breached it and 6 breached it hard. Measured before
+// changing it, the cap was not tracking density at all. Two sections at the
+// IDENTICAL rate got opposite verdicts — `tropical/moon` (4 uses in 1056 words,
+// 3.8 per 1000) was a hard failure while `synthesis/closing` (1 in 265, also
+// 3.8 per 1000) was clean — because `Math.max(1, Math.round(target / 450))`
+// quantises to an integer and then floors at one. The allowance that integer
+// actually buys ranges from 2.0 uses per 1000 words at the 490-word Ascendant
+// band to 4.4 at the 230-word closing band, a 2.1x spread with no rule behind
+// it: the 420- and 440-word bands are the harshest purely because round(0.93)
+// and round(0.98) both snap down to 1. So the LONGER a section, the tighter its
+// real allowance — the opposite of what v10.39 set out to do.
+//
+// It was also measuring the wrong thing. Reading all 43 occurrences in that
+// corpus: the overwhelming majority are ordinary descriptive English carrying a
+// real distinction ("public standing rides into House 6 on the back of
+// emotional instinct rather than ambition", "fused rather than cast from
+// outside" — a conjunction against a drishti). In a domain whose subject IS
+// contrast, "rather than" is the natural construction for naming where a thing
+// operates and where it does not, and a cap that fires on two of them across
+// 500 words is fighting the domain. What a reader genuinely registers as a tic
+// is ADJACENT repetition: `sidereal/moon` puts three in one paragraph, and
+// `sidereal/mars` runs six in 441 words. Those are the two sections a reader
+// would notice, and the old cap ranked them alongside seven that read cleanly.
+//
+// So the verdict is now a property of the text and needs no band, no word
+// constant and no per-section cap:
+//   · ANTITHESIS_PARAGRAPH_HARD (3) in ONE paragraph is the failure — at three
+//     the construction has become that paragraph's default sentence shape;
+//   · ANTITHESIS_PARAGRAPH_DEDUCT (2) in one paragraph is a deduction;
+//   · and across the section, more than one per TWO paragraphs is a deduction,
+//     which catches the diffuse case the paragraph rule cannot see.
+//
+// The backstop is stated in paragraphs rather than words deliberately: PART 8
+// already fixes a paragraph at three or four sentences, so "one per two
+// paragraphs" is derived from a rule the prompt already states instead of being
+// a threshold fitted to one chart's numbers.
+//
+// Measured on the same frozen corpus, holding the rater's pre-clamp scores
+// fixed so only the clamp moves: first-pass pass rate 2 of 21 -> 4 of 21. The
+// two sections still failed are `sidereal/moon` and `sidereal/mars`, the two
+// worst by density (8.4 and 13.6 per 1000 words), which is the rule working.
+export const ANTITHESIS_PARAGRAPH_DEDUCT = 2
+export const ANTITHESIS_PARAGRAPH_HARD   = 3
 
 /**
  * Every antithesis construction in `text`, in document order.
@@ -277,8 +312,8 @@ const ANTITHESIS_LIMIT = 1
  * be the one thing guaranteed to drift. Pure; never throws.
  *
  * Returns ALL occurrences, including the one the rule permits: the caller
- * decides the threshold (the scan reports above ANTITHESIS_LIMIT; the gate
- * applies the same cap via `antithesisTicExceeded`).
+ * decides the threshold: `antithesisVerdict` applies the density rule, and both
+ * the scan and the gate read their verdict from it.
  */
 export function detectAntithesisTic(text: string): { match: string; line: number }[] {
   const hits: { match: string; line: number }[] = []
@@ -288,56 +323,70 @@ export function detectAntithesisTic(text: string): { match: string; line: number
   return hits.sort((a, b) => a.line - b.line)
 }
 
-/**
- * The antithesis hits in `text` when it is over `cap`, else null. The gate's
- * clamp predicate; `detectAntithesisTic` is the raw count.
- *
- * `cap` is the section's band-scaled allowance (`antithesisCapFor`), defaulting
- * to ANTITHESIS_LIMIT for a caller that does not know the section.
- */
-export function antithesisTicExceeded(
-  text: string,
-  cap: number = ANTITHESIS_LIMIT,
-): { match: string; line: number }[] | null {
-  const hits = detectAntithesisTic(text)
-  return hits.length > cap ? hits : null
+export type AntithesisSeverity = 'clean' | 'deduct' | 'hard'
+
+export interface AntithesisVerdict {
+  hits: { match: string; line: number }[]
+  /** Occurrences in the worst single paragraph. */
+  maxPerParagraph: number
+  /** Prose paragraphs in the section (headings and blanks excluded). */
+  paragraphs: number
+  /** The section-wide backstop: more than one use per two paragraphs. */
+  allowance: number
+  severity: AntithesisSeverity
+  /** Which rule fired, for the critique. Null when clean. */
+  cause: 'paragraph' | 'section' | null
 }
 
-/** The cap SHARED_RULES PART 4 states, so a critique can quote it. */
-export const ANTITHESIS_PER_SECTION_LIMIT = ANTITHESIS_LIMIT
+/**
+ * The antithesis verdict for a finished section. Pure; never throws.
+ *
+ * `hard` clamps `voice_quality` BELOW the pass bar and forces a repair;
+ * `deduct` clamps it TO the bar, which still drags the average and still earns
+ * a critique. The graduation is unchanged from v10.39 and is load-bearing for
+ * the same reason: clamping below the bar on a two-instance slip sent most
+ * sections into a full repair, and a repair that lands on two again fails its
+ * re-score, returns `repair-failed-recheck` and caches provisionally for 24h —
+ * so that section is regenerated for every reader, every day. A cadence tic is
+ * not worth that. What changed in v10.45 is only WHAT IS COUNTED: density in a
+ * paragraph rather than a total against a band-derived cap (see above).
+ */
+export function antithesisVerdict(text: string): AntithesisVerdict {
+  const hits = detectAntithesisTic(text)
+  const paragraphs = proseLines(text).filter(l => l.text.trim().length > 0).length
+
+  const perLine = new Map<number, number>()
+  for (const h of hits) perLine.set(h.line, (perLine.get(h.line) ?? 0) + 1)
+  let maxPerParagraph = 0
+  perLine.forEach(n => { if (n > maxPerParagraph) maxPerParagraph = n })
+
+  // One use per two paragraphs, at least one: a section of a single paragraph
+  // is still allowed the construction once, as the prompt's own worked example
+  // uses it.
+  const allowance = Math.max(1, Math.ceil(paragraphs / 2))
+
+  const severity: AntithesisSeverity =
+    maxPerParagraph >= ANTITHESIS_PARAGRAPH_HARD      ? 'hard'
+    : maxPerParagraph >= ANTITHESIS_PARAGRAPH_DEDUCT  ? 'deduct'
+    : hits.length > allowance                          ? 'deduct'
+    : 'clean'
+
+  const cause =
+    severity === 'clean' ? null
+    : maxPerParagraph >= ANTITHESIS_PARAGRAPH_DEDUCT ? 'paragraph' as const
+    : 'section' as const
+
+  return { hits, maxPerParagraph, paragraphs, allowance, severity, cause }
+}
 
 /**
- * How far OVER its cap a section must go before the gate treats the tic as a
- * HARD failure — clamping `voice_quality` below the individual pass bar and so
- * forcing a full-section repair — rather than a deduction.
- *
- * ⚠ WHY A MARGIN AND NOT A THRESHOLD. v10.34 clamped below the bar the moment
- * the count passed the cap, which made a two-instance cadence slip a hard gate
- * failure for every section class. On this scan's own numbers that is 39 of 63
- * sections — so most sections would take a full repair, and a repair that lands
- * on two instances again (near-native cadence for this model) fails its
- * re-score, returns `repair-failed-recheck`, and caches provisionally for 24h,
- * which means that section is regenerated and re-gated every day for every
- * reader. A cadence tic is not worth that.
- *
- * It also contradicted the rubric prose the evaluator is handed, which says in
- * as many words that one over the allowance is a deduction and further
- * occurrences cap the criterion. The deterministic clamp and the rubric must
- * agree, so the clamp is graduated the same way: over the cap is a deduction
- * (clamped TO the bar, which still drags MIN_PASS_AVERAGE and still earns the
- * critique), and this far over — where the construction has become the
- * section's default sentence shape — is the failure.
- *
- * Expressed as a MARGIN above the cap rather than an absolute count, because
- * the cap itself now scales with the section's band: an absolute 3 would be
- * "two over" for a 230-word section and "one over" for a 780-word one, so the
- * severity of a given overrun would depend on the band, which is backwards.
+ * The antithesis hits when the section is over the rule, else null. The gate's
+ * clamp predicate; `detectAntithesisTic` is the raw count and
+ * `antithesisVerdict` carries the severity the gate needs to pick its clamp.
  */
-export const ANTITHESIS_HARD_MARGIN = 2
-
-/** The count at or above which the tic is a hard failure for a section of `cap`. */
-export function antithesisHardThresholdFor(cap: number = ANTITHESIS_LIMIT): number {
-  return cap + ANTITHESIS_HARD_MARGIN
+export function antithesisTicExceeded(text: string): { match: string; line: number }[] | null {
+  const v = antithesisVerdict(text)
+  return v.severity === 'clean' ? null : v.hits
 }
 
 // ── 9. Register drift ────────────────────────────────────────────────────────
@@ -402,14 +451,6 @@ export interface RuleScanOptions {
    * is never reported.
    */
   frame?: string
-  /**
-   * This section's band-scaled antithesis allowance (`antithesisCapFor` in
-   * prompts.ts). Omitted, the scan falls back to ANTITHESIS_LIMIT — the cap
-   * every section carried before v10.39, and still the cap at every band but
-   * Sun/Moon and Divergence, so a caller that cannot compute it is not wrong,
-   * only stricter on the two long sections.
-   */
-  antithesisCap?: number
 }
 
 export function scanSectionRules(text: string, opts: RuleScanOptions = {}): RuleFinding[] {
@@ -471,19 +512,20 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
     }
   }
 
-  // The antithesis cap. One finding for the section, not one per hit: the
-  // breach is the COUNT, and n separate findings would swamp `soft` and bury
+  // The antithesis tic. One finding for the section, not one per hit: the
+  // breach is the DENSITY, and n separate findings would swamp `soft` and bury
   // long-paragraph.
-  const antithesisCap = opts.antithesisCap ?? ANTITHESIS_LIMIT
-  const antitheses = detectAntithesisTic(text)
-  if (antitheses.length > antithesisCap) {
+  const antithesis = antithesisVerdict(text)
+  if (antithesis.severity !== 'clean') {
     out.push({
       rule:     'antithesis-tic',
       severity: 'soft',
-      // Not clipped to MATCH_CAP: the count leads, and the matches after it are
-      // what a reviewer needs to confirm the count is real.
-      match:    `${antitheses.length} occurrences (limit ${antithesisCap}): ${antitheses.map(a => a.match).join(' | ')}`,
-      line:     antitheses[antithesisCap].line,
+      // Not clipped to MATCH_CAP: the measurement leads, and the matches after
+      // it are what a reviewer needs to confirm it is real.
+      match:    antithesis.cause === 'paragraph'
+        ? `${antithesis.maxPerParagraph} occurrences in one paragraph (${antithesis.hits.length} in the section): ${antithesis.hits.map(a => a.match).join(' | ')}`
+        : `${antithesis.hits.length} occurrences across ${antithesis.paragraphs} paragraphs (allowance ${antithesis.allowance}): ${antithesis.hits.map(a => a.match).join(' | ')}`,
+      line:     antithesis.hits[0]?.line ?? 0,
     })
   }
 

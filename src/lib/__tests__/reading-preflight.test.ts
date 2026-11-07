@@ -46,12 +46,13 @@ describe('preflightSection — the deterministic checks on the hot path', () => 
     expect(r.instruction).toMatch(/Open instead on/)
   })
 
-  it('catches the antithesis tic against the band-scaled allowance', () => {
+  it('catches the antithesis tic as paragraph density (v10.45)', () => {
     const tics = ' It asserts rather than asks. It leads rather than follows. It is not a stance but a reflex. It arrives less a decision than a habit.'
     const r = run(clean() + tics)
     const f = r.findings.find(x => x.check === 'antithesis-tic')
     expect(f).toBeDefined()
-    expect(f!.detail).toMatch(/permits at most \d+/)
+    expect(f!.detail).toContain('in one paragraph')
+    expect(f!.detail).toContain('at most one per paragraph')
   })
 
   it('catches a fabricated degree and tells the rewrite to re-derive it, not delete it', () => {
