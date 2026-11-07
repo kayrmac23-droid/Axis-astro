@@ -1,0 +1,15 @@
+## Mercury
+
+Your Mercury carries no dignity of its own, so what your thinking can deliver runs through Venus — sitting in Scorpio, in your first house, in detriment — and in a live exchange this means your mind reaches for fairness and balance while the instinct actually steering the search is Scorpio's, already suspicious of the tidy version. You feel pulled toward the diplomatic phrasing and the measured question, and underneath that pull is a need to know what someone is really doing, not what they are saying. The two don't cancel each other; they run together, so the reasonable tone you produce often has a second agenda built into it that you may not consciously register until later.
+
+### Mercury in Libra, House 12
+
+The twelfth house means this weighing happens mostly out of sight — you turn a conversation over long after it has ended, testing the fair reading against the suspicious one, refining a position nobody asked you to refine. By the time you bring it back into a room, it arrives smoothed into something balanced and complete, with none of the private deliberation attached to it. People experience the considered version; they rarely see the version that doubted itself first, which means your diplomacy can look effortless when it was actually assembled alone.
+
+### Aspects
+
+The moderate sextile to Uranus, in your second house and applying, is the channel that lets this private weighing move fast when something unexpected breaks the pattern — a sudden piece of information, an unscripted remark — and in that moment your Libra caution drops and you say the sharper, truer thing before you have smoothed it. It doesn't activate on its own; it needs the disruption to call it out, and without one, the twelfth-house habit of private revision is the stronger current.
+
+The wide opposition to Jupiter, in your sixth house, pulls in the other direction: in disagreements about the larger meaning of something — not the fact but what it signifies — you tend to hold tightly to your own read and expect the other person to be the one reaching for grand conclusions, when the chart suggests you do this too, just privately and in smaller increments. It's a thinner pressure than the Uranus contact, more a tilt than a force, but it shows up when a practical disagreement turns into a dispute about principle.
+
+This Mercury does its best work where there is time to turn something over before it has to be spoken — a written reply, a problem you can sit with, a disagreement that allows for a pause before the fair answer and the suspicious one get reconciled into one sentence. It does its worst in a fast exchange with no room for that private pass, where the diplomatic habit and the Scorpio undertow haven't had time to resolve into each other, and what comes out is either too smoothed to mean anything or sharper than the moment called for, depending on which instinct got there first.

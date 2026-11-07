@@ -1,0 +1,17 @@
+## The Ascendant
+
+You walk into a room already reading it for what is underneath the surface arrangement — who holds the actual power, what has not been said, where the real current is running. This happens before you have taken a seat or decided what you think of anyone present. It is not a strategy you deploy; it is the shape your attention takes the moment a situation opens.
+
+### Scorpio Rising
+
+Scorpio on the Ascendant means your first move into any new situation is assessment, not display — a quiet calibration of who is trustworthy and who is performing, done almost entirely beneath whatever you are saying out loud. You do not arrive neutral. You arrive already probing for the thing being concealed, because that is what Scorpio's instinct for depth looks like at the threshold of a room, before any decision has been made about how much of the exchange is safe. A new acquaintance, a first meeting, an unfamiliar group: in each, you are running an intensity most people reserve for situations that have already proven themselves to warrant it.
+
+### How the Ascendant Shapes the Chart
+
+Mars rules this Ascendant, and Mars sits in Libra in the twelfth house, in detriment — a placement the Sun section has already named as the chart's central complication, and the Ascendant is where that complication first shows up, in the instinctive posture itself. Libra asks Mars to weigh, defer and seek agreement; Mars wants to act and assert. The friction between them means your entering-a-room instinct is not simple directness, even though Scorpio's reputation suggests it should be. You read the room sharply and say almost nothing about what you have read, because the will that would normally act on that reading is busy negotiating with itself in a house that keeps the negotiation out of view. What other people meet at the door is composure with calculation running behind it, and you are often the last to register how much of that calculation has already happened by the time you speak.
+
+### Planets in the 1st House
+
+The Sun and Pluto, both close to the Ascendant and to each other, mean this entering-instinct is not separate from your identity — it is fused with it, Scorpio doubled by its own modern ruler before you have done anything at all. Venus sits here too, in detriment, which means the same depth-seeking posture governs how you approach attraction and connection: you do not present charm as an opening move, and where Libra's ease would soften a first exchange, Venus here has none of it to offer, so warmth has to be earned into existence rather than assumed. The close sextile from Neptune softens none of this automatically — it is available, not active, a channel toward compassion that opens only when you choose to let the reading-of-the-room become generous instead of simply vigilant.
+
+What you likely underestimate is how much of the room's temperature you are setting before you have spoken a full sentence — not because you are performing intensity, but because detriment-Mars has already decided, privately, what this situation is going to require of you, and your face and posture carry that decision before your words do. The cost is that people experience the verdict without ever seeing the deliberation, and you experience yourself as having been quiet and reasonable right up until someone reacts to a weight they felt from you that you had not noticed yourself transmitting.
