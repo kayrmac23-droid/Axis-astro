@@ -664,6 +664,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   // Tropical and Sidereal render side by side; the divergence section renders below both.
   // withData=true (single-frame) pins each placement's readout data beside its prose.
   const renderSection = (section: SystemSection, withData = false) => {
+    // True only while nothing has been delivered anywhere in the reading: the
+    // very first section, which is the one with no earlier reading to hide its
+    // generation behind.
+    const isOpeningSection = Object.values(readings).every(t => !t)
     const currentStatus   = tabStatus[section]
     const currentError    = tabErrors[section]
     const currentText     = readings[section] || ''
@@ -782,6 +786,19 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
                   ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
                   : 'Interpreting chart'}
               </p>
+              {/* ⚠ The wait got longer and it needs saying.
+                  Sections are written in full and checked against the chart
+                  before any of them is shown, so nothing appears until the
+                  whole section is ready — where prose used to arrive word by
+                  word within about a second. Every later section is written
+                  while the reader is still on an earlier one, so this is the
+                  only place the wait is visible, and an unexplained twenty
+                  seconds of nothing reads as broken. */}
+              {isOpeningSection && (
+                <p className={styles.generatingNote}>
+                  Each section is written in full and checked against your chart before you see it.
+                </p>
+              )}
             </div>
           )}
 

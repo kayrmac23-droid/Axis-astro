@@ -123,6 +123,19 @@
   .partToggleTitle { transition: none; }
 }
 
+/* The one-line explanation under the opening section's spinner. Secondary to
+   the section name above it: it is reassurance, not a status. */
+.generatingNote {
+  margin-top: 10px;
+  max-width: 44ch;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  text-align: center;
+}
+
 .bandGrid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
