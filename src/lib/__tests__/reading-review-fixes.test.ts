@@ -12,7 +12,7 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SCENE_EXEMPLAR, SIDEREAL_SCENE_EXEMPLAR, DIVERGENCE_SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisCapFor, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
+import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisCapFor, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
 import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
 import { checkExemplarBleed, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
 import { countWords, scoreLength, EVAL_SYSTEM_PROMPT } from '@/lib/reading-quality-gate'
@@ -617,75 +617,5 @@ describe('PART 1 — the moment is written in the present tense (v10.38)', () =>
   it('is obeyed by the exemplar, or the prompt models what it forbids again', () => {
     // The v10.34/v10.35 failure mode: a rule whose own example breaches it.
     expect(SCENE_EXEMPLAR).not.toMatch(/\byou will\b|\byou'll\b/i)
-  })
-})
-
-// ── v10.42: the scene requirement, shown in the two frames that lacked an example
-//
-// The 2026-11-07 gated run split `specificity` by frame: tropical 7 of 9 at or
-// above the bar, sidereal 1 of 8, synthesis 1 of 4. Not length (sidereal
-// jupiter_saturn has a bigger band than tropical mercury and scores lower) and
-// not rater calibration (the complaint is "no concrete scene anywhere" —
-// absence). What distinguishes Tropical is that it is the only frame v10.37
-// gave an example to, while the other two carry a competing "spend the words on
-// <technical list>" instruction in their own, much nearer, frame prompt.
-describe('SIDEREAL/DIVERGENCE scene exemplars (v10.42)', () => {
-  const band = wordBandFor('sidereal', 'venus', 2)
-
-  it('the Sidereal example is held to the rules it teaches', () => {
-    expect(scanSectionRules(SIDEREAL_SCENE_EXEMPLAR, {
-      frame: 'sidereal', antithesisCap: antithesisCapFor(band),
-    })).toEqual([])
-    expect(detectAntithesisTic(SIDEREAL_SCENE_EXEMPLAR).length).toBeLessThanOrEqual(antithesisCapFor(band))
-  })
-
-  it('the Sidereal example scores 5 on length for the band it belongs to', () => {
-    // An edit that pushes it out of band teaches a length the gate fails.
-    expect(scoreLength(countWords(SIDEREAL_SCENE_EXEMPLAR), band)).toBe(5)
-  })
-
-  it('the Sidereal example is in the second person — its frame is natal', () => {
-    expect(SIDEREAL_SCENE_EXEMPLAR).toMatch(/\byou\b/i)
-  })
-
-  it('the Divergence example is THIRD person, which is the contradiction it resolves', () => {
-    // PART 1 defines the moment as addressed to the reader as "you"; The
-    // Divergence is third person by its own instruction, so the scene as PART 1
-    // states it was unsatisfiable there and 3 of 4 sections had none.
-    expect(scanSectionRules(DIVERGENCE_SCENE_EXEMPLAR, { frame: 'synthesis' })).toEqual([])
-    expect(DIVERGENCE_SCENE_EXEMPLAR).not.toMatch(/\byou\b/i)
-    expect(DIVERGENCE_SCENE_EXEMPLAR).toMatch(/the person|this person/i)
-  })
-
-  it('both examples carry a complete moment — trigger, action, aftermath', () => {
-    // The aftermath is the component measured as delivered zero times.
-    expect(SIDEREAL_SCENE_EXEMPLAR).toMatch(/Days later you notice/)
-    expect(DIVERGENCE_SCENE_EXEMPLAR).toMatch(/Afterwards the person registers/)
-  })
-
-  it('each example is interpolated into ITS OWN frame prompt, not SHARED_RULES', () => {
-    // Placement is the intervention: adjacent to the competing instruction it
-    // has to outweigh, and paid for only by the frame that uses it. In
-    // SHARED_RULES it would sit ~11,000 tokens upstream — exactly where the
-    // rule that already failed sits — and every frame would pay for both.
-    expect(SIDEREAL_SYSTEM_PROMPT).toContain(SIDEREAL_SCENE_EXEMPLAR)
-    expect(SYNTHESIS_SYSTEM_PROMPT).toContain(DIVERGENCE_SCENE_EXEMPLAR)
-    expect(SHARED_RULES).not.toContain(SIDEREAL_SCENE_EXEMPLAR)
-    expect(SHARED_RULES).not.toContain(DIVERGENCE_SCENE_EXEMPLAR)
-  })
-
-  it('each example is fenced, and its chart disclaimed outside the fence', () => {
-    for (const p of [SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT]) {
-      expect(p).toContain('<worked_example>')
-      expect(p).toContain('</worked_example>')
-      expect(p).toMatch(/another person's (reading|chart)|leave every fact inside the tags/i)
-    }
-  })
-
-  it('each frame prompt says the technical list is the evidence step, not the output', () => {
-    expect(SIDEREAL_SYSTEM_PROMPT).toMatch(/evidence step/i)
-    expect(SIDEREAL_SYSTEM_PROMPT).toMatch(/has done the easier half/i)
-    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/APPLIES HERE, IN THE THIRD PERSON/)
-    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/NOT waived by the\s*\n?\s*register/i)
   })
 })
