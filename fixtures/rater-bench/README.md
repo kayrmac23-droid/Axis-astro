@@ -44,6 +44,56 @@ If a rubric revision makes the rater use 4 and 5 on prose it previously scored
 3, the pass rate was substantially an instrument artefact. If the scores barely
 move, the prose is genuinely mid and the work belongs in the prompt.
 
+## Measured on it, 2026-11-07
+
+`npm run rescore` is the harness. Every rubric below was run TWICE on the same
+21 files, so the noise floor was known before any diff was read: per-criterion
+mean within-section spread **0.00–0.19**, max 1. Anything above ~0.2 is signal.
+
+| rubric | 4s / 378 | 5s / 378 | mean section avg |
+|---|---|---|---|
+| v10.40 as pinned | 57 | **0** | 3.074 |
+| + scoring procedure + evidence field | 80 | **0** | 3.133 |
+| + de-quantified 5 anchors | 106 | **0** | 3.219 |
+
+The harness replicates `scores_v10_40` to within ±0.19 per criterion, which is
+what validates the reconstruction of the chart context and the priors.
+
+**The instrument was broken, structurally.** Six of the nine 5 anchors were
+universally quantified over the whole section ("every substantive claim",
+"every strength", "every subsection", "nothing performs depth"). One
+counter-example anywhere in a 1000-word section falsifies that, so 5 was
+unreachable by construction — and the 4 tier, which permitted exactly one
+defect, nearly so. Both earlier attempts (v10.31's anchors, v10.40's "5 is
+attainable" paragraph) left the quantifier alone. De-quantifying them nearly
+doubled the 4s on prose that could not vary.
+
+`falsifiability` was the clearest case: exactly 3 in 21 of 21, sd **0.00**. Its
+4 tier allowed one universally-endorsable *secondary* claim in an 800-word
+section, which no section of that length can satisfy — and the rater said so
+itself in every entry ("the central claim inverts cleanly, but …"). It was
+applying the anchor correctly.
+
+**What is left is not a wording problem.** 5s stayed at exactly zero under all
+three rubrics, and 43% of the 106 fours carry an `evidence` entry naming no
+shortfall at all — several asserting the 5 condition outright ("nothing is
+rescued", "no sign clichés"). The rater affirms the condition and withholds the
+mark. Treat a fifth rubric rewrite as the weakest available move.
+
+**What is genuinely the prose.** 36 of 42 scored sections are blocked by one
+sub-3 criterion and 27 of those ONLY by `specificity` and/or `voice_quality`:
+
+- `specificity` moved −0.02 across every revision. The rater names a concrete
+  absence in all 21 sections and quotes the gestured-at phrase. No scene in 13
+  of 21 — tropical 3–4, sidereal and synthesis uniformly 2.
+- `voice_quality` is largely a deterministic clamp. `--audit` (no API) shows
+  **10 of 21 sections over the scaled antithesis cap** on first pass, one at
+  6/1, and 7 of the 9 twos are that clamp rather than a rater reading. Three
+  sections also carry `prediction` hard rule breaches.
+
+And `MIN_PASS_AVERAGE` is not the binding parameter: sweeping it 2.90 → 3.40
+moves the pass rate 14% → 10%, while `MIN_INDIVIDUAL` decides everything.
+
 ## What it is not
 
 Not a quality bar. These sections are not exemplary — they are a fixed sample,
