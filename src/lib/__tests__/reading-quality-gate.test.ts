@@ -737,3 +737,102 @@ describe('opening and closing modes — personal-planet sections', () => {
     expect(SECTION_INSTRUCTIONS.tropical.venus).not.toContain('needs from intimacy')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The rubric's SCALE, as an object of measurement.
+//
+// Measured 2026-11-07 on fixtures/rater-bench/ (21 frozen first-pass sections,
+// re-scored twice per rubric so the run-to-run noise floor — per-criterion mean
+// spread 0.00–0.19 — is known before any diff is read):
+//
+//   rubric          4s awarded   5s awarded   mean section avg
+//   v10.40 (base)   57 / 378     0 / 378      3.074
+//   + procedure     80 / 378     0 / 378      3.133
+//   + de-quantified 106 / 378    0 / 378      3.219
+//
+// TWO findings these tests exist to protect.
+//
+// (1) The old 5 anchors were UNIVERSALLY QUANTIFIED over the whole section —
+// "every substantive claim", "every strength", "every subsection", "every
+// characterisation", "every major claim", "nothing performs depth", "no
+// construction repeats". Six of nine. A universally-quantified property of a
+// 1000-word section is falsified by one counter-example anywhere in it, so the
+// top of the scale was unreachable BY CONSTRUCTION and the 4 tier (which
+// permitted exactly one defect) nearly so. That is why v10.31's anchor rewrite
+// and v10.40's "5 is attainable" exhortation both failed: neither touched the
+// quantifier. De-quantifying them nearly doubled the 4s on prose that could
+// not vary. Re-introducing a universal quantifier into a 5 anchor silently
+// restores an unreachable ceiling, which is what this pins.
+//
+// (2) 43% of the remaining 4s carry an `evidence` entry that names NO shortfall
+// at all — several assert the 5 condition outright ("nothing is rescued", "no
+// sign clichés", "not reassemblable from sign keywords") and still score 4.
+// That residue is end-of-scale avoidance, not calibration, and no further
+// rubric wording is expected to move it. The `evidence` field is what made it
+// auditable, so it is required at EVERY point on the scale: an audit obligation
+// that fires only on one side creates a floor exactly where it starts, which is
+// the mechanism that pinned `falsifiability` at 3 in 98% of sections while the
+// rubric asked for an inversion only below 3.
+describe('EVAL_SYSTEM_PROMPT — scale reachability', () => {
+  const fiveAnchors = EVAL_SYSTEM_PROMPT
+    .split('CRITERIA (score each 1–5):')[1]
+    .split('DECISION RULES:')[0]
+    .split('\n')
+    .filter(l => /^\s+5 = /.test(l))
+
+  it('states a 5 anchor for all nine LLM criteria', () => {
+    expect(fiveAnchors).toHaveLength(9)
+  })
+
+  // The quantifiers that make a 5 unreachable are the ones scoped to the whole
+  // section. "at least one" and "one" are existential and therefore fine — they
+  // are what a reachable anchor looks like.
+  it('does not quantify a 5 anchor universally over the section', () => {
+    const offenders = fiveAnchors.filter(l =>
+      /\b(every|each) (substantive |major )?(claim|strength|subsection|characterisation|sentence|paragraph)/i.test(l)
+      || /\bnothing (performs|is)\b/i.test(l)
+      || /\bno construction repeats\b/i.test(l),
+    )
+    expect(offenders).toEqual([])
+  })
+
+  // The replacement for the quantifier: a shortfall only counts when it is
+  // load-bearing, and length is explicitly part of that judgement because the
+  // bands run ~230 to ~1000 words.
+  it('defines a load-bearing shortfall and scales it with length', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain('LOAD-BEARING')
+    expect(EVAL_SYSTEM_PROMPT).toContain('Incidental shortfalls do not move a score')
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/unreachable by construction/)
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/density of load-bearing shortfalls, not the raw count/)
+  })
+
+  it('runs an AWARD TEST on every criterion, not only a fault list', () => {
+    expect(EVAL_SYSTEM_PROMPT.match(/AWARD TEST:/g) ?? []).toHaveLength(9)
+    expect(EVAL_SYSTEM_PROMPT).toContain('STEP 1 — Run the AWARD TEST')
+  })
+
+  // Symmetric auditability. Both halves matter: the field must be required at
+  // every score, and a 3 must cost a named absence.
+  it('requires an evidence entry at every point on the scale', () => {
+    expect(EVAL_SYSTEM_PROMPT).toContain('THE EVIDENCE ENTRY IS NOT OPTIONAL')
+    expect(EVAL_SYSTEM_PROMPT).toContain('Every score costs the same to justify, in both directions')
+    expect(EVAL_SYSTEM_PROMPT).toContain('A 3 is a finding, not a resting place')
+    expect(EVAL_SYSTEM_PROMPT).toContain('"evidence": {')
+    // The vacuous justifications a 3 must not be allowed to rest on.
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/"Adequate", "competent", "could be stronger" and "lacks depth" are not absences/)
+  })
+
+  // The rater must not be asked for a ship verdict alongside the scores: a
+  // section it has decided is not ready will not be given the 5s its individual
+  // criteria earned. `pass` was never read — computePassFromScores decides — so
+  // asking for it bought an anchoring effect for nothing.
+  it('never asks the evaluator for a pass/ship verdict', () => {
+    // No `pass` field in the output schema, and no instruction to form the
+    // verdict. "ready to ship" survives only inside the prohibition against
+    // reasoning about it, so assert on the prohibition rather than the phrase.
+    expect(EVAL_SYSTEM_PROMPT).not.toContain('"pass": <true|false>')
+    expect(EVAL_SYSTEM_PROMPT).not.toMatch(/Return the "pass" field/)
+    expect(EVAL_SYSTEM_PROMPT).toContain('You do not return a verdict')
+    expect(EVAL_SYSTEM_PROMPT).toMatch(/Do not reason about whether the section is ready to ship/)
+  })
+})
