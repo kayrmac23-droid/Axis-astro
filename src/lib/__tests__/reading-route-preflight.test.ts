@@ -29,8 +29,11 @@ vi.mock('@anthropic-ai/sdk', () => {
         sentTurns.push(params.messages[0].content.length)
         const text = attempts.shift() ?? ''
         return {
+          // Two deltas, so a live stream and a buffered one are distinguishable.
           async *[Symbol.asyncIterator]() {
-            yield { type: 'content_block_delta', delta: { type: 'text_delta', text } }
+            const mid = Math.floor(text.length / 2)
+            yield { type: 'content_block_delta', delta: { type: 'text_delta', text: text.slice(0, mid) } }
+            yield { type: 'content_block_delta', delta: { type: 'text_delta', text: text.slice(mid) } }
           },
           finalMessage: async () => ({
             stop_reason: 'end_turn',
@@ -154,9 +157,9 @@ describe('/api/reading — the reader is served the pre-flighted text', () => {
     expect(sentTurns).toHaveLength(1)
   })
 
-  it('writes the section in ONE piece, not as deltas', async () => {
+  it('with the pre-flight ON, writes the section in ONE piece and says so in a header', async () => {
     // Buffering is what lets the checks run before the reader sees anything.
-    // If this ever streams again, the pre-flight is decorative.
+    // If this ever streams while the pre-flight is on, the pre-flight is decorative.
     const text = clean()
     attempts = [text]
     const res = await POST(new NextRequest('https://x/api/reading', {
@@ -164,9 +167,36 @@ describe('/api/reading — the reader is served the pre-flighted text', () => {
       headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.9.0.2' },
       body: JSON.stringify({ birthData: BIRTH, section: 'tropical', planetSection: 'sun' }),
     }))
+    expect(res.headers.get('X-Axis-Delivery')).toBe('buffered')
     const reader = res.body!.getReader()
     const first = await reader.read()
     expect(new TextDecoder().decode(first.value)).toBe(text)
     await reader.cancel()
+  })
+
+  it('with the pre-flight OFF (the default), STREAMS token by token and says so in a header', async () => {
+    // Regression: v10.41 made buffering unconditional and turning the
+    // pre-flight off never undid it, so every reader waited the whole
+    // generation for a check that no longer ran. Buffer <=> a check runs.
+    delete process.env.AXIS_PREFLIGHT_ENABLED
+    const text = clean()
+    attempts = [text]
+    const res = await POST(new NextRequest('https://x/api/reading', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.9.0.3' },
+      body: JSON.stringify({ birthData: BIRTH, section: 'tropical', planetSection: 'sun' }),
+    }))
+    expect(res.headers.get('X-Axis-Delivery')).toBe('stream')
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    const first = decoder.decode((await reader.read()).value)
+    expect(first.length).toBeLessThan(text.length)   // a delta, not the section
+    let all = first
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      all += decoder.decode(value, { stream: true })
+    }
+    expect(all).toBe(text)                           // and nothing sent twice
   })
 })

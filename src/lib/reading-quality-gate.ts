@@ -1425,8 +1425,10 @@ export interface GateForCacheResult {
   // eval harness (scripts/eval-readings.mjs); the route ignores it.
   firstPass:  GateResult | null
   // When cacheText is null because the gate could not confirm the section (as
-  // opposed to it being truncated or doctrine-breaching), the doctrine-clean
-  // first pass, for the caller to cache with a SHORT TTL. Leaving such a section
+  // opposed to it being truncated or doctrine-breaching), a doctrine-clean,
+  // complete text for the caller to cache with a SHORT TTL: the first pass, or
+  // the repair when one was made but could not be re-scored (evaluator errored
+  // or out of budget). Leaving such a section
   // uncached made every later view of the chart regenerate and re-gate it — ~4
   // model calls per view, indefinitely.
   provisionalText?: string | null
@@ -1510,9 +1512,19 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   const needsRepair = !gate.pass || bannedHits.length > 0
 
   if (!needsRepair) {
-    const reason = gate.evaluatorErrored ? 'passed-evaluator-errored' : 'passed'
-    logGateOutcome(label, reason, gate.scores)
-    return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason, firstPass: gate }
+    // An evaluator that errored (timeout, unparseable output) defaults to
+    // pass so the reader is never blocked — but that default is not a verdict.
+    // On the measured first-pass rate (1 of 21 on the rater bench) an unscored
+    // section is overwhelmingly likely to be one the gate would have failed,
+    // so it gets the 24h provisional TTL, not the 30-day one: the next view
+    // after a day re-generates and gets a real verdict. Doctrine-clean by
+    // construction (needsRepair is false, so bannedHits is empty).
+    if (gate.evaluatorErrored) {
+      logGateOutcome(label, 'passed-evaluator-errored', gate.scores)
+      return { cacheText: null, modelCalls, scores: gate.scores, repaired: false, reason: 'passed-evaluator-errored', firstPass: gate, provisionalText: firstPassText }
+    }
+    logGateOutcome(label, 'passed', gate.scores)
+    return { cacheText: firstPassText, modelCalls, scores: gate.scores, repaired: false, reason: 'passed', firstPass: gate }
   }
 
   // If the rubric passes and only the deterministic doctrine scan objects, edit
@@ -1602,9 +1614,16 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // only on the minority of sections that reached repair, and only when there is
   // wall-clock budget for it. Out of budget → fall back to the prior behaviour and
   // cache on the deterministic signals alone.
+  //
+  // Out of budget the repair is cached PROVISIONALLY (24h), never for 30 days.
+  // It is complete and doctrine-clean, but measured repairs fail their re-score
+  // roughly half the time, and a repair that is checked and FAILS already gets
+  // 24h — an unchecked one getting 30 days had the TTLs backwards. The repair
+  // rather than the first pass is what is offered: it addressed the critique,
+  // and both are equally unconfirmed.
   if (Date.now() - startedAt > EVAL_SKIP_AFTER_MS) {
     logGateOutcome(label, 'repaired-recheck-skipped-budget', gate.scores)
-    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-skipped-budget', firstPass: gate, provisionalText: repaired }
   }
 
   noteCall()
@@ -1620,10 +1639,11 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   modelCalls++
 
   // Evaluator failure never blocks caching — the repair is complete and
-  // doctrine-clean, and the prompt's own constraints still held during the repair.
+  // doctrine-clean — but an errored re-score is not a pass, so the repair is
+  // cached provisionally (24h) for the same reason as the budget skip above.
   if (recheck.evaluatorErrored) {
     logGateOutcome(label, 'repaired-recheck-errored', gate.scores)
-    return { cacheText: repaired, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-errored', firstPass: gate }
+    return { cacheText: null, modelCalls, scores: gate.scores, repaired: true, reason: 'repaired-recheck-errored', firstPass: gate, provisionalText: repaired }
   }
 
   // The repair still fails the rubric — do not cache it. Leaving it uncached lets

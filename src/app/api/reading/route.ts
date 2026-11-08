@@ -381,9 +381,27 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       evidenceCount = req.evidenceCount
     }
 
+    // ── Delivery mode ──────────────────────────────────────────────────────────
+    // A section is BUFFERED only when something will actually inspect it before
+    // the reader sees it: the deterministic pre-flight, or the inline gate (which
+    // only ever runs on a non-opening section). Otherwise it STREAMS token by
+    // token, so prose starts rendering within ~1s.
+    //
+    // v10.41 made buffering unconditional, and turning the pre-flight off by
+    // default (31f8025, "buffering costs every reader token-by-token streaming")
+    // never undid it — so every reader waited 15–25s per section for a check
+    // that no longer ran. The two must stay coupled: buffer ⇔ a check runs.
+    //
+    // The decision is made here, before the Response is returned, so it can be
+    // sent as a header the client reads the instant fetch() resolves — long
+    // before the body — and explain the wait only when there is one.
+    const inlineGateEligible = INLINE_GATE_ENABLED && prior.length > 0
+    const streamLive = !PREFLIGHT_ENABLED && !inlineGateEligible
+
     // ── Generation pipeline (evaluate-and-recache) ─────────────────────────────
-    // The first pass streams to the client token-by-token, so prose starts
-    // rendering within ~1s, and the stream closes the moment generation finishes.
+    // The first pass either streams to the client token-by-token or is buffered
+    // for a pre-serve check (see Delivery mode above); either way the stream
+    // closes the moment the section is complete.
     // The quality gate then runs AFTER close, while the invocation is still alive:
     // it adds no latency to what the reader waits for and decides only what future
     // readers get from the cache. A passing first pass is cached as-is; a failing
@@ -424,10 +442,11 @@ const INLINE_GATE_DEADLINE_MS = 35_000
         // platform still holds the instance alive.
         const reservation = recordModelCalls(1).catch(() => { /* best-effort */ })
 
-        // One generation attempt. Buffered, never enqueued as it arrives: the
-        // deterministic pre-flight below has to see the whole section before
-        // the reader sees any of it, which is the entire point.
-        const generate = async (extraTurn?: string) => {
+        // One generation attempt. With `live`, each delta is enqueued as it
+        // arrives; otherwise the section is buffered so a pre-serve check can see
+        // all of it before the reader sees any of it. A pre-flight rewrite is
+        // never live — it only runs in buffered mode.
+        const generate = async (extraTurn?: string, live = false) => {
           const content = extraTurn
             ? [...userBlocks, { type: 'text' as const, text: extraTurn }]
             : userBlocks
@@ -442,6 +461,12 @@ const INLINE_GATE_DEADLINE_MS = 35_000
           for await (const event of stream) {
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
               text += event.delta.text
+              // Guarded: a reader who navigated away has closed the controller,
+              // and the generation (already billed) must still finish, be
+              // threaded, and reach the gate and the cache.
+              if (live) {
+                try { controller.enqueue(encoder.encode(event.delta.text)) } catch { /* closed */ }
+              }
             }
           }
           const message = await stream.finalMessage()
@@ -453,7 +478,7 @@ const INLINE_GATE_DEADLINE_MS = 35_000
 
         try {
           // First pass.
-          let { text: firstText, message: firstMessage } = await generate()
+          let { text: firstText, message: firstMessage } = await generate(undefined, streamLive)
           let truncated = firstMessage.stop_reason === 'max_tokens'
 
           // ── DETERMINISTIC PRE-FLIGHT ─────────────────────────────────────
@@ -555,6 +580,9 @@ const INLINE_GATE_DEADLINE_MS = 35_000
                 await setCachedReading(cacheKey, inline.cacheText)
                 gatedInline = true
               } else if (inline.provisionalText) {
+                // Serve what we cache here too: provisionalText can be an
+                // unconfirmed repair, not only the first pass.
+                firstText = inline.provisionalText
                 await setCachedReading(cacheKey, inline.provisionalText, PROVISIONAL_TTL_SECONDS)
                 gatedInline = true
               }
@@ -565,8 +593,11 @@ const INLINE_GATE_DEADLINE_MS = 35_000
             }
           }
 
-          // The whole section at once, now that it has been checked.
-          try { controller.enqueue(encoder.encode(firstText)) } catch { /* closed */ }
+          // Buffered mode: the whole section at once, now that it has been
+          // checked. (Live mode already sent every delta as it arrived.)
+          if (!streamLive) {
+            try { controller.enqueue(encoder.encode(firstText)) } catch { /* closed */ }
+          }
 
           // Truncated drafts ship with the marker so the client can surface it.
           // Guarded like the deltas above: if the reader has gone (navigated
@@ -695,6 +726,9 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Transfer-Encoding': 'chunked',
+        // Read by ReadingPanel the moment fetch() resolves, so it explains the
+        // wait only on a section that really is held back for checking.
+        'X-Axis-Delivery': streamLive ? 'stream' : 'buffered',
       }
     })
   } catch (error: unknown) {

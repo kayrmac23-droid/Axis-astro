@@ -151,8 +151,10 @@ describe('gateForCache — a passing section is cached as-is', () => {
     create.mockResolvedValueOnce(textReply('not json at all'))
     const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
     // Fail-open is deliberate — a broken evaluator must not block a reading —
-    // but the reason string has to make it distinguishable from a real pass.
-    expect(r.cacheText).toBe(GOOD_SECTION)
+    // but the reason string has to make it distinguishable from a real pass,
+    // and an unscored section is cached for 24h, never the full 30 days.
+    expect(r.cacheText).toBeNull()
+    expect(r.provisionalText).toBe(GOOD_SECTION)
     expect(r.reason).toBe('passed-evaluator-errored')
     expect(r.scores).toBeNull()
     expect(r.modelCalls).toBe(1)
@@ -269,9 +271,10 @@ describe('gateForCache — an unusable repair is not cached', () => {
     expect(r.firstPass?.critique).toContain('fix it')
   })
 
-  it('caches a re-scored repair when the re-score itself errors (fail-open)', async () => {
+  it('caches a repair PROVISIONALLY when its re-score errors (fail-open, 24h not 30 days)', async () => {
     // Evaluator failure never blocks caching: the repair is complete and
-    // doctrine-clean, so a broken re-score falls open to caching it.
+    // doctrine-clean. But an errored re-score is not a pass, so it gets the
+    // provisional TTL — a repair that is re-scored and FAILS already gets 24h.
     const cleanRepair = sectionOfWords(IN_BAND_WORDS)
     create
       .mockResolvedValueOnce(evalReply(2, 'fix it'))
@@ -279,7 +282,8 @@ describe('gateForCache — an unusable repair is not cached', () => {
       .mockResolvedValueOnce(textReply('not json at all'))  // re-eval unparseable
 
     const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
-    expect(r.cacheText).toBe(cleanRepair)
+    expect(r.cacheText).toBeNull()
+    expect(r.provisionalText).toBe(cleanRepair)
     expect(r.repaired).toBe(true)
     expect(r.reason).toBe('repaired-recheck-errored')
     expect(r.modelCalls).toBe(3)
@@ -295,6 +299,32 @@ describe('gateForCache — an unusable repair is not cached', () => {
     expect(r.reason).toBe('failed-repair-errored')
     // The attempt is counted: a call that fails late can still have billed.
     expect(r.modelCalls).toBe(2)
+  })
+
+  it('caches an unscored repair PROVISIONALLY when no budget is left to re-score it', async () => {
+    // Inside the repair guard when the repair starts; the repair itself then
+    // takes long enough to pass the eval guard, so the re-score is skipped. An
+    // unchecked repair must not out-live a checked-and-failed one (24h).
+    const cleanRepair = sectionOfWords(IN_BAND_WORDS)
+    const realNow = Date.now.bind(Date)
+    const startedAt = realNow() - 65_000
+    const clock = vi.spyOn(Date, 'now')
+    try {
+      create
+        .mockResolvedValueOnce(evalReply(2, 'fix it'))
+        .mockImplementationOnce(async () => {
+          clock.mockImplementation(() => realNow() + 35_000)  // the repair took 35s
+          return textReply(cleanRepair)
+        })
+      const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt })
+      expect(r.reason).toBe('repaired-recheck-skipped-budget')
+      expect(r.cacheText).toBeNull()
+      expect(r.provisionalText).toBe(cleanRepair)
+      expect(r.repaired).toBe(true)
+      expect(create).toHaveBeenCalledTimes(2)
+    } finally {
+      clock.mockRestore()
+    }
   })
 
   it('does not start a repair it cannot finish, and caches nothing', async () => {
