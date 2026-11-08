@@ -42,14 +42,14 @@ Readings are written in continuous analytical prose. No bullet points. No generi
 
 AXIS uses two complementary ephemeris sources:
 
-**1. Local VSOP87 / ELP2000 engine** (`astronomia` package) — Sun, Moon, Mercury through Neptune, Rahu/Ketu. Full VSOP87 planetary theory and ELP2000 lunar theory. These are the same algorithms used in professional desktop astrology software.
+**1. Local VSOP87 / ELP2000 engine** (`astronomia` package) — Sun, Moon, Mercury through Neptune, Rahu/Ketu. Full VSOP87 planetary theory and ELP2000 lunar theory. These are the same algorithms used in professional desktop astrology software. Positions are evaluated in Terrestrial Time: the birth instant (UT) is converted with ΔT (NASA Espenak–Meeus model with observed IERS values, via `astronomia/deltat`), while the Ascendant and MC stay on UT because they follow Earth's rotation. Before November 2026 the planets were evaluated at UT directly, which put the Moon up to ~36″ behind its true place for modern births.
 
 **2. JPL Horizons REST API** — Pluto position. JPL Horizons (operated by NASA/JPL) returns positions computed from the JPL DE440 planetary ephemeris (Park et al. 2021), the current standard for solar system dynamics. DE440 accuracy for Pluto: < 1 arcsecond. AXIS fetches the Pluto position at chart calculation time via a single HTTP call to the Horizons API, with automatic fallback to the local Meeus polynomial if the API is unavailable.
 
 | Body | Method | Accuracy (1800–2050) |
 |---|---|---|
-| Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included) | < 1 arcsecond |
-| Moon | ELP2000 + nutation correction | < 10 arcseconds |
+| Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included), in TT | < 1 arcsecond (measured ≤ 0.1″ vs JPL Horizons, 1925/1987/2024) |
+| Moon | ELP2000 + nutation correction, in TT | < 10 arcseconds (measured ≤ 4.1″ vs JPL Horizons, 1925/1987/2024) |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
 | Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, < 0.03 arcmin vs DE440 1930–2025) | **< 1 arcsecond** |
 | Rahu/Ketu | True node: Meeus Ch. 47 mean node + five periodic terms | Not independently benchmarked; the formula's terms are complete |
