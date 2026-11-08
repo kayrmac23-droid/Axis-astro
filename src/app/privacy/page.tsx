@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 // third party, a new thing cached, a TTL moved — change this page in the same
 // PR. Sources of truth: reading-cache.ts (TTL_SECONDS, PROVISIONAL_TTL_SECONDS),
 // reading-thread.ts (THREAD_TTL_SECONDS), api/geocode (GEO_CACHE_TTL_SECONDS),
-// route-rate-limiter.ts (QUOTA_TTL_SECS), analytics.ts, layout.tsx.
+// route-rate-limiter.ts (QUOTA_TTL_SECS), saved-chart.ts, analytics.ts, layout.tsx.
 
 const RAIL = [
   { n: '01', label: 'WHAT YOU GIVE US' },
@@ -99,8 +99,11 @@ export default function PrivacyPage() {
               and is kept for at most 48 hours for that purpose.
             </p>
             <p className={styles.para}>
-              Your birth details themselves stay in your browser for the length of your visit and
-              are not saved to a database.
+              <strong>Your birth details themselves</strong> are not saved to any database. The last
+              chart you cast is remembered in this browser only (its local storage, never sent
+              anywhere) for up to 30 days, so you can reopen your reading after closing the tab.
+              Choose &ldquo;Forget it&rdquo; on the home page, or clear this site&rsquo;s data, to
+              remove it.
             </p>
           </div>
 

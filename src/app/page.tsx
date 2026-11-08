@@ -13,6 +13,28 @@ import { buildReadoutRows, dms } from '@/lib/readout'
 import { lahiriAyanamsaForDate } from '@/lib/ayanamsa'
 import styles from './page.module.css'
 import { capture } from '@/lib/analytics'
+import { loadSavedChart, saveChart, forgetSavedChart, type SavedForm } from '@/lib/saved-chart'
+
+// PLACE · D MON YYYY · time · tz — for the interstitial, the dossier header and
+// the resume prompt.
+function castLineFor(f: SavedForm | null, displayLocation = ''): string {
+  if (!f) return 'CASTING'
+  const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
+  const mi = Math.min(11, Math.max(0, (parseInt(f.month, 10) || 1) - 1))
+  const place = (displayLocation || f.location || '').toUpperCase()
+  const unknown = f.birthTimeUnknown === 'true'
+  let time = 'TIME UNKNOWN · NOON ASSUMED'
+  if (!unknown) {
+    const h24 = parseInt(f.hour, 10)
+    if (!isNaN(h24)) {
+      const isPM = h24 >= 12
+      const h = h24 % 12 || 12
+      time = `${String(h).padStart(2, '0')}:${String(f.minute || '00').padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
+    }
+  }
+  return [place, `${parseInt(f.day, 10) || 1} ${MON[mi]} ${f.year}`, time, f.tzName?.toUpperCase()]
+    .filter(Boolean).join(' · ')
+}
 
 const MONTHS_LONG = ['January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December']
@@ -33,6 +55,14 @@ export default function Home() {
   const readingRef = useRef<HTMLDivElement>(null)
   // The wheel writes the animating Δ into the frame control's pill.
   const deltaRef = useRef<HTMLSpanElement>(null)
+  // The last chart this browser cast (lib/saved-chart). Read after mount, never
+  // during render, so the server-rendered landing and the first client render
+  // agree; the resume prompt appears a frame later.
+  const [savedChart, setSavedChart] = useState<SavedForm | null>(null)
+  useEffect(() => {
+    const id = setTimeout(() => setSavedChart(loadSavedChart()), 0)
+    return () => clearTimeout(id)
+  }, [])
 
   useEffect(() => {
     if (!chartData) return
@@ -65,6 +95,10 @@ export default function Home() {
       }
       const data: DualChartData = await res.json()
       capture('calculate_success', { pluto_source: data.plutoSource })
+      // Saved only once the chart actually cast, so a failed attempt never
+      // replaces a chart that works.
+      saveChart(formData)
+      setSavedChart(formData)
       setChartData(data)
       // The dossier opens with the Sun isolated (design: post-cast state is
       // "frame reset to tropical, Sun selected") so the wheel, readout card and
@@ -98,25 +132,7 @@ export default function Home() {
 
   // Cast line for the computation interstitial and the dossier header:
   // PLACE · D MON YYYY · time · tz.
-  const castLine = (() => {
-    const f = lastFormData
-    if (!f) return 'CASTING'
-    const MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    const mi = Math.min(11, Math.max(0, (parseInt(f.month, 10) || 1) - 1))
-    const place = (displayLocation || f.location || '').toUpperCase()
-    const unknown = f.birthTimeUnknown === 'true'
-    let time = 'TIME UNKNOWN · NOON ASSUMED'
-    if (!unknown) {
-      const h24 = parseInt(f.hour, 10)
-      if (!isNaN(h24)) {
-        const isPM = h24 >= 12
-        const h = h24 % 12 || 12
-        time = `${String(h).padStart(2, '0')}:${String(f.minute || '00').padStart(2, '0')} ${isPM ? 'PM' : 'AM'}`
-      }
-    }
-    return [place, `${parseInt(f.day, 10) || 1} ${MON[mi]} ${f.year}`, time, f.tzName?.toUpperCase()]
-      .filter(Boolean).join(' · ')
-  })()
+  const castLine = castLineFor(lastFormData, displayLocation)
 
   // The offset for the chart being cast, not today's: the dossier header shows
   // the computed value a moment later, and the two must agree.
@@ -139,6 +155,27 @@ export default function Home() {
     <main className={styles.main}>
       {/* Pre-chart flow — ported AXIS landing (home view of preview.html),
           with the real BirthForm wired into the live cast flow. */}
+      {/* Resume: the last chart this browser cast. One tap re-casts it, and
+          every section already written comes back from the cache. */}
+      {!chartData && !loading && savedChart && (
+        <div className={styles.resume} role="region" aria-label="Your last chart">
+          <div className={styles.resumeText}>
+            <span className={styles.resumeKicker}>{'// YOUR LAST CHART'}</span>
+            <span className={styles.resumeLine}>{castLineFor(savedChart)}</span>
+          </div>
+          <div className={styles.resumeActions}>
+            <button type="button" className={styles.btnOutline}
+              onClick={() => { capture('chart_resume'); handleSubmit(savedChart) }}>
+              OPEN IT AGAIN
+            </button>
+            <button type="button" className={styles.btnGhost}
+              onClick={() => { forgetSavedChart(); setSavedChart(null) }}>
+              FORGET IT
+            </button>
+          </div>
+        </div>
+      )}
+
       {!chartData && (
         <PreviewLanding
           onSubmit={handleSubmit}
