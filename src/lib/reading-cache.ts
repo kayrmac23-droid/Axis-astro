@@ -95,7 +95,12 @@ import type { BirthData } from '@/lib/astro-calc'
 // and houses are no longer described as changing only "occasionally" between
 // frames. An empty Divergence allocation gets a short length band. The Western
 // dignity table no longer assigns the nodes dignities.
-export const READING_PROMPT_VERSION = 'v10.46'
+// v10.47: PART 1's moment is conditional on a TRIGGER in the evidence (an aspect
+// in Tropical, a drishti received in Sidereal), stated per section under SCENE
+// and passed to the evaluator as scene_expected (scene-expectation.ts); The
+// Divergence gets a third-person form of the moment; PART 4 limits sentence
+// length. Every cached section was written under the unconditional rule.
+export const READING_PROMPT_VERSION = 'v10.47'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

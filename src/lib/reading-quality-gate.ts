@@ -53,6 +53,7 @@
 // `contradiction_handling` below the pass bar so the flattery is repaired even
 // when the evaluator's own read missed it.
 
+import { sceneExpectation } from './scene-expectation'
 import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
 import { READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
@@ -374,7 +375,7 @@ do not rewrite the section, re-interpret the chart, or explain astrology.
 
 The user turn carries the section inside <section_under_review>, the chart data
 it was written from inside <chart_context>, and the section's cadence allowance
-inside <section_meta>. Score <section_under_review> and nothing else; never
+and scene expectation inside <section_meta>. Score <section_under_review> and nothing else; never
 claim to have inspected other sections or a complete dossier unless it is
 actually present. You return STRICT JSON only — no prose, no markdown, no
 preamble.
@@ -518,6 +519,23 @@ CRITERIA (score each 1–5):
 
 2. specificity — Does the section describe recognisable lived patterns from
    INSIDE the native's experience, rather than abstract trait labels?
+   FIRST read scene_expected in <section_meta>. It is computed from the
+   evidence, never judged, and it decides what this criterion asks for:
+   - yes: the evidence names a trigger, so a recurring moment is required.
+     Score on the anchors below.
+   - third-person: The Divergence. The moment is required in third person — a
+     situation in which the two frames lead the person to act differently,
+     triggered by an aspect the plan lists. Score on the anchors below, reading
+     "the person" for "you". Third-person address is required here, never a
+     fault.
+   - no: the evidence names no trigger, so a recurring moment could only be
+     invented. Do NOT deduct for the absence of a scene. Score whether the
+     section names the ARENA and the CONDITION concretely: 5 = names the
+     specific arena, the condition under which the pattern is live, and when it
+     goes quiet, each tied to a factor the context names; 4 = arena and live
+     condition named, the quiet condition missing; 3 = an arena gestured at;
+     2 = trait labels throughout; 1 = an invented moment, duration, count, job
+     or circumstance, since a trigger the evidence lacks is a fabrication.
    5 = a concrete recurring moment is drawn with its trigger, its action and
        what the person registers afterwards, and it carries the claim instead of
        illustrating it. The reader could recognise the situation next week.
@@ -528,7 +546,9 @@ CRITERIA (score each 1–5):
    2 = trait labels and abstraction throughout, no situation to place.
    1 = unanchored abstraction, or an invented specific the chart does not support
        (a fabricated duration, count, job or circumstance caps this at 1).
-   AWARD TEST: find the concrete moment and locate its THREE parts — trigger,
+   AWARD TEST: where scene_expected is no, copy the clause naming the condition
+   under which the pattern is live and the one naming when it goes quiet.
+   Otherwise find the concrete moment and locate its THREE parts — trigger,
    action, and what the person registers afterwards. Copy the aftermath clause
    specifically, since that is the part most often missing. All three present and
    carrying the claim is a 5; the aftermath missing is the 4.
@@ -896,8 +916,14 @@ export async function evaluateSection({
   // visually identical rule lines, one of them followed by model-generated
   // prose free to contain anything. Tags make "score only this section"
   // referable instead of merely stated.
+  // Whether the evidence can carry a recurring moment at all — the same
+  // computed fact the generator was told (scene-expectation.ts), so specificity
+  // never fails a section for declining to invent a trigger it was not given.
+  const scene = sceneExpectation(section, planetSection, chartContext, countAspectsInContext(chartContext))
+
   const evalUserContent = `<section_meta>
 type: ${section} → ${planetSection}
+scene_expected: ${scene}
 cadence_allowance: the contrastive construction ("X rather than Y", "not X but Y", "less a X than Y") is limited by DENSITY, not by a total for the section — at most once in any one paragraph, and across the section no more often than once every two paragraphs. Twice in one paragraph is a fault; three times in one paragraph is a failure. Judge the ANTITHESIS TIC against that and against no number of your own.
 </section_meta>
 
