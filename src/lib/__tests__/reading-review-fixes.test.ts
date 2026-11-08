@@ -12,7 +12,7 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
+import { SHARED_RULES, SHARED_RULES_LEAN, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
 import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
 import { checkExemplarBleed, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
 import { countWords, scoreLength, EVAL_SYSTEM_PROMPT } from '@/lib/reading-quality-gate'
@@ -630,5 +630,42 @@ describe('PART 1 — the moment is written in the present tense (v10.38)', () =>
   it('is obeyed by the exemplar, or the prompt models what it forbids again', () => {
     // The v10.34/v10.35 failure mode: a rule whose own example breaches it.
     expect(SCENE_EXEMPLAR).not.toMatch(/\byou will\b|\byou'll\b/i)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The dilution probe. SHARED_RULES_LEAN is DERIVED from SHARED_RULES, so the
+// one thing these tests have to guarantee is that it is a slice and not a
+// second copy of the doctrine: a hand-written lean variant would drift, and a
+// drifted probe measures its own drift instead of the hypothesis.
+describe('SHARED_RULES_LEAN — the dilution probe is derived, not duplicated', () => {
+  it('drops the PARTs it names and nothing else', () => {
+    expect(SHARED_RULES_LEAN).not.toContain('── PART 5 — PROSE FAILURE MODES ──')
+    expect(SHARED_RULES_LEAN).not.toContain('── PART 6 — ONE CONTINUOUS READING ──')
+    expect(SHARED_RULES_LEAN).not.toContain('── PART 7 — DEPTH AND LENGTH ──')
+    expect(SHARED_RULES_LEAN).not.toContain('── APPENDIX — AXIS INTERPRETIVE STANCES ──')
+    for (const kept of [
+      'PRIORITY 1.', '── PART 1 — THE SCENE REQUIREMENT ──', '── PART 2 — EVIDENCE ──',
+      '── PART 3 — HONESTY ──', '── PART 4 — VOICE ──', '── PART 8 — FORMATTING ──',
+    ]) expect(SHARED_RULES_LEAN).toContain(kept)
+  })
+
+  it('keeps every non-negotiable: the scene, the dual-system facts, unknown birth time', () => {
+    expect(SHARED_RULES_LEAN).toContain('Mercury in Aries, House 12')      // the worked example
+    expect(SHARED_RULES_LEAN).toContain('WHAT CHANGES BETWEEN TROPICAL AND SIDEREAL')
+    expect(SHARED_RULES_LEAN).toContain('WHEN THE BIRTH TIME IS UNKNOWN')
+    expect(SHARED_RULES_LEAN).toContain('two accounts in the same tense')   // no ranking
+    expect(SHARED_RULES_LEAN).toContain('ENDS ON A CLOSING PARAGRAPH')
+  })
+
+  it('is a strict slice of the full block, so no rule exists in only one of them', () => {
+    // Every paragraph of the lean block appears verbatim in the full one.
+    const paras = SHARED_RULES_LEAN.split('\n\n').map(s => s.trim()).filter(s => s.length > 40)
+    expect(paras.length).toBeGreaterThan(20)
+    for (const para of paras) expect(SHARED_RULES).toContain(para)
+  })
+
+  it('is materially shorter, or it is not a probe', () => {
+    expect(SHARED_RULES_LEAN.length).toBeLessThan(SHARED_RULES.length * 0.7)
   })
 })
