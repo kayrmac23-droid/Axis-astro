@@ -165,6 +165,30 @@ describe('/api/reading — the inline gate', () => {
     expect(await read(true)).toBe(GENERATED)
   })
 
+  it('serves what it caches PROVISIONALLY too — an unscored repair, not the first pass', async () => {
+    // provisionalText can be a repair whose re-score errored or ran out of
+    // budget. Caching it while serving the first pass would make the reader
+    // and the cache disagree, which is what inline gating exists to prevent.
+    gateResult = { cacheText: null, provisionalText: GATED, reason: 'repaired-recheck-errored' }
+    const served = await read(true)
+    expect(served).toBe(GATED)
+    expect(cached).toContain(GATED)
+    expect(gateCalls).toBe(1)
+  })
+
+  it('buffers a section it will gate, and streams the opening section it never gates', async () => {
+    // Buffer <=> a check runs before the reader sees the text.
+    const delivery = async (planetSection: string, threadId?: string) => (await POST(new NextRequest('https://x/api/reading', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.7.0.2' },
+      body: JSON.stringify({ birthData: BIRTH, section: 'tropical', planetSection, ...(threadId ? { threadId } : {}) }),
+    }))).headers.get('X-Axis-Delivery')
+    gateResult = { cacheText: GATED }
+    expect(await delivery('sun')).toBe('stream')
+    await post('sun', THREAD)
+    expect(await delivery('moon', THREAD)).toBe('buffered')
+  })
+
   it('falls back to the first pass when the gate throws, rather than losing the section', async () => {
     gateThrows = true
     expect(await read(true)).toBe(GENERATED)

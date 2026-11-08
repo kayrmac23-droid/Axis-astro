@@ -555,7 +555,11 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
             repair_attempted: repairAttempted,
             repaired: verdict.repaired,
             cached: verdict.cacheText !== null,
-            repair_failed: repairAttempted && verdict.cacheText === null,
+            // Unconfirmed (evaluator errored / out of budget) text is cached for
+            // 24h, not 30 days — reported separately so it is neither "cached"
+            // nor, for an unscored repair, a repair failure.
+            cached_provisional: verdict.cacheText === null && !!verdict.provisionalText,
+            repair_failed: repairAttempted && verdict.cacheText === null && !verdict.repaired,
             gate_model_calls: verdict.modelCalls,
             gate_ms: Date.now() - gateStart,
           })

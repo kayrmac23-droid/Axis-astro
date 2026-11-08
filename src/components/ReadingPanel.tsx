@@ -308,6 +308,11 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   // at roughly the Tropical reading plus The Divergence, while stating what is
   // behind it, so skipping it is a choice the reader can see themselves making.
   const [part2Open, setPart2Open] = useState(false)
+  // True when the server is holding the current section back to check it before
+  // serving it (X-Axis-Delivery: buffered). The header arrives the moment
+  // fetch() resolves, long before the body, so the wait can be explained only
+  // when there is one — by default a section streams and needs no explanation.
+  const [bufferedDelivery, setBufferedDelivery] = useState(false)
   const part2Ref = useRef<HTMLElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -399,6 +404,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               continue
             }
             if (!res.body) { lastError = 'No response body'; break }
+            setBufferedDelivery(res.headers.get('X-Axis-Delivery') === 'buffered')
 
             const reader  = res.body.getReader()
             const decoder = new TextDecoder()
@@ -786,15 +792,15 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
                   ? `Interpreting ${SECTION_DISPLAY[activePlanetSection] ?? activePlanetSection}`
                   : 'Interpreting chart'}
               </p>
-              {/* ⚠ The wait got longer and it needs saying.
-                  Sections are written in full and checked against the chart
-                  before any of them is shown, so nothing appears until the
-                  whole section is ready — where prose used to arrive word by
-                  word within about a second. Every later section is written
-                  while the reader is still on an earlier one, so this is the
-                  only place the wait is visible, and an unexplained twenty
-                  seconds of nothing reads as broken. */}
-              {isOpeningSection && (
+              {/* Only when the server says this section is BUFFERED for a
+                  pre-serve check (X-Axis-Delivery). Then nothing appears until
+                  the whole section is ready, and an unexplained twenty seconds
+                  of nothing reads as broken. A streamed section starts within
+                  about a second and needs no note — and claiming a check that
+                  did not run would be false. Every later section is written
+                  while the reader is still on an earlier one, so the opening
+                  section is the only place the wait is visible. */}
+              {isOpeningSection && bufferedDelivery && (
                 <p className={styles.generatingNote}>
                   Each section is written in full and checked against your chart before you see it.
                 </p>
