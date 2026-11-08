@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 const STEPS = [
-  { n: '01', label: 'GEOCODE', desc: 'Place resolved to coordinates via Nominatim. Nothing stored.' },
+  { n: '01', label: 'GEOCODE', desc: 'Place resolved to coordinates via Nominatim, from our server. Results cached 30 days by a fingerprint of the search.' },
   { n: '02', label: 'TIMEZONE', desc: 'IANA zone from the coordinates, DST-aware for the birth date. Local time becomes one UT instant.' },
   { n: '03', label: 'EPHEMERIS', desc: 'VSOP87 planets, ELP2000 Moon, True Node. Pluto from JPL Horizons DE440.' },
   { n: '04', label: 'TWO FRAMES', desc: 'Tropical as computed. Sidereal by subtracting the Lahiri ayanamsa — one sky, the band rotated. Whole Sign houses in both.' },

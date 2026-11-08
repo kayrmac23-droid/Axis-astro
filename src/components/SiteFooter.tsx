@@ -15,6 +15,7 @@ export default function SiteFooter() {
           <Link href="/sample" className={styles.link}>SAMPLE</Link>
           <Link href="/synastry" className={styles.link}>SYNASTRY</Link>
           <Link href="/guides" className={styles.link}>GUIDES</Link>
+          <Link href="/privacy" className={styles.link}>PRIVACY</Link>
         </nav>
         <div className={styles.col}>
           <span className={styles.brand}>AXIS — DUAL-SYSTEM ASTROLOGY</span><br />
