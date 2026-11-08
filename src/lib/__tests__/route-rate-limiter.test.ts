@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
-import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '../route-rate-limiter'
+import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, clientBucket, consumeDailyQuota, _resetQuotaMemoryForTests } from '../route-rate-limiter'
 
 // With no Upstash/KV env vars set, getRedis() returns null and every helper
 // falls back to its in-memory / fail-open path. Ensure that's the case so these
@@ -37,6 +37,68 @@ describe('getClientIp', () => {
 
   it('returns "direct" when no client-ip headers are present', () => {
     expect(getClientIp(reqWithHeaders({}))).toBe('direct')
+  })
+})
+
+describe('clientBucket — IPv6 is limited per /64, not per address', () => {
+  it('leaves IPv4 and the header-less bucket alone', () => {
+    expect(clientBucket('203.0.113.7')).toBe('203.0.113.7')
+    expect(clientBucket('direct')).toBe('direct')
+  })
+
+  it('buckets every address in one /64 together — rotating within it buys nothing', () => {
+    const a = clientBucket('2001:db8:85a3:12:1111:2222:3333:4444')
+    const b = clientBucket('2001:db8:85a3:12:ffff:0:0:1')
+    expect(a).toBe('2001:db8:85a3:12::/64')
+    expect(b).toBe(a)
+  })
+
+  it('keeps different /64s apart', () => {
+    expect(clientBucket('2001:db8:85a3:12::1')).not.toBe(clientBucket('2001:db8:85a3:13::1'))
+  })
+
+  it('expands :: compression and normalises case and leading zeros', () => {
+    expect(clientBucket('2001:DB8::1')).toBe('2001:db8:0:0::/64')
+    expect(clientBucket('2001:0db8:0000:0042:0:0:0:1')).toBe('2001:db8:0:42::/64')
+    expect(clientBucket('::1')).toBe('0:0:0:0::/64')
+  })
+
+  it('treats an IPv4-mapped address as the IPv4 address it carries', () => {
+    expect(clientBucket('::ffff:198.51.100.4')).toBe('198.51.100.4')
+  })
+
+  it('strips brackets, a port and a zone id', () => {
+    expect(clientBucket('[2001:db8:1:2::9]:443')).toBe('2001:db8:1:2::/64')
+    expect(clientBucket('fe80::1%eth0')).toBe('fe80:0:0:0::/64')
+  })
+
+  it('returns anything unparseable unchanged rather than merging it with others', () => {
+    expect(clientBucket('1:2:3:4:5:6:7:8:9')).toBe('1:2:3:4:5:6:7:8:9')
+    expect(clientBucket('zz::1')).toBe('zz::1')
+  })
+
+  it('is what getClientIp returns', () => {
+    const req = reqWithHeaders({ 'x-forwarded-for': '2001:db8:aa:bb:cc:dd:ee:ff' })
+    expect(getClientIp(req)).toBe('2001:db8:aa:bb::/64')
+  })
+})
+
+describe('consumeDailyQuota (in-memory fallback)', () => {
+  beforeEach(() => _resetQuotaMemoryForTests())
+
+  it('allows up to max, then refuses — and keeps counting refused requests', async () => {
+    const r1 = await consumeDailyQuota('ip', 'q-a', 2)
+    const r2 = await consumeDailyQuota('ip', 'q-a', 2)
+    const r3 = await consumeDailyQuota('ip', 'q-a', 2)
+    const r4 = await consumeDailyQuota('ip', 'q-a', 2)
+    expect([r1.allowed, r2.allowed, r3.allowed, r4.allowed]).toEqual([true, true, false, false])
+    expect(r4.used).toBe(4)
+  })
+
+  it('counts each id and each quota name separately', async () => {
+    await consumeDailyQuota('ip', 'q-b', 1)
+    expect((await consumeDailyQuota('ip', 'q-c', 1)).allowed).toBe(true)
+    expect((await consumeDailyQuota('chart', 'q-b', 1)).allowed).toBe(true)
   })
 })
 

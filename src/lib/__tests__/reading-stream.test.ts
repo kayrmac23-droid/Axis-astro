@@ -134,3 +134,29 @@ describe('retryDelayForStatus', () => {
     expect(retryDelayForStatus(413, null)).toBeNull()
   })
 })
+
+describe('quotaFailure — a refusal no retry can fix today', () => {
+  it('is fatal for a marked daily quota and carries the server message', async () => {
+    const { quotaFailure } = await import('../reading-stream')
+    const f = quotaFailure(429, 'ip', "You've reached today's reading limit from this connection.")
+    expect(f?.fatal).toBe(true)
+    expect(f?.code).toBe('quota-ip')
+    expect(f?.message).toMatch(/today's reading limit/)
+  })
+
+  it('is fatal for the site-wide cap', async () => {
+    const { quotaFailure } = await import('../reading-stream')
+    expect(quotaFailure(503, 'global')?.fatal).toBe(true)
+  })
+
+  it('leaves an ordinary 429 (per-minute limit, no header) retryable', async () => {
+    const { quotaFailure } = await import('../reading-stream')
+    expect(quotaFailure(429, null)).toBeNull()
+    expect(quotaFailure(500, 'ip')).toBeNull()
+  })
+
+  it('never shows the bare machine code as the reader message', async () => {
+    const { quotaFailure } = await import('../reading-stream')
+    expect(quotaFailure(429, 'chart', 'DAILY_QUOTA')?.message).not.toBe('DAILY_QUOTA')
+  })
+})

@@ -98,10 +98,36 @@ export async function checkRateLimit(
 // before any such deployment. The `'direct'` fallback buckets header-less requests
 // together, which is acceptable.
 export function getClientIp(req: NextRequest): string {
-  return req.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim()
+  const raw = req.headers.get('x-vercel-forwarded-for')?.split(',')[0].trim()
            || req.headers.get('x-forwarded-for')?.split(',')[0].trim()
            || req.headers.get('x-real-ip')
            || 'direct'
+  return clientBucket(raw)
+}
+
+// The unit a limit is applied to. IPv4 is one address. IPv6 is bucketed by its
+// /64 prefix: an ordinary allocation hands a single subscriber at least a /64
+// (2^64 addresses), so keying on the full address gave anyone with IPv6 a fresh
+// rate-limit bucket per request — every per-IP limit in this file was then
+// decorative for them. An IPv4-mapped IPv6 address (::ffff:1.2.3.4) is treated
+// as the IPv4 address it carries. Anything unparseable is returned unchanged.
+export function clientBucket(ip: string): string {
+  if (!ip.includes(':')) return ip
+  let addr = ip.replace(/^\[|\](:\d+)?$/g, '').split('%')[0].toLowerCase()
+  const mapped = addr.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/)
+  if (mapped) return mapped[1]
+  // An embedded dotted quad occupies the last two hextets.
+  addr = addr.replace(/(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/, (_, a, b, c, d) =>
+    `${((+a << 8) | +b).toString(16)}:${((+c << 8) | +d).toString(16)}`)
+  const halves = addr.split('::')
+  if (halves.length > 2) return ip
+  const head = halves[0] ? halves[0].split(':') : []
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : []
+  const fill = halves.length === 2 ? 8 - head.length - tail.length : 0
+  if (fill < 0) return ip
+  const groups = [...head, ...Array(fill).fill('0'), ...tail]
+  if (groups.length !== 8 || !groups.every(g => /^[0-9a-f]{1,4}$/.test(g))) return ip
+  return groups.slice(0, 4).map(g => g.replace(/^0+(?=.)/, '')).join(':') + '::/64'
 }
 
 // ── Global daily spend cap ───────────────────────────────────────────────────
@@ -123,10 +149,17 @@ end
 return count
 `
 
-function budgetKey(): string {
+// The calendar day every daily counter is keyed on: Australia/Melbourne, and
+// separated per deployment environment so preview traffic never spends
+// production's allowance.
+function dayStamp(): string {
   const env  = process.env.VERCEL_ENV ?? 'local'
   const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
-  return `axis:budget:${env}:${date}`
+  return `${env}:${date}`
+}
+
+function budgetKey(): string {
+  return `axis:budget:${dayStamp()}`
 }
 
 // Read-only preflight: reports the current daily count without incrementing.
@@ -162,4 +195,47 @@ export async function recordModelCalls(n: number): Promise<void> {
   } catch {
     // Spend recording is best-effort; never throw into the request path.
   }
+}
+
+// ── Daily quotas ─────────────────────────────────────────────────────────────
+// The global cap above is a SITE-WIDE kill switch: when it trips, every reader
+// is refused for the rest of the day. With only a per-minute limit in front of
+// it, one script looping over random birth data (each chart uncached) reached
+// it from a single IP in about 25 minutes. A daily quota per IP and per chart
+// bounds what any one source can take out of the shared allowance.
+//
+// Counted per uncached, model-calling request (cache hits never reach here).
+// INCR-then-compare, so a refused request is counted too — a source that keeps
+// hammering after its quota stays refused. Fails open when Redis is absent or
+// errors, exactly like the global cap: a Redis outage must not take readings
+// down. When Redis is absent, quotas are per-instance memory, bounded.
+const QUOTA_TTL_SECS = 48 * 60 * 60
+const _quotaFallback = new Map<string, number>()
+const MAX_QUOTA_FALLBACK_ENTRIES = 2000
+
+export async function consumeDailyQuota(
+  name: string, id: string, max: number,
+): Promise<{ allowed: boolean; used: number; max: number }> {
+  const key = `axis:quota:${name}:${dayStamp()}:${id}`
+  const redis = getRedis()
+  if (!redis) {
+    if (!_quotaFallback.has(key) && _quotaFallback.size >= MAX_QUOTA_FALLBACK_ENTRIES) {
+      const oldest = _quotaFallback.keys().next().value
+      if (oldest !== undefined) _quotaFallback.delete(oldest)
+    }
+    const used = (_quotaFallback.get(key) ?? 0) + 1
+    _quotaFallback.set(key, used)
+    return { allowed: used <= max, used, max }
+  }
+  try {
+    const used = await redis.eval(_RL_SCRIPT, [key], [String(QUOTA_TTL_SECS)]) as number
+    return { allowed: used <= max, used, max }
+  } catch {
+    return { allowed: true, used: 0, max }
+  }
+}
+
+// Test hook — the fallback store is module state.
+export function _resetQuotaMemoryForTests(): void {
+  _quotaFallback.clear()
 }

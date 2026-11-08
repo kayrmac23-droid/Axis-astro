@@ -153,3 +153,23 @@ export function retryDelayForStatus(status: number, retryAfter: string | null): 
   if (status >= 500 && status !== 503) return 1500
   return null
 }
+
+/**
+ * A refused request that no retry can fix TODAY: the server marks a daily quota
+ * (`X-Axis-Quota: chart | ip`, 429) or the site-wide daily cap (`global`, 503).
+ * Without this the panels treated a 429 as a short rate limit — waiting and
+ * retrying it — and then marched on through every remaining section, each one
+ * refused in turn. Returns a fatal failure carrying the server's own message so
+ * the run unwinds once, or null for any response that is not a quota refusal.
+ */
+export function quotaFailure(status: number, quotaHeader: string | null, serverMessage?: string): StreamFailure | null {
+  if (!quotaHeader || (status !== 429 && status !== 503)) return null
+  const fallback = quotaHeader === 'global'
+    ? "AXIS has reached today's reading limit. Anything already generated is saved — please come back tomorrow."
+    : "You've reached today's reading limit. Anything already generated is saved — please come back tomorrow."
+  return {
+    fatal: true,
+    code: `quota-${quotaHeader}`,
+    message: typeof serverMessage === 'string' && serverMessage && serverMessage !== 'DAILY_QUOTA' ? serverMessage : fallback,
+  }
+}
