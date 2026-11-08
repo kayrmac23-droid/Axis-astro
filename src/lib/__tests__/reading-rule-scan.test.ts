@@ -473,6 +473,67 @@ describe('prescription — conditional modals in subordinate clauses', () => {
   })
 })
 
+// ── v10.48: relative/subordinate "you will", counterfactual "should have" ───
+// The 2026-11-08 three-chart eval (v10.47 prompts, more second person) took hard
+// prediction/prescription findings 6 → 13, and read one by one nearly all were
+// relative or subordinate clauses describing a disposition, not a forecast or
+// advice. Each phrase below is verbatim from that run.
+describe('prediction/prescription — clausal false positives (2026-11-08 eval)', () => {
+  const quiet = (t: string) => {
+    const r = rules(`## X\n\n${t}`)
+    return !r.includes('prediction') && !r.includes('prescription')
+  }
+
+  it('"rerouted into something you will privately resent"', () => {
+    expect(quiet('rerouted into something you will privately resent')).toBe(true)
+  })
+  it('"filed as something you will carry rather than something you said"', () => {
+    expect(quiet('filed as something you will carry rather than something you said')).toBe(true)
+  })
+  it('"draft material for how you will be known and who you will be known alongside"', () => {
+    expect(quiet('draft material for how you will be known and who you will be known alongside')).toBe(true)
+  })
+  it('"making someone prove they want the depth before you\'ll admit you do too"', () => {
+    expect(quiet("making someone prove they want the depth before you'll admit you do too")).toBe(true)
+  })
+  it('"what you can prove you deserve, materially, before you\'ll believe it"', () => {
+    expect(quiet("what you can prove you deserve, materially, before you'll believe it")).toBe(true)
+  })
+  it('"the insistence on perfecting it before you\'ll trust it"', () => {
+    expect(quiet("the insistence on perfecting it before you'll trust it")).toBe(true)
+  })
+  it('"quietly reconstructing the argument you should have made first" (counterfactual)', () => {
+    expect(quiet('quietly reconstructing the argument you should have made first')).toBe(true)
+  })
+  it('"safety something you have to locate" (descriptive necessity)', () => {
+    expect(quiet('safety something you have to locate')).toBe(true)
+  })
+  // ⚠ The fragment "you have to build the case for it, slowly" begins AT the
+  // modal, so on its own it is lexically identical to the directive "you have to
+  // stop doing that" — no regex can exempt one without the other. It is quiet
+  // when the relative head that made it descriptive is present, and the bare
+  // fragment stays flagged on purpose.
+  it('"you have to build the case for it, slowly" — quiet inside its relative clause', () => {
+    expect(quiet('worth is something you have to build the case for, slowly')).toBe(true)
+    expect(quiet('the case you have to build for it, slowly')).toBe(true)
+    expect(quiet('you have to build the case for it, slowly')).toBe(false)
+  })
+
+  it('still catches genuine predictions and prescriptions', () => {
+    const loud = (t: string, rule: string) => has(`## X\n\n${t}`, rule)
+    expect(loud('You will meet someone who changes this.', 'prediction')).toBe(true)
+    expect(loud("You'll find the answer next spring.", 'prediction')).toBe(true)
+    // A gap between the introducer and "you" is a main clause after a fronted
+    // subordinate one — the prediction itself — so it is NOT exempted.
+    expect(loud('When this transit ends you will meet someone.', 'prediction')).toBe(true)
+    // Bare "that" is not an introducer: the complementiser is the prediction shape.
+    expect(loud('The chart suggests that you will move abroad.', 'prediction')).toBe(true)
+    expect(loud('You should work on this.', 'prescription')).toBe(true)
+    expect(loud('You should have a plan before you speak.', 'prescription')).toBe(true)
+    expect(loud('You have to stop doing that.', 'prescription')).toBe(true)
+  })
+})
+
 // ─────────────────────────────────────────────────────────────────────────────
 // The cap the SCAN reports from and the threshold the GATE hard-fails on are
 // deliberately different numbers. v10.34 conflated them, so the second instance

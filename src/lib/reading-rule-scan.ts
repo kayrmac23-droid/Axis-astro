@@ -125,9 +125,23 @@ function proseLines(text: string): { line: number; text: string }[] {
 // whenever/where), optionally with a few words between it and "you".
 const SUBORDINATED_YOU = String.raw`(?<!\b(?:before|until|when|whenever|while|if|once|unless|after|as|where|than)\b(?:\s+\w+){0,3}\s+)`
 
+// ⚠ v10.48: the same modals are also descriptive inside a RELATIVE clause —
+// "safety [is] something you have to locate", "what you need to hear first".
+// The relative head must sit IMMEDIATELY before "you" (no gap): a gap would let
+// a fronted clause ("what matters now, you have to…") exempt a main-clause
+// directive.
+const RELATIVE_HEAD_WORDS = 'something|anything|everything|nothing|someone|anyone|what|whatever|how|who|whom|whoever|which|whichever|case|thing|things|one'
+const RELATIVE_HEADS = `(?:${RELATIVE_HEAD_WORDS})`
+const RELATIVISED_YOU = String.raw`(?<!\b${RELATIVE_HEADS}\s+)`
+
+// "should have" + past participle is a COUNTERFACTUAL about the past ("the
+// argument you should have made first"), not advice. Scoped to participles so
+// "you should have a plan" — should + have-as-possession — is still caught.
+const COUNTERFACTUAL_HAVE = String.raw`(?!\s+have\s+(?:been|done|made|said|known|seen|told|gone|taken|given|had|felt|kept|left|let|put|thought|got|gotten|chosen|spoken|heard|meant|won|lost|\w+ed)\b)`
+
 const PRESCRIPTION_RES: readonly RegExp[] = [
-  /\byou (?:should|ought to)\b/gi,
-  new RegExp(SUBORDINATED_YOU + String.raw`\byou (?:need to|must|have to)\b`, 'gi'),
+  new RegExp(String.raw`\byou (?:should|ought to)\b` + COUNTERFACTUAL_HAVE, 'gi'),
+  new RegExp(SUBORDINATED_YOU + RELATIVISED_YOU + String.raw`\byou (?:need to|must|have to)\b`, 'gi'),
   /\byou(?:'| a)?r?e? (?:better off|best served)\b/gi,
   /\b(?:try|work|focus|start|stop|learn) to (?:notice|see|accept|let go)\b/gi,
   /\byou (?:might|may|could) (?:want|wish) to\b/gi,
@@ -141,9 +155,24 @@ const PRESCRIPTION_RES: readonly RegExp[] = [
 // shows pattern and tendency, never a future event. Deliberately NOT matching
 // bare "will": "the pattern will often surface" is a tendency claim, and the
 // prompt's own qualification rule asks for exactly that hedged form.
+//
+// ⚠ v10.48: "you will" inside a relative or subordinate clause is not a
+// prediction either — "something you will privately resent", "how you will be
+// known", "before you'll trust it" describe a standing disposition, and the
+// v10.47 prompts (more second person) doubled the hard findings on exactly this
+// shape, nearly all false. The introducer must sit IMMEDIATELY before "you":
+// allowing a gap would exempt "when this ends you will meet someone", a main
+// clause after a fronted subordinate one, which is the prediction itself.
+// Bare "that" is deliberately NOT an introducer: a lookbehind cannot tell the
+// relative "that" ("the thing that you will resent") from the complementiser
+// ("the chart suggests that you will meet someone"), and the second is the
+// exact shape this rule exists to catch.
+const PREDICTION_INTRODUCERS = String.raw`(?:${RELATIVE_HEAD_WORDS}|before|until|till|once|when|whenever|where|wherever|while|unless|after|than)`
+const CLAUSAL_YOU = String.raw`(?<!\b${PREDICTION_INTRODUCERS}\s+)`
+
 const PREDICTION_RES: readonly RegExp[] = [
-  /\byou will\b(?! (?:often|sometimes|usually|tend|typically|generally|recognise|recognize|have (?:already|noticed)))/gi,
-  /\byou'll\b(?! (?:often|sometimes|usually|tend|typically|generally|recognise|recognize))/gi,
+  new RegExp(CLAUSAL_YOU + String.raw`\byou will\b(?! (?:often|sometimes|usually|tend|typically|generally|recognise|recognize|have (?:already|noticed)))`, 'gi'),
+  new RegExp(CLAUSAL_YOU + String.raw`\byou'll\b(?! (?:often|sometimes|usually|tend|typically|generally|recognise|recognize))`, 'gi'),
   /\bthis will bring\b/gi,
   /\b(?:is|are) going to (?:bring|happen|arrive|come)\b/gi,
   /\bin the (?:coming|next) (?:years?|months?|decade)\b/gi,
