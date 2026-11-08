@@ -271,6 +271,17 @@ function getNeptuneLongitude(jde: number): number  { return getGeocentricLon(get
 // Pluto's sign near a boundary. With the frames consistent, plus light-time,
 // nutation and annual aberration, this matches JPL Horizons DE440 to under
 // 0.03′ on every date in BENCHMARK.md (pinned in astro-calc.test.ts).
+//
+// ⚠ Meeus states the series is valid for 1885–2099 only, and it degrades fast
+// outside that span: measured against JPL Horizons it is 0.45′ off in 1880,
+// 20′ off in 1850 and 5′ off in 2110. Inside the span it is within 0.03′ (~2″)
+// of DE440 — so a JPL call inside the span buys nothing, and outside it is the
+// only accurate source. plutoNeedsJpl() is the single statement of that span.
+export const MEEUS_PLUTO_VALID_YEARS = { from: 1885, to: 2099 } as const
+export function plutoNeedsJpl(year: number): boolean {
+  return year < MEEUS_PLUTO_VALID_YEARS.from || year > MEEUS_PLUTO_VALID_YEARS.to
+}
+
 const ABERRATION_DEG = 20.49552 / 3600
 function getPlutoLongitude(jde: number): number {
   const { _earth } = getPlanets()

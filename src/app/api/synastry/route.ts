@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateDualChart } from '@/lib/astro-calc'
+import { calculateDualChart, plutoNeedsJpl } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
 import { buildSynastryData } from '@/lib/synastry-calc'
 import { birthToUtcMs } from '@/lib/tz'
@@ -50,14 +50,12 @@ export async function POST(req: NextRequest) {
     const { data: birthA } = resA
     const { data: birthB } = resB
 
-    // Fetch Pluto for both charts concurrently
-    const utcA = new Date(birthToUtcMs(birthA.year, birthA.month, birthA.day, birthA.hour, birthA.minute, birthA.timezone))
-    const utcB = new Date(birthToUtcMs(birthB.year, birthB.month, birthB.day, birthB.hour, birthB.minute, birthB.timezone))
-
-    const [plutoA, plutoB] = await Promise.all([
-      getHorizonsEclipticLon('Pluto', utcA).catch(() => null),
-      getHorizonsEclipticLon('Pluto', utcB).catch(() => null),
-    ])
+    // Pluto from JPL only for a birth outside the local Meeus span (see
+    // plutoNeedsJpl and /api/calculate); both lookups run concurrently.
+    const jplPluto = (b: typeof birthA) => plutoNeedsJpl(b.year)
+      ? getHorizonsEclipticLon('Pluto', new Date(birthToUtcMs(b.year, b.month, b.day, b.hour, b.minute, b.timezone))).catch(() => null)
+      : Promise.resolve(null)
+    const [plutoA, plutoB] = await Promise.all([jplPluto(birthA), jplPluto(birthB)])
 
     const chartA = calculateDualChart(birthA, {
       plutoLongitude: plutoA?.longitude,

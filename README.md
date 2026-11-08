@@ -44,18 +44,18 @@ AXIS uses two complementary ephemeris sources:
 
 **1. Local VSOP87 / ELP2000 engine** (`astronomia` package) — Sun, Moon, Mercury through Neptune, Rahu/Ketu. Full VSOP87 planetary theory and ELP2000 lunar theory. These are the same algorithms used in professional desktop astrology software. Positions are evaluated in Terrestrial Time: the birth instant (UT) is converted with ΔT (NASA Espenak–Meeus model with observed IERS values, via `astronomia/deltat`), while the Ascendant and MC stay on UT because they follow Earth's rotation. Before November 2026 the planets were evaluated at UT directly, which put the Moon up to ~36″ behind its true place for modern births.
 
-**2. JPL Horizons REST API** — Pluto position. JPL Horizons (operated by NASA/JPL) returns positions computed from the JPL DE440 planetary ephemeris (Park et al. 2021), the current standard for solar system dynamics. DE440 accuracy for Pluto: < 1 arcsecond. AXIS fetches the Pluto position at chart calculation time via a single HTTP call to the Horizons API, with automatic fallback to the local Meeus polynomial if the API is unavailable.
+**2. Pluto: local Meeus Ch. 37, with JPL Horizons outside its span.** Meeus's Pluto series is valid for 1885–2099, and inside that span the local calculation agrees with JPL Horizons DE440 to under 0.03′ (~2″), so AXIS computes Pluto locally with no outside call. Outside it the series degrades quickly (measured against Horizons: 20′ off in 1850, 5′ off in 2110), so for a birth outside 1885–2099 AXIS fetches Pluto from JPL Horizons (DE440/DE441, operated by NASA/JPL), falling back to Meeus, marked APPROXIMATE in the chart header, if the API is unavailable. Before November 2026 every chart cast called Horizons, which put an outside dependency with a 5s timeout in front of every chart for a ~2″ improvement.
 
 | Body | Method | Accuracy (1800–2050) |
 |---|---|---|
 | Sun | VSOP87 via `solar.apparentVSOP87` (nutation + aberration included), in TT | < 1 arcsecond (measured ≤ 0.1″ vs JPL Horizons, 1925/1987/2024) |
 | Moon | ELP2000 + nutation correction, in TT | < 10 arcseconds (measured ≤ 4.1″ vs JPL Horizons, 1925/1987/2024) |
 | Mercury–Neptune | VSOP87 heliocentric + geocentric conversion + light-time + nutation | < 1 arcminute |
-| Pluto | **JPL Horizons DE440** (fallback: Meeus Ch. 37, < 0.03 arcmin vs DE440 1930–2025) | **< 1 arcsecond** |
+| Pluto | Meeus Ch. 37 for 1885–2099 (< 0.03 arcmin vs DE440); JPL Horizons DE440/DE441 outside that span | ~2″ inside the span; < 1″ (JPL) outside |
 | Rahu/Ketu | True node: Meeus Ch. 47 mean node + five periodic terms | Not independently benchmarked; the formula's terms are complete |
 | Lahiri ayanamsa | Linear precession formula | Within ~0.01° of the IAU reference value |
 
-Every generated chart displays the active Pluto ephemeris source ("JPL Horizons DE440" or "⚠ local fallback") in the reading header so users know which source was used.
+Every generated chart displays the Pluto source in the dossier header: "MEEUS CH.37 ≈ DE440" inside 1885–2099, "JPL HORIZONS DE440/DE441" outside it, or "LOCAL MEEUS APPROXIMATE" when an out-of-span JPL lookup failed.
 
 ### Pluto: what Horizons returns
 
@@ -80,7 +80,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 | Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
 | AI backend | Anthropic Claude Sonnet 5 for generation and repair, Sonnet 5.5 for quality evaluation, via streaming API with prompt caching |
-| Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + JPL Horizons DE440 Pluto |
+| Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + Meeus Ch. 37 Pluto (JPL Horizons outside 1885–2099) |
 | Geocoding | OpenStreetMap Nominatim |
 | Timezone | tz-lookup (offline IANA lookup) |
 | Deployment | Vercel |
@@ -219,7 +219,7 @@ This section describes what is hardened now and what requires distributed infras
 
 **External service dependencies:**
 - Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs a generation call plus an evaluation call, and more when the gate repairs it, so a fully uncached natal reading is **42–84 calls**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
-- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation for the Pluto position. Falls back to the local Meeus Ch. 37 calculation (< 0.03 arcmin vs DE440 across 1930–2025; see [BENCHMARK.md](BENCHMARK.md)) if unreachable.
+- JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation, only for a birth outside 1885–2099, for the Pluto position. Falls back to the local Meeus Ch. 37 calculation if unreachable.
 - OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s for the whole app, no autocomplete, results cached), all three enforced by `/api/geocode` and `BirthForm`.
 
 ---
@@ -230,7 +230,7 @@ This section describes what is hardened now and what requires distributed infras
 - **Rahu/Ketu** use the **true lunar node** — the Meeus mean node plus all five periodic correction terms (an earlier version omitted the 0.08° fifth term). The node oscillates ±1.5° around the mean with a ~173-day period; the position given is the instantaneous osculating node.
 - **Lahiri ayanamsa** is computed via a linear precession formula. Difference from the full polynomial calculation is < 0.01° for dates 1900–2100.
 - **Birth time** accuracy directly affects Ascendant, MC, house placements, Moon degree, and dasha timing. AXIS flags this explicitly in the UI when time is unknown.
-- **JPL Horizons availability:** AXIS requires one outbound HTTP call to `ssd.jpl.nasa.gov` per chart calculation for the Pluto position. If the endpoint is unreachable (downtime, network policy), the fallback engine activates transparently.
+- **JPL Horizons availability:** only a birth outside 1885–2099 makes an outbound call to `ssd.jpl.nasa.gov`. If the endpoint is unreachable, Pluto falls back to Meeus and the chart header marks it APPROXIMATE.
 
 ---
 

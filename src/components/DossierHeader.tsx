@@ -23,10 +23,21 @@ interface DossierHeaderProps {
   plutoSource?: string
 }
 
+// Mirrors MEEUS_PLUTO_VALID_YEARS in lib/astro-calc.ts (not imported: that
+// module pulls the ephemeris data into the client bundle).
+const MEEUS_FROM = 1885
+const MEEUS_TO   = 2099
+
 export default function DossierHeader({
   title, castLine, ayanamsa, year, birthTimeUnknown = false, plutoSource,
 }: DossierHeaderProps) {
-  const plutoFallback = plutoSource === 'local-meeus'
+  const local = plutoSource === 'local-meeus'
+  const y = Number(year)
+  // The local series is only a FALLBACK — and only worth a warning — outside
+  // the span where it is valid. Inside it, it is the primary source and agrees
+  // with JPL DE440 to ~2″, so labelling it a fallback overstated a difference
+  // no reading could ever show.
+  const plutoFallback = local && Number.isFinite(y) && (y < MEEUS_FROM || y > MEEUS_TO)
   // 'jpl-horizons-de441' for dates outside DE440's 1550–2650 span — say which.
   const plutoEphem = plutoSource?.match(/de\d+$/i)?.[0].toUpperCase() ?? 'DE440'
   return (
@@ -41,7 +52,9 @@ export default function DossierHeader({
           <div className={styles.cell}>
             <div className={styles.cellHead}>PLUTO</div>
             <div className={plutoFallback ? styles.cellWarn : undefined}>
-              {plutoFallback ? <>LOCAL MEEUS<br />FALLBACK</> : <>JPL HORIZONS<br />{plutoEphem}</>}
+              {plutoFallback ? <>LOCAL MEEUS<br />APPROXIMATE</>
+                : local ? <>MEEUS CH.37<br />≈ DE440</>
+                : <>JPL HORIZONS<br />{plutoEphem}</>}
             </div>
           </div>
           <div className={styles.cell}>

@@ -20,7 +20,7 @@ export default function SiteFooter() {
         <div className={styles.col}>
           <span className={styles.brand}>AXIS — DUAL-SYSTEM ASTROLOGY</span><br />
           NO HOROSCOPES · NO PREDICTIONS · NO AFFIRMATIONS<br />
-          VSOP87 · ELP2000 · JPL DE440 · TRUE NODE
+          VSOP87 · ELP2000 · ≈ JPL DE440 · TRUE NODE
         </div>
       </div>
     </footer>

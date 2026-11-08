@@ -56,7 +56,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
           <div className={styles.facts}>
             <div className={styles.fact}>
               <div className={styles.factHead}>EPHEMERIS</div>
-              <div className={styles.factVal}>VSOP87 · ELP2000<br />JPL DE440</div>
+              <div className={styles.factVal}>VSOP87 · ELP2000<br />≈ JPL DE440</div>
             </div>
             <div className={styles.fact}>
               <div className={styles.factHead}>AYANAMSA</div>

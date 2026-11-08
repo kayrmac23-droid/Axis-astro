@@ -37,7 +37,7 @@ Page routes: `/` (main app), `/method`, `/guides`, `/sample`, `/synastry`.
 
 ### API routes
 
-- **`/api/calculate`** (`maxDuration=30`): validates birth data (16 KB payload guard), rate-limited (30 req/60s), derives DST-accurate UTC offset via `Intl.DateTimeFormat`, fetches Pluto from JPL Horizons DE440 (5s timeout, falls back to local Meeus), calls `calculateDualChart()`. Returns `DualChartData` with `plutoSource`.
+- **`/api/calculate`** (`maxDuration=30`): validates birth data (16 KB payload guard), rate-limited (30 req/60s), derives DST-accurate UTC offset via `Intl.DateTimeFormat`, fetches Pluto from JPL Horizons **only for a birth outside 1885–2099** (`plutoNeedsJpl` in astro-calc.ts — the span where the local Meeus series is valid; inside it Meeus agrees with DE440 to ~2″, outside it drifts to 20′ by 1850), 5s timeout, falling back to local Meeus; calls `calculateDualChart()`. `/api/synastry` applies the same rule per person; `pluto-source.test.ts` pins it. Returns `DualChartData` with `plutoSource`.
 - **`/api/synastry`** (`maxDuration=30`): rate-limited (20 req/60s, 16 KB guard), computes two natal charts, inter-aspects, and a midpoint composite chart via `synastry-calc.ts`.
 - **`/api/geocode`**: Nominatim proxy. 200-char query limit, rate-limited (30 req/60s per IP), one app-wide 1 req/s gate to Nominatim (`axis:rl:nominatim:global`), results cached in Redis for 30 days, field-whitelisted. Nominatim's usage policy forbids autocomplete, so `BirthForm` searches only on Enter or its SEARCH button — never on a keystroke timer.
 - **`/api/timezone`**: GET `?lat=&lon=` → `{ tzName }`. Uses `tz-lookup` (offline, no external calls). Rate-limited (60 req/60s).

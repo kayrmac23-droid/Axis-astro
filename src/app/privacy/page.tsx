@@ -57,16 +57,17 @@ export default function PrivacyPage() {
 
           <div className={styles.entry}>
             <div className={styles.microLabel}>02 · WHERE IT GOES</div>
-            <h2 className={styles.entryH}>Three services, each given only what it needs</h2>
+            <h2 className={styles.entryH}>Outside services, each given only what it needs</h2>
             <p className={styles.para}>
               <strong>Place search.</strong> The text you type into the place field is sent, from
               our server, to OpenStreetMap&rsquo;s Nominatim service to find coordinates. Your
               own IP address is not passed on.
             </p>
             <p className={styles.para}>
-              <strong>Pluto&rsquo;s position.</strong> The moment of birth (as a UTC date and
-              time, with no place) is sent, from our server, to NASA JPL&rsquo;s Horizons service
-              to look up Pluto.
+              <strong>Pluto&rsquo;s position.</strong> Only for a birth before 1885 or after 2099:
+              the moment of birth (as a UTC date and time, with no place) is sent, from our
+              server, to NASA JPL&rsquo;s Horizons service to look up Pluto. For every other birth,
+              Pluto is calculated on our server.
             </p>
             <p className={styles.para}>
               <strong>The reading.</strong> The chart is calculated on our server. The AI service
