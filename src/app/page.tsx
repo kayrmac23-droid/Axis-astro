@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useMemo } from 'react'
 import ReadingPanel from '@/components/ReadingPanel'
+import ReadingErrorBoundary from '@/components/ReadingErrorBoundary'
 import PreviewLanding from '@/components/landing/PreviewLanding'
 import FrameShiftWheel from '@/components/FrameShiftWheel'
 import DossierHeader from '@/components/DossierHeader'
@@ -195,7 +196,9 @@ export default function Home() {
           </div>
 
           {readingReady && (
-            <ReadingPanel chartData={chartData} frame={frame} />
+            <ReadingErrorBoundary>
+              <ReadingPanel chartData={chartData} frame={frame} />
+            </ReadingErrorBoundary>
           )}
 
           <div className={styles.actions}>
