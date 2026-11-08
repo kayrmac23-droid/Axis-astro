@@ -7,7 +7,7 @@ import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
 import { formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading, PROVISIONAL_TTL_SECONDS } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock, synastryTimeUnknown } from '@/lib/synastry-calc'
-import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls } from '@/lib/route-rate-limiter'
+import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, consumeDailyQuota } from '@/lib/route-rate-limiter'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
 import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
@@ -40,6 +40,20 @@ const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
 // ── Rate limiting ──────────────────────────────────────────────────────────────
 // 20 AI-backed requests per IP per 60-second window. Cache hits bypass this.
 const READING_RATE_LIMIT = { max: intEnv('AXIS_READING_RATE_LIMIT_MAX', 20, 1), windowSecs: 60, keyPrefix: 'axis:rl:reading:' }
+
+// ── Daily quotas (uncached requests only) ──────────────────────────────────────
+// The per-minute limit alone let one IP exhaust the site-wide daily cap — and so
+// refuse every reader for the rest of the day — in about 25 minutes, by looping
+// over random birth data. These bound what any single source can take.
+//
+// Per IP (IPv6 bucketed by /64, see getClientIp): one full natal reading is ~21
+// uncached requests plus retries, so 120 is roughly five complete readings a
+// day from one connection — generous for a person, small against the cap.
+// Per chart: skipping sections changes the prior digest and therefore the cache
+// key, so one chart could otherwise generate unbounded variants. 40 is a whole
+// reading with every section retried once. Both are env-tunable, no redeploy.
+const DAILY_PER_IP    = () => intEnv('AXIS_READING_DAILY_PER_IP', 120, 1)
+const DAILY_PER_CHART = () => intEnv('AXIS_READING_DAILY_PER_CHART', 40, 1)
 
 const SYSTEM_PROMPT_MAP: Record<string, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
@@ -311,6 +325,35 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       )
     }
 
+    // ── Daily quotas: per chart, then per IP ──────────────────────────────────
+    // Before the global budget for the same reason the per-minute limit is: the
+    // global cap is shared by everyone, so a source over its own allowance must
+    // be stopped before it can count against it. The chart fingerprint ignores
+    // the client-supplied Pluto hint on purpose — varying it would otherwise
+    // mint a fresh chart per request. X-Axis-Quota tells the client this is not
+    // worth retrying, so it stops the run instead of failing ~21 sections in turn.
+    const chartId = section === 'synastry'
+      ? makeSynastryCacheKey({ birthA: birthA!, birthB: birthB!, section: '_quota', planetSection: '_' })
+      : makeCacheKey({ birth: birthData!, section: '_quota', planetSection: '_' })
+    const chartQuota = await consumeDailyQuota('chart', chartId, DAILY_PER_CHART())
+    const ipQuota    = chartQuota.allowed
+      ? await consumeDailyQuota('ip', ip, DAILY_PER_IP())
+      : null
+    if (!chartQuota.allowed || (ipQuota && !ipQuota.allowed)) {
+      const which = !chartQuota.allowed ? 'chart' : 'ip'
+      console.warn(`[AXIS_QUOTA] refused scope=${which} section=${section}/${planetSection} ` +
+        `chart=${chartQuota.used}/${chartQuota.max} ip=${ipQuota ? `${ipQuota.used}/${ipQuota.max}` : '-'}`)
+      return NextResponse.json(
+        {
+          error: 'DAILY_QUOTA',
+          message: which === 'chart'
+            ? 'This chart has reached its reading limit for today. Anything already generated is saved — come back tomorrow for the rest.'
+            : "You've reached today's reading limit from this connection. Anything already generated is saved — come back tomorrow for the rest.",
+        },
+        { status: 429, headers: { 'Retry-After': '3600', 'X-Axis-Quota': which } }
+      )
+    }
+
     // ── Global daily budget guard (only uncached, non-rate-limited requests reach here) ──
     // Hard cap on AI-backed reading calls per day across all instances/IPs.
     const budget = await readGlobalDailyBudget()
@@ -318,7 +361,7 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       console.error(`[AXIS] Daily reading call cap reached: used ${budget.used} of ${budget.cap}`)
       return NextResponse.json(
         { error: "AXIS has reached today's reading limit. Please try again tomorrow." },
-        { status: 503 }
+        { status: 503, headers: { 'X-Axis-Quota': 'global' } }
       )
     }
 

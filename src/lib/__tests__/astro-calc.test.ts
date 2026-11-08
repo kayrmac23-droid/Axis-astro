@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { calculateDualChart, toJulianDay, BirthData, DualChartData } from '../astro-calc'
+import { calculateDualChart, toJulianDay, deltaTSeconds, BirthData, DualChartData } from '../astro-calc'
 
 // A well-known birth date used across most tests.
 // 1990-06-15 12:00 UTC, London (lat 51.5, lon -0.12)
@@ -409,4 +409,37 @@ describe('calculateDualChart — local Pluto matches JPL DE440', () => {
     const diffArcmin = (((lon - jpl) + 540) % 360 - 180) * 60
     expect(Math.abs(diffArcmin)).toBeLessThan(0.5)
   })
+})
+
+// ── ΔT: positions are evaluated in Terrestrial Time ───────────────────────────
+// Reference values: JPL Horizons, observer table, geocentre, QUANTITIES=31
+// (apparent ecliptic longitude of date), times in UT — fetched 2026-11-08.
+// Before the ΔT correction the Moon trailed these by 31″ (1987) and 36″ (2024),
+// exactly the distance it travels in ΔT, and the Sun by ~3″. Tolerances are the
+// accuracy README.md claims: Sun < 1″ (pinned at 2″ for safety), Moon < 10″.
+describe('ΔT — planets in TT, angles in UT', () => {
+  const JPL = [
+    { when: { year: 1987, month: 6,  day: 15, hour: 12, minute: 0  }, sun: 83.8677401,  moon: 314.9823775 },
+    { when: { year: 2024, month: 11, day: 30, hour: 23, minute: 15 }, sun: 249.2482288, moon: 245.8608775 },
+    { when: { year: 1925, month: 3,  day: 2,  hour: 6,  minute: 30 }, sun: 341.1807685, moon: 68.6088827 },
+  ]
+  const arcsec = (a: number, b: number) => Math.abs((((a - b) + 540) % 360) - 180) * 3600
+
+  for (const ref of JPL) {
+    it(`matches JPL for the Sun (< 2″) and Moon (< 10″) on ${ref.when.year}-${ref.when.month}-${ref.when.day}`, () => {
+      const chart = calculateDualChart({ ...ref.when, latitude: 0, longitude: 0, timezone: 0 })
+      const sun  = chart.tropical.planets.find(p => p.name === 'Sun')!
+      const moon = chart.tropical.planets.find(p => p.name === 'Moon')!
+      expect(arcsec(sun.longitude, ref.sun)).toBeLessThan(2)
+      expect(arcsec(moon.longitude, ref.moon)).toBeLessThan(10)
+    })
+  }
+
+  it('uses the NASA model with observed values: ~56s in 1987, ~69s in 2024', () => {
+    expect(deltaTSeconds(toJulianDay(1987, 6, 15, 12, 0, 0))).toBeGreaterThan(55)
+    expect(deltaTSeconds(toJulianDay(1987, 6, 15, 12, 0, 0))).toBeLessThan(57)
+    expect(deltaTSeconds(toJulianDay(2024, 11, 30, 23, 15, 0))).toBeGreaterThan(68)
+    expect(deltaTSeconds(toJulianDay(2024, 11, 30, 23, 15, 0))).toBeLessThan(70)
+  })
+
 })

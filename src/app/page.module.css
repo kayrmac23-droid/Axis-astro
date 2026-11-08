@@ -100,3 +100,33 @@
   .actions { display: none !important; }
   .dossierHead { padding: 0; }
 }
+
+/* ─── Resume prompt (lib/saved-chart) ─────────────── */
+.resume {
+  width: 100%;
+  max-width: 1360px;
+  margin: 24px auto 0;
+  padding: 16px clamp(16px, 5vw, 56px);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(184, 115, 51, 0.25);
+}
+.resumeText { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.resumeKicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--copper-kicker);
+}
+.resumeLine {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.resumeActions { display: flex; flex-wrap: wrap; gap: 12px; }

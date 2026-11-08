@@ -87,6 +87,7 @@ const moonposition       = require('astronomia/moonposition')   as any
 const baseLib            = require('astronomia/base')           as any
 const nutationLib        = require('astronomia/nutation')       as any
 const plutoLib           = require('astronomia/pluto')          as any
+const deltatLib          = require('astronomia/deltat')         as { deltaT: (decimalYear: number) => number }
 const precessLib        = ((m: any) => m.default ?? m)(require('astronomia/precess'))
 const coordLib          = ((m: any) => m.default ?? m)(require('astronomia/coord'))
 
@@ -166,6 +167,33 @@ export function toJulianDay(
   return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + utHour / 24 + B - 1524.5
 }
 
+// ── ΔT: UNIVERSAL TIME → TERRESTRIAL TIME ─────────────────────────────────────
+// The ephemerides (VSOP87, ELP2000, Meeus) are functions of Terrestrial Time;
+// a birth is recorded in civil time, i.e. UT. ΔT = TT − UT is ~69s today, ~56s
+// in 1987, ~24s in 1925 — and hours in antiquity. Evaluating the planets at UT,
+// as this file did until v10.47, put the Moon ~0.5′ behind its true place for
+// any modern birth (it moves ~0.55″ per second): measured against JPL Horizons
+// on 1925/1987/2024 the Moon was off −0.13′/−0.51′/−0.60′, tracking ΔT exactly,
+// and the README's "< 10 arcseconds" was false. Effect on a reading: dasha
+// balance (the Moon's place in its nakshatra) shifted by days; a Moon right on
+// a sign or nakshatra boundary could fall on the wrong side.
+//
+// astronomia's deltaT is the NASA (Espenak–Meeus) model with the observed IERS
+// table for the telescopic era. The angles (RAMC, Ascendant, MC) are functions
+// of Earth's ROTATION, i.e. of UT, and stay on the UT Julian Day.
+function decimalYearFromJd(jd: number): number {
+  return 2000 + (jd - 2451545.0) / 365.25
+}
+
+export function deltaTSeconds(jd: number): number {
+  return deltatLib.deltaT(decimalYearFromJd(jd))
+}
+
+/** Julian Ephemeris Day (TT) for a Julian Day in UT. */
+export function toJde(jd: number): number {
+  return jd + deltaTSeconds(jd) / 86_400
+}
+
 // ── AYANAMSA ──────────────────────────────────────────────────────────────────
 
 // Lahiri ayanamsa — the standard for Jyotish. Lives in lib/ayanamsa.ts so the
@@ -243,6 +271,17 @@ function getNeptuneLongitude(jde: number): number  { return getGeocentricLon(get
 // Pluto's sign near a boundary. With the frames consistent, plus light-time,
 // nutation and annual aberration, this matches JPL Horizons DE440 to under
 // 0.03′ on every date in BENCHMARK.md (pinned in astro-calc.test.ts).
+//
+// ⚠ Meeus states the series is valid for 1885–2099 only, and it degrades fast
+// outside that span: measured against JPL Horizons it is 0.45′ off in 1880,
+// 20′ off in 1850 and 5′ off in 2110. Inside the span it is within 0.03′ (~2″)
+// of DE440 — so a JPL call inside the span buys nothing, and outside it is the
+// only accurate source. plutoNeedsJpl() is the single statement of that span.
+export const MEEUS_PLUTO_VALID_YEARS = { from: 1885, to: 2099 } as const
+export function plutoNeedsJpl(year: number): boolean {
+  return year < MEEUS_PLUTO_VALID_YEARS.from || year > MEEUS_PLUTO_VALID_YEARS.to
+}
+
 const ABERRATION_DEG = 20.49552 / 3600
 function getPlutoLongitude(jde: number): number {
   const { _earth } = getPlanets()
@@ -348,10 +387,13 @@ export function calculateDualChart(birth: BirthData, overrides?: ChartOverrides)
 
   // Compute tropical longitudes, retrograde status, and daily motion (centered difference)
   const rawPlanets: Array<{ name: string; longitude: number; retrograde: boolean; dailyMotion: number }> = []
+  // Planet positions are evaluated in Terrestrial Time (see ΔT above); the
+  // angles above stay on the UT `jd`.
+  const jde = toJde(jd)
   for (const { name, getLon } of PLANET_FUNS) {
-    const longitude = getLon(jd)
-    const lonBefore = getLon(jd - 1)
-    const lonAfter  = getLon(jd + 1)
+    const longitude = getLon(jde)
+    const lonBefore = getLon(jde - 1)
+    const lonAfter  = getLon(jde + 1)
     let dm = lonAfter - lonBefore
     if (dm > 180) dm -= 360
     if (dm < -180) dm += 360

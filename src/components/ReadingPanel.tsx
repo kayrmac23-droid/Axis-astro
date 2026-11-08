@@ -5,7 +5,7 @@ import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } fro
 import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
-import { detectStreamError, ReadingUnavailableError, retryDelayForStatus } from '@/lib/reading-stream'
+import { detectStreamError, ReadingUnavailableError, retryDelayForStatus, quotaFailure } from '@/lib/reading-stream'
 import { NATAL_SECTION_ORDER } from '@/lib/reading-order'
 
 // A reading-thread id (see reading-thread.ts): one per cast chart, so each
@@ -392,6 +392,13 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
             if (!res.ok) {
               const body = await res.json().catch(() => ({}))
+              // A daily quota or the site-wide cap: no retry helps today, so
+              // unwind the whole run once instead of refusing ~21 sections in turn.
+              const quota = quotaFailure(res.status, res.headers.get('X-Axis-Quota'), body.message)
+              if (quota) {
+                capture('reading_unavailable', { section: sec, planet_section: planetSec, code: quota.code })
+                throw new ReadingUnavailableError(quota)
+              }
               if (res.status === 429) {
                 const retryAfter = res.headers.get('Retry-After')
                 lastError = `Rate limit reached. ${retryAfter ? `Wait ${retryAfter}s and try again.` : 'Please wait before retrying.'}`
@@ -592,6 +599,11 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         })
 
         if (!res.ok || !res.body) {
+          if (!res.ok) {
+            const quota = quotaFailure(res.status, res.headers.get('X-Axis-Quota'),
+              (await res.json().catch(() => ({}))).message)
+            if (quota) { fatalMessage = quota.message; break }
+          }
           const wait = attempt === 0 && !res.ok ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
           if (wait == null) break
           await new Promise(r => setTimeout(r, wait))

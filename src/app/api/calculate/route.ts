@@ -1,6 +1,6 @@
 // app/api/calculate/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateDualChart } from '@/lib/astro-calc'
+import { calculateDualChart, plutoNeedsJpl } from '@/lib/astro-calc'
 import { getHorizonsEclipticLon } from '@/lib/jpl-horizons'
 import { birthToUtcMs } from '@/lib/tz'
 import { checkRateLimit, getClientIp } from '@/lib/route-rate-limiter'
@@ -43,10 +43,14 @@ export async function POST(req: NextRequest) {
     const birthData = parsedBirth.data
     const { year, month, day, hour, minute, timezone } = birthData
 
-    // Attempt JPL Horizons DE440 lookup for Pluto. Falls back to local Meeus (< 0.03′ vs DE440)
-    // silently if Horizons is unavailable. The chart is still valid in either case.
-    const utcDate = new Date(birthToUtcMs(year, month, day, hour, minute, timezone))
-    const horizonsPluto = await getHorizonsEclipticLon('Pluto', utcDate).catch(() => null)
+    // Pluto from JPL Horizons ONLY outside the span where the local Meeus series
+    // is valid (1885–2099; see plutoNeedsJpl). Inside it the local value is
+    // within ~2″ of DE440, so the call bought nothing and cost every chart cast
+    // an outside dependency with a 5s timeout. Outside it, JPL is the only
+    // accurate source; on failure the chart falls back to Meeus and says so.
+    const horizonsPluto = plutoNeedsJpl(year)
+      ? await getHorizonsEclipticLon('Pluto', new Date(birthToUtcMs(year, month, day, hour, minute, timezone))).catch(() => null)
+      : null
 
     const chartData = calculateDualChart(birthData, {
       plutoLongitude: horizonsPluto?.longitude,

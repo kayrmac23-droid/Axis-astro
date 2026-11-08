@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { SynastryData } from '@/lib/synastry-calc'
 import { SYNASTRY_DESCRIPTORS } from '@/lib/planet-descriptors'
 import styles from './ReadingPanel.module.css'
-import { detectStreamError, ReadingUnavailableError, retryDelayForStatus } from '@/lib/reading-stream'
+import { detectStreamError, ReadingUnavailableError, retryDelayForStatus, quotaFailure } from '@/lib/reading-stream'
 
 interface Props {
   synastryData: SynastryData
@@ -129,6 +129,10 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
 
             if (!res.ok) {
               const body = await res.json().catch(() => ({}))
+              // A daily quota or the site-wide cap: no retry helps today, so
+              // stop the run once instead of refusing every remaining section.
+              const quota = quotaFailure(res.status, res.headers.get('X-Axis-Quota'), body.message)
+              if (quota) throw new ReadingUnavailableError(quota)
               lastError = res.status === 429
                 ? `Rate limit reached. Please wait before retrying.`
                 : body.message || body.error || `Section failed (${res.status})`
