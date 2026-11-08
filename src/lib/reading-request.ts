@@ -10,7 +10,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { DualChartData } from '@/lib/astro-calc'
 import {
-  TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES,
+  TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, SHARED_RULES_LEAN,
   renderSectionInstruction, countPlanEvidence, wordBandFor, type WordBand,
 } from '@/lib/prompts'
 import { countAspectsInContext } from '@/lib/reading-quality-gate'
@@ -26,6 +26,20 @@ const SYSTEM_PROMPT_MAP: Record<NatalFrame, string> = {
   tropical:  TROPICAL_SYSTEM_PROMPT,
   sidereal:  SIDEREAL_SYSTEM_PROMPT,
   synthesis: SYNTHESIS_SYSTEM_PROMPT,
+}
+
+/**
+ * The cached rules block. SHARED_RULES unless AXIS_LEAN_RULES=true, which swaps
+ * in the derived SHARED_RULES_LEAN so `npm run eval` can measure the dilution
+ * hypothesis (see SHARED_RULES_LEAN in prompts.ts). Read per request, never at
+ * import, so the harness can set it without a rebuild. Off by default.
+ *
+ * ⚠ Flipping it changes the prompt and therefore what the cache rows mean:
+ * a lean run must be compared against its own baseline, and a measured keep
+ * needs READING_PROMPT_VERSION bumped like any other prompt change.
+ */
+function rulesBlock(): string {
+  return process.env.AXIS_LEAN_RULES === 'true' ? SHARED_RULES_LEAN : SHARED_RULES
 }
 
 export interface SectionRequest {
@@ -88,7 +102,7 @@ export function buildSectionRequest(
       max_tokens: MAX_TOKENS_PER_SECTION[planetSection] ?? 2000,
       thinking:   THINKING,
       system: [
-        { type: 'text', text: SHARED_RULES, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: rulesBlock(), cache_control: { type: 'ephemeral' } },
         { type: 'text', text: SYSTEM_PROMPT_MAP[section], cache_control: { type: 'ephemeral' } },
       ],
       messages: [{ role: 'user', content: userBlocks }],

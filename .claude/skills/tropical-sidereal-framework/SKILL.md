@@ -44,6 +44,8 @@ The two systems often put the same planet in different signs. That is not an err
 - **Confirming.** "The Sidereal placement confirms the Tropical one." That casts one frame as the other's validator. When both frames point the same way, say each produces it independently.
 - **Flattening.** "Carries both at once", a blended midpoint, or "the systems contradict each other" framed as a problem to fix.
 
+**The test on a finished sentence (v10.46, now in `SYNTHESIS_SYSTEM_PROMPT`):** delete one frame's clause. If what remains reads as the conclusion instead of half the account, the sentence ranked them. Every divergence is written as two accounts in the same tense, each with its own evidence and its own consequence.
+
 ## Dual-System Mechanics
 
 - The ayanamsa moves every position **backward**, about 23°51′ (Lahiri, 1999). A planet that changes sign moves to the *previous* sign, never forward.
