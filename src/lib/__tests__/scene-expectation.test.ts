@@ -48,10 +48,19 @@ describe('sceneExpectation', () => {
   })
 
   it('The Divergence: third-person, because its plan lists aspects as evidence', () => {
-    for (const ps of ['agree', 'diverge', 'tension', 'closing']) {
+    for (const ps of ['diverge', 'tension', 'closing']) {
       expect(buildSectionRequest(dual, 'synthesis', ps, []).scene).toBe('third-person')
     }
     expect(sceneExpectation('synthesis', 'diverge', 'RANKED DIVERGENCES\n  1. [D-SUN] Sun — sign changes. Evidence: D-SUN', 0)).toBe('no')
+  })
+
+  it('The Divergence concordance section: no, because its allocation is concordances with no aspect evidence', () => {
+    // Every synthesis section receives the whole plan, so a plan aspect says
+    // nothing about `agree`'s own evidence; asking it for a moment where the
+    // frames make the person act differently contradicted its instruction.
+    expect(buildSectionRequest(dual, 'synthesis', 'agree', []).scene).toBe('no')
+    const req = buildSectionRequest(dual, 'synthesis', 'agree', [])
+    expect(req.userContent).not.toMatch(/act differently/)
   })
 
   it('synastry keeps PART 1 as it was', () => {
@@ -66,6 +75,13 @@ describe('sceneClause — what the writer is told', () => {
     expect(c).toMatch(/write no scene/)
     expect(c).toMatch(/condition under which its pattern is live/)
     expect(c).toMatch(/goes quiet/)
+  })
+
+  it('keeps The Divergence in third person when there is no trigger', () => {
+    const c = sceneClause('no', 'synthesis')
+    expect(c).toMatch(/write no scene/i)
+    expect(c).toMatch(/third person/)
+    expect(c).not.toMatch(/your reader/i)
   })
 
   it('names the trigger kind where there is one', () => {
