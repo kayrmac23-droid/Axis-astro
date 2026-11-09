@@ -41,11 +41,20 @@ const PLAN_ASPECT_RE = /\bA-[A-Z]+-[A-Z]+-[A-Z]+\b/
  */
 export function sceneExpectation(
   section: string,
-  _planetSection: string,
+  planetSection: string,
   context: string,
   aspectCount: number,
 ): SceneExpectation {
-  if (section === 'synthesis') return PLAN_ASPECT_RE.test(context) ? 'third-person' : 'no'
+  if (section === 'synthesis') {
+    // Every Divergence section receives the WHOLE shared plan, so an aspect
+    // anywhere in it says nothing about this section's own evidence. The
+    // concordance section is allocated only concordances — sign, dignity and
+    // house holding across frames, with no aspect evidence — and its own
+    // instruction forbids previewing the divergence, so a "the frames make the
+    // person act differently" moment would be both invented and off-brief.
+    if (planetSection === 'agree') return 'no'
+    return PLAN_ASPECT_RE.test(context) ? 'third-person' : 'no'
+  }
   if (section === 'sidereal')  return DRISHTI_RECEIVED_RE.test(context) ? 'yes' : 'no'
   if (section === 'tropical')  return aspectCount > 0 ? 'yes' : 'no'
   // Synastry is built on inter-aspects and keeps PART 1 as it always was.
@@ -64,6 +73,11 @@ export function sceneClause(expectation: SceneExpectation, section: string): str
   if (expectation === 'yes') {
     const trigger = section === 'sidereal' ? 'a drishti this placement receives' : 'an aspect'
     return `SCENE: this section's evidence names a trigger (${trigger}), so PART 1's recurring moment is required. Build its trigger from that evidence.`
+  }
+  if (section === 'synthesis') {
+    // The Divergence is third person by its own instruction, so the no-scene
+    // form keeps that register: "your reader" would contradict it.
+    return 'SCENE: this section\'s evidence names no trigger, so a recurring moment would have to be invented, and PART 1 forbids that. Write no scene here. Name instead the arena each finding governs, the condition under which it is live in this person\'s life, and when it goes quiet. Tie each to an entry the plan lists. Keep the third person this section is written in.'
   }
   const missing = section === 'sidereal' ? 'no drishti reaches this placement' : 'no aspect reaches this placement'
   return `SCENE: this section's evidence names no trigger: ${missing}. A recurring moment would have to be invented, and PART 1 forbids that, so write no scene here. Name instead the arena this placement governs, the condition under which its pattern is live, and when it goes quiet. Tie each to a factor the context names. Your reader stays the grammatical subject.`
