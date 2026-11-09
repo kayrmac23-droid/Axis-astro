@@ -339,6 +339,38 @@ describe('gateForCache — an unusable repair is not cached', () => {
   })
 })
 
+describe('gateForCache — the evaluator is told whether a scene is expected', () => {
+  // The same computed value the generator saw (scene-expectation.ts): without
+  // it, a section that correctly declines to invent a trigger scores 2 on
+  // specificity and is repaired toward the invention.
+  const sentTurn = () => JSON.stringify(create.mock.calls[0][0].messages)
+  beforeEach(() => { create.mockReset() })
+
+  it('says no for a Sidereal section that receives no drishti', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, section: 'sidereal', planetSection: 'sun',
+      chartContext: 'GRAHA RELATIONSHIPS RECEIVED (Jyotish):\n• Conjunct (same sign) Mercury — Libra 5°07\', H1',
+      firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(sentTurn()).toContain('scene_expected: no')
+  })
+
+  it('says yes where a drishti is received', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, section: 'sidereal', planetSection: 'moon',
+      chartContext: '• Receives the 7th-house drishti of Mars (from Virgo, H12)',
+      firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(sentTurn()).toContain('scene_expected: yes')
+  })
+
+  it('says third-person for The Divergence', async () => {
+    create.mockResolvedValueOnce(evalReply(5))
+    await gateForCache({ ...BASE, section: 'synthesis', planetSection: 'diverge',
+      chartContext: '1. [D-MARS] Mars — sign changes. Evidence: D-MARS, A-MARS-SATURN-SEXTILE',
+      firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
+    expect(sentTurn()).toContain('scene_expected: third-person')
+  })
+})
+
 describe('detectBannedPhrasings', () => {
   it('returns nothing for clean prose', () => {
     expect(detectBannedPhrasings('The Saturn square makes the warmth costly to offer.')).toEqual([])

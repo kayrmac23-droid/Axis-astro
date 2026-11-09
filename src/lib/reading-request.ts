@@ -14,6 +14,7 @@ import {
   renderSectionInstruction, countPlanEvidence, wordBandFor, type WordBand,
 } from '@/lib/prompts'
 import { countAspectsInContext } from '@/lib/reading-quality-gate'
+import { sceneExpectation, sceneClause, type SceneExpectation } from '@/lib/scene-expectation'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import {
@@ -60,6 +61,8 @@ export interface SectionRequest {
   // The counts the band was scaled by, for the route's [AXIS_LEN] line.
   aspectCount:   number
   evidenceCount: number | undefined
+  // Whether the evidence can carry PART 1's moment (scene-expectation.ts).
+  scene:         SceneExpectation
 }
 
 export function buildSectionRequest(
@@ -87,8 +90,13 @@ export function buildSectionRequest(
   const evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
   const band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
   const sectionInstruction = renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!
+  // Whether this section's evidence names a trigger PART 1's moment can be
+  // built from. Stated beside the instruction, in the uncached tail, because
+  // the nearer instruction is the one this model follows; the evaluator
+  // computes the same value from the same context (scene-expectation.ts).
+  const scene = sceneExpectation(section, planetSection, contextBlock, aspectCount)
 
-  const userContent = `${contextBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}`
+  const userContent = `${contextBlock}\n\n---\n\n${repeatBlock}${sectionInstruction}\n\n${sceneClause(scene, section)}`
 
   const priorBlocks = priorSectionBlocks(prior)
   const userBlocks: Anthropic.TextBlockParam[] = [
@@ -112,5 +120,6 @@ export function buildSectionRequest(
     band,
     aspectCount,
     evidenceCount,
+    scene,
   }
 }
