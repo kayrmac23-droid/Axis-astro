@@ -104,7 +104,14 @@ import type { BirthData } from '@/lib/astro-calc'
 // none past 35, "split it"). The first human reading of v10.47 found the prose
 // clipped: sentences cut short and words swapped to stay under the limit. PART 4
 // now says to finish every thought. The conditional scene rule is unchanged.
-export const READING_PROMPT_VERSION = 'v10.48'
+// v10.49: fixes from Kay's reading of her own chart (2026-11-10). A planet
+// section is told which of its aspects an earlier section already walked, so
+// one aspect is no longer told as the same scene in two or three sections; the
+// prompt no longer hands the model the phrasings it echoed to the reader ("gets
+// a clause", "afterwards you notice", "the plan"); The Divergence never uses a
+// gendered pronoun for the reader; the nodes and outer planets are no longer
+// labelled peregrine; a wide aspect cannot anchor the central tension.
+export const READING_PROMPT_VERSION = 'v10.49'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

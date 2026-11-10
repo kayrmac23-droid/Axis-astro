@@ -241,15 +241,48 @@ export function phrasesAlreadyUsed(prior: PriorSection[], max = 15): string[] {
 const VERBAL_TICS = [
   'rather than', 'actually', 'genuine', 'genuinely', 'specific', 'specifically',
   'simply', 'precisely', 'quietly', 'exactly', 'entirely', 'hunger', 'chosen',
+  'real', 'rare', 'underneath', 'borrowed',
 ] as const
 export const TIC_MIN_COUNT = 6
 
+// Stock phrasings, as opposed to single overworked words: each is a whole
+// sentence shape, so three is already a refrain. On Kay's reading (2026-11-10)
+// the aftermath of nearly every moment was announced the same way ("afterwards
+// you notice", "what you notice afterwards") in seven sections, and the n-gram
+// pass missed it because the word order varied. Matched as patterns for that
+// reason; `label` is what the model is shown.
+const PHRASE_TICS: ReadonlyArray<{ label: string; re: RegExp }> = [
+  { label: 'afterwards you notice / what you notice afterwards', re: /\b(?:afterwards?,? (?:you|they) notices?|(?:you|they) notices? afterwards?|notices? after(?:wards?)?\b)/g },
+  { label: 'in the same breath', re: /\bin the same breath\b/g },
+  { label: 'you feel the pull', re: /\bfeel the (?:old )?pull\b/g },
+  { label: 'at stake', re: /\bat stake\b/g },
+  { label: 'is not X; it is Y (a claim made by first denying another)', re: /\b(?:is|are|was) not [^.;:—]{3,80}[.;:—] (?:it|that|this) is\b/g },
+]
+export const PHRASE_TIC_MIN_COUNT = 3
+
+// Em dashes per 1000 words above which the dash has become the reading's
+// default joint. The reviewed reading ran at about 19.
+export const DASH_PER_1000_LIMIT = 8
+
 export function overusedTics(prior: PriorSection[]): Array<{ tic: string; count: number }> {
   const prose = prior.map(p => p.text.split('\n').filter(l => !l.trimStart().startsWith('#')).join(' ')).join(' ').toLowerCase()
-  return VERBAL_TICS
+  const words = VERBAL_TICS
     .map(tic => ({ tic, count: (prose.match(new RegExp(`\\b${tic}\\b`, 'g')) ?? []).length }))
     .filter(t => t.count >= TIC_MIN_COUNT)
-    .sort((a, b) => b.count - a.count)
+  const phrases = PHRASE_TICS
+    .map(({ label, re }) => ({ tic: label, count: (prose.match(re) ?? []).length }))
+    .filter(t => t.count >= PHRASE_TIC_MIN_COUNT)
+  return [...words, ...phrases].sort((a, b) => b.count - a.count)
+}
+
+// Em-dash density across the reading so far, or null while it is unremarkable.
+export function dashDensity(prior: PriorSection[]): { count: number; per1000: number } | null {
+  const prose = prior.map(p => p.text.split('\n').filter(l => !l.trimStart().startsWith('#')).join(' ')).join(' ')
+  const wordCount = (prose.match(/\S+/g) ?? []).length
+  if (wordCount < 300) return null
+  const count = (prose.match(/—/g) ?? []).length
+  const per1000 = Math.round((count / wordCount) * 1000)
+  return per1000 > DASH_PER_1000_LIMIT ? { count, per1000 } : null
 }
 
 export function phrasesAlreadyUsedBlock(prior: PriorSection[]): string {
@@ -261,6 +294,10 @@ export function phrasesAlreadyUsedBlock(prior: PriorSection[]): string {
   }
   if (tics.length > 0) {
     out += `OVERUSED CONSTRUCTIONS — counts across the reading so far. Use each AT MOST ONCE in this section, and vary the sentence shape (the "X rather than Y" antithesis in particular has become a template):\n${tics.map(t => `· "${t.tic}" ×${t.count}`).join('\n')}\n\n`
+  }
+  const dashes = dashDensity(prior)
+  if (dashes) {
+    out += `DASHES — the reading so far uses ${dashes.count} em dashes, about ${dashes.per1000} in every 1000 words, so the dash has become its default joint. In this section use an em dash at most twice. Join clauses with a full stop, a comma, a colon or a conjunction, and never end a paragraph on a fragment hung after a dash.\n\n`
   }
   return out
 }

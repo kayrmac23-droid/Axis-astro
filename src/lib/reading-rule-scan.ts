@@ -437,6 +437,7 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 // are exempt. A caller that does not say which frame it is scanning gets no
 // register finding, so the check can never fire on text it cannot classify.
 const SECOND_PERSON_RE = /\b(?:you|your|yours|yourself)\b/i
+const GENDERED_PRONOUN_RE = /\b(?:he|him|his|himself|she|her|hers|herself)\b/i
 
 /** Which register a section is written under. `natal` is the only one checked. */
 export type SectionRegister = 'natal' | 'synthesis' | 'synastry' | 'unknown'
@@ -569,6 +570,20 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
       match:    'no second-person address in a natal section (PART 4: "you are", "you tend to", "you find")',
       line:     0,
     })
+  }
+
+  // Gendered pronouns in The Divergence. It is written in the third person
+  // about the reader, whose gender the chart does not state: on Kay's own
+  // reading (2026-11-10) it called her "he" and "him" throughout. Scoped to
+  // `synthesis`, where the only person in the prose is the reader; a natal
+  // section may legitimately give a third party a pronoun. One finding for the
+  // section, at the first instance.
+  if (registerFor(opts.frame) === 'synthesis') {
+    const hit = lines.find(l => GENDERED_PRONOUN_RE.test(l.text))
+    if (hit) {
+      const all = lines.flatMap(l => l.text.match(new RegExp(GENDERED_PRONOUN_RE.source, 'gi')) ?? [])
+      push('gendered-pronoun', 'hard', `${all.length} gendered pronoun(s) for the reader (${Array.from(new Set(all.map(w => w.toLowerCase()))).join(', ')}): use "they", "them", "their"`, hit.line)
+    }
   }
 
   return out.sort((a, b) => a.line - b.line)

@@ -686,6 +686,16 @@
      reader had open on screen. The disclosure control itself is screen-only;
      PART 2's heading survives as the band head inside it. */
   .partCollapsed { display: block; }
+  /* Every block of prose fades in. Inside a part that was `display: none` on
+     screen the animation has never run, so it starts when print reveals the
+     part and the page is captured on its first frame, at opacity 0: the saved
+     dossier came out with PART 2's placement cards and none of its prose
+     (reproduced in headless Chromium, 2026-11-10). */
+  .planetHeading, .planetSubheading, .infoBox, .paragraph {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
   .partToggle { display: none; }
   .partBody .bandInner { padding-top: 56px; }
 }

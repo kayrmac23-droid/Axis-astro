@@ -809,9 +809,15 @@ function angleDiff(a: number, b: number): number {
   return diff
 }
 
+export const NO_DIGNITY_SCHEME = 'NONE (outside the dignity scheme)'
+
 function computeDignity(planetName: string, signName: string): { status: string; description: string } {
   const d = DIGNITIES[planetName]
-  if (!d) return { status: 'peregrine', description: 'no special dignity or debility — neutral; operates according to sign and house character without exceptional ease or difficulty' }
+  // The Western scheme covers the seven traditional planets only. Labelling the
+  // nodes and the outer planets "peregrine" handed the model a dignity term they
+  // do not have, and it reasoned from it ("Rahu is peregrine, so this reaching
+  // borrows its confidence from the Sun").
+  if (!d) return { status: NO_DIGNITY_SCHEME, description: `the dignity scheme covers the seven traditional planets only, so ${planetName} has no dignity and no debility. It is NOT peregrine: never describe it as peregrine, borrowed, unsupported or dependent on its ruler on that basis` }
 
   if (d.domicile.includes(signName)) {
     // Check for simultaneous exaltation (e.g. Mercury in Virgo)
@@ -838,7 +844,7 @@ function computeDignity(planetName: string, signName: string): { status: string;
 // Returns a compact dignity label for the elite chart block
 function dignityLabel(planetName: string, signName: string): string {
   const d = DIGNITIES[planetName]
-  if (!d) return 'Peregrine'
+  if (!d) return 'No dignity scheme'
   const isDomicile   = d.domicile.includes(signName)
   const isExaltation = d.exaltation === signName
   const isDetriment  = d.detriment.includes(signName)
@@ -1276,7 +1282,7 @@ function formatMoonEvidenceBlock(moon: PlanetPosition, chart: ChartData, focalPl
   return lines.join('\n')
 }
 
-function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tropical' | 'sidereal', tropical?: ChartData, timeKnown = true): string {
+function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tropical' | 'sidereal', tropical?: ChartData, timeKnown = true, workedHomes: Map<string, string> = new Map()): string {
   const pData = PLANET_CORE[planet.name]
   const sData = SIGN_DATA[planet.sign]
   const hData = HOUSE_DATA[planet.house]
@@ -1336,9 +1342,17 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
       const stalled = a.applying && ((otherP && isNearStation(otherP)) || isNearStation(planet))
       const appSep = stalled ? 'applying by today\'s motion but a station is near — may never perfect' : a.applying ? 'applying' : 'separating'
       const hInfo  = otherP ? ` | ${other} H${otherP.house}` : ''
-      lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})${hInfo}`)
+      // Kept on the bullet's own line: countAspectsInContext ends the block at
+      // the first non-bullet line, so a continuation line would cut the count
+      // (and with it the word band) short.
+      const home = workedHomes.get(other)
+      const read = home ? ` — ALREADY READ in the ${home} section` : ''
+      lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})${hInfo}${read}`)
     })
-    lines.push('ORB WEIGHT: tight ≤2°, close ≤4°, moderate ≤6°, wide >6°. A wide aspect gets at most a clause: it never carries "real force" and never anchors a theme the reading returns to.')
+    if (aspects.some(a => workedHomes.has(a.planet1 === planet.name ? a.planet2 : a.planet1))) {
+      lines.push(`ALREADY READ: the section named walked that aspect in full and the reader has just read it. Do not walk it again, do not give it a sub-heading, and do not retell its moment. State it once from ${planet.name}'s side, in a sentence, adding only a consequence that section did not give; where an instruction selects such an aspect (as an opening, say), do the same and move on. The words it would have taken go to what this section alone can say: the sign, the house, the dispositor, and the aspects not marked.`)
+    }
+    lines.push('ORB WEIGHT: tight ≤2°, close ≤4°, moderate ≤6°, wide >6°. A wide aspect is mentioned once, briefly, inside a sentence about something else: it never carries "real force" and never anchors a theme the reading returns to. Never tell the reader how much space an aspect is being given.')
     lines.push('')
   }
 
@@ -1817,6 +1831,14 @@ export interface InterpretationContextOptions {
   // The reading so far (verbatim earlier sections). Lets the key-aspects
   // section be told which aspects an earlier section already worked.
   priorText?: string
+  // The planetSection keys of the sections of THIS frame the reader has already
+  // read. Every planet section walks the aspects to its own planet, so an aspect
+  // between two personal planets was being interpreted in full twice — and a
+  // third time under key aspects. On the reading Kay reviewed (2026-11-10) the
+  // Moon–Venus square was told as the same scene in the Moon, Venus and Mars
+  // sections, and Mercury–Jupiter four times. A planet section is told which of
+  // its aspects the other planet's section has already walked.
+  priorPlanetSections?: string[]
   // Clock for the dasha period; defaults to now. Injected by tests.
   now?: number
 }
@@ -1908,7 +1930,7 @@ export function buildInterpretationContext(
       lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})`)
       if (options.priorText) {
         lines.push(worked
-          ? '  ALREADY WORKED in the reading so far — do NOT interpret it again; at most refer to it in a clause.'
+          ? '  ALREADY WORKED in the reading so far — do NOT interpret it again; at most name it in passing.'
           : '  NOT YET WORKED in the reading so far — eligible for this section.')
       }
       if (p1 && p2) lines.push(`  Placements: ${a.planet1} ${p1.sign} H${p1.house} · ${a.planet2} ${p2.sign} H${p2.house}`)
@@ -1924,10 +1946,19 @@ export function buildInterpretationContext(
 
   const targetPlanets = SECTION_PLANET_MAP[section]?.[planetSection] || []
 
+  // planet → the earlier section of this frame that is its home.
+  const workedHomes = new Map<string, string>()
+  for (const key of options.priorPlanetSections ?? []) {
+    if (key === planetSection) continue
+    for (const name of SECTION_PLANET_MAP[section]?.[key] ?? []) {
+      if (!targetPlanets.includes(name)) workedHomes.set(name, key === 'jupiter_saturn' ? 'Jupiter and Saturn' : name)
+    }
+  }
+
   targetPlanets.forEach(pName => {
     const planet = chart.planets.find(p => p.name === pName)
     if (!planet) return
-    lines.push(formatPlanetBlock(planet, chart, system, chartData.tropical, !birthTimeUnknown))
+    lines.push(formatPlanetBlock(planet, chart, system, chartData.tropical, !birthTimeUnknown, workedHomes))
     lines.push('')
   })
 
