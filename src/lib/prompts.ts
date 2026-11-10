@@ -406,11 +406,11 @@ export interface WordBand {
 // Synastry bands are deliberately UNCHANGED: six sections at ~1,950 words is
 // already a reasonable sitting, and that flow is not threaded, so it carries
 // none of the compounding input cost that motivates (2).
-const BAND_MAJOR:              WordBand = { target: 1065, fullMin: 895, fullMax: 1230, hardMin: 785, hardMax: 1370, aspectBaseline: 3, aspectAllowance: 85 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 685, fullMin: 565, fullMax: 805, hardMin: 495, hardMax: 910 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 560, fullMin: 460, fullMax: 650, hardMin: 400, hardMax: 750, aspectBaseline: 2, aspectAllowance: 65 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 590, fullMin: 495, fullMax: 685, hardMin: 425, hardMax: 855, aspectBaseline: 2, aspectAllowance: 65 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 435, fullMin: 380, fullMax: 505, hardMin: 330, hardMax: 630, aspectBaseline: 1, aspectAllowance: 55 }
+const BAND_MAJOR:              WordBand = { target: 760, fullMin: 640, fullMax:  880, hardMin: 560, hardMax:  980, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 490, fullMin: 405, fullMax:  575, hardMin: 355, hardMax:  650 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 400, fullMin: 330, fullMax:  465, hardMin: 285, hardMax:  535, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 420, fullMin: 355, fullMax:  490, hardMin: 305, hardMax:  610, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax:  360, hardMin: 235, hardMax:  450, aspectBaseline: 1, aspectAllowance: 40 }
 // Jupiter/Saturn, BOTH frames. Split out of the secondary bands in v10.36 for a
 // mechanistic reason, not to fit a curve: this is the one "secondary" with no
 // OPENER_MODE and no CLOSER_MODE (see OPENER_MODES/CLOSER_MODES — sun, moon,
@@ -432,13 +432,13 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 435, fullMin: 380, fullMax: 
 // against an observed 415 — a floor above what the section has to say, which is
 // precisely the "a floor is an instruction to pad" failure the v10.30 note below
 // warns about. Granting it nothing is what the evidence supports.
-const BAND_JUPSAT:             WordBand = { target: 615, fullMin: 520, fullMax: 720, hardMin: 450, hardMax: 895 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 320, fullMin: 265, fullMax: 390, hardMin: 230, hardMax: 490 }
-const BAND_NODES_TROP:         WordBand = { target: 330, fullMin: 275, fullMax: 385, hardMin: 240, hardMax: 475 }
-const BAND_DIVERGENCE:         WordBand = { target: 1090, fullMin: 910, fullMax: 1280, hardMin: 790, hardMax: 1415, evidenceBaseline: 4, evidenceAllowance: 180, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 560, fullMin: 440, fullMax: 730, hardMin: 370, hardMax: 845, evidenceBaseline: 3, evidenceAllowance: 135, evidenceUpCap: 3 }
-const BAND_CENTRAL_TENSION:    WordBand = { target: 385, fullMin: 310, fullMax: 490, hardMin: 260, hardMax: 595 }
-const BAND_CLOSING:            WordBand = { target: 320, fullMin: 245, fullMax: 455, hardMin: 195, hardMax: 545 }
+const BAND_JUPSAT:             WordBand = { target: 440, fullMin: 370, fullMax:  515, hardMin: 320, hardMax:  640 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 230, fullMin: 190, fullMax:  280, hardMin: 165, hardMax:  350 }
+const BAND_NODES_TROP:         WordBand = { target: 235, fullMin: 195, fullMax:  275, hardMin: 170, hardMax:  340 }
+const BAND_DIVERGENCE:         WordBand = { target: 780, fullMin: 650, fullMax:  915, hardMin: 565, hardMax: 1010, evidenceBaseline: 4, evidenceAllowance: 130, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 400, fullMin: 315, fullMax:  520, hardMin: 265, hardMax:  605, evidenceBaseline: 3, evidenceAllowance:  95, evidenceUpCap: 3 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 275, fullMin: 220, fullMax:  350, hardMin: 185, hardMax:  425 }
+const BAND_CLOSING:            WordBand = { target: 230, fullMin: 175, fullMax:  325, hardMin: 140, hardMax:  390 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
 const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
 const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
@@ -719,13 +719,6 @@ principled position with no particular authority behind it. In a live exchange
 you reach the answer fast and then cannot licence it. Aries thinks by starting,
 and the speed is real; what is thin is any sense that you were entitled to start.
 
-Mars in the tenth also decides where that unlicensed quickness shows. The tenth
-is the public house, so the doubt attaches to what you say in front of people
-whose opinion has consequences: a meeting, a review, a room with a senior voice
-in it. Among people who hold no standing over you, the same thought leaves your
-mouth whole. The difference between those two rooms is the whole effect of the
-dispositor, and it is why one week can hold both versions of your thinking.
-
 The twelfth house means most of this happens before anyone else is in the room.
 You draft the argument on the walk, at two in the morning, and the version people
 hear is the fourth draft delivered as though it were the first. That private
@@ -741,19 +734,12 @@ somewhere to land. Where a structure already exists — a brief, a deadline, a
 process with steps — your thinking firms up and the hesitation leaves your voice,
 because Saturn supplies from outside the authorisation Mars cannot give you.
 
-Saturn's help has a price that arrives with it. Because the steadiness is
-supplied by the brief and the deadline, it leaves when they do, and work you
-were sure of on Thursday can read as presumptuous once the project closes. You
-tend to reopen finished work at that point, checking a conclusion that was sound
-when you reached it. The sextile gives your thinking a frame to stand in, and
-no way of carrying that frame out of the room.
-
 The close square to Rahu in the ninth (4°) pulls the other way, and it is the
 sharper of the two. When talk turns to what you believe, and the person across
-from you wants more conviction than your evidence supports, the easy move is to
-match their certainty, and you make it. Hours later the position is still
-unfinished, and you can see why: you spent the evening defending it, and the
-defending is what stopped you finishing it.
+from you wants more conviction than your evidence supports, you feel the pull to
+match their certainty. You match it. Hours later you notice you have defended a
+position you had not finished forming, and that the defending is what stopped you
+finishing it.
 
 The wide ninth-house squares to Uranus and Neptune thin that same pressure out
 across belief and meaning.
@@ -823,7 +809,7 @@ the same sentence, and a reader who meets that sentence in section after
 section stops believing any of them.
 
 Write all three in the PRESENT tense: "you match their certainty, and hours
-later the position is still unfinished", never "you will feel the pull" or "you will find". The
+later you notice…", never "you will feel the pull" or "you will find". The
 future tense turns the same observation into a prediction, which PART 4 bans
 outright, and the pull toward it arrives exactly when this PART is being obeyed.
 
@@ -1262,16 +1248,14 @@ name the mechanism, the lived behaviour, what it costs, the condition that
 activates it.
 
 SECONDARY SECTIONS (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key
-aspects) are built to a tighter band than the primaries and must be PLANNED
-for it, never trimmed into it. Their bands allow a full paragraph per evidence
-layer: the mechanism, the lived behaviour, what it costs and the condition that
-activates it. Cover the sign, the house, the dispositor, and the aspects or
-graha relationships carrying real weight, each taken far enough that the reader
-learns something the placement's name alone would not have told them; then
-stop. Where the chart gives more aspects than the band will carry, work the
-tightest to their own dynamics and name the rest in passing. Depth comes from
-taking one layer further, never from adding a layer the chart does not give or
-saying a thing twice.
+aspects) are built to a much tighter band and must be PLANNED for it, never
+trimmed into it. Their bands allow roughly two to three sentences per evidence
+layer, and that is the correct shape, not a shortfall. Cover the sign, the
+house, the aspects or graha relationships carrying real weight, and the dynamic
+they produce; then stop. Where the chart gives more aspects than the band will
+carry, work the tightest to its own dynamic and name the rest in passing. An
+accurate observation in three sentences beats a generic paragraph, and a
+secondary section that runs to primary length has padded, however good the prose.
 
 The band is the instruction. Where any depth requirement above appears to ask
 for more words than the band allows, the band wins and the material is selected.
