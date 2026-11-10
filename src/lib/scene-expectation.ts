@@ -64,7 +64,7 @@ export function sceneExpectation(
 /**
  * The generator's half: appended to the section instruction, in the uncached
  * tail beside it, because a nearer instruction is the one this model follows.
- * Written in short sentences and second person, as the rules it serves require.
+ * Written in second person, as the rules it serves require.
  */
 export function sceneClause(expectation: SceneExpectation, section: string): string {
   if (expectation === 'third-person') {

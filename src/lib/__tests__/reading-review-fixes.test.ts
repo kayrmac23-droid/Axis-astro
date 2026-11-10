@@ -669,3 +669,19 @@ describe('SHARED_RULES_LEAN — the dilution probe is derived, not duplicated', 
     expect(SHARED_RULES_LEAN.length).toBeLessThan(SHARED_RULES.length * 0.7)
   })
 })
+
+// v10.48. v10.47 told the model to average about 18 words a sentence and to
+// split anything carrying several facts. The first human reading of that prose
+// (Kay, her own chart) found it clipped: sentences cut short and words swapped
+// to stay under the limit. The rater had scored it higher, so only a test stops
+// the target coming back on the rater's say-so.
+describe('PART 4 carries no sentence-length target (v10.48)', () => {
+  it('does not set a words-per-sentence average or tell the model to split', () => {
+    expect(SHARED_RULES).not.toMatch(/KEEP SENTENCES SHORT/i)
+    expect(SHARED_RULES).not.toMatch(/\b18 words\b/)
+    expect(SHARED_RULES).not.toMatch(/words a sentence on average/i)
+  })
+  it('tells the model to finish the thought', () => {
+    expect(SHARED_RULES).toContain('FINISH EVERY THOUGHT')
+  })
+})
