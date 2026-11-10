@@ -104,7 +104,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // none past 35, "split it"). The first human reading of v10.47 found the prose
 // clipped: sentences cut short and words swapped to stay under the limit. PART 4
 // now says to finish every thought. The conditional scene rule is unchanged.
-export const READING_PROMPT_VERSION = 'v10.48'
+export const READING_PROMPT_VERSION = 'v10.49'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
