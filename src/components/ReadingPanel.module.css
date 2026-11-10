@@ -662,7 +662,55 @@
   .divTop { grid-template-columns: minmax(0, 1fr); gap: 32px; }
 }
 
-/* PART 2 collapsed. Not the `hidden` attribute and not a conditional render:
+/* ─── Paging: step bar above the prose, BACK / NEXT below it ─── */
+.partSteps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.partStep {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  padding: 18px clamp(12px, 3vw, 28px);
+  background: transparent; border: 0; border-right: 1px solid var(--border);
+  font-family: var(--font-mono); text-align: left; cursor: pointer;
+  color: var(--text-3);
+}
+.partStep:last-child { border-right: 0; }
+.partStepNum { font-size: 10px; letter-spacing: 0.18em; }
+.partStepLabel { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--text); }
+.partStepState { font-size: 10px; letter-spacing: 0.14em; }
+.partStepOn { box-shadow: inset 0 -2px 0 var(--copper); }
+.partStepOn .partStepNum { color: var(--copper-bright); }
+.partStep:hover .partStepLabel { color: var(--copper-bright); }
+.partStep:focus-visible, .partNavBack:focus-visible, .partNavNext:focus-visible {
+  outline: 1px solid var(--cyan); outline-offset: -1px;
+}
+.partNav {
+  display: flex; justify-content: space-between; align-items: stretch; gap: 16px;
+  position: relative; z-index: 1;
+  max-width: 1360px; margin: 0 auto;
+  padding: 0 clamp(16px, 5vw, 56px) 56px;
+}
+.partNavBack, .partNavNext {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  background: transparent; cursor: pointer; padding: 16px 24px;
+}
+.partNavBack { color: var(--text-3); border: 1px solid var(--border-2); }
+.partNavBack:hover { color: var(--text); border-color: var(--text); }
+.partNavNext {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end; text-align: right;
+  color: var(--text); border: 1px solid var(--copper);
+}
+.partNavNext:hover { background: rgba(184, 115, 51, 0.12); }
+.partNavKicker { font-size: 10px; font-weight: 400; color: var(--copper-bright); letter-spacing: 0.16em; }
+@media (max-width: 640px) {
+  .partStepLabel { font-size: 10px; letter-spacing: 0.08em; }
+  .partNav { flex-direction: column-reverse; }
+  .partNavNext { align-items: flex-start; text-align: left; }
+}
+
+/* A part that is not on screen. Not the `hidden` attribute and not a conditional render:
    the prose must stay in the DOM so window.print() (SAVE DOSSIER · PDF) carries
    it into the saved dossier. See the print query below. */
 .partCollapsed { display: none; }
@@ -686,6 +734,6 @@
      reader had open on screen. The disclosure control itself is screen-only;
      PART 2's heading survives as the band head inside it. */
   .partCollapsed { display: block; }
-  .partToggle { display: none; }
+  .partToggle, .partSteps, .partNav { display: none; }
   .partBody .bandInner { padding-top: 56px; }
 }
