@@ -27,7 +27,7 @@ export default function SamplePage() {
         </div>
         <div className={styles.heroMeta}>
           ANONYMISED CHART · 2 AUG 1994 · 09:20 PM · SYDNEY<br />
-          <span className={styles.heroMetaDim}>EXCERPT ONLY. A FULL DOSSIER RUNS 9 SECTIONS PER FRAME AND THE DIVERGENCE.</span>
+          <span className={styles.heroMetaDim}>EXCERPT ONLY. A FULL DOSSIER RUNS 9 TROPICAL SECTIONS, 8 SIDEREAL AND THE DIVERGENCE.</span>
         </div>
       </section>
 

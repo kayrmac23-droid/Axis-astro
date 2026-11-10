@@ -150,6 +150,21 @@ check "naming-integration-rendered" \
   '"the integration" in rendered copy (DOCTRINE.md: NAMING, synastry VOCABULARY)'
 
 # ---------------------------------------------------------------------------
+# HAND-AUTHORED COPY — STORAGE CLAIMS (DOCTRINE.md: IDENTITY & STORAGE TIERS)
+#
+# "AXIS makes no product-wide no-storage claim" and "the UI makes no explicit
+# no-storage promise". The landing said "NOTHING STORED" until Nov 2026 while
+# /privacy listed what is kept (the 30-day reading cache, the 24h reading
+# thread, the last chart in localStorage). Matches only the blanket promise;
+# /privacy's specific statements ("not saved to any database") stay legal.
+# ---------------------------------------------------------------------------
+header "HAND-AUTHORED COPY — STORAGE CLAIMS"
+
+check "storage-no-blanket-promise" \
+  "nothing( is)? (stored|saved|kept|retained)|no data( is)? (stored|saved|kept|retained)|we (do not|don.t|never) (store|save|keep)" \
+  'blanket no-storage promise in rendered copy (DOCTRINE.md: IDENTITY & STORAGE TIERS)'
+
+# ---------------------------------------------------------------------------
 # RESIDUAL KNOWN LEAK (INFO — never affects exit code)
 #
 # The sidereal system prompt (prompts.ts, ~line 423) reads "…deep instinctive

@@ -127,7 +127,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             <div className={styles.kicker}>{'// CALIBRATION'}</div>
             <h2 className={styles.secH}>Three facts set the instrument.</h2>
             <p className={styles.secLede}>Timezone is resolved from the place; both zodiacs are computed from the same instant. Time accuracy governs the Ascendant, houses and Moon degree — the elements the reading leans on hardest.</p>
-            <div className={styles.calibMeta}>NOMINATIM GEOCODE · IANA TZ · DST-AWARE<br />NOTHING STORED · NO ACCOUNT</div>
+            <div className={styles.calibMeta}>NOMINATIM GEOCODE · IANA TZ · DST-AWARE<br />NO ACCOUNT</div>
           </div>
           <div className={styles.calibForm}>
             <BirthForm onSubmit={onSubmit} loading={loading} submitLabel="Cast chart" />
