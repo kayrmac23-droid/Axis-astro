@@ -762,6 +762,12 @@ describe('v10.49 — the prompt no longer hands over the phrasings the reader wa
     const hits = scanSectionRules(he, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')
     expect(hits).toHaveLength(1)
     expect(hits[0].severity).toBe('hard')
+    const thirdParty = 'They hold their ground when their mother asks for an answer. She wants a decision before they are ready to give one.'
+    const thirdPartyHits = scanSectionRules(thirdParty, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')
+    expect(thirdPartyHits).toHaveLength(1)
+    expect(thirdPartyHits[0].severity).toBe('soft')
+    const ambiguous = 'She presses them for an answer.'
+    expect(scanSectionRules(ambiguous, { frame: 'synthesis' }).find(f => f.rule === 'gendered-pronoun')?.severity).toBe('soft')
     const they = 'This person is not choosing between two versions of one wish. They are running two accounts, and neither decides for them.'
     expect(scanSectionRules(they, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')).toHaveLength(0)
     // A natal section may give a third party a pronoun.
