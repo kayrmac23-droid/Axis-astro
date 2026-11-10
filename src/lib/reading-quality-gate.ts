@@ -1294,10 +1294,18 @@ function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
   const contextual = new Set(HIERARCHY_CONTEXTUAL_TERMS.map(t => t.toLowerCase()))
   const identity = new RegExp(`(?:${HIERARCHY_IDENTITY_TOKENS.join('|')})`, 'gi')
   const lower = draft.toLowerCase()
-  const identityAt: number[] = []
-  for (const m of Array.from(draft.matchAll(identity))) if (m.index != null) identityAt.push(m.index)
+  // Each identity token as [start, end). The window is measured from the
+  // token's END when it precedes the term, exactly as detectContextualHierarchy
+  // measures it (`ident[\s\S]{0,gap}term`). Measuring from its start made this
+  // stricter than the detector by the token's own length, so a hit the scan
+  // reported 61–73 chars after e.g. "incarnational" localised to no sentence,
+  // the surgical edit threw before making its call, and a section whose rubric
+  // had passed took a full repair instead (seen in production 2026-11-07,
+  // synthesis/closing: "No sentence found for doctrine hit").
+  const identityAt: Array<[number, number]> = []
+  for (const m of Array.from(draft.matchAll(identity))) if (m.index != null) identityAt.push([m.index, m.index + m[0].length])
   const nearIdentity = (start: number, end: number) =>
-    identityAt.some(i => i <= end + HIERARCHY_PROXIMITY_CHARS && i + HIERARCHY_PROXIMITY_CHARS >= start)
+    identityAt.some(([s, e]) => s <= end + HIERARCHY_PROXIMITY_CHARS && e + HIERARCHY_PROXIMITY_CHARS >= start)
 
   for (const needle of needles) {
     // Find every occurrence of this hit in the draft and take the sentence(s)
