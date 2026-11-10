@@ -114,7 +114,10 @@ import type { BirthData } from '@/lib/astro-calc'
 // Every natal word band is raised 1.2x on Kay's instruction, with the
 // per-section token ceilings; the worked example gains a paragraph to sit
 // inside its new band. This is the band change the version bump rule names.
-export const READING_PROMPT_VERSION = 'v10.49'
+// v10.50: no prompt change. Flushes rows cached under two different v10.49
+// prompts (PRs #255 and #253 shipped eight minutes apart under one version) and
+// Divergence rows cached while the gendered-pronoun check was weakened.
+export const READING_PROMPT_VERSION = 'v10.50'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
