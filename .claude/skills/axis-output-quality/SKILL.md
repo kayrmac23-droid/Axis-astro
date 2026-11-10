@@ -74,7 +74,7 @@ Write from inside the native looking out. Other people's perception may appear o
 
 **When the birth time is unknown** (the context carries ⚠ BIRTH TIME UNKNOWN), houses, the Midheaven and dasha timing are unreliable in *every* section, not only the angles. Read the placement from sign, dignity, aspects and nakshatra, or mark a house reading as conditional in the sentence that makes it. Never build a scene or a close on a house, and never describe a house's arena without the number ("how they are known professionally" is a 10th-house claim). Say it once, then stop.
 
-**Length follows the band.** Primary sections (Sun, Moon, Ascendant/Lagna) develop every subsection fully. Secondary sections (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key aspects) run about two to three sentences per evidence layer, and that is the correct shape, not a shortfall. When the chart offers more than the band carries, work the tightest aspect fully and name the rest in passing. Where depth and the band conflict, the band wins.
+**Length follows the band.** Primary sections (Sun, Moon, Ascendant/Lagna) develop every subsection fully. Secondary sections (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key aspects) run a short paragraph per evidence layer, three or four sentences (v10.49 raised every natal band 1.2×), and that is the correct shape, not a shortfall. When the chart offers more than the band carries, work the tightest aspect fully and name the rest in passing. Where depth and the band conflict, the band wins.
 
 **Prose failure modes** (each makes prose perform depth instead of delivering it):
 1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once.

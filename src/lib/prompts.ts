@@ -406,11 +406,11 @@ export interface WordBand {
 // Synastry bands are deliberately UNCHANGED: six sections at ~1,950 words is
 // already a reasonable sitting, and that flow is not threaded, so it carries
 // none of the compounding input cost that motivates (2).
-const BAND_MAJOR:              WordBand = { target: 760, fullMin: 640, fullMax:  880, hardMin: 560, hardMax:  980, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 490, fullMin: 405, fullMax:  575, hardMin: 355, hardMax:  650 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 400, fullMin: 330, fullMax:  465, hardMin: 285, hardMax:  535, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 420, fullMin: 355, fullMax:  490, hardMin: 305, hardMax:  610, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax:  360, hardMin: 235, hardMax:  450, aspectBaseline: 1, aspectAllowance: 40 }
+const BAND_MAJOR:              WordBand = { target: 910, fullMin: 770, fullMax: 1055, hardMin: 670, hardMax: 1175, aspectBaseline: 3, aspectAllowance: 70 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 590, fullMin: 485, fullMax: 690, hardMin: 425, hardMax: 780 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 480, fullMin: 395, fullMax: 560, hardMin: 340, hardMax: 640, aspectBaseline: 2, aspectAllowance: 55 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 505, fullMin: 425, fullMax: 590, hardMin: 365, hardMax: 730, aspectBaseline: 2, aspectAllowance: 55 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 430, hardMin: 280, hardMax: 540, aspectBaseline: 1, aspectAllowance: 50 }
 // Jupiter/Saturn, BOTH frames. Split out of the secondary bands in v10.36 for a
 // mechanistic reason, not to fit a curve: this is the one "secondary" with no
 // OPENER_MODE and no CLOSER_MODE (see OPENER_MODES/CLOSER_MODES — sun, moon,
@@ -432,13 +432,13 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax: 
 // against an observed 415 — a floor above what the section has to say, which is
 // precisely the "a floor is an instruction to pad" failure the v10.30 note below
 // warns about. Granting it nothing is what the evidence supports.
-const BAND_JUPSAT:             WordBand = { target: 440, fullMin: 370, fullMax:  515, hardMin: 320, hardMax:  640 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 230, fullMin: 190, fullMax:  280, hardMin: 165, hardMax:  350 }
-const BAND_NODES_TROP:         WordBand = { target: 235, fullMin: 195, fullMax:  275, hardMin: 170, hardMax:  340 }
-const BAND_DIVERGENCE:         WordBand = { target: 780, fullMin: 650, fullMax:  915, hardMin: 565, hardMax: 1010, evidenceBaseline: 4, evidenceAllowance: 130, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 400, fullMin: 315, fullMax:  520, hardMin: 265, hardMax:  605, evidenceBaseline: 3, evidenceAllowance:  95, evidenceUpCap: 3 }
-const BAND_CENTRAL_TENSION:    WordBand = { target: 275, fullMin: 220, fullMax:  350, hardMin: 185, hardMax:  425 }
-const BAND_CLOSING:            WordBand = { target: 230, fullMin: 175, fullMax:  325, hardMin: 140, hardMax:  390 }
+const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
+const BAND_NODES_TROP:         WordBand = { target: 280, fullMin: 235, fullMax: 330, hardMin: 205, hardMax: 410 }
+const BAND_DIVERGENCE:         WordBand = { target: 935, fullMin: 780, fullMax: 1100, hardMin: 680, hardMax: 1210, evidenceBaseline: 4, evidenceAllowance: 155, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 480, fullMin: 380, fullMax: 625, hardMin: 320, hardMax: 725, evidenceBaseline: 3, evidenceAllowance: 115, evidenceUpCap: 3 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 330, fullMin: 265, fullMax: 420, hardMin: 220, hardMax: 510 }
+const BAND_CLOSING:            WordBand = { target: 275, fullMin: 210, fullMax: 390, hardMin: 170, hardMax: 470 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
 const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
 const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
@@ -733,6 +733,13 @@ The close sextile to Saturn in the tenth (3.6°, tightening) gives the drafting
 somewhere to land. Where a structure already exists — a brief, a deadline, a
 process with steps — your thinking firms up and the hesitation leaves your voice,
 because Saturn supplies from outside the authorisation Mars cannot give you.
+
+Saturn's help has a price that arrives with it. Because the steadiness is
+supplied by the brief and the deadline, it leaves when they do, and work you
+were sure of on Thursday can read as presumptuous once the project closes. You
+tend to reopen finished work at that point, checking a conclusion that was sound
+when you reached it. The sextile gives your thinking a frame to stand in, and
+no way of carrying that frame out of the room.
 
 The close square to Rahu in the ninth (4°) pulls the other way, and it is the
 sharper of the two. When talk turns to what you believe, and the person across
@@ -1249,8 +1256,8 @@ activates it.
 
 SECONDARY SECTIONS (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key
 aspects) are built to a much tighter band and must be PLANNED for it, never
-trimmed into it. Their bands allow roughly two to three sentences per evidence
-layer, and that is the correct shape, not a shortfall. Cover the sign, the
+trimmed into it. Their bands allow a short paragraph per evidence layer, three
+or four sentences, and that is the correct shape, not a shortfall. Cover the sign, the
 house, the aspects or graha relationships carrying real weight, and the dynamic
 they produce; then stop. Where the chart gives more aspects than the band will
 carry, work the tightest to its own dynamic and name the rest in passing. An

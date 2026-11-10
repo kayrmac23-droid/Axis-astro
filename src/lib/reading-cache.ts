@@ -111,6 +111,9 @@ import type { BirthData } from '@/lib/astro-calc'
 // a clause", "afterwards you notice", "the plan"); The Divergence never uses a
 // gendered pronoun for the reader; the nodes and outer planets are no longer
 // labelled peregrine; a wide aspect cannot anchor the central tension.
+// Every natal word band is raised 1.2x on Kay's instruction, with the
+// per-section token ceilings; the worked example gains a paragraph to sit
+// inside its new band. This is the band change the version bump rule names.
 export const READING_PROMPT_VERSION = 'v10.49'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
