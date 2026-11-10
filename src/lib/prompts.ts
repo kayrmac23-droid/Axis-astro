@@ -736,10 +736,10 @@ because Saturn supplies from outside the authorisation Mars cannot give you.
 
 The close square to Rahu in the ninth (4°) pulls the other way, and it is the
 sharper of the two. When talk turns to what you believe, and the person across
-from you wants more conviction than your evidence supports, you feel the pull to
-match their certainty. You match it. Hours later you notice you have defended a
-position you had not finished forming, and that the defending is what stopped you
-finishing it.
+from you wants more conviction than your evidence supports, the easy move is to
+match their certainty, and you make it. Hours later the position is still
+unfinished, and you can see why: you spent the evening defending it, and the
+defending is what stopped you finishing it.
 
 The wide ninth-house squares to Uranus and Neptune thin that same pressure out
 across belief and meaning.
@@ -809,7 +809,7 @@ the same sentence, and a reader who meets that sentence in section after
 section stops believing any of them.
 
 Write all three in the PRESENT tense: "you match their certainty, and hours
-later you notice…", never "you will feel the pull" or "you will find". The
+later the position is still unfinished", never "you will feel the pull" or "you will find". The
 future tense turns the same observation into a prediction, which PART 4 bans
 outright, and the pull toward it arrives exactly when this PART is being obeyed.
 

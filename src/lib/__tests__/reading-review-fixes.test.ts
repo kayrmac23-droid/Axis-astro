@@ -530,8 +530,12 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
   it('contains all three parts of the moment, aftermath included', () => {
     // The aftermath is the component that was delivered 0 times in most
     // sections, so the example has to carry an unmistakable one.
-    expect(SCENE_EXEMPLAR).toMatch(/Hours later you notice/)
-    expect(SCENE_EXEMPLAR).toMatch(/had not finished forming/)
+    // v10.49: stated as the thing itself. "Hours later you notice" was copied
+    // into seven sections of one reading as "afterwards you notice".
+    expect(SCENE_EXEMPLAR).toMatch(/Hours later the position is still\s+unfinished/)
+    expect(SCENE_EXEMPLAR).toMatch(/the\s+defending is what stopped you finishing it/)
+    expect(SCENE_EXEMPLAR).not.toMatch(/you notice/)
+    expect(SCENE_EXEMPLAR).not.toMatch(/feel the pull/)
   })
 
   it('is carried into PART 1, interpolated rather than left as a slot', () => {
