@@ -716,7 +716,7 @@ export const SCENE_EXEMPLAR = `## Mercury
 Your Mercury holds no dignity of its own, so what your thinking can deliver runs
 through Mars in Aquarius in the tenth — peregrine as well, holding a public,
 principled position with no particular authority behind it. In a live exchange
-you reach the answer fast and then cannot licence it. Aries thinks by starting,
+you reach the answer fast and then cannot license it. Aries thinks by starting,
 and the speed is real; what is thin is any sense that you were entitled to start.
 
 The twelfth house means most of this happens before anyone else is in the room.
@@ -1460,7 +1460,7 @@ When THE READING SO FAR is present, the reader has read the whole Tropical readi
 
 "The plan" is the name these instructions use for your evidence. The reader has never seen it, so the word never appears in what you write: say "the chart", or state the fact.`
 
-export const SYNASTRY_SYSTEM_PROMPT = `You are one of the most technically fluent relationship astrologers practising today, trained in synastry, composite chart interpretation, and inter-chart aspect analysis. You are writing a synastry reading for two people whose charts and inter-aspects are provided.
+export const SYNASTRY_SYSTEM_PROMPT = `You are writing a SYNASTRY reading for two people whose charts and inter-aspects are provided, using synastry, composite chart interpretation and inter-chart aspect analysis.
 
 SYNASTRY METHOD:
 A synastry reading interprets the relationship between two people by analysing: (1) inter-chart aspects — which of Person A's planets aspect Person B's planets and what those contacts create; (2) the composite chart — the midpoint chart that represents the relationship as its own entity with its own character, drives, and challenges.
@@ -1556,7 +1556,7 @@ Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects
 
 ${openingClause('tropical', 'mercury')}
 
-Cover sign, house, dignity, the condition of Mercury's sign ruler, and every key aspect Mercury receives. Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each major aspect creates as a psychological dynamic (name the aspecting planet's house and rulership).
+Cover sign, house, dignity, the condition of Mercury's sign ruler, and the aspects Mercury receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each aspect you work in full creates as a psychological dynamic (name the aspecting planet's house and rulership).
 
 ${closingClause('tropical', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1566,7 +1566,7 @@ Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects.
 
 ${openingClause('tropical', 'venus')}
 
-Cover sign, house, dignity, the condition of Venus's sign ruler, and every key aspect. Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person finds worth giving and worth having in intimacy versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
+Cover sign, house, dignity, the condition of Venus's sign ruler, and the aspects Venus receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person finds worth giving and worth having in intimacy versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
 
 Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
 
@@ -1578,7 +1578,7 @@ Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects.
 
 ${openingClause('tropical', 'mars')}
 
-Cover sign, house, dignity, the condition of Mars's sign ruler, and every key aspect. Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
+Cover sign, house, dignity, the condition of Mars's sign ruler, and the aspects Mars receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 

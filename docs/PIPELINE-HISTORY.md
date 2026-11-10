@@ -147,3 +147,13 @@ Why `AGENTS.md` is a stub and not a symlink or a generated copy: Kay works from 
 
 Vercel, auto-deploys from `main`. Set `ANTHROPIC_API_KEY` in project Environment Variables. `maxDuration` is declared via `export const` in each route file.
 
+
+---
+
+## 2026-11-10 — v10.49: three prompt fixes from the audit
+
+- **Tropical Mercury / Venus / Mars instructions no longer say "every key aspect".** They contradicted PART 7 (work the tightest, give the rest a clause) from the uncached tail, where the nearer instruction wins, and are a likely contributor to the measured ~1.24× overrun against target. They now state PART 7's weighting themselves. **Unmeasured:** compare `[AXIS_LEN]` words/target for these three sections against the 2026-11-07 run before touching the bands.
+- **`SCENE_EXEMPLAR`: "cannot licence it" → "cannot license it".** The verb takes -se in British spelling; the exemplar was modelling the error PART 4's own spelling list warns about.
+- **`SYNASTRY_SYSTEM_PROMPT` drops its status-claim persona** ("one of the most technically fluent… practising today"), which v10.40 removed from the natal prompts and which duplicated the persona at the head of `SHARED_RULES`.
+
+Not changed, deliberately: The Divergence's third-person register (a product decision), and moving the frame prompt out of the system block (changes the request shape for a small cache saving).
