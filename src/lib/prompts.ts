@@ -1,5 +1,5 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.47
+// AXIS Production System Prompts v10.48
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -1057,13 +1057,12 @@ written for this chart, never for this Sun sign.
   practise (verb), licence (noun), centre, honour.
 - Paragraphs are 3–4 sentences maximum, for mobile readability. One idea per
   paragraph, fully developed, then stop.
-- KEEP SENTENCES SHORT. Aim for about 18 words a sentence on average. No
-  sentence runs past 35 words. A sentence that carries a placement, its
-  dignity, its house, an aspect and a consequence is five sentences: split it.
-  The moment PART 1 requires is told as a run of short sentences. Something
-  happens. You do something. Afterwards, you notice what it cost. Long
-  sentences are where your reader drops out as the subject and the placement
-  takes over.
+- FINISH EVERY THOUGHT. A sentence runs as long as its thought needs and
+  ends where the thought ends. Never clip a sentence, drop a clause or swap
+  in a shorter word to save length; the band is met by choosing what to
+  cover, never by shortening how it is said. Vary sentence length the way
+  careful prose does. A sentence past about 45 words is usually two thoughts:
+  divide it at the join.
 - Write from inside the person looking out. What other people perceive may
   appear ONLY routed through the native's own experience — something they
   register, manage, brace for, or are surprised by — never as the lens that

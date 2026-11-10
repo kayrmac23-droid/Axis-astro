@@ -100,7 +100,11 @@ import type { BirthData } from '@/lib/astro-calc'
 // and passed to the evaluator as scene_expected (scene-expectation.ts); The
 // Divergence gets a third-person form of the moment; PART 4 limits sentence
 // length. Every cached section was written under the unconditional rule.
-export const READING_PROMPT_VERSION = 'v10.47'
+// v10.48: v10.47's sentence-length rule is removed (about 18 words on average,
+// none past 35, "split it"). The first human reading of v10.47 found the prose
+// clipped: sentences cut short and words swapped to stay under the limit. PART 4
+// now says to finish every thought. The conditional scene rule is unchanged.
+export const READING_PROMPT_VERSION = 'v10.48'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
