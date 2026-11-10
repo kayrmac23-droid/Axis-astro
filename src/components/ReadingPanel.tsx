@@ -304,16 +304,16 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const [activePlanetSection, setActivePlanetSection] = useState<string | null>(null)
   const [streamingTab, setStreamingTab] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
-  // The reading is paged: one PART on screen at a time, moved through with the
-  // step bar above the prose and the NEXT / BACK controls below it. All three
-  // parts stay in the DOM (see .partCollapsed) so the printed dossier is whole.
-  const [part, setPart] = useState<1 | 2 | 3>(1)
+  // PART 2 (the Sidereal reading) starts collapsed: it keeps the default path
+  // at roughly the Tropical reading plus The Divergence, while stating what is
+  // behind it, so skipping it is a choice the reader can see themselves making.
+  const [part2Open, setPart2Open] = useState(false)
   // True when the server is holding the current section back to check it before
   // serving it (X-Axis-Delivery: buffered). The header arrives the moment
   // fetch() resolves, long before the body, so the wait can be explained only
   // when there is one — by default a section streams and needs no explanation.
   const [bufferedDelivery, setBufferedDelivery] = useState(false)
-  const panelRef = useRef<HTMLDivElement | null>(null)
+  const part2Ref = useRef<HTMLElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   // The reading thread for the chart currently on screen. Replaced whenever a new
@@ -322,24 +322,15 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
 
-  const goToPart = useCallback((p: 1 | 2 | 3) => {
-    setPart(p)
-    capture('reading_part_open', { part: p })
-    // After the swap has painted, bring the top of the new part into view;
-    // otherwise NEXT leaves the reader at the foot of a page they have not read.
-    setTimeout(() => panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0)
-  }, [])
-
-  // The frame toggle follows the wheel: SIDEREAL opens PART 2, and TROPICAL
-  // returns from PART 2 to PART 1. It never pulls a reader out of PART 3.
-  const partRef = useRef(part)
-  useEffect(() => { partRef.current = part }, [part])
-  const firstFrame = useRef(true)
+  // The frame toggle's new job for the prose: selecting SIDEREAL opens PART 2 and
+  // brings it into view. Selecting TROPICAL does NOT close it again — collapsing
+  // something the reader deliberately opened is hostile, and PART 1 is above it
+  // on the page either way.
   useEffect(() => {
-    if (firstFrame.current) { firstFrame.current = false; return }
-    if (frame === 'sidereal' && partRef.current !== 2) goToPart(2)
-    else if (frame === 'tropical' && partRef.current === 2) goToPart(1)
-  }, [frame, goToPart])
+    if (frame !== 'sidereal') return
+    setPart2Open(true)
+    part2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [frame])
 
   const generateSingleReading = useCallback(async (
     sec: SystemSection,
@@ -524,7 +515,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     setTabErrors({ tropical: null, sidereal: null, synthesis: null })
     setPlanetSectionErrors({})
     setReadings({})
-    setPart(1)
+    setPart2Open(false)
 
     const id = setTimeout(async () => {
       const { signal } = controller
@@ -928,100 +919,77 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     )
   }
 
-  // Status shown on a step and on the NEXT control, so a reader moving ahead of
-  // the writing knows what they will find.
-  const partState = (p: 1 | 2 | 3): string => {
-    const st = tabStatus[p === 1 ? 'tropical' : p === 2 ? 'sidereal' : 'synthesis']
-    return st === 'done' ? 'READY' : st === 'loading' ? 'BEING WRITTEN' : st === 'failed' ? 'INCOMPLETE' : 'QUEUED'
-  }
-  const PARTS: { n: 1 | 2 | 3; label: string }[] = [
-    { n: 1, label: 'THE TROPICAL READING' },
-    { n: 2, label: 'THE SIDEREAL READING' },
-    { n: 3, label: 'THE DIVERGENCE' },
-  ]
-
-  // BACK / NEXT at the foot of a part.
-  const partNav = (p: 1 | 2 | 3) => {
-    const prev = PARTS.find(x => x.n === p - 1)
-    const next = PARTS.find(x => x.n === p + 1)
-    return (
-      <nav className={styles.partNav} aria-label="Move between parts of the reading">
-        {prev
-          ? <button type="button" className={styles.partNavBack} onClick={() => goToPart(prev.n)}>
-              ← PART {prev.n} · {prev.label}
-            </button>
-          : <span />}
-        {next && (
-          <button type="button" className={styles.partNavNext} onClick={() => goToPart(next.n)}>
-            <span className={styles.partNavKicker}>
-              NEXT · {partState(next.n)}{next.n === 2 && sidMinutes ? ` · ~${sidMinutes} MIN` : ''}
-            </span>
-            <span>PART {next.n} · {next.label} →</span>
-          </button>
-        )}
-      </nav>
-    )
-  }
-
   return (
-    <div className={styles.panel} ref={panelRef}>
+    <div className={styles.panel}>
       {/* Screen-reader live region */}
       <div role="status" aria-live="polite" aria-atomic="false" className={styles.srOnly}>
         {liveStatus}
       </div>
 
-      {/* Step bar: all three parts are always named, so a part that is not on
-          screen is never a part the reader does not know exists. */}
-      <nav className={styles.partSteps} aria-label="Parts of the reading">
-        {PARTS.map(x => (
-          <button
-            key={x.n}
-            type="button"
-            className={`${styles.partStep}${part === x.n ? ` ${styles.partStepOn}` : ''}`}
-            aria-current={part === x.n ? 'step' : undefined}
-            onClick={() => goToPart(x.n)}
-          >
-            <span className={styles.partStepNum}>PART {x.n}</span>
-            <span className={styles.partStepLabel}>{x.label}</span>
-            <span className={styles.partStepState}>{partState(x.n)}</span>
-          </button>
-        ))}
-      </nav>
-
-      {/* ⚠ Every part is rendered whether or not it is on screen, and hidden
-          with CSS (.partCollapsed), never the `hidden` attribute or a
-          conditional. SAVE DOSSIER · PDF is window.print(), so anything absent
-          from the DOM is absent from every saved dossier. The print stylesheet
-          shows all three, in reading order, and hides the paging controls. */}
-
-      {/* ── PART 1 — the Tropical reading ── */}
-      <section
-        className={`${styles.band}${part === 1 ? '' : ` ${styles.partCollapsed}`}`}
-        aria-label="Part 1 — Tropical reading"
-      >
+      {/* ── PART 1 — the Tropical reading ───────────────────
+          The long-form prose takes the raised reading surface
+          (DOCTRINE.md: READING SURFACE EXCEPTION). Positional data is pinned
+          beside each placement in BOTH frames, as it always was
+          (DOCTRINE.md: CO-VISIBILITY). */}
+      <section className={styles.band} aria-label="Part 1 — Tropical reading">
         {frameBand('tropical', 1)}
-        {partNav(1)}
       </section>
 
-      {/* ── PART 2 — the Sidereal reading. Written after the whole of Part 1. ── */}
+      {/* ── PART 2 — the Sidereal reading ───────────────────
+          Written after the whole of Part 1, so it is read after it. Collapsed
+          by default behind a heading that states what it is and how long it
+          runs: a reader who skips it knows they skipped it, which is what the
+          frame toggle could not tell them. The frame control opens it. */}
       <section
-        className={`${styles.band}${part === 2 ? '' : ` ${styles.partCollapsed}`}`}
+        ref={part2Ref}
+        className={styles.band}
         aria-label="Part 2 — Sidereal reading"
       >
-        {frameBand('sidereal', 2)}
-        {partNav(2)}
+        <button
+          type="button"
+          className={`${styles.partToggle}${part2Open ? ` ${styles.partToggleOpen}` : ''}`}
+          aria-expanded={part2Open}
+          aria-controls="axis-part-2"
+          onClick={() => setPart2Open(o => !o)}
+        >
+          <span className={styles.partToggleMain}>
+            {/* No frame kicker here: the band head inside carries it, and the
+                band head is what survives into the printed dossier once this
+                control is hidden. Repeating it read as a duplicate heading the
+                moment PART 2 was open. */}
+            <span className={styles.partToggleTitle}>PART 2 — THE SIDEREAL READING</span>
+            <span className={styles.partToggleMeta}>
+              {sidMinutes ? `${PLANET_SECTIONS.sidereal.length} SECTIONS · ~${sidMinutes} MIN` : `${PLANET_SECTIONS.sidereal.length} SECTIONS`}
+              {' · READ AFTER PART 1'}
+            </span>
+          </span>
+          <span className={styles.partToggleRight}>
+            {sidStreaming && <span className={styles.streaming}>● STREAMING</span>}
+            <span className={styles.partToggleChevron} aria-hidden="true">{part2Open ? '−' : '+'}</span>
+          </span>
+        </button>
+        {/* ⚠ Rendered whether or not it is open, and collapsed with CSS rather
+            than the `hidden` attribute or a conditional. SAVE DOSSIER · PDF is
+            window.print(), so anything absent from the DOM is absent from every
+            saved dossier — a collapsed PART 2 would have silently dropped the
+            whole Sidereal reading out of the artefact people keep. The print
+            stylesheet re-opens it; `display: none` still takes it out of the
+            accessibility tree, which is what aria-expanded=false claims. */}
+        <div id="axis-part-2" className={part2Open ? styles.partBody : styles.partCollapsed}>
+          {frameBand('sidereal', 2)}
+        </div>
       </section>
 
-      {/* ── PART 3 — The Divergence. Written after both. The flip table is the
-          evidence; the prose below it is the reading. */}
-      <div className={part === 3 ? undefined : styles.partCollapsed}>
+      {/* ── PART 3 — The Divergence ─────────────────────────
+          Frame-independent: it never toggles off, and it is read after both.
+          The flip table is the evidence; the prose below it is the reading. */}
       <section className={styles.divergence} aria-label="Part 3 — The Divergence">
         <div className={styles.divRule} />
         <div className={styles.divTop}>
           <div>
             <div className={styles.divKicker}>{'// PART 3'}</div>
             <div className={styles.divTitle}>THE DIVERGENCE</div>
-            <div className={styles.divSub}>FRAME-INDEPENDENT · READ AFTER BOTH</div>
+            <div className={styles.divSub}>FRAME-INDEPENDENT · READ AFTER BOTH · NEVER TOGGLES OFF</div>
             <div className={styles.divCount}>
               {flips.length} OF {bodyCount} BODIES CHANGE SIGN BETWEEN FRAMES
             </div>
@@ -1069,9 +1037,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             </aside>
           </div>
         </div>
-        {partNav(3)}
       </section>
-      </div>
     </div>
   )
 }
