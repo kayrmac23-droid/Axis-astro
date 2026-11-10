@@ -132,22 +132,22 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 
 **Scene expectation** (`lib/scene-expectation.ts`): PART 1's moment is required only where the evidence names a trigger. `sceneExpectation` returns `yes` (Tropical with an aspect; Sidereal with a drishti received; synastry), `no` (nothing to build one from; `agree` always), or `third-person` (the other Divergence sections). The generator gets it as `sceneClause` in the uncached tail and the evaluator as `scene_expected`, from the same context.
 
-**Length bands.** `SECTION_WORD_BANDS` is the one table; the prompt's length clause and the gate's `length` score both read it. Edit the table, not the prompt.
+**Length bands (v10.49, natal bands ×1.2).** `SECTION_WORD_BANDS` is the one table; the prompt's length clause and the gate's `length` score both read it. Edit the table, not the prompt.
 
 | Class | Target | Full-marks band | Hard cap |
 |---|---|---|---|
-| Sun / Moon | 760 | 640–880 | 980 |
-| Ascendant | 490 | 405–575 | 650 |
-| Sidereal Lagna / Sun / Moon | 400 | 330–465 | 535 |
-| Tropical Mercury / Venus / Mars | 420 | 355–490 | 610 |
-| Jupiter/Saturn, both frames | 440 | 370–515 | 640 |
-| Sidereal Mercury / Venus / Mars / Rahu-Ketu | 310 | 270–360 | 450 |
-| Key aspects | 230 | 190–280 | 350 |
-| Tropical Rahu/Ketu | 235 | 195–275 | 340 |
-| Concordance (`agree`) | 400 | 315–520 | 605 |
-| The Divergence (`diverge`) | 780 | 650–915 | 1010 |
-| Central tension | 275 | 220–350 | 425 |
-| Closing | 230 | 175–325 | 390 |
+| Sun / Moon | 910 | 770–1055 | 1175 |
+| Ascendant | 590 | 485–690 | 780 |
+| Sidereal Lagna / Sun / Moon | 480 | 395–560 | 640 |
+| Tropical Mercury / Venus / Mars | 505 | 425–590 | 730 |
+| Jupiter/Saturn, both frames | 530 | 445–620 | 770 |
+| Sidereal Mercury / Venus / Mars / Rahu-Ketu | 370 | 325–430 | 540 |
+| Key aspects | 275 | 230–335 | 420 |
+| Tropical Rahu/Ketu | 280 | 235–330 | 410 |
+| Concordance (`agree`) | 480 | 380–625 | 725 |
+| The Divergence (`diverge`) | 935 | 780–1100 | 1210 |
+| Central tension | 330 | 265–420 | 510 |
+| Closing | 275 | 210–390 | 470 |
 
 Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, floor and ceiling all move). `agree` and `diverge` scale on plan evidence instead (`scaleBandByEvidence`), in both directions, capped upward; an empty allocation uses `EMPTY_PLAN_BAND`. Synastry bands never scale. Under the floor is a hard fail; over the ceiling costs marks and hard-fails only on runaway length. `countAspectsInContext` parses the `ASPECTS (tightest first):` format — reword it and every scaled band silently zeroes (`aspect-count-coupling.test.ts`).
 

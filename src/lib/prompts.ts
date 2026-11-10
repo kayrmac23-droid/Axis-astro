@@ -169,6 +169,15 @@ export const BANNED_META_PHRASINGS = [
   'structural rather than poetic',
   'worth leaving stated plainly',
   'not a silver lining',
+  // 2026-11-10: the model narrated its own allocation and evidence base to the
+  // reader ("it gets at most a clause, but it is worth naming"; "the plan
+  // allocates nothing to agreement").
+  'gets a clause',
+  'gets at most a clause',
+  'the plan allocates',
+  'the plan marks',
+  'the plan ranks',
+  'the plan lists',
 ] as const
 
 export const BANNED_META_LIST = BANNED_META_PHRASINGS.map(p => `"${p}"`).join('; ')
@@ -397,11 +406,11 @@ export interface WordBand {
 // Synastry bands are deliberately UNCHANGED: six sections at ~1,950 words is
 // already a reasonable sitting, and that flow is not threaded, so it carries
 // none of the compounding input cost that motivates (2).
-const BAND_MAJOR:              WordBand = { target: 760, fullMin: 640, fullMax:  880, hardMin: 560, hardMax:  980, aspectBaseline: 3, aspectAllowance: 60 } // Sun, Moon
-const BAND_PRIMARY:            WordBand = { target: 490, fullMin: 405, fullMax:  575, hardMin: 355, hardMax:  650 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
-const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 400, fullMin: 330, fullMax:  465, hardMin: 285, hardMax:  535, aspectBaseline: 2, aspectAllowance: 45 } // sidereal Lagna/Sun/Moon
-const BAND_SECONDARY:          WordBand = { target: 420, fullMin: 355, fullMax:  490, hardMin: 305, hardMax:  610, aspectBaseline: 2, aspectAllowance: 45 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
-const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax:  360, hardMin: 235, hardMax:  450, aspectBaseline: 1, aspectAllowance: 40 }
+const BAND_MAJOR:              WordBand = { target: 910, fullMin: 770, fullMax: 1055, hardMin: 670, hardMax: 1175, aspectBaseline: 3, aspectAllowance: 70 } // Sun, Moon
+const BAND_PRIMARY:            WordBand = { target: 590, fullMin: 485, fullMax: 690, hardMin: 425, hardMax: 780 } // Ascendant — no aspect scaling, by choice: formatAscendantBlock DOES emit aspects now (computeAscendantAspects, 5° angle orb), so scaling could fire; left off pending a decision, unlike BAND_SIDEREAL_PRIMARY which opts in
+const BAND_SIDEREAL_PRIMARY:   WordBand = { target: 480, fullMin: 395, fullMax: 560, hardMin: 340, hardMax: 640, aspectBaseline: 2, aspectAllowance: 55 } // sidereal Lagna/Sun/Moon
+const BAND_SECONDARY:          WordBand = { target: 505, fullMin: 425, fullMax: 590, hardMin: 365, hardMax: 730, aspectBaseline: 2, aspectAllowance: 55 } // Mercury, Venus, Mars (Jupiter/Saturn split out — BAND_JUPSAT)
+const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 430, hardMin: 280, hardMax: 540, aspectBaseline: 1, aspectAllowance: 50 }
 // Jupiter/Saturn, BOTH frames. Split out of the secondary bands in v10.36 for a
 // mechanistic reason, not to fit a curve: this is the one "secondary" with no
 // OPENER_MODE and no CLOSER_MODE (see OPENER_MODES/CLOSER_MODES — sun, moon,
@@ -423,13 +432,13 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 310, fullMin: 270, fullMax: 
 // against an observed 415 — a floor above what the section has to say, which is
 // precisely the "a floor is an instruction to pad" failure the v10.30 note below
 // warns about. Granting it nothing is what the evidence supports.
-const BAND_JUPSAT:             WordBand = { target: 440, fullMin: 370, fullMax:  515, hardMin: 320, hardMax:  640 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 230, fullMin: 190, fullMax:  280, hardMin: 165, hardMax:  350 }
-const BAND_NODES_TROP:         WordBand = { target: 235, fullMin: 195, fullMax:  275, hardMin: 170, hardMax:  340 }
-const BAND_DIVERGENCE:         WordBand = { target: 780, fullMin: 650, fullMax:  915, hardMin: 565, hardMax: 1010, evidenceBaseline: 4, evidenceAllowance: 130, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
-const BAND_CONCORDANCE:        WordBand = { target: 400, fullMin: 315, fullMax:  520, hardMin: 265, hardMax:  605, evidenceBaseline: 3, evidenceAllowance:  95, evidenceUpCap: 3 }
-const BAND_CENTRAL_TENSION:    WordBand = { target: 275, fullMin: 220, fullMax:  350, hardMin: 185, hardMax:  425 }
-const BAND_CLOSING:            WordBand = { target: 230, fullMin: 175, fullMax:  325, hardMin: 140, hardMax:  390 }
+const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
+const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
+const BAND_NODES_TROP:         WordBand = { target: 280, fullMin: 235, fullMax: 330, hardMin: 205, hardMax: 410 }
+const BAND_DIVERGENCE:         WordBand = { target: 935, fullMin: 780, fullMax: 1100, hardMin: 680, hardMax: 1210, evidenceBaseline: 4, evidenceAllowance: 155, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
+const BAND_CONCORDANCE:        WordBand = { target: 480, fullMin: 380, fullMax: 625, hardMin: 320, hardMax: 725, evidenceBaseline: 3, evidenceAllowance: 115, evidenceUpCap: 3 }
+const BAND_CENTRAL_TENSION:    WordBand = { target: 330, fullMin: 265, fullMax: 420, hardMin: 220, hardMax: 510 }
+const BAND_CLOSING:            WordBand = { target: 275, fullMin: 210, fullMax: 390, hardMin: 170, hardMax: 470 }
 const BAND_SYN_LARGE:          WordBand = { target: 350, fullMin: 300, fullMax:  400, hardMin: 250, hardMax:  500 }
 const BAND_SYN_MED:            WordBand = { target: 300, fullMin: 250, fullMax:  350, hardMin: 200, hardMax:  450 }
 const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax:  300, hardMin: 210, hardMax:  400 }
@@ -650,7 +659,7 @@ If a placement's distorted expression is genuinely mild, say so plainly and brie
 do not inflate it. Silence on a shadow that isn't there beats inventing one.
 
 Where a quality's shadow is real (most are — every trait has a stress-state), write
-it INLINE: roughly one distortion clause riding on the quality, in the same breath,
+it INLINE: roughly one distortion clause riding on the quality, in that same sentence,
 never accumulated into a dark block.
 `.trim()
 
@@ -725,12 +734,19 @@ somewhere to land. Where a structure already exists — a brief, a deadline, a
 process with steps — your thinking firms up and the hesitation leaves your voice,
 because Saturn supplies from outside the authorisation Mars cannot give you.
 
+Saturn's help has a price that arrives with it. Because the steadiness is
+supplied by the brief and the deadline, it leaves when they do, and work you
+were sure of on Thursday can read as presumptuous once the project closes. You
+tend to reopen finished work at that point, checking a conclusion that was sound
+when you reached it. The sextile gives your thinking a frame to stand in, and
+no way of carrying that frame out of the room.
+
 The close square to Rahu in the ninth (4°) pulls the other way, and it is the
 sharper of the two. When talk turns to what you believe, and the person across
-from you wants more conviction than your evidence supports, you feel the pull to
-match their certainty. You match it. Hours later you notice you have defended a
-position you had not finished forming, and that the defending is what stopped you
-finishing it.
+from you wants more conviction than your evidence supports, the easy move is to
+match their certainty, and you make it. Hours later the position is still
+unfinished, and you can see why: you spent the evening defending it, and the
+defending is what stopped you finishing it.
 
 The wide ninth-house squares to Uranus and Neptune thin that same pressure out
 across belief and meaning.
@@ -790,12 +806,17 @@ before, in situations they will recognise next week.
 The moment has THREE parts, all required:
   (i)   the TRIGGER — what sets it off;
   (ii)  the ACTION — what you do once it has;
-  (iii) the AFTERMATH — what you notice, afterwards, about what you just did.
-Two of the three is a failure, and (iii) is the one that gets dropped. Write it
-in the same breath as (ii), never as a closing flourish.
+  (iii) the AFTERMATH — what the action leaves you holding: what it settled,
+        what it cost, what is still open once it is done.
+Two of the three is a failure, and (iii) is the one that gets dropped. It
+belongs to the same passage as (ii), never to a closing flourish. State the
+aftermath as the thing itself. Announcing it with a stock lead-in ("afterwards
+you notice", "what you notice after") turns every moment in the reading into
+the same sentence, and a reader who meets that sentence in section after
+section stops believing any of them.
 
 Write all three in the PRESENT tense: "you match their certainty, and hours
-later you notice…", never "you will feel the pull" or "you will find". The
+later the position is still unfinished", never "you will feel the pull" or "you will find". The
 future tense turns the same observation into a prediction, which PART 4 bans
 outright, and the pull toward it arrives exactly when this PART is being obeyed.
 
@@ -833,7 +854,7 @@ What that section does, and what yours does too:
 - The Rahu paragraph is the scene, complete: belief comes up and the other
   person overstates (TRIGGER), you match their certainty (ACTION), hours later
   you see you defended an unfinished position AND that defending it is what
-  stopped you finishing (AFTERMATH) — landing in the same breath as the action.
+  stopped you finishing (AFTERMATH) — landing right beside the action.
 - Nothing is invented. The dignity is read through the dispositor, because
   Mercury is peregrine. The two close aspects are worked to their own dynamics;
   the two wide ones share one clause and anchor nothing (FACT DISCIPLINE below).
@@ -861,8 +882,9 @@ readers and are banned:
 - House arithmetic. Use house numbers as given; never restate a placement as a
   distance ("four houses away", "two signs over").
 - Orb weight. Classes are tight ≤2°, close ≤4°, moderate ≤6°, wide >6°, and
-  weight follows the class. A wide aspect gets at most a clause: it never
-  carries "real force" and never anchors a theme. Use the word "wide" only where
+  weight follows the class. A wide aspect is mentioned once, briefly, inside a
+  sentence about something else: it never carries "real force" and never
+  anchors a theme, a central tension or a close. Use the word "wide" only where
   the context labels one.
 - Motion. Applying and separating are given; repeat them, never infer them. A
   planet marked NEAR STATION is barely moving: never call an aspect it applies
@@ -1105,7 +1127,12 @@ them — that a difficulty is not about to be redeemed, that the two frames are
 not being ranked, that an observation is structural — has no reader. Yours has
 never seen these rules, so such a sentence reads as the prose arguing with an
 invisible critic. State the cost and move on; hold the two frames side by side
-without announcing that you are doing so. Every rule here is
+without announcing that you are doing so. The same holds for how the
+section is put together. Never tell the reader how much space something is
+being given or why it is brief, and never name the material you were handed:
+the reader has a chart, and has never heard of a plan, a context block, an
+allocation or a ranking. Write "the chart shows", or state the fact outright.
+Every rule here is
 satisfied by the shape of the prose, never by a sentence describing the shape of
 the prose.
 
@@ -1229,11 +1256,11 @@ activates it.
 
 SECONDARY SECTIONS (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key
 aspects) are built to a much tighter band and must be PLANNED for it, never
-trimmed into it. Their bands allow roughly two to three sentences per evidence
-layer, and that is the correct shape, not a shortfall. Cover the sign, the
+trimmed into it. Their bands allow a short paragraph per evidence layer, three
+or four sentences, and that is the correct shape, not a shortfall. Cover the sign, the
 house, the aspects or graha relationships carrying real weight, and the dynamic
 they produce; then stop. Where the chart gives more aspects than the band will
-carry, work the tightest to its own dynamic and give the rest a clause each. An
+carry, work the tightest to its own dynamic and name the rest in passing. An
 accurate observation in three sentences beats a generic paragraph, and a
 secondary section that runs to primary length has padded, however good the prose.
 
@@ -1426,10 +1453,12 @@ A changed placement is evidence of a divergence. It is NOT, by itself, evidence 
 There is no quota. The chart decides how many divergences are load-bearing. Do not manufacture a divergence, a tension, or an agreement to fill a section.
 
 THE DIVERGENCE — VOICE:
-Third person only — "this person", "they", "their". This overrides the second-person register in PART 4 of the shared rules. Precise and analytical, like a case study written by someone who has read both charts in full and is naming what the relationship between them reveals. The warmth of the earlier sections gives way to precision: no comfort, no resolution, no softening. Name what is, not what might be done about it, and name specific planets, signs, houses and degrees from both systems throughout — never abstractions.
+Third person only — "this person", "they", "them", "their". You do not know the reader's gender and nothing in the chart states it, so "he", "him", "his", "she", "her" and "hers" are never used of the reader: a reader addressed as the wrong one stops trusting every line around it. This overrides the second-person register in PART 4 of the shared rules. Precise and analytical, like a case study written by someone who has read both charts in full and is naming what the relationship between them reveals. The warmth of the earlier sections gives way to precision: no comfort, no resolution, no softening. Name what is, not what might be done about it, and name specific planets, signs, houses and degrees from both systems throughout — never abstractions.
 
 WRITTEN AFTER BOTH READINGS:
-When THE READING SO FAR is present, the reader has read the whole Tropical reading and the whole Sidereal reading, then any earlier movements of The Divergence. Use them for two things only. Do not re-describe what those readings portrayed: refer to what the reader already carries in a phrase and spend the words on the relationship between the frames. And where a divergence the plan ranks lands on something one of the readings made vivid, name that link, so The Divergence lands on what the reader already holds instead of starting cold. The plan remains the only evidence base: an interpretive claim in the earlier prose is not chart evidence.`
+When THE READING SO FAR is present, the reader has read the whole Tropical reading and the whole Sidereal reading, then any earlier movements of The Divergence. Use them for two things only. Do not re-describe what those readings portrayed: refer to what the reader already carries in a phrase and spend the words on the relationship between the frames. And where a divergence the plan ranks lands on something one of the readings made vivid, name that link, so The Divergence lands on what the reader already holds instead of starting cold. The plan remains the only evidence base: an interpretive claim in the earlier prose is not chart evidence.
+
+"The plan" is the name these instructions use for your evidence. The reader has never seen it, so the word never appears in what you write: say "the chart", or state the fact.`
 
 export const SYNASTRY_SYSTEM_PROMPT = `You are writing a SYNASTRY reading for two people whose charts and inter-aspects are provided, using synastry, composite chart interpretation and inter-chart aspect analysis.
 
@@ -1673,7 +1702,7 @@ Work the evidence allocated to agree in the SHARED DIVERGENCE PLAN — the conco
 
 These are the points where the chart is least negotiable: the facts that hold no matter which framework is used, because both frameworks insist on them at once. Frame them as the narrow, fixed ground, never as a resolution the rest of the reading builds toward. Concordance is consistency across two frameworks; it is not independent proof, and it does not license a stronger psychological claim than a single placement would.
 
-Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems. If the plan allocates little, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Do not preview the divergence analysis.
+Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems. If the plan allocates little, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Where it allocates nothing, say that no placement holds across both frameworks and stop: offer no theory of why. The ayanamsa moves every position by the same amount, so how near a body sits to a sign boundary explains nothing here, and two adjacent signs always differ in element, so that is not a finding either. Do not preview the divergence analysis.
 
 ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1683,7 +1712,9 @@ Start with: ## Where They Part
 
 This is the main event of The Divergence reading, never a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not walk every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
 
-Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, in this order: the specific Tropical placement and what it produces as a psychological pattern; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; then precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Use the plan's dignity, dispositor-condition and aspect evidence to say which account is under more pressure, and where the plan marks a placement boundary-ambiguous in one frame but settled in the other.
+Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, in this order: the specific Tropical placement and what it produces as a psychological pattern; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; then precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Use the plan's dignity, dispositor-condition and aspect evidence to say which account is under more pressure. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, state that as a difference between the frames and nothing more: within its own frame a placement near a boundary is fully in its sign, and is never weaker, unstable or "edge-adjacent" for it.
+
+A divergence's moment is told once. Each divergence you work gets its own situation, drawn from its own evidence; do not reuse one situation, or one image, for two of them.
 
 Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each widening the gap between the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If the plan lists none, say that every ranked divergence has been worked.
 
@@ -1697,7 +1728,7 @@ Start with: ## The Central Tension
 
 Work the evidence allocated to tension — the aspects and conditions that LINK the leading divergences to each other. This section is about the relationship BETWEEN the divergences, never a re-listing of them: the divergence section has already walked them and the reader has just read it, so refer to them in a phrase and advance a different claim about how they connect.
 
-Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies.
+Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies. Anchor it to the tightest link the plan gives. An aspect the plan labels wide cannot carry the defining tension of a life (FACT DISCIPLINE): where the only link is wide, the linking evidence is thin.
 
 Where the linking evidence is thin, say what the leading divergences do and do not have to do with each other, and stop there. A claimed connection the plan does not support is a fabrication, and a forced central tension is worse than a narrower true one. Do not manufacture a defining friction the chart has not produced.
 
@@ -1712,6 +1743,8 @@ Start with: ## Living the Divergence
 Two or three short paragraphs that read as one continuous movement (the paragraph cap in PART 4 still applies — do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and the Sidereal conditions they live inside, a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe how the person carries it: how the two accounts pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve.
 
 This is a description of how the divergence is INHABITED, not a chain that dissolves it, and not a re-walk of the placements. The allocated evidence is the divergence whose life you are describing: reach for it, do not re-describe it.
+
+The reader has just read the central tension. Do not replay its situation, its image or its closing line here: where that section showed one moment of collision, this one shows the standing arrangement the person has made around it, in a different setting, and ends somewhere that section did not.
 
 The final sentence is precise and unsoftened — something true, stated at the size the chart supports. Where this person's divergence is narrow, the closing is correspondingly quiet, and that is the accurate ending; do not manufacture devastation the chart has not earned, and do not resolve, soften, or prescribe. Name what is, not what might be done about it. End here.
 

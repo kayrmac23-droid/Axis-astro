@@ -1159,7 +1159,7 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
     if (!pass && ruleHits.length > 0) {
       console.warn(`Reading quality gate: ${ruleHits.length} hard rule breach(es) for ${section}/${planetSection}: ${ruleHits.map(f => f.rule).join('; ')}`)
       const items = ruleHits.map(f => `· ${f.rule} (line ${f.line}): "${f.match}"`).join('\n')
-      critique = `STATED-RULE BREACH \u2014 the section breaks ${ruleHits.length === 1 ? 'a rule' : 'rules'} SHARED_RULES states outright:\n${items}\nFix each at the construction named. A \`prescription\` or \`prediction\` finding is repaired by stating what the pattern DOES in the present tense, not by hedging the advice; \`register-drift\` is repaired by making the reader the grammatical subject throughout (PART 4); \`summary-heading\` is repaired by deleting the heading and letting the closing paragraph run on from the last sub-section (PART 8).\n\n${critique}`.trim()
+      critique = `STATED-RULE BREACH \u2014 the section breaks ${ruleHits.length === 1 ? 'a rule' : 'rules'} SHARED_RULES states outright:\n${items}\nFix each at the construction named. A \`prescription\` or \`prediction\` finding is repaired by stating what the pattern DOES in the present tense, not by hedging the advice; \`register-drift\` is repaired by making the reader the grammatical subject throughout (PART 4); \`gendered-pronoun\` is repaired by using "they", "them" and "their" for the reader, whose gender the chart does not state; \`summary-heading\` is repaired by deleting the heading and letting the closing paragraph run on from the last sub-section (PART 8).\n\n${critique}`.trim()
     }
 
     // Auditability for the Barnum axis: when falsifiability failed, the rater

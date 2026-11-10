@@ -530,8 +530,12 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
   it('contains all three parts of the moment, aftermath included', () => {
     // The aftermath is the component that was delivered 0 times in most
     // sections, so the example has to carry an unmistakable one.
-    expect(SCENE_EXEMPLAR).toMatch(/Hours later you notice/)
-    expect(SCENE_EXEMPLAR).toMatch(/had not finished forming/)
+    // v10.49: stated as the thing itself. "Hours later you notice" was copied
+    // into seven sections of one reading as "afterwards you notice".
+    expect(SCENE_EXEMPLAR).toMatch(/Hours later the position is still\s+unfinished/)
+    expect(SCENE_EXEMPLAR).toMatch(/the\s+defending is what stopped you finishing it/)
+    expect(SCENE_EXEMPLAR).not.toMatch(/you notice/)
+    expect(SCENE_EXEMPLAR).not.toMatch(/feel the pull/)
   })
 
   it('is carried into PART 1, interpolated rather than left as a slot', () => {
@@ -683,5 +687,124 @@ describe('PART 4 carries no sentence-length target (v10.48)', () => {
   })
   it('tells the model to finish the thought', () => {
     expect(SHARED_RULES).toContain('FINISH EVERY THOUGHT')
+  })
+})
+
+// v10.49 — Kay's reading of her own chart (2026-11-10, this chart). Each block
+// pins one fault that reached her.
+describe('v10.49 — an aspect is walked once, in the first section that owns it', () => {
+  const ctx = (planetSection: string, priorPlanetSections?: string[]) =>
+    buildInterpretationContext(chart, 'tropical', planetSection, { priorPlanetSections })
+  const bullet = (text: string, other: string) =>
+    text.split('\n').find(l => l.startsWith('•') && new RegExp(`^• \\w+ ${other} \\(`).test(l)) ?? ''
+
+  it('marks nothing in the opening section', () => {
+    expect(ctx('sun', [])).not.toContain('ALREADY READ')
+    expect(ctx('sun')).not.toContain('ALREADY READ')
+  })
+
+  it('marks the Mars aspects the Sun, Mercury and Venus sections already walked, and only those', () => {
+    const mars = ctx('mars', ['sun', 'moon', 'ascendant', 'mercury', 'venus'])
+    for (const other of ['Sun', 'Mercury', 'Venus']) expect(bullet(mars, other)).toContain(`ALREADY READ in the ${other} section`)
+    for (const other of ['Jupiter', 'Neptune', 'Rahu']) {
+      expect(bullet(mars, other)).not.toBe('')
+      expect(bullet(mars, other)).not.toContain('ALREADY READ')
+    }
+    expect(mars).toMatch(/Do not walk it again/)
+  })
+
+  it('leaves the aspect count, and so the word band, unchanged', () => {
+    const prior = ['sun', 'moon', 'ascendant', 'mercury', 'venus']
+    expect(countAspectsInContext(ctx('mars', prior))).toBe(countAspectsInContext(ctx('mars')))
+    expect(countAspectsInContext(ctx('mars', prior))).toBeGreaterThan(3)
+  })
+
+  it('never marks an aspect between the two planets of one section', () => {
+    const js = ctx('jupiter_saturn', ['sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars'])
+    expect(js).not.toMatch(/ALREADY READ in the (Jupiter|Saturn)/)
+    expect(js).toContain('ALREADY READ in the Venus section')
+  })
+})
+
+describe('v10.49 — the nodes and outer planets carry no dignity label', () => {
+  it('does not call Rahu or Neptune peregrine', () => {
+    const rahu = buildInterpretationContext(chart, 'tropical', 'rahu_ketu')
+    expect(rahu).toMatch(/DIGNITY: NONE \(outside the dignity scheme\)/)
+    expect(rahu).toMatch(/It is NOT peregrine/)
+    const block = formatEliteChartBlock(chart.tropical, 'tropical')
+    for (const body of ['Rahu', 'Ketu', 'Uranus', 'Neptune', 'Pluto']) {
+      const line = block.split('\n').find(l => l.startsWith(`${body}:`))!
+      expect(line).not.toMatch(/peregrine/i)
+    }
+    expect(block.split('\n').find(l => l.startsWith('Jupiter:'))).toMatch(/Peregrine/)
+  })
+})
+
+describe('v10.49 — the prompt no longer hands over the phrasings the reader was shown', () => {
+  it('states the wide-aspect and aftermath rules without the echoed wording', () => {
+    expect(SHARED_RULES).not.toContain('gets at most a clause')
+    expect(SHARED_RULES).not.toContain('a clause each')
+    expect(SHARED_RULES).not.toContain('in the same breath')
+    expect(SHARED_RULES).not.toContain('what you notice, afterwards')
+    expect(buildInterpretationContext(chart, 'tropical', 'moon')).not.toContain('gets at most a clause')
+  })
+
+  it('treats narrated allocation and "the plan" as meta-narration', () => {
+    expect(detectBannedPhrasings('The pull is wide; it gets at most a clause, but it is worth naming.')).not.toHaveLength(0)
+    expect(detectBannedPhrasings('The plan allocates nothing to agreement.')).not.toHaveLength(0)
+    expect(detectBannedPhrasings('You plan the week around the one conversation you are avoiding.')).toHaveLength(0)
+    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/the word never appears in what you write/)
+  })
+
+  it('keeps The Divergence off gendered pronouns, in the prompt and in the scan', () => {
+    expect(SYNTHESIS_SYSTEM_PROMPT).toMatch(/You do not know the reader's gender/)
+    const he = 'This person is not choosing between two versions of one wish. He is running two accounts, and neither decides for him.'
+    const hits = scanSectionRules(he, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')
+    expect(hits).toHaveLength(1)
+    expect(hits[0].severity).toBe('hard')
+    const thirdParty = 'They hold their ground when their mother asks for an answer. She wants a decision before they are ready to give one.'
+    const thirdPartyHits = scanSectionRules(thirdParty, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')
+    expect(thirdPartyHits).toHaveLength(1)
+    expect(thirdPartyHits[0].severity).toBe('soft')
+    const ambiguous = 'She presses them for an answer.'
+    expect(scanSectionRules(ambiguous, { frame: 'synthesis' }).find(f => f.rule === 'gendered-pronoun')?.severity).toBe('soft')
+    const they = 'This person is not choosing between two versions of one wish. They are running two accounts, and neither decides for them.'
+    expect(scanSectionRules(they, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')).toHaveLength(0)
+    // A natal section may give a third party a pronoun.
+    expect(scanSectionRules('You hear his answer and take it as settled.', { frame: 'tropical' }).filter(f => f.rule === 'gendered-pronoun')).toHaveLength(0)
+  })
+
+  it('bars a wide aspect from carrying the central tension, and the closing from replaying it', () => {
+    expect(renderSectionInstruction('synthesis', 'tension')).toMatch(/labels wide cannot carry the defining tension/)
+    expect(renderSectionInstruction('synthesis', 'closing')).toMatch(/Do not replay its situation/)
+    expect(renderSectionInstruction('synthesis', 'diverge')).toMatch(/never weaker, unstable/)
+    expect(renderSectionInstruction('synthesis', 'agree')).toMatch(/offer no theory of why/)
+  })
+})
+
+describe('v10.49 — stock phrasings and dash density are reported to the next section', () => {
+  const sec = (planetSection: string, text: string): PriorSection => ({ section: 'tropical', planetSection, text })
+  const prior = [
+    sec('sun', 'You inflate it. You notice afterwards that it became a referendum — a verdict — on your worth.'),
+    sec('moon', 'You make the gesture. Afterwards you notice it settled nothing — it only bought time — and the question returns.'),
+    sec('mercury', 'You sharpen the phrasing, and afterwards you notice the exchange shifted — from being understood — to being right.'),
+  ]
+
+  it('catches the aftermath lead-in across its word orders', () => {
+    const tics = overusedTics(prior)
+    expect(tics.find(t => t.tic.startsWith('afterwards you notice'))?.count).toBe(3)
+    expect(phrasesAlreadyUsedBlock(prior)).toContain('afterwards you notice')
+  })
+
+  it('stays silent on a reading that does not repeat it', () => {
+    expect(overusedTics([sec('sun', 'You inflate it, and the work becomes a referendum on your worth.')])).toHaveLength(0)
+  })
+
+  it('reports em-dash density only once there is enough prose to measure', () => {
+    expect(phrasesAlreadyUsedBlock(prior)).not.toContain('DASHES')
+    const dense = Array.from({ length: 40 }, () => 'You want the thing — the whole of it — and you say so plainly to them.').join(' ')
+    expect(phrasesAlreadyUsedBlock([sec('sun', dense)])).toMatch(/DASHES — the reading so far uses 80 em dashes/)
+    const plain = Array.from({ length: 40 }, () => 'You want the whole of the thing, and you say so plainly to them.').join(' ')
+    expect(phrasesAlreadyUsedBlock([sec('sun', plain)])).not.toContain('DASHES')
   })
 })

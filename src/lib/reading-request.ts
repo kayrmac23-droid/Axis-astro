@@ -80,7 +80,10 @@ export function buildSectionRequest(
   if (section === 'synthesis') {
     contextBlock = buildInterpretationContext(dual, 'synthesis', planetSection)
   } else {
-    const ctxBlock   = buildInterpretationContext(dual, section, planetSection, { priorText })
+    const ctxBlock   = buildInterpretationContext(dual, section, planetSection, {
+      priorText,
+      priorPlanetSections: prior.filter(p => p.section === section).map(p => p.planetSection),
+    })
     const chartBlock = formatEliteChartBlock(dual[section], section)
     contextBlock = `${chartBlock}\n${ctxBlock}`
   }

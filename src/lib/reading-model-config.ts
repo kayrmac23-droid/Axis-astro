@@ -23,13 +23,13 @@ export const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
 // and sidereal readings. Falls back to 2000 for any unlisted key.
 export const MAX_TOKENS_PER_SECTION: Record<string, number> = {
   // Tropical + sidereal primaries
-  sun: 2500, moon: 2500, ascendant: 2500, lagna: 2000,
+  sun: 3200, moon: 3200, ascendant: 2800, lagna: 2500,
   // Secondaries (shared names across systems)
-  mercury: 1500, venus: 1500, mars: 1500,
-  jupiter_saturn: 1800, rahu_ketu: 1500,
-  key_aspects: 1200,
+  mercury: 2000, venus: 2000, mars: 2000,
+  jupiter_saturn: 2200, rahu_ketu: 1900,
+  key_aspects: 1500,
   // The Divergence (legacy 'synthesis' key)
-  agree: 2500, diverge: 2500, tension: 1800, closing: 2000,
+  agree: 2800, diverge: 3200, tension: 2100, closing: 2200,
   // Synastry
   luminaries: 2500, venus_mars: 1800, outer_planets: 1800, composite_chart: 2000, central_dynamic: 2000, navigation: 2000,
 }

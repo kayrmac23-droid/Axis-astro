@@ -437,6 +437,7 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 // are exempt. A caller that does not say which frame it is scanning gets no
 // register finding, so the check can never fire on text it cannot classify.
 const SECOND_PERSON_RE = /\b(?:you|your|yours|yourself)\b/i
+const GENDERED_PRONOUN_RE = /\b(?:he|him|his|himself|she|her|hers|herself)\b/i
 
 /** Which register a section is written under. `natal` is the only one checked. */
 export type SectionRegister = 'natal' | 'synthesis' | 'synastry' | 'unknown'
@@ -569,6 +570,23 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
       match:    'no second-person address in a natal section (PART 4: "you are", "you tend to", "you find")',
       line:     0,
     })
+  }
+
+  // A gendered pronoun does not identify its referent. Divergence scenes may
+  // mention a mother, partner, etc.; their pronouns must not hard-fail the
+  // reader's voice. Only a nearby explicit reader antecedent supports a hard
+  // finding. All other matches are advisory, not regeneration triggers.
+  if (registerFor(opts.frame) === 'synthesis') {
+    const hit = lines.find(l => GENDERED_PRONOUN_RE.test(l.text))
+    if (hit) {
+      const explicitReaderReference = /\b(?:this person|the reader|the chart holder)\b[^.!?]*[.!?]\s*(?:he|she)\b/i
+      const certain = explicitReaderReference.test(text)
+      push('gendered-pronoun', certain ? 'hard' : 'soft',
+        certain
+          ? 'Gendered pronoun explicitly refers to the reader; use "they", "them", "their".'
+          : 'Gendered pronoun detected; check its referent before changing it (third parties are allowed).',
+        hit.line)
+    }
   }
 
   return out.sort((a, b) => a.line - b.line)
