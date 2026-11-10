@@ -766,8 +766,19 @@ describe('v10.49 — the prompt no longer hands over the phrasings the reader wa
     const thirdPartyHits = scanSectionRules(thirdParty, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')
     expect(thirdPartyHits).toHaveLength(1)
     expect(thirdPartyHits[0].severity).toBe('soft')
-    const ambiguous = 'She presses them for an answer.'
-    expect(scanSectionRules(ambiguous, { frame: 'synthesis' }).find(f => f.rule === 'gendered-pronoun')?.severity).toBe('soft')
+    // With no third party named, the reader is the only person a pronoun can
+    // belong to, however the sentence is built.
+    for (const misgendered of [
+      'This person keeps two ledgers, and he trusts neither.',
+      'Saturn in the tenth gives him a public role. His Moon in Cancer wants shelter.',
+      'This person carries both accounts. Mars squares her Venus.',
+      'She presses them for an answer.',
+    ]) {
+      expect(scanSectionRules(misgendered, { frame: 'synthesis' }).find(f => f.rule === 'gendered-pronoun')?.severity).toBe('hard')
+    }
+    // A named third party at the start of the section still softens it.
+    expect(scanSectionRules('This person argues with their mother. She wants an answer before they have one.', { frame: 'synthesis' })
+      .find(f => f.rule === 'gendered-pronoun')?.severity).toBe('soft')
     const they = 'This person is not choosing between two versions of one wish. They are running two accounts, and neither decides for them.'
     expect(scanSectionRules(they, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')).toHaveLength(0)
     // A natal section may give a third party a pronoun.
