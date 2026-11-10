@@ -572,17 +572,20 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
     })
   }
 
-  // Gendered pronouns in The Divergence. It is written in the third person
-  // about the reader, whose gender the chart does not state: on Kay's own
-  // reading (2026-11-10) it called her "he" and "him" throughout. Scoped to
-  // `synthesis`, where the only person in the prose is the reader; a natal
-  // section may legitimately give a third party a pronoun. One finding for the
-  // section, at the first instance.
+  // A gendered pronoun does not identify its referent. Divergence scenes may
+  // mention a mother, partner, etc.; their pronouns must not hard-fail the
+  // reader's voice. Only a nearby explicit reader antecedent supports a hard
+  // finding. All other matches are advisory, not regeneration triggers.
   if (registerFor(opts.frame) === 'synthesis') {
     const hit = lines.find(l => GENDERED_PRONOUN_RE.test(l.text))
     if (hit) {
-      const all = lines.flatMap(l => l.text.match(new RegExp(GENDERED_PRONOUN_RE.source, 'gi')) ?? [])
-      push('gendered-pronoun', 'hard', `${all.length} gendered pronoun(s) for the reader (${Array.from(new Set(all.map(w => w.toLowerCase()))).join(', ')}): use "they", "them", "their"`, hit.line)
+      const explicitReaderReference = /\b(?:this person|the reader|the chart holder)\b[^.!?]*[.!?]\s*(?:he|she)\b/i
+      const certain = explicitReaderReference.test(text)
+      push('gendered-pronoun', certain ? 'hard' : 'soft',
+        certain
+          ? 'Gendered pronoun explicitly refers to the reader; use "they", "them", "their".'
+          : 'Gendered pronoun detected; check its referent before changing it (third parties are allowed).',
+        hit.line)
     }
   }
 
