@@ -229,6 +229,29 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     expect(r.reason).toBe('doctrine-repaired')
     expect(r.modelCalls).toBe(2)
   })
+
+  it('localises a contextual hit whose identity token ENDS inside the window but starts outside it', async () => {
+    // The scan measures the gap from the END of the identity token; the
+    // localiser measured from its start, so this hit was reported and then
+    // found in no sentence — the surgical edit threw and a rubric-passing
+    // section took a full repair (production, 2026-11-07, synthesis/closing).
+    const before = `${GOOD_SECTION} `
+    const dirtySentence = 'The incarnational pattern keeps running through every ordinary working week, beneath notice.'
+    const after = ' The tension remains active in close relationships.'
+    const tokenStart = dirtySentence.indexOf('incarnational')
+    const termStart  = dirtySentence.indexOf('beneath')
+    expect(termStart - tokenStart).toBeGreaterThan(60)                              // outside, from the start
+    expect(termStart - (tokenStart + 'incarnational'.length)).toBeLessThanOrEqual(60) // inside, from the end
+    const replacement = 'The pattern keeps running through every ordinary working week without drawing attention.'
+    create
+      .mockResolvedValueOnce(evalReply(5))
+      .mockResolvedValueOnce(textReply(JSON.stringify([replacement])))
+
+    const r = await gateForCache({ ...BASE, firstPassText: before + dirtySentence + after, startedAt: JUST_NOW() })
+    expect(r.cacheText).toBe(before + replacement + after)
+    expect(r.reason).toBe('doctrine-repaired')
+    expect(r.modelCalls).toBe(2)
+  })
 })
 
 describe('gateForCache — an unusable repair is not cached', () => {
