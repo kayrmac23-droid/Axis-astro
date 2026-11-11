@@ -779,6 +779,9 @@ describe('v10.49 — the prompt no longer hands over the phrasings the reader wa
     // A named third party at the start of the section still softens it.
     expect(scanSectionRules('This person argues with their mother. She wants an answer before they have one.', { frame: 'synthesis' })
       .find(f => f.rule === 'gendered-pronoun')?.severity).toBe('soft')
+    // ...but a third party named elsewhere does not excuse an explicit one.
+    expect(scanSectionRules('This person keeps two ledgers. He trusts neither.\n\nTheir mother asks for an answer.', { frame: 'synthesis' })
+      .find(f => f.rule === 'gendered-pronoun')?.severity).toBe('hard')
     const they = 'This person is not choosing between two versions of one wish. They are running two accounts, and neither decides for them.'
     expect(scanSectionRules(they, { frame: 'synthesis' }).filter(f => f.rule === 'gendered-pronoun')).toHaveLength(0)
     // A natal section may give a third party a pronoun.

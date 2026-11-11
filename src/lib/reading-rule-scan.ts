@@ -439,6 +439,7 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 const SECOND_PERSON_RE = /\b(?:you|your|yours|yourself)\b/i
 const GENDERED_PRONOUN_RE = /\b(?:he|him|his|himself|she|her|hers|herself)\b/i
 // A person other than the reader whom a Divergence scene could give a pronoun.
+const READER_NOUN_RE = /\b(?:this person|the reader)\b/i
 const THIRD_PARTY_RE = /\b(?:mother|father|mum|mom|dad|parents?|partner|husband|wife|spouse|boyfriend|girlfriend|lover|sister|brother|sibling|son|daughter|child|friend|colleague|boss|manager|teacher|grandmother|grandfather|aunt|uncle)s?\b/i
 
 /** Which register a section is written under. `natal` is the only one checked. */
@@ -579,7 +580,9 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
   // reading (2026-11-10) it called her "he" and "him" throughout. The reader is
   // the only person in the prose unless a scene names someone else, so a
   // gendered pronoun is `hard` by default and `soft` only when the section
-  // names a third party it could belong to ("their mother ... she"). Natal
+  // names a third party it could belong to ("their mother ... she"). Even
+  // then, a sentence about the reader that names no one else, followed by one
+  // opening on "he"/"she", is the reader misgendered and stays `hard`. Natal
   // sections are not checked: they may give a third party a pronoun. One
   // finding for the section, at the first instance.
   if (registerFor(opts.frame) === 'synthesis') {
@@ -587,7 +590,10 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
     if (hit) {
       const all = lines.flatMap(l => l.text.match(new RegExp(GENDERED_PRONOUN_RE.source, 'gi')) ?? [])
       const words = Array.from(new Set(all.map(w => w.toLowerCase()))).join(', ')
-      const thirdParty = text.match(THIRD_PARTY_RE)?.[0]
+      const sentences = text.split(/(?<=[.!?])\s+/)
+      const explicitReader = sentences.some((s, i) =>
+        READER_NOUN_RE.test(s) && !THIRD_PARTY_RE.test(s) && /^\W*(?:he|she)\b/i.test(sentences[i + 1] ?? ''))
+      const thirdParty = explicitReader ? undefined : text.match(THIRD_PARTY_RE)?.[0]
       push('gendered-pronoun', thirdParty ? 'soft' : 'hard',
         thirdParty
           ? `${all.length} gendered pronoun(s) (${words}); the section names a third party ("${thirdParty}"), so check each refers to them and not the reader`
