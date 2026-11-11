@@ -438,6 +438,9 @@ export function antithesisTicExceeded(text: string): { match: string; line: numb
 // register finding, so the check can never fire on text it cannot classify.
 const SECOND_PERSON_RE = /\b(?:you|your|yours|yourself)\b/i
 const GENDERED_PRONOUN_RE = /\b(?:he|him|his|himself|she|her|hers|herself)\b/i
+// A person other than the reader whom a Divergence scene could give a pronoun.
+const READER_NOUN_RE = /\b(?:this person|the reader)\b/i
+const THIRD_PARTY_RE = /\b(?:mother|father|mum|mom|dad|parents?|partner|husband|wife|spouse|boyfriend|girlfriend|lover|sister|brother|sibling|son|daughter|child|friend|colleague|boss|manager|teacher|grandmother|grandfather|aunt|uncle)s?\b/i
 
 /** Which register a section is written under. `natal` is the only one checked. */
 export type SectionRegister = 'natal' | 'synthesis' | 'synastry' | 'unknown'
@@ -572,19 +575,29 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
     })
   }
 
-  // A gendered pronoun does not identify its referent. Divergence scenes may
-  // mention a mother, partner, etc.; their pronouns must not hard-fail the
-  // reader's voice. Only a nearby explicit reader antecedent supports a hard
-  // finding. All other matches are advisory, not regeneration triggers.
+  // Gendered pronouns in The Divergence. It is written in the third person
+  // about the reader, whose gender the chart does not state: on Kay's own
+  // reading (2026-11-10) it called her "he" and "him" throughout. The reader is
+  // the only person in the prose unless a scene names someone else, so a
+  // gendered pronoun is `hard` by default and `soft` only when the section
+  // names a third party it could belong to ("their mother ... she"). Even
+  // then, a sentence about the reader that names no one else, followed by one
+  // opening on "he"/"she", is the reader misgendered and stays `hard`. Natal
+  // sections are not checked: they may give a third party a pronoun. One
+  // finding for the section, at the first instance.
   if (registerFor(opts.frame) === 'synthesis') {
     const hit = lines.find(l => GENDERED_PRONOUN_RE.test(l.text))
     if (hit) {
-      const explicitReaderReference = /\b(?:this person|the reader|the chart holder)\b[^.!?]*[.!?]\s*(?:he|she)\b/i
-      const certain = explicitReaderReference.test(text)
-      push('gendered-pronoun', certain ? 'hard' : 'soft',
-        certain
-          ? 'Gendered pronoun explicitly refers to the reader; use "they", "them", "their".'
-          : 'Gendered pronoun detected; check its referent before changing it (third parties are allowed).',
+      const all = lines.flatMap(l => l.text.match(new RegExp(GENDERED_PRONOUN_RE.source, 'gi')) ?? [])
+      const words = Array.from(new Set(all.map(w => w.toLowerCase()))).join(', ')
+      const sentences = text.split(/(?<=[.!?])\s+/)
+      const explicitReader = sentences.some((s, i) =>
+        READER_NOUN_RE.test(s) && !THIRD_PARTY_RE.test(s) && /^\W*(?:he|she)\b/i.test(sentences[i + 1] ?? ''))
+      const thirdParty = explicitReader ? undefined : text.match(THIRD_PARTY_RE)?.[0]
+      push('gendered-pronoun', thirdParty ? 'soft' : 'hard',
+        thirdParty
+          ? `${all.length} gendered pronoun(s) (${words}); the section names a third party ("${thirdParty}"), so check each refers to them and not the reader`
+          : `${all.length} gendered pronoun(s) for the reader (${words}): use "they", "them", "their"`,
         hit.line)
     }
   }
