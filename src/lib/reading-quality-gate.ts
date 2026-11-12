@@ -1,20 +1,11 @@
 // Reading Quality Gate
 //
-// ON THE REQUEST PATH, AFTER THE RESPONSE — "evaluate-and-recache". /api/reading
-// streams the first pass straight to the reader and closes the stream, THEN calls
-// gateForCache() below while the invocation is still alive. So the gate never adds
-// latency to what the reader waits for, and it decides only one thing: what future
-// readers get from the 30-day cache.
-//
-// The consequence, stated plainly: the FIRST reader of an uncached section sees
-// ungated first-pass prose. Everyone after them is served the gated (and, where it
-// failed, repaired) text. The gate cannot retroactively fix what already streamed —
-// it converts a one-off ungated impression into a cached, gated artifact.
-//
-// This replaced the earlier synchronous design, which was removed when generation +
-// eval breached the then-60s route ceiling on heavy sections. maxDuration is now 120
-// and the passes are off the response path entirely, so the ceiling is no longer the
-// binding constraint; the wall-clock guards in gateForCache are.
+// OFFLINE MEASURING TOOL. /api/reading does not call the evaluator or the repair:
+// since 2026-11-12 the live path caches the first pass directly, vetoed only by the
+// deterministic firstPassCacheVerdict() below (truncated / doctrine scan). The
+// LLM gate is kept for `npm run eval -- --gate` and `npm run rescore`, where it
+// measures first-pass quality and what a repair would have bought. Why it left
+// the live path is recorded in docs/PIPELINE-HISTORY.md.
 //
 // What it does when it runs: scores a generated section against AXIS's elite-reading
 // criteria and, on failure, regenerates it once with the evaluator's critique as
@@ -1482,9 +1473,27 @@ function logGateOutcome(label: string, reason: string, scores: GateScores | null
   console.log(`[AXIS_GATE] section=${label} reason=${reason} ${scoreStr}`)
 }
 
-// Cache the text only if the deterministic scan is clean. Used on the paths that
-// skip the LLM gate entirely (gate disabled, out of wall-clock budget), which
-// keeps them at exactly the pre-gate behaviour rather than a weaker one.
+// What the LIVE path caches. /api/reading no longer runs the LLM gate: a first
+// pass is cached for the full TTL unless a deterministic, free check says it
+// must not be. Pure — no model call, no clock.
+//   truncated  the generation's own stop_reason === 'max_tokens' (authoritative),
+//              or the end-of-prose heuristic. Regenerated on the next request.
+//   doctrine   detectBannedPhrasings hit. THE LAW is never frozen for 30 days;
+//              left uncached so the next request gets a fresh attempt.
+export type FirstPassCacheReason = 'clean' | 'truncated-or-empty' | 'doctrine-hit'
+export function firstPassCacheVerdict(
+  text: string, truncated: boolean,
+): { cache: boolean; reason: FirstPassCacheReason; hits: string[] } {
+  if (truncated || text.trim().length === 0 || isTruncated(text)) {
+    return { cache: false, reason: 'truncated-or-empty', hits: [] }
+  }
+  const hits = detectBannedPhrasings(text)
+  if (hits.length > 0) return { cache: false, reason: 'doctrine-hit', hits }
+  return { cache: true, reason: 'clean', hits: [] }
+}
+
+// Cache the text only if the deterministic scan is clean. Used on the path that
+// skips evaluation for lack of wall-clock budget.
 function cacheIfClean(text: string, reason: string, label: string, modelCalls: number): GateForCacheResult {
   const hits = detectBannedPhrasings(text)
   if (hits.length > 0) {
@@ -1494,9 +1503,10 @@ function cacheIfClean(text: string, reason: string, label: string, modelCalls: n
   return { cacheText: text, modelCalls, scores: null, repaired: false, reason, firstPass: null }
 }
 
-// Decide what — if anything — this section should leave behind in the cache.
-// Called AFTER the response stream has closed, so it never delays the reader.
-// Never throws: a gating failure must not surface anywhere near the request.
+// OFFLINE ONLY. The evaluate → repair → re-score pass, as a measuring tool for
+// `npm run eval -- --gate`. /api/reading does not call this (see
+// firstPassCacheVerdict); a test fails if the route imports it again.
+// Never throws.
 export async function gateForCache(input: GateForCacheInput): Promise<GateForCacheResult> {
   const {
     firstPassText, chartContext, priorBlocks, section, planetSection,
@@ -1514,13 +1524,6 @@ export async function gateForCache(input: GateForCacheInput): Promise<GateForCac
   // would buy nothing.
   if (truncated || firstPassText.trim().length === 0 || isTruncated(firstPassText)) {
     return { cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'truncated-or-empty', firstPass: null }
-  }
-
-  // Kill switch, mirroring AXIS_READINGS_ENABLED: gating roughly doubles the model
-  // calls an uncached section costs (triples it when a repair fires), so it must be
-  // possible to stop that during a spend incident without a redeploy.
-  if (process.env.AXIS_GATE_ENABLED === 'false') {
-    return cacheIfClean(firstPassText, 'gate-disabled', label, 0)
   }
 
   if (Date.now() - startedAt > EVAL_SKIP_AFTER_MS) {

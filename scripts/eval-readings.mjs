@@ -11,7 +11,8 @@
 //
 //     npm run eval                   generate-only: Sonnet generation, no gate (cheap)
 //     npm run eval -- --gate         also runs gateForCache per section (Sonnet 5.5 eval +
-//                                    any repair/re-score) — the real cost of a reading
+//                                    any repair/re-score). Offline measurement only:
+//                                    production does not gate, it caches the first pass
 //     npm run eval -- --verify       no API: recompute every chart and check it still
 //                                    hits its axis (run after editing eval-charts.json)
 //     npm run eval -- --dry-run      no API: build every section's real request with
@@ -42,7 +43,7 @@
 //   Opt-in: the harness only runs with AXIS_EVAL=1, which this launcher sets.
 //   It is not a *.test.ts file and has its own vitest config, so `npm test` and
 //   CI never collect it; and generate/gate modes refuse to start without a real
-//   ANTHROPIC_API_KEY. Do not set AXIS_GATE_ENABLED=false with --gate.
+//   ANTHROPIC_API_KEY.
 //
 //   Cost: generate-only is ~21 Sonnet 5 calls per chart. --gate adds one Sonnet 5.5
 //   evaluation per generated section, plus a repair (Sonnet 5) and a Sonnet 5.5

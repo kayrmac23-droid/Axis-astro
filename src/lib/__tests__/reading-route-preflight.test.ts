@@ -1,5 +1,5 @@
 // The hot-path pre-flight, driven through /api/reading with the SDK, the rate
-// limiter and the gate all mocked.
+// limiter mocked.
 //
 // What these pin is the thing the feature exists for: the reader is shown the
 // CHECKED text, not the first thing the model produced. Kept in its own file so
@@ -62,14 +62,6 @@ vi.mock('@/lib/route-rate-limiter', async importOriginal => {
 vi.mock('next/server', async importOriginal => {
   const actual = await importOriginal<typeof import('next/server')>()
   return { ...actual, after: (fn: () => Promise<void> | void) => { void fn() } }
-})
-
-vi.mock('@/lib/reading-quality-gate', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/reading-quality-gate')>()
-  return {
-    ...actual,
-    gateForCache: async () => ({ cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'test', firstPass: null }),
-  }
 })
 
 const BIRTH = { year: 1999, month: 7, day: 23, hour: 23, minute: 45, latitude: -37.65, longitude: 145.02, timezone: 10 }

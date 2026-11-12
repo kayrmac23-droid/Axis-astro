@@ -14,7 +14,7 @@ description: >
 
 Rules for the language and interpretive logic of AXIS reading output.
 
-**Source of truth.** These rules summarise what the product actually ships: `SHARED_RULES`, `SHADOW_RULES` and the system prompts in `src/lib/prompts.ts`, enforced by the quality gate in `src/lib/reading-quality-gate.ts`. If this skill and the repo disagree, **the repo wins** — read the current prompt text before changing or judging output, and update this skill to match. This skill lives in the repo at `.claude/skills/axis-output-quality/`: change it in the same PR as any prompt change it describes, so the two are reviewed together. (An earlier version of this skill drifted from the prompts and told readers to do things the product had deliberately banned.)
+**Source of truth.** These rules summarise what the product actually ships: `SHARED_RULES`, `SHADOW_RULES` and the system prompts in `src/lib/prompts.ts`, measured offline by the quality gate in `src/lib/reading-quality-gate.ts` (`npm run eval -- --gate`, `npm run rescore`). The gate is not on the live path: production caches the first pass, vetoed only by the deterministic truncation and doctrine scans, so where this skill says the gate "enforces" a rule, read "scores it in an eval". If this skill and the repo disagree, **the repo wins** — read the current prompt text before changing or judging output, and update this skill to match. This skill lives in the repo at `.claude/skills/axis-output-quality/`: change it in the same PR as any prompt change it describes, so the two are reviewed together. (An earlier version of this skill drifted from the prompts and told readers to do things the product had deliberately banned.)
 
 ## Priority Order
 

@@ -53,7 +53,8 @@ export interface SectionRequest {
     system:     Anthropic.TextBlockParam[]
     messages:   [{ role: 'user'; content: Anthropic.TextBlockParam[] }]
   }
-  // What the route hands gateForCache alongside the first pass.
+  // What the eval harness hands gateForCache alongside the first pass; the
+  // route uses userContent for the pre-flight.
   userContent: string
   priorBlocks: Anthropic.TextBlockParam[]
   // The chart-scaled band the instruction's length clause was rendered from —

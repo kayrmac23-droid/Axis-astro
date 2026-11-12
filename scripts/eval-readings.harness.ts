@@ -21,10 +21,10 @@
 //   - unknown birth time: ascendant/lagna are the deterministic notice, no call;
 //   - generation is messages.stream + finalMessage with the production MODEL,
 //     THINKING and MAX_TOKENS_PER_SECTION (no sampling params);
-//   - --gate runs the real gateForCache with the route's inputs, including the
-//     wall-clock origin at the start of the section, so its 95s/70s budget guards
-//     behave as in production. As in production the gate runs in the background
-//     while the next section generates.
+//   - --gate runs gateForCache on each first pass, in the background while the
+//     next section generates. Production does NOT gate (it caches the first pass
+//     directly); this is the offline measurement of how that first pass scores
+//     and what a repair would have bought.
 // Pluto is the local Meeus fallback (no JPL call): the route only uses JPL when
 // the client forwards it, and an offline harness keeps runs reproducible.
 import { describe, it, expect, vi } from 'vitest'
@@ -171,8 +171,7 @@ interface SectionRecord {
   gen_ms: number | null; error: string | null; error_fatal: boolean | null
   prompt_chars: number | null
   // Deterministic rule compliance (reading-rule-scan.ts). Counted on the FIRST
-  // PASS — the text a real reader actually gets, since gateForCache runs under
-  // after() and only decides what the cache serves later. These are the
+  // PASS — the text a real reader actually gets and the cache keeps. These are the
   // SHARED_RULES / DOCTRINE constraints that are pure string facts and had no
   // enforcement anywhere before v10.30; `rules_detail` carries the matched text
   // so a count can be confirmed rather than taken on trust.
@@ -530,7 +529,7 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
 
         if (MODE !== 'gate') return
 
-        // ── Gate: in the background, as after() runs it in production ────────
+        // ── Gate: offline measurement, in the background ─────────────────────
         pendingGates.push((async () => {
           const gateStart = Date.now()
           const verdict = await gateForCache({
@@ -827,10 +826,6 @@ describe.skipIf(!ENABLED)('AXIS batch reading evaluation', () => {
       say(`\n${charts.length - failed.length}/${charts.length} charts hit their axis${failed.length ? ` — FAILED: ${failed.map(c => c.id).join(', ')}` : ''}`)
       expect(failed.map(c => c.id)).toEqual([])
       return
-    }
-
-    if (MODE === 'gate' && process.env.AXIS_GATE_ENABLED === 'false') {
-      throw new Error('AXIS_GATE_ENABLED=false is set: gateForCache would skip evaluation and the run would measure nothing. Unset it.')
     }
 
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19)

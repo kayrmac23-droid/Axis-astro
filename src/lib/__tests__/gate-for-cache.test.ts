@@ -72,7 +72,6 @@ const JUST_NOW = () => Date.now()
 
 beforeEach(() => {
   create.mockReset()
-  delete process.env.AXIS_GATE_ENABLED
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -107,25 +106,7 @@ describe('gateForCache — nothing is spent on output that can never be cached',
   })
 })
 
-describe('gateForCache — kill switch and wall-clock guards fall back to pre-gate behaviour', () => {
-  it('caches a clean first pass without gating when AXIS_GATE_ENABLED=false', async () => {
-    process.env.AXIS_GATE_ENABLED = 'false'
-    const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: JUST_NOW() })
-    expect(r.cacheText).toBe(GOOD_SECTION)
-    expect(r.reason).toBe('gate-disabled')
-    expect(r.modelCalls).toBe(0)
-    expect(create).not.toHaveBeenCalled()
-  })
-
-  it('still refuses to cache doctrine-breaching text when the gate is disabled', async () => {
-    process.env.AXIS_GATE_ENABLED = 'false'
-    const dirty = `${GOOD_SECTION} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
-    const r = await gateForCache({ ...BASE, firstPassText: dirty, startedAt: JUST_NOW() })
-    expect(r.cacheText).toBeNull()
-    expect(r.reason).toContain('doctrine-hit')
-    expect(create).not.toHaveBeenCalled()
-  })
-
+describe('gateForCache — the wall-clock guard falls back to pre-gate behaviour', () => {
   it('skips the eval entirely when the request has already burned the budget', async () => {
     const r = await gateForCache({ ...BASE, firstPassText: GOOD_SECTION, startedAt: LONG_AGO() })
     expect(r.cacheText).toBe(GOOD_SECTION)
