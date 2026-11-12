@@ -53,21 +53,23 @@ import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpr
 import { TROPICAL_SYSTEM_PROMPT, SHARED_RULES, renderSectionInstruction } from '@/lib/prompts'
 import { calculateDualChart, type BirthData } from '@/lib/astro-calc'
 import Anthropic from '@anthropic-ai/sdk'
+import { MODEL as GEN_MODEL, THINKING as GEN_THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
 
 // ── Config pulled from source, not memory ──────────────────────────────────
 // These four mirror route.ts exactly. If any drifts from route.ts the number
 // lies — so they are asserted against the route's own constants where possible.
-const MODEL = 'claude-sonnet-5'          // route.ts:19
-// Sonnet 5 / Opus 5 rejects sampling params; the route sends no temperature and
-// disables thinking. Mirror that here or this harness 400s against the real API.
-const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
+// Imported, not mirrored: a hand-copied MODEL/THINKING drifted from the route
+// once already (this file still said Sonnet 5 with thinking disabled after the
+// route moved). Opus 5.5 rejects disabled thinking and sampling params.
+const MODEL = GEN_MODEL
+const THINKING: Anthropic.ThinkingConfigParam = GEN_THINKING
 const SECTION = 'tropical' as const
 const HEAVY_PLANET_SECTIONS = ['sun', 'moon'] as const
 const RUNS_PER_SECTION = 3                 // fat-tail latency: worst run is what the ceiling cares about
 
-// The route derives maxTokens as MAX_TOKENS_PER_SECTION[planetSection] ?? 2000.
-// route.ts:25 sets sun: 2500, moon: 2500 — confirmed against the map body.
-const MAX_TOKENS_HEAVY = 2500
+// The route derives maxTokens with maxTokensFor(planetSection). sun and moon share
+// a budget, so one number covers both heavy sections.
+const MAX_TOKENS_HEAVY = maxTokensFor('sun')
 
 // The route's declared ceiling, for the banner. route.ts:14 → maxDuration = 120.
 const DECLARED_MAX_DURATION_S = 120
@@ -128,6 +130,7 @@ async function timeGeneration(planetSection: string): Promise<{ ms: number; text
     model: MODEL,
     max_tokens: MAX_TOKENS_HEAVY,
     thinking: THINKING,
+    output_config: OUTPUT_CONFIG,
     system: systemBlocks,
     messages: [{ role: 'user', content: userContent }],
   })

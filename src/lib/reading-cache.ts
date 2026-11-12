@@ -117,7 +117,11 @@ import type { BirthData } from '@/lib/astro-calc'
 // v10.50: no prompt change. Flushes rows cached under two different v10.49
 // prompts (PRs #255 and #253 shipped eight minutes apart under one version) and
 // Divergence rows cached while the gendered-pronoun check was weakened.
-export const READING_PROMPT_VERSION = 'v10.50'
+// v10.51: no prompt change. The generator moves from Sonnet 5 (no thinking) to
+// Opus 5.5 with adaptive thinking at medium effort. The model is not in the
+// cache key, so the bump is what keeps Sonnet-written rows from being served
+// as if they were the new model's.
+export const READING_PROMPT_VERSION = 'v10.51'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

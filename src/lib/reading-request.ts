@@ -16,7 +16,7 @@ import {
 import { countAspectsInContext } from '@/lib/reading-quality-gate'
 import { sceneExpectation, sceneClause, type SceneExpectation } from '@/lib/scene-expectation'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
+import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
 import {
   priorSectionBlocks, phrasesAlreadyUsedBlock, READING_SO_FAR_FOOTER, type PriorSection,
 } from '@/lib/reading-thread'
@@ -49,6 +49,7 @@ export interface SectionRequest {
     model:      string
     max_tokens: number
     thinking:   Anthropic.ThinkingConfigParam
+    output_config: Anthropic.OutputConfig
     system:     Anthropic.TextBlockParam[]
     messages:   [{ role: 'user'; content: Anthropic.TextBlockParam[] }]
   }
@@ -110,8 +111,9 @@ export function buildSectionRequest(
   return {
     params: {
       model:      MODEL,
-      max_tokens: MAX_TOKENS_PER_SECTION[planetSection] ?? 2000,
-      thinking:   THINKING,
+      max_tokens:    maxTokensFor(planetSection),
+      thinking:      THINKING,
+      output_config: OUTPUT_CONFIG,
       system: [
         { type: 'text', text: rulesBlock(), cache_control: { type: 'ephemeral' } },
         { type: 'text', text: SYSTEM_PROMPT_MAP[section], cache_control: { type: 'ephemeral' } },

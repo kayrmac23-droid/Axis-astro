@@ -19,6 +19,7 @@ vi.mock('@anthropic-ai/sdk', () => ({
 import { gateForCache, detectBannedPhrasings, EVAL_MODEL } from '../reading-quality-gate'
 import { BANNED_RESCUE_PHRASINGS, OPENER_MODES, wordBandFor } from '../prompts'
 import { READING_SO_FAR_FOOTER } from '../reading-thread'
+import { THINKING_HEADROOM_TOKENS, OUTPUT_CONFIG } from '../reading-model-config'
 
 // A section long enough to sit inside the tropical/sun word band, so the
 // deterministic `length` criterion is not what decides these tests.
@@ -209,7 +210,11 @@ describe('gateForCache — a failing section is repaired and the repair is cache
     expect(r.reason).toBe('doctrine-repaired')
     expect(r.modelCalls).toBe(2)
     const repairCall = create.mock.calls[1][0]
-    expect(repairCall.max_tokens).toBe(500)
+    // 500 tokens of sentences plus the generator's thinking headroom (v10.51:
+    // thinking is on and counts against max_tokens), with the generator's shape.
+    expect(repairCall.max_tokens).toBe(500 + THINKING_HEADROOM_TOKENS)
+    expect(repairCall.thinking).toEqual({ type: 'adaptive' })
+    expect(repairCall.output_config).toEqual(OUTPUT_CONFIG)
     expect(repairCall.messages[0].content).toContain(BANNED_RESCUE_PHRASINGS[0])
     expect(repairCall.messages[0].content).not.toContain(GOOD_SECTION)
     expect(create).toHaveBeenCalledTimes(2)
