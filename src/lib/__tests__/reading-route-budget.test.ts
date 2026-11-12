@@ -1,23 +1,29 @@
 // The daily spend counter must bound calls STARTED, not calls finished.
 //
-// The route used to record its whole model-call count — generation plus every
-// gate call — from inside the after() hook, i.e. once gating had finished, 30–60s
-// after the generation call was actually made. Between the check and the record
-// the counter understated real spend by every request in flight, so concurrent
-// traffic could run well past AXIS_DAILY_READING_CALL_CAP before the cap noticed;
-// and on the failure path the post-hoc count was usually zero, so a call that had
-// already billed went uncounted entirely.
+// The generation call is reserved before it is made, so concurrent traffic
+// cannot run past AXIS_DAILY_READING_CALL_CAP before the cap notices, and a
+// failed call that may have billed is still counted.
 //
-// The generation call is now reserved before it is made. These tests pin the
-// ordering and the absence of double counting — both invisible in production
-// until a spend incident.
+// Since 2026-11-12 that one call is ALL an uncached section costs on the live path:
+// the LLM gate is an offline tool (npm run eval -- --gate / rescore). These tests
+// also pin that — the first pass is cached directly for the full TTL, no
+// evaluator or repair call is made, and only the deterministic vetoes
+// (truncated, doctrine scan) keep text out of the cache.
 import { describe, it, expect, vi, beforeAll, afterAll, beforeEach } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { NextRequest } from 'next/server'
 import { POST } from '@/app/api/reading/route'
 import { _resetThreadMemoryForTests } from '@/lib/reading-thread'
+import { BANNED_RESCUE_PHRASINGS } from '@/lib/prompts'
 
-// Ordered log of what happened when: 'reserve:N' / 'stream' / 'gate'.
+// Ordered log of what happened when: 'reserve:N' / 'stream' / 'create'.
 const events: string[] = []
+// Every cache write: the text and the TTL argument (undefined = the 30-day default).
+const cacheWrites: { text: string; ttl: number | undefined }[] = []
+const PROSE = 'You hold the room by going quiet first.'
+let streamText = PROSE
+let stopReason = 'end_turn'
 let streamShouldThrow = false
 // When set, the mock stream pauses after its first delta until released — so a
 // test can disconnect the reader while generation is still running.
@@ -31,19 +37,20 @@ vi.mock('@anthropic-ai/sdk', () => {
         if (streamShouldThrow) throw new Error('overloaded_error: upstream is busy')
         return {
           async *[Symbol.asyncIterator]() {
-            yield { type: 'content_block_delta', delta: { type: 'text_delta', text: 'PROSE.' } }
+            yield { type: 'content_block_delta', delta: { type: 'text_delta', text: streamText } }
             if (streamHold) {
               await streamHold
               yield { type: 'content_block_delta', delta: { type: 'text_delta', text: ' MORE.' } }
             }
           },
           finalMessage: async () => ({
-            stop_reason: 'end_turn',
+            stop_reason: stopReason,
             usage: { input_tokens: 10, output_tokens: 10, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
           }),
         }
       },
-      create: async () => { throw new Error('not used') },
+      // Evaluator, repair and re-score were all messages.create. None may run.
+      create: async () => { events.push('create'); throw new Error('the live path must not call messages.create') },
     }
     // classifyGenerationError narrows on Anthropic.APIError, so the mock has to
     // carry one for the failure path to be classifiable at all.
@@ -62,21 +69,18 @@ vi.mock('@/lib/route-rate-limiter', async importOriginal => {
   }
 })
 
-// after() runs its callback inline so the gate path is observable in-test.
+// after() runs its callback inline so the cache write is observable in-test.
 vi.mock('next/server', async importOriginal => {
   const actual = await importOriginal<typeof import('next/server')>()
   return { ...actual, after: (fn: () => Promise<void> | void) => { void fn() } }
 })
 
-// The gate is not under test; stand in for it with a fixed call count.
-vi.mock('@/lib/reading-quality-gate', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/reading-quality-gate')>()
+vi.mock('@/lib/reading-cache', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/reading-cache')>()
   return {
     ...actual,
-    gateForCache: async () => {
-      events.push('gate')
-      return { cacheText: null, modelCalls: 2, scores: null, repaired: false, reason: 'test', firstPass: null }
-    },
+    getCachedReading: async () => null,
+    setCachedReading: async (_k: string, text: string, ttl?: number) => { cacheWrites.push({ text, ttl }) },
   }
 })
 
@@ -98,18 +102,20 @@ async function run(ip: string) {
 
 describe('/api/reading — the daily budget counts calls started', () => {
   const priorKey = process.env.ANTHROPIC_API_KEY
-  // ⚠ Pre-flight OFF for the existing cases: their fixtures are stub prose that
-  // fails the length floor, so each would also pay a `preflight-rewrite` call and
-  // these assertions are about the GENERATION reservation and the GATE's calls.
-  // The rewrite's own budget accounting is asserted in its own case below, with
-  // pre-flight explicitly enabled.
+  // Pre-flight OFF: the fixtures are stub prose that fails the length floor, so
+  // each would also pay a `preflight-rewrite` call. Its accounting is asserted
+  // in reading-route-preflight.test.ts.
   beforeAll(() => { process.env.ANTHROPIC_API_KEY = 'sk-ant-test-not-a-real-key'; process.env.AXIS_PREFLIGHT_ENABLED = 'false' })
   afterAll(() => {
     delete process.env.AXIS_PREFLIGHT_ENABLED
     if (priorKey === undefined) delete process.env.ANTHROPIC_API_KEY
     else process.env.ANTHROPIC_API_KEY = priorKey
   })
-  beforeEach(() => { events.length = 0; streamShouldThrow = false; streamHold = null; _resetThreadMemoryForTests() })
+  beforeEach(() => {
+    events.length = 0; cacheWrites.length = 0
+    streamShouldThrow = false; streamHold = null; streamText = PROSE; stopReason = 'end_turn'
+    _resetThreadMemoryForTests()
+  })
 
   it('reserves the generation call BEFORE making it', async () => {
     await run('10.1.0.1')
@@ -117,14 +123,47 @@ describe('/api/reading — the daily budget counts calls started', () => {
     expect(events.indexOf('reserve:1')).toBeLessThan(events.indexOf('stream'))
   })
 
-  it('records the gate calls separately, without re-counting the generation', async () => {
+  it('an uncached section costs exactly ONE model call — no evaluator, no repair', async () => {
     await run('10.1.0.2')
-    const recorded = events
-      .filter(e => e.startsWith('reserve:'))
-      .reduce((n, e) => n + Number(e.split(':')[1]), 0)
-    // 1 generation + the 2 the stub gate reported, counted exactly once each.
-    expect(recorded).toBe(3)
-    expect(events.filter(e => e === 'reserve:1')).toHaveLength(1)
+    expect(events.filter(e => e.startsWith('reserve:'))).toEqual(['reserve:1'])
+    expect(events.filter(e => e === 'stream')).toHaveLength(1)
+    expect(events).not.toContain('create')
+  })
+
+  it('caches the first pass as served, for the full TTL', async () => {
+    await run('10.1.0.5')
+    // No TTL argument: the 30-day default, never the 24h provisional one.
+    expect(cacheWrites).toEqual([{ text: PROSE, ttl: undefined }])
+  })
+
+  it('never caches truncated output', async () => {
+    stopReason = 'max_tokens'
+    const res = await run('10.1.0.6')
+    expect(cacheWrites).toEqual([])
+    expect(events).not.toContain('create')
+    expect(res.status).toBe(200)
+  })
+
+  it('never caches doctrine-breaching output, and spends nothing trying to fix it', async () => {
+    streamText = `${PROSE} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      await run('10.1.0.7')
+      expect(cacheWrites).toEqual([])
+      expect(events).not.toContain('create')
+      expect(warn.mock.calls.some(c => String(c[0]).includes('[AXIS_DOCTRINE_UNCACHED]'))).toBe(true)
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
+  it('the route does not import the LLM gate', () => {
+    // The gate is an offline measuring tool. If this fails, someone has put
+    // evaluator spend and wording churn back on the live path.
+    const src = readFileSync(resolve(__dirname, '../../app/api/reading/route.ts'), 'utf8')
+    for (const name of ['gateForCache', 'evaluateSection', 'repairSection', 'repairDoctrineSentences', 'PROVISIONAL_TTL_SECONDS']) {
+      expect(src, name).not.toContain(name)
+    }
   })
 
   it('keeps the reservation when the generation call fails', async () => {
@@ -134,23 +173,15 @@ describe('/api/reading — the daily budget counts calls started', () => {
     const res = await run('10.1.0.3')
     expect(res.status).toBe(200)   // the failure is in-band, not a status code
     expect(events).toContain('reserve:1')
-    expect(events).not.toContain('gate')
+    expect(cacheWrites).toEqual([])
   })
 
-  it('still gates and caches a paid generation when the reader disconnects while it generates', async () => {
+  it('still caches a paid generation when the reader disconnects while it generates', async () => {
     // Navigating away (or casting another chart) cancels the response body while
-    // the model is still generating. The finished text must still reach the gate
-    // and the cache: it has been billed in full. An unguarded controller.close()
-    // threw into the failure path instead — skipping both and logging a false
+    // the model is still generating. The finished text must still reach the
+    // cache: it has been billed in full. An unguarded controller.close() threw
+    // into the failure path instead — skipping the write and logging a false
     // [AXIS_GEN_FAIL].
-    //
-    // ⚠ The choreography changed with the hot-path pre-flight, and the change is
-    // the point rather than an inconvenience: the section is BUFFERED now, so
-    // there is no longer any such thing as disconnecting "mid-stream". Nothing
-    // is enqueued until generation (and any pre-flight rewrite) has finished, so
-    // this cancels the body while the model is still working — which is the same
-    // reader behaviour and the same risk to the cache write. The old version
-    // waited on a first delta that, by design, can no longer arrive.
     let release!: () => void
     streamHold = new Promise<void>(r => { release = r })
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -163,8 +194,8 @@ describe('/api/reading — the daily budget counts calls started', () => {
       const reader = res.body!.getReader()
       await reader.cancel('navigated away')   // gone before a byte is written
       release()                               // the generation then completes
-      for (let i = 0; i < 20 && !events.includes('gate'); i++) await new Promise(r => setTimeout(r, 0))
-      expect(events).toContain('gate')
+      for (let i = 0; i < 20 && cacheWrites.length === 0; i++) await new Promise(r => setTimeout(r, 0))
+      expect(cacheWrites).toEqual([{ text: `${PROSE} MORE.`, ttl: undefined }])
       expect(errors.mock.calls.some(c => String(c[0]).includes('[AXIS_GEN_FAIL]'))).toBe(false)
     } finally {
       errors.mockRestore()

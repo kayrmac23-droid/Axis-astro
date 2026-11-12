@@ -1,5 +1,5 @@
 // Daily quotas on /api/reading, driven through the route with the SDK, the
-// per-minute limiter, the global budget and the gate mocked. The quota counter
+// per-minute limiter, and the global budget mocked. The quota counter
 // itself is REAL (consumeDailyQuota's in-memory fallback, since no Redis env is
 // set), so these pin the wiring the abuse fix depends on: what is counted, what
 // is not, what is refused, and the header that tells the client to stop.
@@ -60,14 +60,6 @@ vi.mock('@/lib/reading-cache', async importOriginal => {
 vi.mock('next/server', async importOriginal => {
   const actual = await importOriginal<typeof import('next/server')>()
   return { ...actual, after: (fn: () => Promise<void> | void) => { void fn() } }
-})
-
-vi.mock('@/lib/reading-quality-gate', async importOriginal => {
-  const actual = await importOriginal<typeof import('@/lib/reading-quality-gate')>()
-  return {
-    ...actual,
-    gateForCache: async () => ({ cacheText: null, modelCalls: 0, scores: null, repaired: false, reason: 'test', firstPass: null }),
-  }
 })
 
 const birth = (day: number) => ({ year: 1990, month: 3, day, hour: 9, minute: 30, latitude: 51.5, longitude: -0.12, timezone: 0 })

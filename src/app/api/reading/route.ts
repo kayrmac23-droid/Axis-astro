@@ -5,12 +5,12 @@ import { calculateDualChart, BirthData, ChartOverrides } from '@/lib/astro-calc'
 import { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT, SECTION_INSTRUCTIONS, SHARED_RULES, wordBandFor, renderSectionInstruction, countPlanEvidence } from '@/lib/prompts'
 import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
 import { formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
-import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading, PROVISIONAL_TTL_SECONDS } from '@/lib/reading-cache'
+import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock, synastryTimeUnknown } from '@/lib/synastry-calc'
 import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, consumeDailyQuota } from '@/lib/route-rate-limiter'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
-import { gateForCache, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
+import { firstPassCacheVerdict, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { classifyGenerationError } from '@/lib/reading-stream'
 import { preflightSection, pickBetter, formatPreflightLog } from '@/lib/reading-preflight'
 import { logUsage } from '@/lib/usage-log'
@@ -116,36 +116,10 @@ const PREFLIGHT_ENABLED = process.env.AXIS_PREFLIGHT_ENABLED === 'true'
 
 // No rewrite starts after this many ms from the top of the handler. A
 // regeneration is a full section (~15-25s) and maxDuration is 120s, so the
-// deadline leaves room for it to finish, for the thread write, and for the gate
-// to still get a useful slice of its own budget under after().
+// deadline leaves room for it to finish and for the thread and cache writes.
 const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
 
-// ── Inline gating (item 2: spend the read-ahead slack) ───────────────────────
-// `ReadingPanel` fires all ~21 sections back to back from the moment the chart
-// is cast, so the pipeline finishes in ~5–9 minutes what takes a reader ~36 to
-// read. Every section after the first is generated long before anyone reaches
-// it, and that slack currently buys nothing: the gate still runs under after()
-// and its repair still only reaches the NEXT reader.
-//
-// With this on, a section that is not the reader's first is gated INLINE and
-// the gated text is what they are served — so the repair lands on the first
-// reader too, paid for out of time they spend reading earlier sections.
-//
-// ⚠ OFF BY DEFAULT, and it should stay off until `maxDuration` is raised.
-// Worst case inline is generate (~25s) + a pre-flight rewrite (~25s) + evaluate
-// (~30s) + repair (~25s) + re-score (~30s) = ~135s against a 120s ceiling, and
-// an overrun costs the reader the whole section — strictly worse than today's
-// failure mode, which is merely ungated prose. The deadline below makes it
-// degrade safely rather than make it fit: when the budget is gone the first
-// pass is served and the gate runs under after() exactly as before.
-const INLINE_GATE_ENABLED = process.env.AXIS_INLINE_GATE === 'true'
-
-// No inline gate starts after this many ms from the top of the handler. An
-// evaluate is ~30s and gateForCache's own guards (EVAL_SKIP_AFTER_MS 95s,
-// REPAIR_SKIP_AFTER_MS 70s) then bound the rest from the same origin.
-const INLINE_GATE_DEADLINE_MS = 35_000
-
-// Wall-clock origin for the post-response gating budget (see gateForCache).
+// Wall-clock origin for the pre-flight rewrite deadline.
   const startedAt = Date.now()
   try {
     if (!isAnthropicKeyConfigured()) {
@@ -379,7 +353,6 @@ const INLINE_GATE_DEADLINE_MS = 35_000
     // the reading so far as one cached block per earlier section. Synastry has no
     // thread and its own context block, so it is assembled here.
     let userContent:   string
-    let priorBlocks:   Anthropic.TextBlockParam[]
     let userBlocks:    Anthropic.TextBlockParam[]
     let systemBlocks:  Anthropic.TextBlockParam[]
     let maxTokens:     number
@@ -406,7 +379,6 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
       band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
       userContent   = `${contextBlock}\n\n---\n\n${renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!}`
-      priorBlocks   = []
       userBlocks    = [{ type: 'text', text: userContent }]
       maxTokens     = maxTokensFor(planetSection)
       // Cache the per-section-type system prompt too: it is stable across every
@@ -415,7 +387,6 @@ const INLINE_GATE_DEADLINE_MS = 35_000
     } else {
       const req = buildSectionRequest(dual!, section as NatalFrame, planetSection, prior)
       userContent   = req.userContent
-      priorBlocks   = req.priorBlocks
       userBlocks    = req.params.messages[0].content
       systemBlocks  = req.params.system
       maxTokens     = req.params.max_tokens
@@ -426,56 +397,34 @@ const INLINE_GATE_DEADLINE_MS = 35_000
 
     // ── Delivery mode ──────────────────────────────────────────────────────────
     // A section is BUFFERED only when something will actually inspect it before
-    // the reader sees it: the deterministic pre-flight, or the inline gate (which
-    // only ever runs on a non-opening section). Otherwise it STREAMS token by
-    // token, so prose starts rendering within ~1s.
-    //
-    // v10.41 made buffering unconditional, and turning the pre-flight off by
-    // default (31f8025, "buffering costs every reader token-by-token streaming")
-    // never undid it — so every reader waited 15–25s per section for a check
-    // that no longer ran. The two must stay coupled: buffer ⇔ a check runs.
+    // the reader sees it — the deterministic pre-flight. Otherwise it STREAMS
+    // token by token. The two must stay coupled: buffer ⇔ a check runs.
     //
     // The decision is made here, before the Response is returned, so it can be
-    // sent as a header the client reads the instant fetch() resolves — long
-    // before the body — and explain the wait only when there is one.
-    const inlineGateEligible = INLINE_GATE_ENABLED && prior.length > 0
-    const streamLive = !PREFLIGHT_ENABLED && !inlineGateEligible
+    // sent as a header the client reads the instant fetch() resolves.
+    const streamLive = !PREFLIGHT_ENABLED
 
-    // ── Generation pipeline (evaluate-and-recache) ─────────────────────────────
-    // The first pass either streams to the client token-by-token or is buffered
-    // for a pre-serve check (see Delivery mode above); either way the stream
-    // closes the moment the section is complete.
-    // The quality gate then runs AFTER close, while the invocation is still alive:
-    // it adds no latency to what the reader waits for and decides only what future
-    // readers get from the cache. A passing first pass is cached as-is; a failing
-    // one is repaired once and the repair is cached; truncated, unrepairable, or
-    // doctrine-breaching output is not cached at all, so the next request retries.
-    // The first reader of an uncached section therefore sees ungated prose —
-    // everyone after them is served the gated text.
+    // ── Generation pipeline ────────────────────────────────────────────────────
+    // One generation call per uncached section. There is NO LLM gate on this
+    // path: the first pass is what the reader sees and what the cache keeps for
+    // the full TTL, so a returning reader finds the same words. The only vetoes
+    // are deterministic and free (firstPassCacheVerdict): truncated or
+    // doctrine-breaching text is left uncached and regenerated next time.
+    // The evaluator lives on offline, in `npm run eval -- --gate` / `rescore`.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
-        // An uncached section costs one call to generate, plus one to evaluate,
-        // plus one for a doctrine-only surgical edit or two for a full repair
-        // (the repair and its re-score). The gate's calls are
-        // recorded in the after() below; the generation is reserved up front.
-        let gateCalls = 0
-        // Gate calls recorded the moment each is made (gateForCache onModelCall),
-        // so a call made before the platform kills an overrunning invocation is
-        // still counted. Any remainder the gate reports is recorded at the end.
-        let gateCallsRecorded = 0
-        const gateRecords: Promise<void>[] = []
+        // Spend records for calls beyond the generation (a pre-flight rewrite).
+        const extraRecords: Promise<void>[] = []
 
         // Reserve the generation call against the daily budget AS it is made.
-        // Recording it afterwards — which meant after the gate finished, ~30–60s
-        // later — left the counter lagging real spend by the whole gate duration,
-        // so concurrent traffic could overshoot the cap by the number of requests
+        // Recording it afterwards left the counter lagging real spend, so
+        // concurrent traffic could overshoot the cap by the number of requests
         // in flight. Reserving makes the counter a running total of calls STARTED,
         // which is the number the cap is supposed to bound. A reservation is never
         // refunded if the call then fails: a call that errors late can still have
-        // billed, and over-counting is the safe direction (the same reasoning the
-        // gate counts its own attempts by).
+        // billed, and over-counting is the safe direction.
         //
         // NOT awaited here. This is the reader's critical path and the write is a
         // round trip to Upstash — awaiting it would put that latency in front of
@@ -507,7 +456,7 @@ const INLINE_GATE_DEADLINE_MS = 35_000
               text += event.delta.text
               // Guarded: a reader who navigated away has closed the controller,
               // and the generation (already billed) must still finish, be
-              // threaded, and reach the gate and the cache.
+              // threaded, and reach the cache.
               if (live) {
                 try { controller.enqueue(encoder.encode(event.delta.text)) } catch { /* closed */ }
               }
@@ -541,15 +490,11 @@ const INLINE_GATE_DEADLINE_MS = 35_000
               console.log(formatPreflightLog(`${section}/${planetSection}`, first, 'clean'))
             } else if (Date.now() - startedAt > PREFLIGHT_REWRITE_DEADLINE_MS) {
               // No room to rewrite and still finish inside maxDuration. Serving
-              // the first pass late beats serving nothing: the gate still runs
-              // under after() and the next reader gets the repaired text.
+              // the first pass late beats serving nothing.
               console.log(formatPreflightLog(`${section}/${planetSection}`, first, 'skipped-no-budget'))
             } else {
-              // Reserved directly, NOT through `gateCalls`. That counter is the
-              // gate's own accounting and its remainder is recorded again at the
-              // end of after() — putting the rewrite through it billed the call
-              // twice against the daily cap.
-              gateRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
+              // Reserved as the call is made, exactly once.
+              extraRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
               try {
                 const retry = await generate(first.instruction)
                 if (!retry.text.trim()) {
@@ -584,58 +529,7 @@ const INLINE_GATE_DEADLINE_MS = 35_000
             }
           }
 
-          // Captured before the inline gate can replace `firstText`: [AXIS_LEN]
-          // measures what the GENERATOR produced against the band the
-          // instruction stated, and a repair's word count is a different fact.
           const generatedWords = countWords(firstText)
-
-          // ── INLINE GATE ──────────────────────────────────────────────────
-          // Only for a section the reader has NOT arrived at yet (prior.length
-          // > 0 means earlier sections exist, so they are still reading those).
-          // The opening section has no slack behind it and is never gated here.
-          //
-          // On success the reader is served the gated text and `gatedInline`
-          // stops after() from paying for the same work twice. On anything else
-          // — no budget, an error, a verdict with nothing to cache — the first
-          // pass is served and after() runs the gate as it always has.
-          let gatedInline = false
-          if (
-            INLINE_GATE_ENABLED && !truncated && firstText.trim() &&
-            prior.length > 0 && Date.now() - startedAt < INLINE_GATE_DEADLINE_MS
-          ) {
-            try {
-              const inline = await gateForCache({
-                firstPassText: firstText,
-                truncated,
-                chartContext: userContent,
-                priorBlocks, section, planetSection, systemBlocks, maxTokens,
-                model: MODEL, startedAt,
-                onModelCall: () => {
-                  gateCallsRecorded++
-                  gateRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
-                },
-              })
-              gateCalls += inline.modelCalls
-              if (inline.cacheText) {
-                // Serve what we cache. The reader and the cache agree, which is
-                // the whole point — and the thread then stores the gated text,
-                // so later sections continue from what was actually read.
-                firstText = inline.cacheText
-                await setCachedReading(cacheKey, inline.cacheText)
-                gatedInline = true
-              } else if (inline.provisionalText) {
-                // Serve what we cache here too: provisionalText can be an
-                // unconfirmed repair, not only the first pass.
-                firstText = inline.provisionalText
-                await setCachedReading(cacheKey, inline.provisionalText, PROVISIONAL_TTL_SECONDS)
-                gatedInline = true
-              }
-              console.log(`[AXIS_INLINE_GATE] section=${section}/${planetSection} reason=${inline.reason} served=${gatedInline ? 'gated' : 'first-pass'}`)
-            } catch (inlineErr) {
-              // Never cost the reader a section we already have in hand.
-              console.error(`[AXIS_INLINE_GATE] section=${section}/${planetSection} failed:`, inlineErr)
-            }
-          }
 
           // Buffered mode: the whole section at once, now that it has been
           // checked. (Live mode already sent every delta as it arrived.)
@@ -647,8 +541,8 @@ const INLINE_GATE_DEADLINE_MS = 35_000
           // Guarded like the deltas above: if the reader has gone (navigated
           // away, cast another chart) the controller is already closed, and an
           // unguarded enqueue/close throws into the catch below — which logged a
-          // false [AXIS_GEN_FAIL] and, worse, skipped the gate and the cache
-          // write for a generation that had already been paid for in full.
+          // false [AXIS_GEN_FAIL] and, worse, skipped the cache write for a
+          // generation that had already been paid for in full.
           if (truncated) {
             try { controller.enqueue(encoder.encode('\n\n[AXIS_TRUNCATED]')) } catch { /* closed */ }
           }
@@ -659,29 +553,21 @@ const INLINE_GATE_DEADLINE_MS = 35_000
 
           // The reader has the whole section from here on. Everything below only
           // decides what lands in the 30-day cache.
-          try { controller.close() } catch { /* reader disconnected — still gate and cache */ }
+          try { controller.close() } catch { /* reader disconnected — still cache */ }
 
-          // Post-response work — the quality gate and the spend recording — is
+          // Post-response work — the cache write and the spend recording — is
           // registered with after() rather than run inline below the close.
           // after() guarantees the platform keeps the invocation alive until this
           // completes; work left inline after controller.close() can be dropped on
-          // a runtime that freezes the instance the moment the response flushes,
-          // and with it EVERY cache write and the spend count (the gate would
-          // silently never run in production). Nothing here touches the response.
+          // a runtime that freezes the instance the moment the response flushes.
           after(async () => {
             try {
               // ── Length telemetry ───────────────────────────────────────────
               // One greppable line per GENERATED section (cache hits return long
-              // before here, so this measures only fresh output). It pairs the
-              // finished word count with the band the gate will score it against
-              // and the aspect count that scales that band, so a section that ran
-              // long because the chart genuinely carried more aspects is
-              // distinguishable from one that runs multiples over spec on every
-              // chart. It logs the SAME band the instruction's length clause was
-              // rendered from — which is the band scoreLength acts on — so prompt,
-              // log and gate cannot disagree. (It previously recomputed the band
-              // without the evidence count, printing the wrong numbers for exactly
-              // the two sections whose bands move most.)
+              // before here). It logs the SAME band the instruction's length
+              // clause was rendered from, and the aspect / evidence counts that
+              // scale it, so a section that ran long because the chart carried
+              // more is distinguishable from one that overruns on every chart.
               console.log(
                 `[AXIS_LEN] section=${section}/${planetSection} words=${generatedWords} ` +
                 `band=${band.fullMin}-${band.fullMax} hardMax=${band.hardMax} ` +
@@ -689,49 +575,22 @@ const INLINE_GATE_DEADLINE_MS = 35_000
                 `maxTokens=${maxTokens} stop=${firstMessage.stop_reason} prior=${prior.length}`
               )
 
-              // Already gated on the hot path, and its verdict already cached.
-              // Running it again would pay for the same evaluation twice.
-              if (gatedInline) return
-
-              const verdict = await gateForCache({
-                firstPassText: firstText,
-                truncated,
-                chartContext:  userContent,
-                priorBlocks,
-                section,
-                planetSection,
-                systemBlocks,
-                maxTokens,
-                model: MODEL,
-                startedAt,
-                onModelCall: () => {
-                  gateCallsRecorded++
-                  gateRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
-                },
-              })
-              gateCalls += verdict.modelCalls
-
-              if (verdict.cacheText) {
-                await setCachedReading(cacheKey, verdict.cacheText)
-              } else if (verdict.provisionalText) {
-                await setCachedReading(cacheKey, verdict.provisionalText, PROVISIONAL_TTL_SECONDS)
+              // Cache what the reader saw, unless a deterministic check vetoes it.
+              const verdict = firstPassCacheVerdict(firstText, truncated)
+              if (verdict.cache) {
+                await setCachedReading(cacheKey, firstText)
+              } else if (verdict.reason === 'doctrine-hit') {
+                console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${section}/${planetSection} hits=${verdict.hits.join('|')}`)
               }
-            } catch (gateErr) {
-              // gateForCache never throws by contract; guard anyway so a stray
-              // rejection can never surface as an unhandled promise rejection.
+            } catch (cacheErr) {
               console.error(
-                `[AXIS_GATE] section=${section}/${planetSection} post-response gating failed:`,
-                gateErr instanceof Error ? gateErr.message : gateErr
+                `[AXIS_CACHE] section=${section}/${planetSection} post-response caching failed:`,
+                cacheErr instanceof Error ? cacheErr.message : cacheErr
               )
             } finally {
-              // Flush the generation reservation fired on the hot path, then record
-              // only what gating added (evaluate + any repair + re-score) on top.
+              // Flush the spend records fired on the hot path.
               await reservation
-              await Promise.all(gateRecords)
-              const unrecorded = gateCalls - gateCallsRecorded
-              if (unrecorded > 0) {
-                try { await recordModelCalls(unrecorded) } catch { /* best-effort */ }
-              }
+              await Promise.all(extraRecords)
             }
           })
         } catch (err) {
@@ -756,12 +615,10 @@ const INLINE_GATE_DEADLINE_MS = 35_000
             `[AXIS_GEN_FAIL] section=${section}/${planetSection} fatal=${fatal} code=${code} —`,
             err instanceof Error ? err.message : err
           )
-          // Nothing further to record: the generation call was reserved as it was
-          // attempted and gating never ran. (This path used to record a post-hoc
-          // count, which here was usually zero — a failed call that had already
-          // billed went uncounted.) The reservation is still only flushed under
-          // after(), for the same reason the success path flushes it there.
-          after(async () => { await reservation })
+          // Nothing further to record: every call was reserved as it was
+          // attempted. The reservations are still only flushed under after(),
+          // for the same reason the success path flushes them there.
+          after(async () => { await reservation; await Promise.all(extraRecords) })
         }
       }
     })

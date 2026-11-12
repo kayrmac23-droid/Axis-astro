@@ -30,9 +30,7 @@ Read in code; grep `process.env` to confirm. Integer vars go through `intEnv` (`
 | `ANTHROPIC_API_KEY` | Required. Placeholder values from the docs are rejected as missing. |
 | `UPSTASH_REDIS_REST_URL`/`_TOKEN` or `KV_REST_API_URL`/`_TOKEN` | Cache, rate limits, reading thread. In-memory / no-op fallback when absent. |
 | `AXIS_READINGS_ENABLED=false` | Kill switch for all AI reading generation. |
-| `AXIS_GATE_ENABLED=false` | Disables the quality gate; a clean, non-truncated first pass is cached as-is. |
 | `AXIS_PREFLIGHT_ENABLED=true` | Hot-path deterministic pre-flight. Off by default (it forces buffering). |
-| `AXIS_INLINE_GATE=true` | Gates non-opening sections before serving. Off by default; see *Delivery*. |
 | `AXIS_LEAN_RULES=true` | Swaps in `SHARED_RULES_LEAN`. **Experiment only**; never in production without a measurement and a version bump. |
 | `AXIS_DAILY_READING_CALL_CAP` | Global daily model-call cap, default 2000, per Australia/Melbourne day, keyed by `VERCEL_ENV`. |
 | `AXIS_READING_RATE_LIMIT_MAX` | Per-IP `/api/reading` limit per 60s, default 20. |
@@ -69,12 +67,12 @@ All routes parse bodies through `lib/request-security.ts` (16 KB cap, content-ty
 4. Cache check. A hit is free and bypasses every limit.
 5. Per-minute IP limit → per-chart daily quota → per-IP daily quota → global daily budget, **in that order** (a source over its own allowance must be stopped before it can count against the shared cap). Refusals carry `X-Axis-Quota: chart|ip|global`; the panels treat that as fatal for the run (`quotaFailure`). All fail open without Redis.
 6. Build the request with `buildSectionRequest` (`lib/reading-request.ts`) — the same builder the eval harness uses. Synastry is assembled inline in the route.
-7. Generate, deliver, store in the thread, close the stream, then gate under `after()`.
+7. Generate, deliver, store in the thread, close the stream, then cache under `after()` (see *What gets cached*).
 
 ### Models and request shape
 
-- Generation, repair, doctrine-repair: `claude-opus-5-5` (`MODEL`, `lib/reading-model-config.ts`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'low' }` (`EFFORT`). Thinking **cannot be disabled** on this model (400). Thinking tokens count against `max_tokens`, so `maxTokensFor(planetSection)` = the prose budget + `THINKING_HEADROOM_TOKENS`; size prose in the prose table, never by trimming the headroom.
-- Evaluation: `claude-sonnet-5-5` (`EVAL_MODEL`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'medium' }`, `EVAL_MAX_TOKENS` 4000.
+- Generation (and the offline gate's repairs): `claude-opus-5-5` (`MODEL`, `lib/reading-model-config.ts`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'low' }` (`EFFORT`). Thinking **cannot be disabled** on this model (400). Thinking tokens count against `max_tokens`, so `maxTokensFor(planetSection)` = the prose budget + `THINKING_HEADROOM_TOKENS`; size prose in the prose table, never by trimming the headroom.
+- Evaluation (offline only): `claude-sonnet-5-5` (`EVAL_MODEL`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'medium' }`, `EVAL_MAX_TOKENS` 4000.
 - **Never send `temperature`, `top_p` or `top_k`** — these models return a 400. `thinking: disabled` is likewise a 400 on both the generator and the eval model. `npm run test:smoke` exists because a mocked SDK cannot catch a rejected request shape.
 - Prompt caching: system = `[SHARED_RULES, frame prompt]`, both cached; user = one block per earlier section (cache breakpoint on the last) + an uncached tail of chart context, phrases-already-used, section instruction and scene clause. **Only the tail is paid at full price**, so a character cut from a section instruction is worth about ten in `SHARED_RULES`. The real cost term is the reading so far, resent on every later section — i.e. output length.
 
@@ -83,33 +81,31 @@ All routes parse bodies through `lib/request-security.ts` (16 KB cap, content-ty
 A section **streams** token by token unless something will inspect it before the reader sees it; then it is **buffered**. Buffer ⇔ a check runs — keep the two coupled. The route sends `X-Axis-Delivery: stream|buffered` and `ReadingPanel` shows its "checked before you see it" note only on `buffered`.
 
 - **Pre-flight** (`lib/reading-preflight.ts`, off by default): runs every deterministic check on the buffered section and regenerates once on a hard finding, serving whichever attempt has fewer findings (`pickBetter`; ties keep the first). The rewrite turn names the faults and does not include the failed draft.
-- **Inline gate** (off by default): runs `gateForCache` before serving a non-opening section and serves what it caches. Worst case is ~135s against the 120s ceiling, so it degrades to the first pass after `INLINE_GATE_DEADLINE_MS`. Do not enable without raising `maxDuration` and re-deriving the gate deadlines.
 - A mid-stream failure cannot be a status code, so the route writes a sentinel (`lib/reading-stream.ts`): `[AXIS_STREAM_ERROR: generation failed]` is retryable, `[AXIS_STREAM_ERROR: unavailable:<code>]` is fatal (billing/auth — an exhausted balance arrives as a **400**, so the message is read, not just the status) and unwinds the whole run.
 
-### The quality gate (`lib/reading-quality-gate.ts`)
+### What gets cached
 
-Runs under `after()` once the stream has closed, so it adds no latency and decides only what lands in the cache. **The first reader of an uncached section sees ungated first-pass prose.**
+There is **no LLM gate on the live path**. After the stream closes, `after()` runs `firstPassCacheVerdict` (pure, no model call) and caches the first pass for 30 days — the text the reader saw, so a returning reader finds the same words. Two vetoes leave a section uncached, to be regenerated on the next request: truncated or empty output, and a doctrine-scan hit (`[AXIS_DOCTRINE_UNCACHED]`). **Cost per uncached section: 1 call** (+1 for a pre-flight rewrite when that is on); a natal reading is 21. `reading-route-budget.test.ts` fails if the route imports the gate again.
 
-`gateForCache` flow: skip truncated/empty → evaluate → if it passes and the doctrine scan is clean, cache → if only the doctrine scan objects, a 500-token surgical sentence edit, spliced byte-for-byte → otherwise one full repair → deterministic checks on the repair → re-score → cache only if the re-score passes.
+- **Doctrine scan** (`detectBannedPhrasings`): literal lists (`BANNED_HIERARCHY_PHRASINGS`, `BANNED_RESCUE_PHRASINGS`, `BANNED_META_PHRASINGS`) plus a contextual pass (`detectContextualHierarchy`: ordinary words such as "underneath" only within `HIERARCHY_PROXIMITY_CHARS` of identity/system language). Keep bare ordinary words out of the literal lists — a false positive now means a section that regenerates on every view, bounded only by the daily quotas.
+
+### The quality gate — offline only (`lib/reading-quality-gate.ts`)
+
+`gateForCache` (evaluate → surgical doctrine edit or one full repair → re-score) is a **measuring tool**: `npm run eval -- --gate` runs it on each first pass, `npm run rescore` runs the evaluator on frozen prose. Nothing it returns reaches a reader. Why it left the live path: `docs/PIPELINE-HISTORY.md`, 2026-11-12.
 
 - **Pass rule** (`computePassFromScores`): ten criteria, average ≥ `MIN_PASS_AVERAGE` (3.40) and every criterion ≥ `MIN_INDIVIDUAL` (3). Nine are scored by the evaluator; `length` is computed (`scoreLength` against the chart-scaled band). The evaluator is not told the bar and is not asked for a verdict.
-- **Deterministic clamps, applied before the pass rule** (so the surgical route cannot cache around them): banned opener → `specificity` below the bar; antithesis density (`antithesisVerdict`) → `voice_quality` to the bar, or below it when severe; `hard` fact finding (`checkNumericFacts`) → `chart_evidence` below the bar; `hard` rule-scan finding → `voice_quality` to the bar; rescue phrasing → `contradiction_handling` below the bar. The same clamps run on the repair's re-score.
-- **What gets cached:** a confirmed pass or confirmed repair for 30 days. When the gate cannot confirm (repair failed its re-score, evaluator errored, out of budget) it returns `provisionalText` and the route caches that for `PROVISIONAL_TTL_SECONDS` (24h). Truncated or doctrine-breaching text is never cached.
-- **Deadlines**, measured from the top of the handler: no eval starts after 95s, no repair after 70s, every gate call times out at 112s with SDK retries off.
-- **Cost per uncached section:** 1 call (generate) + 1 (evaluate), + 1 for a surgical edit, or + 2 for a full repair and its re-score. A natal reading is 42–84 calls. Each call is reserved against the daily cap as it is made and never refunded.
-- **Doctrine scan** (`detectBannedPhrasings`): literal lists (`BANNED_HIERARCHY_PHRASINGS`, `BANNED_RESCUE_PHRASINGS`, `BANNED_META_PHRASINGS`) plus a contextual pass (`detectContextualHierarchy`: ordinary words such as "underneath" only within `HIERARCHY_PROXIMITY_CHARS` of identity/system language). Keep bare ordinary words out of the literal lists. `doctrineRepairTargets` must measure that window exactly as the scan does.
+- **Deterministic clamps, applied before the pass rule:** banned opener → `specificity` below the bar; antithesis density (`antithesisVerdict`) → `voice_quality` to the bar, or below it when severe; `hard` fact finding (`checkNumericFacts`) → `chart_evidence` below the bar; `hard` rule-scan finding → `voice_quality` to the bar; rescue phrasing → `contradiction_handling` below the bar. The same clamps run on the repair's re-score.
+- `doctrineRepairTargets` must measure the hierarchy window exactly as the scan does.
 
-**Known state, measured — read before tuning the gate:**
+**Known state, measured — read before trusting a score:**
 
 - On the frozen rater bench the evaluator awarded no 5s under three rubrics; treat it as a 2–4 scale. First passes are mostly blocked by one sub-3 criterion (`specificity`, then `voice_quality`).
-- In production on 2026-11-07 (29 gated sections): 1 passed, 9 repaired, 19 failed the repair's re-score — and 7 of those 19 had every criterion ≥ 3 and failed on the average alone. So both thresholds bind, at different stages.
-- A section that fails its re-score is cached for 24h and then regenerated with new wording, so a returning reader's text changes. A natal chart is almost always re-read by the person it belongs to.
 - The stated length targets run about 24% below what is written (2026-11-07, one chart). Not yet corrected.
 - The evaluator has not been validated against a human rating. The one human reading on record (2026-11-10) contradicted it on sentence length, which is why PART 4 now says FINISH EVERY THOUGHT. **Do not re-add a sentence-length target without a human reading.**
 
 ### Logs
 
-One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason), `[AXIS_GATE]` (outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_INLINE_GATE]`, `[AXIS_QUOTA]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
+One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason), `[AXIS_GATE]` (eval runs only: outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_QUOTA]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
 
 ## Prompts (`lib/prompts.ts`)
 
@@ -162,7 +158,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
   - The dasha block marks a `⚠ TRANSITION` within 60 days of a boundary.
 - **`synastry-calc.ts`**: inter-aspects and composite. With either birth time unknown it withholds that person's angles and houses and the composite's.
 - **`reading-request.ts`**: `buildSectionRequest`, the single assembly of a natal request.
-- **`reading-thread.ts`** + **`reading-order.ts`**: the server holds the text of every section the reader has read (Redis, 24h, bound to the chart) and sends it ahead of each later section. Stored **before** the stream closes, because the client requests the next section immediately. Stores what the reader saw, never the gate's later repair. `priorDigest` — in the cache key — digests **which** sections preceded this one, not their text. `phrasesAlreadyUsed`/`overusedTics` name the refrains the next section must not reuse. Synastry is not threaded.
+- **`reading-thread.ts`** + **`reading-order.ts`**: the server holds the text of every section the reader has read (Redis, 24h, bound to the chart) and sends it ahead of each later section. Stored **before** the stream closes, because the client requests the next section immediately. Stores what the reader saw. `priorDigest` — in the cache key — digests **which** sections preceded this one, not their text. `phrasesAlreadyUsed`/`overusedTics` name the refrains the next section must not reuse. Synastry is not threaded.
 - **`reading-cache.ts`**: Upstash, 30-day TTL. The key carries birth data, section, prompt version, prior digest, `plutoSource` and Pluto longitude (0.01°), and for Sidereal/Divergence the current dasha period.
 - **`reading-rule-scan.ts`**: deterministic scan for stated rules that are string facts (prescription, prediction, British spelling, bullets, paragraph length, greetings, summary headings, register drift, antithesis density, smoke-detector terms). Severities `hard` / `doctrine` (candidates only — THE LAW decides) / `soft`. `register-drift` needs `{ frame }` and fails closed. **False positives are the design constraint**: matches are scoped to second-person constructions and exclude relative and subordinate clauses.
 - **`reading-fact-check.ts`**: `unstated-degree` (hard), `unsupported-closeness` (soft), `exemplar-bleed` (hard). Checks figures against the context the model was given; it cannot judge interpretation.
@@ -185,8 +181,8 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 | Editing | Run / read |
 |---|---|
 | Prompts | `reading-review-fixes`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
-| The gate | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
-| The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `-inline-gate`, `eval-harness-parity` |
+| The gate (offline) | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
+| The route | `reading-route-budget` (incl. *no gate on the live path*), `-quota`, `-thread`, `-preflight`, `eval-harness-parity` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |
 | Calculation | `astro-calc` (pinned to JPL reference values), `pluto-source`, `interpretation-engine`, `synastry-calc`, `tz`, `readout` |
 | Security / limits | `security-hardening`, `api-routes`, `route-rate-limiter` |

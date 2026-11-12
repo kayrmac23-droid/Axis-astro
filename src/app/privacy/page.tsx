@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 // ⚠ This page describes what the code does. When a data flow changes — a new
 // third party, a new thing cached, a TTL moved — change this page in the same
-// PR. Sources of truth: reading-cache.ts (TTL_SECONDS, PROVISIONAL_TTL_SECONDS),
+// PR. Sources of truth: reading-cache.ts (TTL_SECONDS),
 // reading-thread.ts (THREAD_TTL_SECONDS), api/geocode (GEO_CACHE_TTL_SECONDS),
 // route-rate-limiter.ts (QUOTA_TTL_SECS), saved-chart.ts, analytics.ts, layout.tsx.
 
@@ -81,8 +81,7 @@ export default function PrivacyPage() {
             <h2 className={styles.entryH}>Everything expires on its own</h2>
             <p className={styles.para}>
               <strong>Readings</strong> are cached for up to 30 days so that opening the same chart
-              again does not regenerate it. A reading that could not be fully checked is kept for
-              24 hours instead. The cache is looked up by a fingerprint computed from the birth
+              again does not regenerate it. The cache is looked up by a fingerprint computed from the birth
               details, not by the details themselves, though anyone holding the same details could
               compute the same fingerprint.
             </p>

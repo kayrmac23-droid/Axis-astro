@@ -141,7 +141,7 @@ The evidence-weighted approach (rather than categorical rules) means Claude rece
 
 Four reading types, each composed of sequential per-planet streaming requests to the Claude API. Per-section retry (2 attempts) prevents a single failed request from blocking the rest of the reading. Failed sections produce a visible placeholder so the readable portions remain intact.
 
-Every generated section then goes through the LLM **quality gate** (`lib/reading-quality-gate.ts`), which is **live**. It runs as evaluate-and-recache after the section has finished streaming (`gateForCache()`, registered with Next's `after()`), so it adds no latency for the reader. It decides only what gets cached: the first reader of an uncached section sees the first pass, and every later reader gets the gated (and, where needed, repaired) text. The mechanics, thresholds and guards are in [`CLAUDE.md`](CLAUDE.md) under `/api/reading` and `lib/reading-quality-gate.ts`.
+The first pass is what the reader sees and what the cache keeps: once the section has streamed it is cached for 30 days, unless it was truncated or trips the deterministic doctrine scan, in which case it is left uncached and regenerated on the next request. The LLM **quality gate** (`lib/reading-quality-gate.ts`) is an **offline measuring tool** — `npm run eval -- --gate` and `npm run rescore` — and makes no calls on the live path. Details are in [`CLAUDE.md`](CLAUDE.md) under *The reading pipeline*.
 
 1. **Tropical** — psychological interior, sign positions and psychological meaning. Sections: Sun, Moon, Ascendant, Mercury, Venus, Mars, Jupiter/Saturn, Key aspects, Rahu/Ketu.
 2. **Sidereal** — incarnational patterning, karmic emphases, nakshatras. Sections: Lagna, Sun, Moon, Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu.
@@ -218,7 +218,7 @@ This section describes what is hardened now and what requires distributed infras
 - **Rate limiter:** Redis-backed fixed window via Upstash (same connection as the reading cache). All serverless instances share a single counter per IP, so the 20 req / 60s limit is enforced globally. Falls back to the previous in-memory behaviour when Redis env vars are absent.
 
 **External service dependencies:**
-- Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs a generation call plus an evaluation call, and more when the gate repairs it, so a fully uncached natal reading is **42–84 calls**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
+- Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs one generation call, so a fully uncached natal reading is **21 calls**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
 - JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation, only for a birth outside 1885–2099, for the Pluto position. Falls back to the local Meeus Ch. 37 calculation if unreachable.
 - OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s for the whole app, no autocomplete, results cached), all three enforced by `/api/geocode` and `BirthForm`.
 

@@ -268,12 +268,6 @@ export async function getCachedReading(key: string): Promise<string | null> {
   }
 }
 
-// A section the gate could not confirm is cached for a day rather than not at
-// all: uncached, every later view of the chart regenerated and re-gated it
-// (~4 model calls per view, indefinitely). A day bounds how long unconfirmed
-// prose is served while capping that cost at one regeneration per chart per day.
-export const PROVISIONAL_TTL_SECONDS = 24 * 60 * 60
-
 export async function setCachedReading(key: string, text: string, ttlSeconds: number = TTL_SECONDS): Promise<void> {
   const redis = getRedis()
   if (!redis) return
