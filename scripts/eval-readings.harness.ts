@@ -125,6 +125,7 @@ const FRAMES: NatalFrame[] = ['tropical', 'sidereal', 'synthesis']
 // from this table reports usd: null rather than a guessed number — add it here.
 const PRICES: Record<string, { input: number; output: number }> = {
   'claude-sonnet-5':   { input: 2, output: 10 },
+  'claude-opus-5-5':   { input: 4, output: 20 },  // v10.51 generator
   'claude-sonnet-5-5': { input: 2, output: 10 },  // the v10.30 evaluator
   'claude-opus-5':     { input: 5, output: 25 },  // the pre-v10.30 evaluator; kept so an older run still prices
 }

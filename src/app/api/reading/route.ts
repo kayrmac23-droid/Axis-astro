@@ -15,7 +15,7 @@ import { classifyGenerationError } from '@/lib/reading-stream'
 import { preflightSection, pickBetter, formatPreflightLog } from '@/lib/reading-preflight'
 import { logUsage } from '@/lib/usage-log'
 import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
-import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
+import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
 import {
   parseThreadId, loadPriorSections, storeThreadSection, priorDigest, type ThreadScope, type PriorSection,
@@ -408,7 +408,7 @@ const INLINE_GATE_DEADLINE_MS = 35_000
       userContent   = `${contextBlock}\n\n---\n\n${renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!}`
       priorBlocks   = []
       userBlocks    = [{ type: 'text', text: userContent }]
-      maxTokens     = MAX_TOKENS_PER_SECTION[planetSection] ?? 2000
+      maxTokens     = maxTokensFor(planetSection)
       // Cache the per-section-type system prompt too: it is stable across every
       // request for a given section.
       systemBlocks  = [SHARED_RULES_BLOCK, { type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }]
@@ -495,8 +495,9 @@ const INLINE_GATE_DEADLINE_MS = 35_000
             : userBlocks
           const stream = anthropic.messages.stream({
             model:       MODEL,
-            max_tokens:  maxTokens,
-            thinking:    THINKING,
+            max_tokens:    maxTokens,
+            thinking:      THINKING,
+            output_config: OUTPUT_CONFIG,
             system:      systemBlocks,
             messages:    [{ role: 'user', content }],
           })

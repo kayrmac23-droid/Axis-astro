@@ -58,6 +58,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
 import { READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 import { logUsage } from '@/lib/usage-log'
+import { THINKING as GEN_THINKING, OUTPUT_CONFIG as GEN_OUTPUT_CONFIG, THINKING_HEADROOM_TOKENS } from '@/lib/reading-model-config'
 import {
   BANNED_BARNUM_LIST,
   BANNED_RESCUE_LIST,
@@ -115,18 +116,19 @@ const EVAL_EFFORT: Anthropic.OutputConfig['effort'] = 'medium'
 // extractScoresFromRaw remains the backstop if a critique truncates the JSON,
 // so the verdict never fails open regardless.
 const EVAL_MAX_TOKENS = 4000
-const DOCTRINE_REPAIR_MAX_TOKENS = 500
+// 500 tokens of edited sentences, plus room for the generator's thinking, which
+// counts against max_tokens (v10.51).
+const DOCTRINE_REPAIR_MAX_TOKENS = 500 + THINKING_HEADROOM_TOKENS
 
 // Sonnet 5 / Opus 5 REMOVED the sampling params (temperature/top_p/top_k):
 // sending `temperature` returns a 400 and fails the call. There is no
 // temperature knob on these models; do not re-add one.
 //
 // REPAIR path only. Repair and doctrine-repair run on the caller's generation
-// model (Sonnet 5), which accepts a disabled thinking config, and a repair is a
-// constrained rewrite against an explicit critique rather than a judgment call
-// — so it keeps the generator's no-thinking shape. The EVALUATOR does not: see
-// EVAL_THINKING below.
-const THINKING: Anthropic.ThinkingConfigParam = { type: 'disabled' }
+// model, so they take the generator's thinking shape and effort from
+// reading-model-config (v10.51: Opus 5.5, where `{type:'disabled'}` is a 400).
+// The EVALUATOR has its own config: see EVAL_THINKING below.
+const THINKING: Anthropic.ThinkingConfigParam = GEN_THINKING
 
 // EVALUATION path. Scoring prose on nine criteria and emitting strict JSON is a
 // judgment task, and the gate is the last check before a 30-day cache write, so
@@ -1258,9 +1260,10 @@ Your reply is the section and nothing else. Its first character is the section's
 
   const msg = await getAnthropic().messages.create({
     model,
-    max_tokens:  maxTokens,
-    thinking:    THINKING,
-    system:      systemBlocks,
+    max_tokens:    maxTokens,
+    thinking:      THINKING,
+    output_config: GEN_OUTPUT_CONFIG,
+    system:        systemBlocks,
     messages:    [{ role: 'user', content: userTurn(priorBlocks, originalUserContent, repairInstruction) }],
   }, requestOptions(timeoutMs))
   logUsage(label, 'repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
@@ -1359,6 +1362,7 @@ export async function repairDoctrineSentences(
     model,
     max_tokens: DOCTRINE_REPAIR_MAX_TOKENS,
     thinking: THINKING,
+    output_config: GEN_OUTPUT_CONFIG,
     system: `You make surgical copy edits. Rewrite only the supplied sentences to remove the named AXIS doctrine violations. Preserve each sentence's concrete astrological meaning, tone, and approximate length. Do not add reassurance, rank Tropical above Sidereal or vice versa, or describe one frame as deeper, truer, masked, underneath, built on top of, or the core of another. Where a sentence only announces the reading's own compliance (that a cost will not be redeemed, that two frames are not being ranked), replace it with the plain claim it was guarding, or with a sentence carrying the next piece of chart evidence. Return only a JSON array of replacement sentence strings, in the same order and with exactly the same number of items.`,
     messages: [{
       role: 'user',

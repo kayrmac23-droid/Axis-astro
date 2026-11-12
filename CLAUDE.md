@@ -2,7 +2,7 @@
 
 > **Canonical for:** commands, architecture, API routes, core libs, the reading pipeline (models, gate, cost), tests, deployment — **as they are now**. **Lives elsewhere:** product law → `DOCTRINE.md` (binding; it wins on what the product may say or do); human-facing overview, methodology and accuracy → `README.md`; why each rule exists and what was measured when it landed → `docs/PIPELINE-HISTORY.md`; `AGENTS.md` is only a pointer to this file — edit here, never there. See *Docs map*.
 
-**Keep this file to current state.** It is loaded into every agent session, so every paragraph here is paid for on every task. State what the code does and the constraint an editor must not break, in a sentence or two. The story of how a rule was arrived at, eval numbers and version-by-version narrative go in `docs/PIPELINE-HISTORY.md` (append a dated entry there), or in a comment beside the code. Do not restate the prompt version here: it is `READING_PROMPT_VERSION` in `lib/reading-cache.ts`.
+**Keep this file to current state** (`claude-md-size.test.ts` fails above 28 KB). It is loaded into every agent session, so every paragraph here is paid for on every task. State what the code does and the constraint an editor must not break, in a sentence or two. The story of how a rule was arrived at, eval numbers and version-by-version narrative go in `docs/PIPELINE-HISTORY.md` (append a dated entry there), or in a comment beside the code. Do not restate the prompt version here: it is `READING_PROMPT_VERSION` in `lib/reading-cache.ts`.
 
 ## Commands
 
@@ -73,9 +73,9 @@ All routes parse bodies through `lib/request-security.ts` (16 KB cap, content-ty
 
 ### Models and request shape
 
-- Generation, repair, doctrine-repair: `claude-sonnet-5` (`MODEL`, `lib/reading-model-config.ts`), `thinking: { type: 'disabled' }`, per-section `max_tokens` from `MAX_TOKENS_PER_SECTION`.
+- Generation, repair, doctrine-repair: `claude-opus-5-5` (`MODEL`, `lib/reading-model-config.ts`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'low' }` (`EFFORT`). Thinking **cannot be disabled** on this model (400). Thinking tokens count against `max_tokens`, so `maxTokensFor(planetSection)` = the prose budget + `THINKING_HEADROOM_TOKENS`; size prose in the prose table, never by trimming the headroom.
 - Evaluation: `claude-sonnet-5-5` (`EVAL_MODEL`), `thinking: { type: 'adaptive' }`, `output_config: { effort: 'medium' }`, `EVAL_MAX_TOKENS` 4000.
-- **Never send `temperature`, `top_p` or `top_k`** — these models return a 400. `thinking: disabled` is likewise a 400 on the eval model. `npm run test:smoke` exists because a mocked SDK cannot catch a rejected request shape.
+- **Never send `temperature`, `top_p` or `top_k`** — these models return a 400. `thinking: disabled` is likewise a 400 on both the generator and the eval model. `npm run test:smoke` exists because a mocked SDK cannot catch a rejected request shape.
 - Prompt caching: system = `[SHARED_RULES, frame prompt]`, both cached; user = one block per earlier section (cache breakpoint on the last) + an uncached tail of chart context, phrases-already-used, section instruction and scene clause. **Only the tail is paid at full price**, so a character cut from a section instruction is worth about ten in `SHARED_RULES`. The real cost term is the reading so far, resent on every later section — i.e. output length.
 
 ### Delivery

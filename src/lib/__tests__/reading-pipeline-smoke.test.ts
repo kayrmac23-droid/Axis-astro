@@ -26,7 +26,7 @@ import { calculateDualChart, BirthData } from '@/lib/astro-calc'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
 import { SHARED_RULES, TROPICAL_SYSTEM_PROMPT, renderSectionInstruction, LENGTH_CLAUSE_SLOT } from '@/lib/prompts'
 import { countAspectsInContext } from '@/lib/reading-quality-gate'
-import { MODEL, THINKING, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
+import { MODEL, THINKING, OUTPUT_CONFIG, MAX_TOKENS_PER_SECTION } from '@/lib/reading-model-config'
 import { isAnthropicKeyConfigured } from '@/lib/env'
 import { priorSectionBlocks, READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 
@@ -89,6 +89,7 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
         model:      MODEL,
         max_tokens: MAX_TOKENS_PER_SECTION.key_aspects,
         thinking:   THINKING,
+        output_config: OUTPUT_CONFIG,
         system:     systemBlocks,
         // The threaded shape the route sends for every section after the first:
         // one block per earlier section (third cache breakpoint on the last),

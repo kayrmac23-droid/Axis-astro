@@ -79,7 +79,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 |---|---|
 | Framework | Next.js 16.x (App Router) |
 | Language | TypeScript |
-| AI backend | Anthropic Claude Sonnet 5 for generation and repair, Sonnet 5.5 for quality evaluation, via streaming API with prompt caching |
+| AI backend | Anthropic Claude Opus 5.5 (adaptive thinking) for generation and repair, Sonnet 5.5 for quality evaluation, via streaming API with prompt caching |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + Meeus Ch. 37 Pluto (JPL Horizons outside 1885–2099) |
 | Geocoding | OpenStreetMap Nominatim |
 | Timezone | tz-lookup (offline IANA lookup) |
