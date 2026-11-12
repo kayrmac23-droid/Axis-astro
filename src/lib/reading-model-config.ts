@@ -30,7 +30,12 @@ export const OUTPUT_CONFIG: Anthropic.OutputConfig = { effort: EFFORT }
 // Thinking tokens bill as output and count against max_tokens. The prose budgets
 // below are sized for the prose alone; the headroom is added on top so a long
 // think cannot truncate the section (a truncated section is never cached).
-export const THINKING_HEADROOM_TOKENS = 8000
+// Chicago, 2026-11-12: most sections spent 3-7.4k output tokens in total, but
+// `diverge` thought for ~10k and hit 8000-headroom max_tokens after 888 words.
+// 14000 covers that. Keep prose + headroom under ~21k: the gate's repair is a
+// non-streaming call and the SDK refuses non-streaming requests it expects to
+// run past 10 minutes.
+export const THINKING_HEADROOM_TOKENS = 14000
 
 // Per-section PROSE budgets. Keyed by planetSection; overlapping names
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
