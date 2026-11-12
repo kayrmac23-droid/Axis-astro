@@ -2,7 +2,7 @@
 
 > **Canonical for:** commands, architecture, API routes, core libs, the reading pipeline (models, gate, cost), tests, deployment — **as they are now**. **Lives elsewhere:** product law → `DOCTRINE.md` (binding; it wins on what the product may say or do); human-facing overview, methodology and accuracy → `README.md`; why each rule exists and what was measured when it landed → `docs/PIPELINE-HISTORY.md`; `AGENTS.md` is only a pointer to this file — edit here, never there. See *Docs map*.
 
-**Keep this file to current state.** It is loaded into every agent session, so every paragraph here is paid for on every task. State what the code does and the constraint an editor must not break, in a sentence or two. The story of how a rule was arrived at, eval numbers and version-by-version narrative go in `docs/PIPELINE-HISTORY.md` (append a dated entry there), or in a comment beside the code. Do not restate the prompt version here: it is `READING_PROMPT_VERSION` in `lib/reading-cache.ts`.
+**Keep this file to current state** (`claude-md-size.test.ts` fails above 28 KB). It is loaded into every agent session, so every paragraph here is paid for on every task. State what the code does and the constraint an editor must not break, in a sentence or two. The story of how a rule was arrived at, eval numbers and version-by-version narrative go in `docs/PIPELINE-HISTORY.md` (append a dated entry there), or in a comment beside the code. Do not restate the prompt version here: it is `READING_PROMPT_VERSION` in `lib/reading-cache.ts`.
 
 ## Commands
 
