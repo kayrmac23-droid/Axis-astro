@@ -24,7 +24,10 @@ export const THINKING: Anthropic.ThinkingConfigParam = { type: 'adaptive' }
 // explicitly. Effort barely changes reply LENGTH — length is the prompt's job
 // (SECTION_WORD_BANDS) — it changes how much the model reasons first, which is
 // first-token latency on a streamed section.
-export const EFFORT: Anthropic.OutputConfig['effort'] = 'medium'
+// `low`: on Chicago Tropical (2026-11-12) it matched medium's quality (8/9 vs 9/9
+// first-pass, same criterion means) at 13-36s instead of 32-82s and ~40% less
+// cost. See docs/PIPELINE-HISTORY.md before raising it.
+export const EFFORT: Anthropic.OutputConfig['effort'] = 'low'
 export const OUTPUT_CONFIG: Anthropic.OutputConfig = { effort: EFFORT }
 
 // Thinking tokens bill as output and count against max_tokens. The prose budgets
