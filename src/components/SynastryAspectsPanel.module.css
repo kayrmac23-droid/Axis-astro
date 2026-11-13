@@ -12,12 +12,12 @@
 }
 
 .panelLabel {
-  font-family: var(--font-display);
-  font-size: 0.72rem;
-  letter-spacing: 0.28em;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--copper);
-  opacity: 0.85;
+  color: var(--copper-kicker);
   margin-bottom: 1.4rem;
 }
 
@@ -33,35 +33,36 @@
 }
 
 .compositeLabel {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.35em;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--copper);
+  color: var(--copper-kicker);
   flex-shrink: 0;
 }
 
 .compositePlacements {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text);
   flex: 1;
 }
 
 .compositeCount {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.2em;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--text-3);
   flex-shrink: 0;
 }
 
 .noAspects {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  color: var(--fg-4);
-  font-style: italic;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
 }
 
 /* ─── Aspect groups ────────────────────────────────── */
@@ -87,18 +88,16 @@
 .sym_tense      { color: var(--violet-light); }
 .sym_neutral    { color: var(--fg); }
 
-/* Group left-rule keys the whole group by harmony (color-scheme doctrine:
-   copper = harmonious, violet = tense, white = conjunction/neutral). */
-.row_harmonious { border-left: 2px solid var(--copper); padding-left: 10px; }
-.row_tense      { border-left: 2px solid var(--violet); padding-left: 10px; }
-.row_neutral    { border-left: 2px solid rgba(234, 232, 248, 0.5); padding-left: 10px; }
+/* Harmony is carried by the glyph colour and the group heading (copper =
+   harmonious, violet = tense, white = conjunction). The 2px row stripe that
+   repeated it was the one heavy rule in a system of hairlines; removed. */
 
 .groupLabel {
-  font-family: var(--font-display);
-  font-size: 0.48rem;
-  letter-spacing: 0.3em;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--fg-4);
+  color: var(--text-3);
 }
 
 /* ─── Aspect rows ──────────────────────────────────── */
@@ -109,10 +108,10 @@
 
 .aspectRow {
   display: grid;
-  grid-template-columns: 1fr 1.6rem 1fr 2.8rem;
+  grid-template-columns: 1fr 1.6rem 1fr 3.5rem;
   align-items: center;
   padding: 0.38rem 0;
-  border-bottom: 1px solid rgba(26, 25, 64, 0.35);
+  border-bottom: 1px solid var(--hairline);
 }
 
 .aspectRow:last-child {
@@ -121,9 +120,10 @@
 
 .planetA,
 .planetB {
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--text);
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -144,11 +144,12 @@
 .glyph_neutral    { color: var(--fg); }
 
 .orb {
-  font-family: var(--font-display);
-  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
   letter-spacing: 0.04em;
-  color: var(--fg-4);
+  color: var(--text-3);
   text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .legend {

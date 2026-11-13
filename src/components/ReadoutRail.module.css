@@ -76,20 +76,22 @@
 }
 
 .delta { text-align: right; }
-.flip { color: var(--copper-light); }
-.hold { color: var(--text-4); }
+/* most bodies shift (offset ≈24° of 30°); the hold is the marked case */
+.table .flip { color: var(--text-2); }
+.table .hold { color: var(--copper-light); white-space: nowrap; }
 
 /* The active frame reads at full strength; the other stays legible and
    present — never hidden (DOCTRINE.md: CO-VISIBILITY). */
 .ct, .cs { transition: opacity 0.6s; }
 .table[data-frame="tropical"] .cs,
-.table[data-frame="sidereal"] .ct { opacity: 0.55; }
+.table[data-frame="sidereal"] .ct { opacity: 0.72; }
 .table[data-frame="tropical"] .thT,
 .table[data-frame="sidereal"] .thS { color: var(--cyan); }
 
 .row { cursor: pointer; transition: background 0.3s; }
 .row:hover td { background: rgba(234, 232, 248, 0.03); }
 .rowSel td { background: var(--cyan-tint); }
+.row:focus-visible { outline: 1px solid var(--cyan); outline-offset: -1px; }
 .rowSel .body { border-left-color: var(--cyan); }
 
 /* ---------- selected-body detail ---------- */
@@ -124,7 +126,7 @@
   letter-spacing: 0.06em;
   margin-top: 8px;
 }
-.verdictFlip { color: var(--violet-light); }
+.verdictFlip { color: var(--text); }
 .verdictHold { color: var(--copper-light); }
 .verdictNone { color: var(--text-4); }
 

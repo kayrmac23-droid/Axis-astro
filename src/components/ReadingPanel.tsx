@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { DualChartData } from '@/lib/astro-calc'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
-import { buildReadoutRows, buildFlips, countBodies, lonStr, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
+import { buildReadoutRows, buildFlips, countBodies, lonStr, dms, norm, ZODIAC_GLYPHS, type ReadoutRow } from '@/lib/readout'
 import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
 import { detectStreamError, ReadingUnavailableError, retryDelayForStatus, quotaFailure } from '@/lib/reading-stream'
@@ -160,7 +160,11 @@ function bodiesForHeading(content: string): string[] {
   return Array.from(new Set(ids))
 }
 
-type Block =
+// `anchor` is the planet-section key a block opens (from the [AXIS_SECTION:…]
+// marker written ahead of each section), so the section rail can link to it.
+type Block = BlockBody & { anchor?: string }
+type BlockBody =
+  | { type: 'note'; content: string }
   | { type: 'heading'; content: string; descriptorKey: string | null }
   | { type: 'subheading'; content: string }
   | { type: 'paragraph'; content: string }
@@ -171,10 +175,16 @@ function parseReading(text: string, section: string): Block[] {
   const lines = text.split('\n')
   const blocks: Block[] = []
   let buf = ''
+  let pendingAnchor: string | null = null
+
+  const push = (b: BlockBody) => {
+    blocks.push(pendingAnchor ? { ...b, anchor: pendingAnchor } : b)
+    pendingAnchor = null
+  }
 
   const flush = () => {
     if (buf.trim()) {
-      blocks.push({ type: 'paragraph', content: buf.trim() })
+      push({ type: 'paragraph', content: buf.trim() })
       buf = ''
     }
   }
@@ -182,23 +192,37 @@ function parseReading(text: string, section: string): Block[] {
   for (const line of lines) {
     const trimmed = line.trim()
 
+    const sectionMatch = trimmed.match(/^\[AXIS_SECTION:([^\]]+)\]$/)
+    if (sectionMatch) {
+      flush()
+      pendingAnchor = sectionMatch[1]
+      continue
+    }
+
+    // The length-limit notice is chrome, not prose: its own block, set in mono.
+    if (trimmed.startsWith('[This section reached its generation limit')) {
+      flush()
+      push({ type: 'note', content: 'Section reached its length limit · may be incomplete' })
+      continue
+    }
+
     const failedMatch = trimmed.match(/^\[AXIS_FAILED:([^\]]+)\]$/)
     if (failedMatch) {
       flush()
-      blocks.push({ type: 'sectionFailed', planetSection: failedMatch[1] })
+      push({ type: 'sectionFailed', planetSection: failedMatch[1] })
       continue
     }
 
     const loadingMatch = trimmed.match(/^\[AXIS_LOADING:([^\]]+)\]$/)
     if (loadingMatch) {
       flush()
-      blocks.push({ type: 'sectionLoading', planetSection: loadingMatch[1] })
+      push({ type: 'sectionLoading', planetSection: loadingMatch[1] })
       continue
     }
 
     if (trimmed.startsWith('### ')) {
       flush()
-      blocks.push({ type: 'subheading', content: trimmed.replace('### ', '').trim() })
+      push({ type: 'subheading', content: trimmed.replace('### ', '').trim() })
       continue
     }
     if (trimmed.startsWith('## ')) {
@@ -207,7 +231,7 @@ function parseReading(text: string, section: string): Block[] {
       const descriptorKey = section === 'synthesis'
         ? getSynthesisKey(content)
         : getDescriptorKey(content, section)
-      blocks.push({ type: 'heading', content, descriptorKey })
+      push({ type: 'heading', content, descriptorKey })
       continue
     }
     if (trimmed.match(/^\*[^*]+\*$/) || trimmed.match(/^_[^_]+_$/)) continue
@@ -244,7 +268,7 @@ function groupPlacements(blocks: Block[]): PlacementGroup[] {
 // distinct data with a Δ-sign marker. DOCTRINE.md — THE LAW: both frames are
 // presented side by side and the divergence is marked; nothing is reconciled.
 // Chrome, not prose — mono type, dimmed, copper as the sole accent.
-function ReadoutCard({ row }: { row: ReadoutRow }) {
+function ReadoutCard({ row, ayanamsa }: { row: ReadoutRow; ayanamsa: number }) {
   return (
     <div className={styles.readoutCard}>
       <p className={styles.readoutName}>
@@ -275,7 +299,7 @@ function ReadoutCard({ row }: { row: ReadoutRow }) {
         <span className={row.flip ? styles.readoutFlip : styles.readoutHold}>
           {row.flip
             ? `${ZODIAC_GLYPHS[row.tSign]} → ${ZODIAC_GLYPHS[row.sSign]}`
-            : `${ZODIAC_GLYPHS[row.tSign]} · ${ZODIAC_GLYPHS[row.sSign]}`}
+            : `HOLDS · ${dms(Math.abs((norm(row.tLon) % 30) - ayanamsa))}`}
         </span>
       </p>
     </div>
@@ -403,6 +427,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'loading' }))
         setActivePlanetSection(planetSec)
         setLiveStatus(`Loading ${SECTION_DISPLAY[planetSec] ?? planetSec}`)
+        // Marks where this section starts so the rail can link to it. Parsed
+        // out by parseReading; never rendered.
+        accumulatedText += `[AXIS_SECTION:${planetSec}]\n\n`
 
         let sectionText = ''
         let sectionSuccess = false
@@ -734,6 +761,12 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     const label           = SECTION_LABELS[section]
     const blocks          = currentText ? parseReading(currentText, section) : []
     const descriptors     = section === 'sidereal' ? SIDEREAL_DESCRIPTORS : TROPICAL_DESCRIPTORS
+    const aid = (b: Block) => b.anchor ? `axis-${section}-${b.anchor}` : undefined
+    // What is being written right now, shown beside a queued part.
+    const liveKey = streamingTab as SystemSectionKey | null
+    const progressNote = liveKey && liveKey !== section && activePlanetSection
+      ? `PART ${liveKey === 'tropical' ? 1 : liveKey === 'sidereal' ? 2 : 3} · SECTION ${PLANET_SECTIONS[liveKey].indexOf(activePlanetSection) + 1} OF ${PLANET_SECTIONS[liveKey].length} IN PROGRESS`
+      : ''
 
     // One parsed block → its element. Shared by the flat layout (side-by-side /
     // Divergence) and the grouped layout (single-frame, with data blocks).
@@ -742,7 +775,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
         const errMsg = planetSectionErrors[`${section}:${block.planetSection}`]
           || 'This section could not be generated. Check your connection and retry.'
         return (
-          <div key={key} className={styles.sectionErrorBlock}>
+          <div key={key} id={aid(block)} className={styles.sectionErrorBlock}>
             <p className={styles.sectionErrorLabel}>Section Unavailable</p>
             <p className={styles.sectionErrorMsg}>{errMsg}</p>
             <button
@@ -757,14 +790,18 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
 
       if (block.type === 'sectionLoading') {
         return (
-          <div key={key} className={styles.sectionLoadingBlock}>
+          <div key={key} id={aid(block)} className={styles.sectionLoadingBlock}>
             <div className={styles.generatingOrbit} />
           </div>
         )
       }
 
+      if (block.type === 'note') {
+        return <p key={key} id={aid(block)} className={styles.sectionNote}>{block.content}</p>
+      }
+
       if (block.type === 'subheading') {
-        return <h4 key={key} className={styles.planetSubheading}>{block.content}</h4>
+        return <h4 key={key} id={aid(block)} className={styles.planetSubheading}>{block.content}</h4>
       }
 
       if (block.type === 'heading') {
@@ -775,7 +812,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           : null
 
         return (
-          <div key={key} className={styles.sectionBlock}>
+          <div key={key} id={aid(block)} className={styles.sectionBlock}>
             <h3 className={styles.planetHeading}>{block.content}</h3>
             {descriptor && (
               <div className={styles.infoBox}>
@@ -794,6 +831,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       return (
         <p
           key={key}
+          id={aid(block)}
           className={styles.paragraph}
           style={{ animationDelay: `${Math.min(animIndex * 0.02, 0.4)}s` }}
         >
@@ -823,17 +861,23 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           )}
 
           {/* Pending — waiting for earlier sections to stream */}
+          {/* A spinner means "working on this now". Parts 2 and 3 wait for
+              minutes behind Part 1, so they get a still line that says so and
+              names what is actually in progress. */}
           {!currentError && currentStatus === 'pending' && (
-            <div className={styles.generating}>
-              <div className={styles.generatingOrbit} />
-              <p className={styles.generatingText}>
-                {section === 'sidereal'
-                  ? 'Sidereal reading begins after Tropical'
-                  : section === 'synthesis'
-                    ? 'The Divergence is read after and below both'
-                    : 'Preparing reading'}
-              </p>
-            </div>
+            section === 'tropical' ? (
+              <div className={styles.generating}>
+                <div className={styles.generatingOrbit} />
+                <p className={styles.generatingText}>Preparing reading</p>
+              </div>
+            ) : (
+              <div className={styles.queued}>
+                <span className={styles.queuedLabel}>
+                  {section === 'sidereal' ? 'QUEUED · WRITTEN AFTER PART 1' : 'QUEUED · WRITTEN AFTER PART 2'}
+                </span>
+                {progressNote && <span>{progressNote}</span>}
+              </div>
+            )
           )}
 
           {/* Loading — this section is actively streaming */}
@@ -882,7 +926,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
                       </div>
                       {bodies.length > 0 && (
                         <aside className={styles.placementData} aria-label="Placement positions — both frames">
-                          {bodies.map(row => <ReadoutCard key={row.id} row={row} />)}
+                          {bodies.map(row => <ReadoutCard key={row.id} row={row} ayanamsa={chartData.ayanamsa} />)}
                         </aside>
                       )}
                     </div>
@@ -910,6 +954,21 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       : styles.railPending
   }
 
+  // One rail row. A finished (or failed) section is a link to its heading; a
+  // queued or streaming one is plain text, since there is nothing to jump to.
+  const railItem = (sec: string, key: string, label: string, i: number) => {
+    const st = sectionStates[`${sec}:${key}`] ?? 'pending'
+    const inner = (
+      <>
+        <span>{st === 'loading' ? '● ' : ''}{label}</span>
+        <span className={styles.railNum}>{String(i + 1).padStart(2, '0')}</span>
+      </>
+    )
+    return st === 'done' || st === 'failed'
+      ? <a key={key} href={`#axis-${sec}-${key}`} className={`${styles.railRow} ${styles.railLink} ${railState(`${sec}:${key}`)}`}>{inner}</a>
+      : <span key={key} className={`${styles.railRow} ${railState(`${sec}:${key}`)}`}>{inner}</span>
+  }
+
   // Bodies that change sign between the frames — the Divergence's evidence
   // table. Derived from the same rows the READOUT rail renders.
   const flips = buildFlips(readoutRows)
@@ -919,7 +978,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   // loaded, not from the band table, so it never promises a length the reader is
   // not about to get; it is withheld until there is text to measure.
   const sidStreaming = streamingTab === 'sidereal' && tabStatus.sidereal === 'loading'
-  const sidWords = (readings.sidereal || '').trim().split(/\s+/).filter(Boolean).length
+  const sidWords = (readings.sidereal || '').replace(/\[AXIS_[A-Z]+:[^\]]+\]/g, '').trim().split(/\s+/).filter(Boolean).length
   const sidMinutes = sidStreaming || sidWords === 0 ? null : Math.max(1, Math.round(sidWords / WORDS_PER_MINUTE))
 
   // One frame's prose band. Called twice now, in reading order, rather than once
@@ -947,12 +1006,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           <aside className={styles.rail} aria-label={`Sections in the ${f} reading`}>
             <div className={styles.railHead}>SECTIONS</div>
             <div className={styles.railList}>
-              {frameSections.map(key => (
-                <span key={key} className={railState(`${f}:${key}`)}>
-                  {(sectionStates[`${f}:${key}`] === 'loading' ? '● ' : '')}
-                  {(SECTION_DISPLAY[key] ?? key).toUpperCase()}
-                </span>
-              ))}
+              {frameSections.map((key, i) => railItem(f, key, (SECTION_DISPLAY[key] ?? key).toUpperCase(), i))}
             </div>
           </aside>
         </div>
@@ -1069,11 +1123,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             <aside className={styles.rail} aria-label="The four movements">
               <div className={styles.railHead}>MOVEMENTS</div>
               <div className={styles.railListSingle}>
-                {DIVERGENCE_MOVEMENTS.map(m => (
-                  <span key={m.key} className={railState(`synthesis:${m.key}`)}>
-                    {(sectionStates[`synthesis:${m.key}`] === 'loading' ? '● ' : '')}{m.label}
-                  </span>
-                ))}
+                {DIVERGENCE_MOVEMENTS.map((m, i) => railItem('synthesis', m.key, m.label, i))}
               </div>
             </aside>
           </div>

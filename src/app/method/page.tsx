@@ -104,7 +104,7 @@ export default function MethodPage() {
           <div className={styles.chips}>
             <span className={styles.chipCopper}>DUAL-MAP COMPARISON</span>
             <span className={styles.chip}>WHOLE SIGN HOUSES</span>
-            <span className={styles.chip}>LAHIRI AYANAMSA · 24°13′</span>
+            <span className={styles.chip}>LAHIRI AYANAMSA</span>
             <span className={styles.chip}>VSOP87 / ELP2000</span>
             <span className={styles.chip}>JPL HORIZONS PLUTO</span>
             <span className={styles.chip}>TRUE NODE</span>

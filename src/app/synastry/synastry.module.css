@@ -125,22 +125,9 @@
 }
 
 .calcBtn {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  background: var(--copper);
-  color: var(--void);
-  padding: 16px 28px;
+  composes: ax-btn ax-btn-solid from global;
   min-width: 272px;
-  text-align: center;
-  border: 1px solid var(--copper);
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, opacity 0.3s ease;
 }
-.calcBtn:hover:not(:disabled) { background: var(--copper-bright); border-color: var(--copper-bright); }
-.calcBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btnLoading { display: inline-flex; align-items: center; gap: 10px; }
 .btnSpinner {
   width: 11px; height: 11px;
@@ -243,31 +230,11 @@
   padding: 56px var(--page-pad) 96px;
 }
 .btnOutline {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text);
-  background: transparent;
-  border: 1px solid var(--copper-bright);
-  padding: 14px 28px;
-  cursor: pointer;
+  composes: ax-btn ax-btn-line from global;
 }
-.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
 .btnGhost {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  background: transparent;
-  border: 1px solid var(--border-2);
-  padding: 14px 28px;
-  cursor: pointer;
+  composes: ax-btn ax-btn-ghost from global;
 }
-.btnGhost:hover { color: var(--text); border-color: var(--text); }
 
 @media (max-width: 760px) {
   .resultsHead { grid-template-columns: minmax(0, 1fr); }

@@ -25,8 +25,17 @@
 
 .wheel {
   width: 100%;
-  max-width: 700px;
+  max-width: 760px;
   display: block;
+}
+
+/* Desktop legibility. The stage is a 1000-unit viewBox, so at the old 700px
+   cap the degree labels (8.6–9.6u) and house numerals (10u) rendered at
+   6–7px. A wider cap plus larger units puts them at 9–10px. CSS font-size
+   overrides the SVG attribute; the mobile block below handles ≤760px. */
+@media (min-width: 761px) {
+  .root:not(.rootExpanded) .microLabel { font-size: 12px; }
+  .root:not(.rootExpanded) .houseNum { font-size: 13px; }
 }
 
 /* DESIGN.md, Responsive behaviour: "allow it to approach viewport width".

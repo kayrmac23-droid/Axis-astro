@@ -36,7 +36,7 @@ export default function ComputationInterstitial({ line, ayanamsa, variant = 'cha
   const active = Math.max(stage, minStage)
 
   return (
-    <main className={styles.wrap}>
+    <div className={styles.wrap}>
       <div className={styles.grid}>
         <div className={styles.orb} aria-hidden="true">
           <div className={styles.ring} />
@@ -64,6 +64,6 @@ export default function ComputationInterstitial({ line, ayanamsa, variant = 'cha
           </div>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

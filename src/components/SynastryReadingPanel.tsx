@@ -32,6 +32,7 @@ const SECTION_DISPLAY: Record<SynastrySection, string> = {
 const SECTION_TIMEOUT_MS = 125_000
 
 type SectionState = 'pending' | 'loading' | 'done' | 'failed'
+type SectionResult = { text: string } | { error: string }
 
 function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | null {
   const h = heading.toLowerCase()
@@ -44,9 +45,11 @@ function getSynastryKey(heading: string): keyof typeof SYNASTRY_DESCRIPTORS | nu
   return null
 }
 
-function parseReading(text: string): Array<{ type: 'heading' | 'subheading' | 'paragraph'; content: string }> {
+type Block = { type: 'heading' | 'subheading' | 'paragraph' | 'note'; content: string }
+
+function parseReading(text: string): Block[] {
   const lines = text.split('\n')
-  const blocks: Array<{ type: 'heading' | 'subheading' | 'paragraph'; content: string }> = []
+  const blocks: Block[] = []
   let buf = ''
 
   const flush = () => {
@@ -55,6 +58,9 @@ function parseReading(text: string): Array<{ type: 'heading' | 'subheading' | 'p
 
   for (const line of lines) {
     const t = line.trim()
+    if (t.startsWith('[This section reached its generation limit')) {
+      flush(); blocks.push({ type: 'note', content: 'Section reached its length limit · may be incomplete' }); continue
+    }
     if (t.startsWith('### ')) { flush(); blocks.push({ type: 'subheading', content: t.slice(4).trim() }); continue }
     if (t.startsWith('## '))  { flush(); blocks.push({ type: 'heading',    content: t.slice(3).trim() }); continue }
     if (t.match(/^\*[^*]+\*$/) || t.match(/^_[^_]+_$/)) continue
@@ -66,13 +72,105 @@ function parseReading(text: string): Array<{ type: 'heading' | 'subheading' | 'p
 }
 
 export default function SynastryReadingPanel({ synastryData }: Props) {
-  const [text, setText] = useState('')
+  // One entry per section, so a failed section can be retried on its own
+  // without regenerating the other five.
+  const [texts, setTexts] = useState<Record<string, string>>({})
+  const [sectionErrors, setSectionErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sectionStates, setSectionStates] = useState<Record<string, SectionState>>({})
-  const [activeSection, setActiveSection] = useState<string | null>(null)
   const [liveStatus, setLiveStatus] = useState('')
   const abortRef = useRef<AbortController | null>(null)
+
+  // Fetch one section, with one automatic retry. Resolves to its text or to an
+  // error message. Throws only for a user abort or a fatal service failure
+  // (billing, auth, quota), which the caller must not retry.
+  const fetchSection = useCallback(async (
+    sec: SynastrySection,
+    signal: AbortSignal,
+    onChunk: (t: string) => void,
+  ): Promise<SectionResult> => {
+    let lastError = ''
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (signal.aborted) break
+      try {
+        const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
+        const combinedSignal = AbortSignal.any
+          ? AbortSignal.any([signal, timeoutSignal])
+          : signal
+
+        const res = await fetch('/api/reading', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            birthA: synastryData.personA.birthData,
+            birthB: synastryData.personB.birthData,
+            plutoLongitudeA: synastryData.personA.plutoLongitude,
+            plutoSourceA: synastryData.personA.plutoSource,
+            plutoLongitudeB: synastryData.personB.plutoLongitude,
+            plutoSourceB: synastryData.personB.plutoSource,
+            section: 'synastry',
+            planetSection: sec,
+          }),
+          signal: combinedSignal,
+        })
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          // A daily quota or the site-wide cap: no retry helps today, so
+          // stop the run once instead of refusing every remaining section.
+          const quota = quotaFailure(res.status, res.headers.get('X-Axis-Quota'), body.message)
+          if (quota) throw new ReadingUnavailableError(quota)
+          lastError = res.status === 429
+            ? `Rate limit reached. Please wait before retrying.`
+            : body.message || body.error || `Section failed (${res.status})`
+          const wait = attempt === 0 ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
+          if (wait == null) break
+          await new Promise(r => setTimeout(r, wait))
+          continue
+        }
+        if (!res.body) { lastError = 'No response body'; break }
+
+        const reader  = res.body.getReader()
+        const decoder = new TextDecoder()
+        let chunk = ''
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          chunk += decoder.decode(value, { stream: true })
+          onChunk(chunk)
+        }
+        chunk += decoder.decode()
+
+        const failure = detectStreamError(chunk)
+        if (failure) {
+          // Fatal (billing/auth) means every remaining section fails the same
+          // way — unwind the run rather than retrying into a wall.
+          if (failure.fatal) throw new ReadingUnavailableError(failure)
+          lastError = failure.message
+          onChunk('')
+          if (attempt === 0) continue
+          break
+        }
+        if (chunk.includes('[AXIS_TRUNCATED]')) {
+          chunk = chunk.replace('[AXIS_TRUNCATED]', '').trimEnd()
+          chunk += '\n\n[This section reached its generation limit and may be incomplete.]'
+        }
+        return { text: chunk }
+      } catch (err: unknown) {
+        if (err instanceof ReadingUnavailableError) throw err
+        if (err instanceof Error && err.name === 'AbortError' && signal.aborted) throw err
+        if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
+          lastError = `${SECTION_DISPLAY[sec]} timed out.`
+        } else {
+          lastError = err instanceof Error ? err.message : String(err)
+        }
+        onChunk('')
+        if (attempt === 0) await new Promise(r => setTimeout(r, 1500))
+      }
+    }
+    return { error: lastError || 'This section could not be generated.' }
+  }, [synastryData])
 
   const generateReading = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort()
@@ -82,7 +180,8 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
     abortRef.current = controller
     setLoading(true)
     setError(null)
-    setText('')
+    setTexts({})
+    setSectionErrors({})
 
     const initial: Record<string, SectionState> = {}
     for (const s of SYNASTRY_SECTIONS) initial[s] = 'pending'
@@ -90,110 +189,23 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
     setLiveStatus('Starting synastry reading')
 
     try {
-      let accumulated = ''
-
       for (const sec of SYNASTRY_SECTIONS) {
         if (controller.signal.aborted) break
 
         setSectionStates(prev => ({ ...prev, [sec]: 'loading' }))
-        setActiveSection(sec)
         setLiveStatus(`Interpreting ${SECTION_DISPLAY[sec]}`)
 
-        let sectionText = ''
-        let sectionSuccess = false
-        let lastError = ''
+        const result = await fetchSection(sec, controller.signal, t => setTexts(prev => ({ ...prev, [sec]: t })))
+        if (controller.signal.aborted) break
 
-        for (let attempt = 0; attempt < 2; attempt++) {
-          if (controller.signal.aborted) break
-          try {
-            const timeoutSignal = AbortSignal.timeout(SECTION_TIMEOUT_MS)
-            const combinedSignal = AbortSignal.any
-              ? AbortSignal.any([controller.signal, timeoutSignal])
-              : controller.signal
-
-            const res = await fetch('/api/reading', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                birthA: synastryData.personA.birthData,
-                birthB: synastryData.personB.birthData,
-                plutoLongitudeA: synastryData.personA.plutoLongitude,
-                plutoSourceA: synastryData.personA.plutoSource,
-                plutoLongitudeB: synastryData.personB.plutoLongitude,
-                plutoSourceB: synastryData.personB.plutoSource,
-                section: 'synastry',
-                planetSection: sec,
-              }),
-              signal: combinedSignal,
-            })
-
-            if (!res.ok) {
-              const body = await res.json().catch(() => ({}))
-              // A daily quota or the site-wide cap: no retry helps today, so
-              // stop the run once instead of refusing every remaining section.
-              const quota = quotaFailure(res.status, res.headers.get('X-Axis-Quota'), body.message)
-              if (quota) throw new ReadingUnavailableError(quota)
-              lastError = res.status === 429
-                ? `Rate limit reached. Please wait before retrying.`
-                : body.message || body.error || `Section failed (${res.status})`
-              const wait = attempt === 0 ? retryDelayForStatus(res.status, res.headers.get('Retry-After')) : null
-              if (wait == null) break
-              await new Promise(r => setTimeout(r, wait))
-              continue
-            }
-            if (!res.body) { lastError = 'No response body'; break }
-
-            const reader  = res.body.getReader()
-            const decoder = new TextDecoder()
-            let chunk = ''
-            while (true) {
-              const { done, value } = await reader.read()
-              if (done) break
-              chunk += decoder.decode(value, { stream: true })
-              setText(accumulated + chunk)
-            }
-            chunk += decoder.decode()
-            setText(accumulated + chunk)
-
-            const failure = detectStreamError(chunk)
-            if (failure) {
-              // Fatal (billing/auth) means every remaining section fails the same
-              // way — unwind the run rather than retrying into a wall.
-              if (failure.fatal) throw new ReadingUnavailableError(failure)
-              lastError = failure.message; sectionText = ''
-              if (attempt === 0) continue
-              break
-            }
-            if (chunk.includes('[AXIS_TRUNCATED]')) {
-              chunk = chunk.replace('[AXIS_TRUNCATED]', '').trimEnd()
-              chunk += '\n\n[This section reached its generation limit and may be incomplete.]'
-            }
-
-            sectionText    = chunk
-            sectionSuccess = true
-            break
-          } catch (err: unknown) {
-            if (err instanceof ReadingUnavailableError) throw err
-            if (err instanceof Error && err.name === 'AbortError' && controller.signal.aborted) throw err
-            if (err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
-              lastError = `${SECTION_DISPLAY[sec]} timed out. Please retry.`
-            } else {
-              lastError = err instanceof Error ? err.message : String(err)
-            }
-            if (attempt === 0) await new Promise(r => setTimeout(r, 1500))
-          }
-        }
-
-        if (!sectionSuccess) {
+        if ('error' in result) {
+          setTexts(prev => ({ ...prev, [sec]: '' }))
+          setSectionErrors(prev => ({ ...prev, [sec]: result.error }))
           setSectionStates(prev => ({ ...prev, [sec]: 'failed' }))
-          accumulated += `\n\n[Section "${SECTION_DISPLAY[sec]}" could not be generated — ${lastError}]\n\n`
-          setText(accumulated)
           continue
         }
-
+        setTexts(prev => ({ ...prev, [sec]: result.text }))
         setSectionStates(prev => ({ ...prev, [sec]: 'done' }))
-        accumulated += sectionText + '\n\n'
-        setText(accumulated)
       }
 
       setLiveStatus('Reading complete')
@@ -201,14 +213,46 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
       if (err instanceof Error && err.name !== 'AbortError') {
         setError(err.message || 'Reading generation failed. Please try again.')
         setLiveStatus('Reading generation failed')
+        // Nothing after a fatal failure will be written; do not leave a
+        // section marked as in progress.
+        setSectionStates(prev => Object.fromEntries(
+          Object.entries(prev).map(([k, v]) => [k, v === 'loading' ? 'pending' : v])
+        ))
       }
     } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false)
-        setActiveSection(null)
-      }
+      if (!controller.signal.aborted) setLoading(false)
     }
-  }, [synastryData])
+  }, [fetchSection])
+
+  // Retry one failed section in place. The other sections are untouched.
+  const retrySection = useCallback(async (sec: SynastrySection) => {
+    const signal = abortRef.current?.signal
+    if (!signal || signal.aborted) return
+    setSectionStates(prev => ({ ...prev, [sec]: 'loading' }))
+    setSectionErrors(prev => { const next = { ...prev }; delete next[sec]; return next })
+    setLiveStatus(`Retrying ${SECTION_DISPLAY[sec]}`)
+
+    let result: SectionResult
+    try {
+      result = await fetchSection(sec, signal, t => setTexts(prev => ({ ...prev, [sec]: t })))
+    } catch (err: unknown) {
+      result = { error: err instanceof Error && err.name !== 'AbortError' ? err.message : 'Retry failed.' }
+    }
+    if (signal.aborted) return
+
+    if ('error' in result) {
+      const message = result.error
+      setTexts(prev => ({ ...prev, [sec]: '' }))
+      setSectionErrors(prev => ({ ...prev, [sec]: message }))
+      setSectionStates(prev => ({ ...prev, [sec]: 'failed' }))
+      setLiveStatus(`${SECTION_DISPLAY[sec]} failed to load`)
+      return
+    }
+    const text = result.text
+    setTexts(prev => ({ ...prev, [sec]: text }))
+    setSectionStates(prev => ({ ...prev, [sec]: 'done' }))
+    setLiveStatus(`${SECTION_DISPLAY[sec]} loaded`)
+  }, [fetchSection])
 
   // One effect owns the run and its cancellation. It used to be two — a start
   // guarded by `loadingRef` and a separate unmount abort — and under React
@@ -223,102 +267,153 @@ export default function SynastryReadingPanel({ synastryData }: Props) {
     return () => { clearTimeout(id); abortRef.current?.abort() }
   }, [generateReading])
 
-  const blocks = text ? parseReading(text) : []
-  const hasAnyFailed = SYNASTRY_SECTIONS.some(s => sectionStates[s] === 'failed')
+  const stateOf = (s: SynastrySection): SectionState => sectionStates[s] ?? 'pending'
+  const hasText = SYNASTRY_SECTIONS.some(s => texts[s])
+  const anyFailed = SYNASTRY_SECTIONS.some(s => stateOf(s) === 'failed')
+  const activeIdx = SYNASTRY_SECTIONS.findIndex(s => stateOf(s) === 'loading')
+  const streaming = activeIdx >= 0
+  const counter = streaming
+    ? `SECTION ${activeIdx + 1} OF ${SYNASTRY_SECTIONS.length}`
+    : `${SYNASTRY_SECTIONS.length} SECTIONS`
 
+  const railClass = (s: SynastrySection) => {
+    const st = stateOf(s)
+    return st === 'loading' ? styles.railLive
+      : st === 'done' ? styles.railDone
+      : st === 'failed' ? styles.railFailed
+      : styles.railPending
+  }
+
+  // Same frame as the natal reading: raised band, band head with the live
+  // counter, prose at the reading measure, section rail on the right.
   return (
-    <div className={styles.panel}>
+    <section className={styles.band} aria-label="Synastry reading">
       <div role="status" aria-live="polite" aria-atomic="false" className={styles.srOnly}>
         {liveStatus}
       </div>
 
-      <div className={styles.readingHeader}>
-        <div className={styles.readingMeta}>
-          <h2 className={styles.readingTitle}>Synastry Reading</h2>
-          <p className={styles.readingSubtitle}>Inter-chart aspects · Composite chart</p>
+      <div className={styles.bandInner}>
+        <div className={styles.bandHead}>
+          <span>{'// SYNASTRY READING · INTER-CHART ASPECTS · COMPOSITE CHART'}</span>
+          <span className={styles.bandHeadRight}>
+            <span>{counter}</span>
+            {streaming && <span className={styles.streaming}>● STREAMING</span>}
+          </span>
         </div>
-      </div>
 
-      {/* Section progress chips */}
-      {loading && (
-        <div className={styles.sectionProgress} aria-label="Section loading progress">
-          {SYNASTRY_SECTIONS.map(s => {
-            const state = sectionStates[s] ?? 'pending'
-            return (
-              <span
-                key={s}
-                className={`${styles.sectionChip} ${styles[`chip_${state}`]}`}
-                aria-label={`${SECTION_DISPLAY[s]}: ${state}`}
-              >
-                {SECTION_DISPLAY[s]}
-                {state === 'done'   && <span className={styles.chipCheck} aria-hidden="true"> ✓</span>}
-                {state === 'failed' && <span className={styles.chipFail}  aria-hidden="true"> ✕</span>}
-              </span>
-            )
-          })}
-        </div>
-      )}
+        <div className={styles.bandGrid}>
+          <div className={styles.bandProse}>
+            <h2 className={styles.srOnly}>Synastry reading</h2>
 
-      <div className={styles.readingBody}>
-        {loading && !text && (
-          <div className={styles.generating}>
-            <div className={styles.generatingOrbit} />
-            <p className={styles.generatingText}>
-              {activeSection ? `Interpreting ${SECTION_DISPLAY[activeSection as SynastrySection] ?? activeSection}` : 'Interpreting synastry'}
-            </p>
-          </div>
-        )}
+            <div className={`${styles.readingBody} ${styles.flatBody}`}>
+              {error && (
+                <div className={styles.sectionErrorBlock}>
+                  <p className={styles.sectionErrorLabel}>Reading unavailable</p>
+                  <p className={styles.sectionErrorMsg}>{error}</p>
+                  <button className={styles.retrySectionBtn} onClick={generateReading}>Retry reading</button>
+                </div>
+              )}
 
-        {error && (
-          <div className={styles.errorState}>
-            <p className={styles.errorText}>{error}</p>
-            <button className={styles.retryBtn} onClick={generateReading}>Retry reading</button>
-          </div>
-        )}
+              {!loading && !error && !hasText && !anyFailed && (
+                <div className={styles.sectionErrorBlock}>
+                  <p className={styles.sectionErrorLabel}>Reading unavailable</p>
+                  <p className={styles.sectionErrorMsg}>No reading was generated. The service may be unavailable.</p>
+                  <button className={styles.retrySectionBtn} onClick={generateReading}>Retry reading</button>
+                </div>
+              )}
 
-        {!loading && !error && !text.trim() && (
-          <div className={styles.errorState}>
-            <p className={styles.errorText}>No reading generated. The API may be unavailable.</p>
-            <button className={styles.retryBtn} onClick={generateReading}>Retry</button>
-          </div>
-        )}
+              {!error && streaming && !hasText && !anyFailed && (
+                <div className={styles.generating}>
+                  <div className={styles.generatingOrbit} />
+                  <p className={styles.generatingText}>Interpreting {SECTION_DISPLAY[SYNASTRY_SECTIONS[activeIdx]]}</p>
+                </div>
+              )}
 
-        {!loading && hasAnyFailed && (
-          <div className={styles.partialFailBanner}>
-            <p className={styles.partialFailText}>One or more sections failed to generate.</p>
-            <button className={styles.retryBtn} onClick={generateReading}>Regenerate full reading</button>
-          </div>
-        )}
+              {SYNASTRY_SECTIONS.map(sec => {
+                const state = stateOf(sec)
+                const body = texts[sec] || ''
+                const id = `axis-syn-${sec}`
 
-        {blocks.length > 0 && (
-          <div className={styles.readingText}>
-            {blocks.map((block, i) => {
-              if (block.type === 'subheading') return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
-              if (block.type === 'heading') {
-                const descriptorKey = getSynastryKey(block.content)
-                const descriptor = descriptorKey ? SYNASTRY_DESCRIPTORS[descriptorKey] : null
-                return (
-                  <div key={i} className={styles.sectionBlock}>
-                    <h3 className={styles.planetHeading}>{block.content}</h3>
-                    {descriptor && (
-                      <div className={styles.infoBox}>
-                        <p className={styles.infoKeywords}>{descriptor.keywords}</p>
-                        <p className={styles.infoText}>{descriptor.description}</p>
+                if (state === 'failed') {
+                  return (
+                    <div key={sec} id={id} className={styles.synSection}>
+                      <div className={styles.sectionErrorBlock}>
+                        <p className={styles.sectionErrorLabel}>Section unavailable · {SECTION_DISPLAY[sec]}</p>
+                        <p className={styles.sectionErrorMsg}>
+                          {sectionErrors[sec] || 'This section could not be generated.'} The other sections are unaffected.
+                        </p>
+                        <button className={styles.retrySectionBtn} onClick={() => retrySection(sec)}>
+                          Retry this section
+                        </button>
                       </div>
-                    )}
+                    </div>
+                  )
+                }
+
+                if (!body) {
+                  // Waiting on a section while earlier ones are already on the page.
+                  if (state !== 'loading' || (!hasText && !anyFailed)) return null
+                  return (
+                    <div key={sec} id={id} className={styles.synSection}>
+                      <div className={styles.sectionLoadingBlock}><div className={styles.generatingOrbit} /></div>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div key={sec} id={id} className={styles.synSection}>
+                    <div className={styles.readingText}>
+                      {parseReading(body).map((block, i) => {
+                        if (block.type === 'note') return <p key={i} className={styles.sectionNote}>{block.content}</p>
+                        if (block.type === 'subheading') return <h4 key={i} className={styles.planetSubheading}>{block.content}</h4>
+                        if (block.type === 'heading') {
+                          const descriptorKey = getSynastryKey(block.content)
+                          const descriptor = descriptorKey ? SYNASTRY_DESCRIPTORS[descriptorKey] : null
+                          return (
+                            <div key={i} className={styles.sectionBlock}>
+                              <h3 className={styles.planetHeading}>{block.content}</h3>
+                              {descriptor && (
+                                <div className={styles.infoBox}>
+                                  <p className={styles.infoKeywords}>{descriptor.keywords}</p>
+                                  <p className={styles.infoText}>{descriptor.description}</p>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        }
+                        return (
+                          <p key={i} className={styles.paragraph} style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}>
+                            {block.content}
+                          </p>
+                        )
+                      })}
+                      {state === 'loading' && <span className={styles.cursor} />}
+                    </div>
                   </div>
                 )
-              }
-              return (
-                <p key={i} className={styles.paragraph} style={{ animationDelay: `${Math.min(i * 0.02, 0.4)}s` }}>
-                  {block.content}
-                </p>
-              )
-            })}
-            {loading && <span className={styles.cursor} />}
+              })}
+            </div>
           </div>
-        )}
+
+          <aside className={styles.rail} aria-label="Sections in the synastry reading">
+            <div className={styles.railHead}>SECTIONS</div>
+            <div className={styles.railList}>
+              {SYNASTRY_SECTIONS.map((s, i) => {
+                const st = stateOf(s)
+                const inner = (
+                  <>
+                    <span>{st === 'loading' ? '● ' : ''}{SECTION_DISPLAY[s].toUpperCase()}</span>
+                    <span className={styles.railNum}>{String(i + 1).padStart(2, '0')}</span>
+                  </>
+                )
+                return st === 'done' || st === 'failed'
+                  ? <a key={s} href={`#axis-syn-${s}`} className={`${styles.railRow} ${styles.railLink} ${railClass(s)}`}>{inner}</a>
+                  : <span key={s} className={`${styles.railRow} ${railClass(s)}`}>{inner}</span>
+              })}
+            </div>
+          </aside>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }

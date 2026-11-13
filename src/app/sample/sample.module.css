@@ -121,7 +121,7 @@
 .flipGlyph { color: var(--copper-kicker); margin-right: 6px; }
 .right { text-align: right; }
 .signal { color: var(--violet-light); }
-.holds { color: var(--text-4); }
+.holds { color: var(--copper-light); }
 .flipFoot {
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -157,20 +157,29 @@
 
 .divBody {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
-  gap: 48px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 240px);   /* as ReadingPanel .bandGrid */
+  gap: 64px;
+  align-items: start;
   padding-top: 40px;
 }
 
 .rail {
   font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   line-height: 2;
   color: var(--text-3);
   position: sticky;
-  top: 140px;
+  top: 96px;
   align-self: start;
+}
+.railHead {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  line-height: 1.7;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--hairline-strong);
 }
 .railWhite { color: var(--text); }
 .railViolet {
@@ -180,7 +189,7 @@
   margin-left: -13px;
 }
 
-.prose { max-width: 65ch; }
+.prose { max-width: 68ch; margin-inline: auto; }
 .proseKicker {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -190,12 +199,13 @@
 }
 .para {
   font-family: var(--font-serif);
-  font-size: 18px;
-  line-height: 1.9;
+  font-size: 19px;
+  line-height: 1.72;
   margin: 16px 0 0;
   color: var(--text);
+  text-wrap: pretty;
 }
-.para + .para { margin-top: 20px; }
+.para + .para { margin-top: 1.5em; }
 
 /* ── CTAs ──────────────────────────────────────────── */
 .ctas {
@@ -206,23 +216,20 @@
   padding: 56px var(--page-pad) 96px;
 }
 .btn {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 16px 28px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  transition: background 150ms ease, border-color 150ms ease;
+  composes: ax-btn from global;
 }
-.btnSolid { background: var(--copper); color: var(--void); border: 1px solid var(--copper); }
-.btnSolid:hover { background: var(--copper-bright); border-color: var(--copper-bright); }
-.btnOutline { color: var(--text); background: transparent; border: 1px solid var(--copper-bright); }
-.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
+.btnSolid {
+  composes: ax-btn-solid from global;
+}
+.btnOutline {
+  composes: ax-btn-line from global;
+}
+
+@media (max-width: 1100px) {
+  .divBody { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  .rail { position: static; }
+}
 
 @media (max-width: 760px) {
   .defRow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .rail { position: static; }
 }

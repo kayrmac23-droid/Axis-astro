@@ -66,6 +66,14 @@ export default function ReadoutRail({ rows, frame, ayanamsa, selected, onSelect 
                 key={r.id}
                 className={`${styles.row} ${selected === r.id ? styles.rowSel : ''}`}
                 onClick={() => onSelect(selected === r.id ? null : r.id)}
+                tabIndex={0}
+                aria-selected={selected === r.id}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    onSelect(selected === r.id ? null : r.id)
+                  }
+                }}
               >
                 <td className={styles.body}>
                   {r.glyph && <span className={styles.glyph}>{r.glyph} </span>}{r.name}
@@ -87,7 +95,9 @@ export default function ReadoutRail({ rows, frame, ayanamsa, selected, onSelect 
                   )}
                 </td>
                 <td className={`${styles.delta} ${r.flip ? styles.flip : styles.hold}`}>
-                  {r.flip ? `${SG[r.tSign]} → ${SG[r.sSign]}` : 'HOLDS'}
+                  {r.flip
+                    ? `${SG[r.tSign]} → ${SG[r.sSign]}`
+                    : `HOLDS · ${dms(Math.abs((norm(r.tLon) % 30) - ayanamsa))}`}
                 </td>
               </tr>
             ))}

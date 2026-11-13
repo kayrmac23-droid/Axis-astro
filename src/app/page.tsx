@@ -110,7 +110,7 @@ export default function Home() {
         // Explicit offset rather than scrollIntoView: the header is sticky, and
         // scroll-margin is not honoured reliably inside the page's scroll
         // container — this keeps the dossier kicker clear of the header.
-        const top = el.getBoundingClientRect().top + window.scrollY - 90
+        const top = el.getBoundingClientRect().top + window.scrollY - ((document.querySelector('header')?.getBoundingClientRect().height ?? 74) + 16)
         window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
       }, 300)
     } catch (err) {

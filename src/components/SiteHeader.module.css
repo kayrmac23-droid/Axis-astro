@@ -82,37 +82,12 @@
   gap: 18px;
 }
 
-.deltaPill {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--copper-kicker);
-  border: 1px solid var(--copper-dim);
-  border-radius: var(--r-pill);
-  padding: 5px 12px;
-  white-space: nowrap;
-}
 
 .ctaBtn {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--void);
-  background: var(--copper);
-  border: 1px solid var(--copper);
-  text-decoration: none;
-  padding: 11px 18px;
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease;
+  composes: ax-btn ax-btn-sm ax-btn-solid from global;
   white-space: nowrap;
 }
 
-.ctaBtn:hover {
-  background: var(--copper-bright);
-  border-color: var(--copper-bright);
-}
 
 /* ─── Responsive · breakpoint 760px ───────────────── */
 @media (max-width: 760px) {
@@ -120,7 +95,6 @@
     grid-template-columns: 1fr auto;
     gap: 14px 20px;
   }
-  .deltaPill { display: none; }
   /* nav wraps to a full-width second row */
   .nav {
     grid-column: 1 / -1;

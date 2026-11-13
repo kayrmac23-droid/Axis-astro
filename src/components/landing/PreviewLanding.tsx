@@ -60,7 +60,7 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
             </div>
             <div className={styles.fact}>
               <div className={styles.factHead}>AYANAMSA</div>
-              <div className={styles.factVal}>LAHIRI<br /><span className={styles.factEmph}>24°13′ · 2026</span></div>
+              <div className={styles.factVal}>LAHIRI<br /><span className={styles.factEmph}>ZERO c. 285 CE</span></div>
             </div>
             <div className={`${styles.fact} ${styles.factLast}`}>
               <div className={styles.factHead}>HOUSES · NODE</div>
@@ -91,7 +91,6 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
           <div className={styles.epochRead}>
             <span>EPOCH <b>{epoch} CE</b></span>
             <span>OFFSET <b className={styles.epochOffset}>{offsetStr}</b></span>
-            <span>ZERO <b>c. 285 CE</b></span>
           </div>
         </div>
       </section>
@@ -116,6 +115,27 @@ export default function PreviewLanding({ onSubmit, loading, error, onRetry }: Pr
               <div className={styles.mapAnchor}>ANCHOR · FIXED STARS</div>
               <p className={styles.mapBody}>Incarnational patterning: the body, circumstances and inherited tendencies a person arrived with. Not fate — the specific terrain.</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ======================= EXCERPT =======================
+          The voice is what sets AXIS apart, and the landing never showed a
+          sentence of it. This is the first paragraph of the sample dossier's
+          Central Tension, set at the reading's own type spec. Keep it in step
+          with /sample: when that excerpt is replaced by a real cast, replace
+          this with it. */}
+      <section className={styles.excerptSection}>
+        <div className={styles.twoMapsGrid}>
+          <div className={styles.twoMapsCopy}>
+            <div className={styles.kicker}>{'// FROM A READING'}</div>
+            <h2 className={styles.secH}>What a reading sounds like.</h2>
+            <p className={styles.secLede}>One paragraph from the sample dossier&apos;s Divergence. A full dossier runs to about six thousand words.</p>
+          </div>
+          <div className={styles.excerpt}>
+            <div className={styles.excerptLabel}>THE DIVERGENCE · CENTRAL TENSION · ILLUSTRATIVE CHART</div>
+            <p className={styles.excerptPara}>The Tropical Sun in Leo in the tenth house builds a public self that is legible from across a room: warm, composed, visibly in charge of its own story. The Sidereal Sun in Cancer in the ninth is doing something else. It is protecting a belief system, and it protects it by withdrawing rather than performing. Both are true at once. This person is most visible exactly when they are most defended.</p>
+            <Link href="/sample" className={styles.excerptLink}>READ THE SAMPLE DOSSIER →</Link>
           </div>
         </div>
       </section>
