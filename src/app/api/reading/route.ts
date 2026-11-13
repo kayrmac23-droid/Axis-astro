@@ -7,13 +7,15 @@ import { buildSectionRequest, type NatalFrame } from '@/lib/reading-request'
 import { formatEliteChartBlock, currentDashaKey } from '@/lib/interpretation-engine'
 import { makeCacheKey, makeSynastryCacheKey, getCachedReading, setCachedReading } from '@/lib/reading-cache'
 import { buildSynastryData, formatSynastryBlock, synastryTimeUnknown } from '@/lib/synastry-calc'
-import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, consumeDailyQuota } from '@/lib/route-rate-limiter'
+import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, recordModelSpend, consumeDailyQuota } from '@/lib/route-rate-limiter'
+import { callCostMicroUsd } from '@/lib/model-pricing'
 import { parseBirthDataInput } from '@/lib/birth-data-validation'
 import { readLimitedJsonBody } from '@/lib/request-security'
-import { firstPassCacheVerdict, countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
-import { classifyGenerationError } from '@/lib/reading-stream'
-import { preflightSection, pickBetter, formatPreflightLog } from '@/lib/reading-preflight'
-import { logUsage } from '@/lib/usage-log'
+import { countWords, countAspectsInContext } from '@/lib/reading-quality-gate'
+import { classifyGenerationError, assertNotRefusal, streamErrorSentinel } from '@/lib/reading-stream'
+import { preflightSection, pickBetter, formatPreflightLog, cacheScan, formatCacheLog } from '@/lib/reading-preflight'
+import { logUsage, type ModelCallKind } from '@/lib/usage-log'
+import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
 import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
 import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
@@ -119,7 +121,18 @@ const PREFLIGHT_ENABLED = process.env.AXIS_PREFLIGHT_ENABLED === 'true'
 // deadline leaves room for it to finish and for the thread and cache writes.
 const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
 
-// Wall-clock origin for the pre-flight rewrite deadline.
+// No cache regeneration starts after this many ms. It runs under after(), which
+// shares the route's 120s maxDuration; a section is 14–41s on Opus at low
+// effort (Chicago, 2026-11-12), so this leaves the slowest one room to finish.
+const CACHE_REGEN_DEADLINE_MS = 70_000
+
+// Every generation call must END by here, leaving maxDuration a few seconds for
+// the thread, cache and spend writes. The SDK default (10 minutes, 2 retries)
+// would let a stalled stream run into the platform's kill, taking those writes
+// with it.
+const GENERATION_HARD_DEADLINE_MS = 112_000
+
+// Wall-clock origin for every deadline above.
   const startedAt = Date.now()
   try {
     if (!isAnthropicKeyConfigured()) {
@@ -332,7 +345,11 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
     // Hard cap on AI-backed reading calls per day across all instances/IPs.
     const budget = await readGlobalDailyBudget()
     if (!budget.allowed) {
-      console.error(`[AXIS] Daily reading call cap reached: used ${budget.used} of ${budget.cap}`)
+      console.error(
+        budget.reason === 'spend'
+          ? `[AXIS] Daily spend ceiling reached: $${budget.spentUsd.toFixed(2)} of $${budget.ceilingUsd}`
+          : `[AXIS] Daily reading call cap reached: used ${budget.used} of ${budget.cap}`
+      )
       return NextResponse.json(
         { error: "AXIS has reached today's reading limit. Please try again tomorrow." },
         { status: 503, headers: { 'X-Axis-Quota': 'global' } }
@@ -406,16 +423,18 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
 
     // ── Generation pipeline ────────────────────────────────────────────────────
     // One generation call per uncached section. There is NO LLM gate on this
-    // path: the first pass is what the reader sees and what the cache keeps for
-    // the full TTL, so a returning reader finds the same words. The only vetoes
-    // are deterministic and free (firstPassCacheVerdict): truncated or
-    // doctrine-breaching text is left uncached and regenerated next time.
+    // path. After the stream closes, the deterministic scans decide what the
+    // cache keeps (cacheScan): clean text is cached for the full TTL; a hard or
+    // doctrine finding earns ONE regeneration written for the cache only, and
+    // that is cached if it comes back clean. Nothing else is cached.
     // The evaluator lives on offline, in `npm run eval -- --gate` / `rescore`.
     const encoder = new TextEncoder()
 
     const readable = new ReadableStream({
       async start(controller) {
-        // Spend records for calls beyond the generation (a pre-flight rewrite).
+        // Spend records for everything beyond the first reservation: extra
+        // calls (a pre-flight rewrite, a cache regeneration) and each call's
+        // dollar cost. Flushed under after().
         const extraRecords: Promise<void>[] = []
 
         // Reserve the generation call against the daily budget AS it is made.
@@ -435,43 +454,56 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
         const reservation = recordModelCalls(1).catch(() => { /* best-effort */ })
 
         // One generation attempt. With `live`, each delta is enqueued as it
-        // arrives; otherwise the section is buffered so a pre-serve check can see
-        // all of it before the reader sees any of it. A pre-flight rewrite is
-        // never live — it only runs in buffered mode.
-        const generate = async (extraTurn?: string, live = false) => {
+        // arrives; otherwise the section is buffered. Only the first pass is
+        // ever live. Throws ModelRefusalError on stop_reason "refusal", so a
+        // refusal can never be served whole, threaded or cached.
+        const generate = async (kind: ModelCallKind, extraTurn?: string, live = false) => {
           const content = extraTurn
             ? [...userBlocks, { type: 'text' as const, text: extraTurn }]
             : userBlocks
-          const stream = anthropic.messages.stream({
-            model:       MODEL,
-            max_tokens:    maxTokens,
-            thinking:      THINKING,
-            output_config: OUTPUT_CONFIG,
-            system:      systemBlocks,
-            messages:    [{ role: 'user', content }],
-          })
-          let text = ''
-          for await (const event of stream) {
-            if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-              text += event.delta.text
-              // Guarded: a reader who navigated away has closed the controller,
-              // and the generation (already billed) must still finish, be
-              // threaded, and reach the cache.
-              if (live) {
-                try { controller.enqueue(encoder.encode(event.delta.text)) } catch { /* closed */ }
+          const callStarted = Date.now()
+          let usage: Anthropic.Usage | null = null
+          try {
+            const stream = anthropic.messages.stream({
+              model:       MODEL,
+              max_tokens:    maxTokens,
+              thinking:      THINKING,
+              output_config: OUTPUT_CONFIG,
+              system:      systemBlocks,
+              messages:    [{ role: 'user', content }],
+            }, {
+              timeout:    Math.max(5_000, startedAt + GENERATION_HARD_DEADLINE_MS - callStarted),
+              maxRetries: 1,
+            })
+            let text = ''
+            for await (const event of stream) {
+              if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+                text += event.delta.text
+                // Guarded: a reader who navigated away has closed the controller,
+                // and the generation (already billed) must still finish, be
+                // threaded, and reach the cache.
+                if (live) {
+                  try { controller.enqueue(encoder.encode(event.delta.text)) } catch { /* closed */ }
+                }
               }
             }
+            const message = await stream.finalMessage()
+            usage = message.usage
+            logUsage(`${section}/${planetSection}`, kind, MODEL, message.usage, {
+              stop: message.stop_reason ?? 'none', prior: prior.length, ms: Date.now() - callStarted,
+            })
+            assertNotRefusal(message.stop_reason, `${section}/${planetSection} ${kind}`)
+            return { text, message }
+          } finally {
+            // Dollars, from the API's own usage. A call that threw before it
+            // returned usage is priced at the fallback: it may still have billed.
+            extraRecords.push(recordModelSpend(callCostMicroUsd(MODEL, usage)).catch(() => { /* best-effort */ }))
           }
-          const message = await stream.finalMessage()
-          logUsage(`${section}/${planetSection}`, extraTurn ? 'preflight-rewrite' : 'generate', MODEL, message.usage, {
-            stop: message.stop_reason ?? 'none', prior: prior.length,
-          })
-          return { text, message }
         }
 
         try {
           // First pass.
-          let { text: firstText, message: firstMessage } = await generate(undefined, streamLive)
+          let { text: firstText, message: firstMessage } = await generate('generate', undefined, streamLive)
           let truncated = firstMessage.stop_reason === 'max_tokens'
 
           // ── DETERMINISTIC PRE-FLIGHT ─────────────────────────────────────
@@ -484,6 +516,7 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
           //
           // Truncated output is excluded: regenerating hits the same token
           // ceiling, so it ships with its marker as before.
+          let rewroteOnHotPath = false
           if (PREFLIGHT_ENABLED && !truncated && firstText.trim()) {
             const first = preflightSection({ text: firstText, chartContext: userContent, section, planetSection, band })
             if (first.findings.length === 0) {
@@ -496,7 +529,8 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
               // Reserved as the call is made, exactly once.
               extraRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
               try {
-                const retry = await generate(first.instruction)
+                rewroteOnHotPath = true
+                const retry = await generate('preflight-rewrite', first.instruction)
                 if (!retry.text.trim()) {
                   // An empty rewrite has no findings, so it would otherwise win
                   // `pickBetter` outright and the reader would be served nothing
@@ -575,12 +609,45 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
                 `maxTokens=${maxTokens} stop=${firstMessage.stop_reason} prior=${prior.length}`
               )
 
-              // Cache what the reader saw, unless a deterministic check vetoes it.
-              const verdict = firstPassCacheVerdict(firstText, truncated)
-              if (verdict.cache) {
+              // The rule scan, logged for every generated section so production
+              // has the same per-section record the eval harness prints.
+              console.log(formatRuleScanLog(`${section}/${planetSection}`, summariseRuleScan(firstText, { frame: section })))
+
+              // ── What the cache keeps ───────────────────────────────────────
+              const label = `${section}/${planetSection}`
+              const scanOpts = { chartContext: userContent, section, planetSection, band }
+              const first = cacheScan({ text: firstText, truncated, ...scanOpts })
+              if (first.state === 'clean') {
                 await setCachedReading(cacheKey, firstText)
-              } else if (verdict.reason === 'doctrine-hit') {
-                console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${section}/${planetSection} hits=${verdict.hits.join('|')}`)
+                console.log(formatCacheLog(label, 'cached-first', first))
+                return
+              }
+              if (first.findings.some(f => f.check === 'doctrine')) {
+                console.warn(`[AXIS_DOCTRINE_UNCACHED] section=${label} first pass`)
+              }
+              if (first.state === 'truncated') {
+                console.log(formatCacheLog(label, 'uncached-truncated', first))
+                return
+              }
+              // One regeneration per request, ever: a pre-flight rewrite already
+              // spent it. And none that cannot finish inside maxDuration.
+              if (rewroteOnHotPath) { console.log(formatCacheLog(label, 'uncached-already-rewritten', first)); return }
+              if (Date.now() - startedAt > CACHE_REGEN_DEADLINE_MS) { console.log(formatCacheLog(label, 'uncached-no-time', first)); return }
+
+              extraRecords.push(recordModelCalls(1).catch(() => { /* best-effort */ }))
+              let regen: Awaited<ReturnType<typeof generate>>
+              try {
+                regen = await generate('cache-regen', first.instruction)
+              } catch (regenErr) {
+                console.log(formatCacheLog(label, `uncached-regen-${classifyGenerationError(regenErr).code}`, first))
+                return
+              }
+              const second = cacheScan({ text: regen.text, truncated: regen.message.stop_reason === 'max_tokens', ...scanOpts })
+              if (second.state === 'clean') {
+                await setCachedReading(cacheKey, regen.text)
+                console.log(formatCacheLog(label, 'cached-regen', first, second))
+              } else {
+                console.log(formatCacheLog(label, 'uncached-regen-not-clean', first, second))
               }
             } catch (cacheErr) {
               console.error(
@@ -596,16 +663,12 @@ const PREFLIGHT_REWRITE_DEADLINE_MS = 55_000
         } catch (err) {
           // Tell the client WHICH kind of failure this was. A fatal one (billing,
           // auth) means every remaining section will fail the same way, so the
-          // client stops the run instead of retrying into a wall; the historic
-          // 'generation failed' wording is kept verbatim for the transient case so
-          // an older client still behaves exactly as before.
-          const { fatal, code } = classifyGenerationError(err)
+          // client stops the run instead of retrying into a wall. A refusal gets
+          // its own marker; the client drops whatever text preceded it.
+          const failure = classifyGenerationError(err)
+          const { fatal, code } = failure
           try {
-            controller.enqueue(encoder.encode(
-              fatal
-                ? `\n\n[AXIS_STREAM_ERROR: unavailable:${code}]`
-                : '\n\n[AXIS_STREAM_ERROR: generation failed]'
-            ))
+            controller.enqueue(encoder.encode(streamErrorSentinel(failure)))
             controller.close()
           } catch { /* already closed */ }
           // One greppable line per failure, carrying the classification, so a

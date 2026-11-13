@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { NextRequest } from 'next/server'
-import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, clientBucket, consumeDailyQuota, _resetQuotaMemoryForTests } from '../route-rate-limiter'
+import { checkRateLimit, getClientIp, readGlobalDailyBudget, recordModelCalls, recordModelSpend, clientBucket, consumeDailyQuota, _resetQuotaMemoryForTests } from '../route-rate-limiter'
 
 // With no Upstash/KV env vars set, getRedis() returns null and every helper
 // falls back to its in-memory / fail-open path. Ensure that's the case so these
@@ -276,5 +276,58 @@ describe('recordModelCalls', () => {
   it('never throws when Redis is unconfigured', async () => {
     // getRedis returns null (no env vars) → recordModelCalls silently no-ops.
     await expect(recordModelCalls(2)).resolves.toBeUndefined()
+  })
+})
+
+describe('the daily dollar ceiling (AXIS_DAILY_SPEND_CEILING_USD)', () => {
+  const saved = process.env.AXIS_DAILY_SPEND_CEILING_USD
+  const spendKey = () => {
+    const env  = process.env.VERCEL_ENV ?? 'local'
+    const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'Australia/Melbourne' }).format(new Date())
+    return `axis:spend:${env}:${date}`
+  }
+  afterEach(() => {
+    vi.restoreAllMocks()
+    if (saved === undefined) delete process.env.AXIS_DAILY_SPEND_CEILING_USD
+    else process.env.AXIS_DAILY_SPEND_CEILING_USD = saved
+  })
+
+  it('is off when unset: spend is never a reason to refuse', async () => {
+    delete process.env.AXIS_DAILY_SPEND_CEILING_USD
+    const fake = makeFakeRedis()
+    fake.store.set(spendKey(), 999_000_000)
+    vi.spyOn(readingCache, 'getRedis').mockReturnValue(fake as never)
+    const res = await readGlobalDailyBudget()
+    expect(res.allowed).toBe(true)
+    expect(res.ceilingUsd).toBe(0)
+  })
+
+  it('records micro-dollars and refuses once the day has spent the ceiling', async () => {
+    process.env.AXIS_DAILY_SPEND_CEILING_USD = '2'
+    const fake = makeFakeRedis()
+    vi.spyOn(readingCache, 'getRedis').mockReturnValue(fake as never)
+
+    await recordModelSpend(1_500_000)
+    let res = await readGlobalDailyBudget()
+    expect(res).toMatchObject({ allowed: true, spentUsd: 1.5, ceilingUsd: 2 })
+
+    await recordModelSpend(500_000)
+    res = await readGlobalDailyBudget()
+    expect(res).toMatchObject({ allowed: false, reason: 'spend', spentUsd: 2 })
+    expect(fake.ttls.has(spendKey())).toBe(true)
+  })
+
+  it('reports the call cap as the reason when that is what tripped', async () => {
+    process.env.AXIS_DAILY_SPEND_CEILING_USD = '2'
+    const fake = makeFakeRedis()
+    fake.store.set(spendKey().replace('axis:spend:', 'axis:budget:'), 5000)
+    vi.spyOn(readingCache, 'getRedis').mockReturnValue(fake as never)
+    expect(await readGlobalDailyBudget()).toMatchObject({ allowed: false, reason: 'calls' })
+  })
+
+  it('ignores a non-positive or non-finite amount, and never throws without Redis', async () => {
+    await expect(recordModelSpend(NaN)).resolves.toBeUndefined()
+    await expect(recordModelSpend(-5)).resolves.toBeUndefined()
+    await expect(recordModelSpend(10)).resolves.toBeUndefined()
   })
 })

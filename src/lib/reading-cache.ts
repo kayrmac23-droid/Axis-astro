@@ -121,7 +121,11 @@ import type { BirthData } from '@/lib/astro-calc'
 // Opus 5.5 with adaptive thinking at medium effort. The model is not in the
 // cache key, so the bump is what keeps Sonnet-written rows from being served
 // as if they were the new model's.
-export const READING_PROMPT_VERSION = 'v10.51'
+// v10.52: the length clause states its ceiling as a ceiling (Opus 5.5 was
+// landing 10–13 of 21 sections over it); PART 4's prediction ban adds the
+// habitual present; the central tension is told to write its two pulls as
+// prose. Not yet measured on a paid run — see docs/PIPELINE-HISTORY.md.
+export const READING_PROMPT_VERSION = 'v10.52'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

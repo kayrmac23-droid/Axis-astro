@@ -74,7 +74,39 @@ export function detectStreamError(text: string): StreamFailure | null {
     return { fatal: true, code, message: FATAL_MESSAGES[code] ?? FATAL_FALLBACK }
   }
 
+  // The model declined to write the section (stop_reason "refusal"). Whatever
+  // partial text preceded the sentinel is discarded by the caller, exactly as
+  // for any other failed section; a second attempt is a fresh sample and fair.
+  if (payload === 'refused') {
+    return { fatal: false, code: 'refused', message: 'This section could not be written this time. Please retry it.' }
+  }
+
   return { fatal: false, code: 'generation', message: 'Generation failed. Please retry this reading.' }
+}
+
+/**
+ * The model ended its turn with stop_reason "refusal". Thrown by every call
+ * site that reads a model reply, so a refusal — which can arrive with partial
+ * or boilerplate text attached — is never served as prose, threaded, cached,
+ * scored or spliced into a repair.
+ */
+export class ModelRefusalError extends Error {
+  constructor(label = 'model') {
+    super(`${label}: the model refused (stop_reason=refusal)`)
+    this.name = 'ModelRefusalError'
+  }
+}
+
+export function assertNotRefusal(stopReason: string | null | undefined, label?: string): void {
+  if (stopReason === 'refusal') throw new ModelRefusalError(label)
+}
+
+/** The in-band marker for one failed generation attempt. */
+export function streamErrorSentinel(f: GenerationFailure): string {
+  if (f.fatal) return `\n\n[AXIS_STREAM_ERROR: unavailable:${f.code}]`
+  // The historic wording is kept verbatim for the transient case so an older
+  // client still behaves exactly as before.
+  return f.code === 'refused' ? '\n\n[AXIS_STREAM_ERROR: refused]' : '\n\n[AXIS_STREAM_ERROR: generation failed]'
 }
 
 /**
@@ -114,6 +146,7 @@ export type GenerationFailure = { fatal: boolean; code: string }
 const BILLING_MESSAGE_RE = /credit balance|purchase credits|plans & billing|billing/i
 
 export function classifyGenerationError(err: unknown): GenerationFailure {
+  if (err instanceof ModelRefusalError) return { fatal: false, code: 'refused' }
   const status  = err instanceof Anthropic.APIError ? err.status : undefined
   const message = err instanceof Error ? err.message : String(err)
 

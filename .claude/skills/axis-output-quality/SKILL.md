@@ -178,6 +178,8 @@ Example is what moves this model. We know because it moved it the wrong way twic
 
 ## Two things v10.38 added, both from one eval run
 
+**Length (v10.52).** The length clause states the band's upper figure as a ceiling and tells the model to end the section once the target is reached; it no longer says that earned depth excuses an overrun. The bands and their scoring are unchanged. **Habit is present tense too (v10.52):** "you check the terms first", never "you will check". The central tension writes its two pulls as prose, never as a two-item list.
+
 **Write the moment in the present tense.** A recurring moment is something that happens, not something that is going to happen: *"you match their certainty, and hours later you notice…"*, never *"you will feel the pull"*. The future tense turns the same observation into a prediction, which is banned outright — and it is the easiest rule to breach by accident, because the pull toward it comes from narrating a moment at all. It arrives exactly when the scene requirement is being obeyed: v10.37 produced three such breaches, all in sections that were finally attempting a scene.
 
 **Figures are checked against the chart.** `reading-fact-check.ts` now compares every degree in the prose against the context the section was given. The case that prompted it:

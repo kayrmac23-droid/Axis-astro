@@ -2,7 +2,7 @@
 //
 // OFFLINE MEASURING TOOL. /api/reading does not call the evaluator or the repair:
 // since 2026-11-12 the live path caches the first pass directly, vetoed only by the
-// deterministic firstPassCacheVerdict() below (truncated / doctrine scan). The
+// deterministic cacheScan() in reading-preflight.ts. The
 // LLM gate is kept for `npm run eval -- --gate` and `npm run rescore`, where it
 // measures first-pass quality and what a repair would have bought. Why it left
 // the live path is recorded in docs/PIPELINE-HISTORY.md.
@@ -49,6 +49,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { getAnthropicKey } from '@/lib/env'
 import { READING_SO_FAR_FOOTER } from '@/lib/reading-thread'
 import { logUsage } from '@/lib/usage-log'
+import { assertNotRefusal } from '@/lib/reading-stream'
 import { THINKING as GEN_THINKING, OUTPUT_CONFIG as GEN_OUTPUT_CONFIG, THINKING_HEADROOM_TOKENS } from '@/lib/reading-model-config'
 import {
   BANNED_BARNUM_LIST,
@@ -940,6 +941,9 @@ Score <section_under_review> against the nine criteria. Chart facts come from <c
       messages:    [{ role: 'user', content: userTurn(priorBlocks, evalUserContent) }],
     }, requestOptions(timeoutMs))
     logUsage(`${section}/${planetSection}`, usageCall, EVAL_MODEL, msg.usage, { stop: msg.stop_reason ?? 'none' })
+    // A refusal is not a verdict: thrown into the catch below, which reports
+    // evaluatorErrored like any other evaluator failure.
+    assertNotRefusal(msg.stop_reason, 'evaluator')
 
     const raw = extractText(msg)
 
@@ -1258,6 +1262,7 @@ Your reply is the section and nothing else. Its first character is the section's
     messages:    [{ role: 'user', content: userTurn(priorBlocks, originalUserContent, repairInstruction) }],
   }, requestOptions(timeoutMs))
   logUsage(label, 'repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
+  assertNotRefusal(msg.stop_reason, 'repair')
 
   return extractText(msg)
 }
@@ -1361,6 +1366,7 @@ export async function repairDoctrineSentences(
     }],
   }, requestOptions(timeoutMs))
   logUsage(label, 'doctrine-repair', model, msg.usage, { stop: msg.stop_reason ?? 'none' })
+  assertNotRefusal(msg.stop_reason, 'doctrine-repair')
 
   const raw = extractText(msg).trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
   const replacements: unknown = JSON.parse(raw)
@@ -1473,25 +1479,6 @@ function logGateOutcome(label: string, reason: string, scores: GateScores | null
   console.log(`[AXIS_GATE] section=${label} reason=${reason} ${scoreStr}`)
 }
 
-// What the LIVE path caches. /api/reading no longer runs the LLM gate: a first
-// pass is cached for the full TTL unless a deterministic, free check says it
-// must not be. Pure — no model call, no clock.
-//   truncated  the generation's own stop_reason === 'max_tokens' (authoritative),
-//              or the end-of-prose heuristic. Regenerated on the next request.
-//   doctrine   detectBannedPhrasings hit. THE LAW is never frozen for 30 days;
-//              left uncached so the next request gets a fresh attempt.
-export type FirstPassCacheReason = 'clean' | 'truncated-or-empty' | 'doctrine-hit'
-export function firstPassCacheVerdict(
-  text: string, truncated: boolean,
-): { cache: boolean; reason: FirstPassCacheReason; hits: string[] } {
-  if (truncated || text.trim().length === 0 || isTruncated(text)) {
-    return { cache: false, reason: 'truncated-or-empty', hits: [] }
-  }
-  const hits = detectBannedPhrasings(text)
-  if (hits.length > 0) return { cache: false, reason: 'doctrine-hit', hits }
-  return { cache: true, reason: 'clean', hits: [] }
-}
-
 // Cache the text only if the deterministic scan is clean. Used on the path that
 // skips evaluation for lack of wall-clock budget.
 function cacheIfClean(text: string, reason: string, label: string, modelCalls: number): GateForCacheResult {
@@ -1504,8 +1491,8 @@ function cacheIfClean(text: string, reason: string, label: string, modelCalls: n
 }
 
 // OFFLINE ONLY. The evaluate → repair → re-score pass, as a measuring tool for
-// `npm run eval -- --gate`. /api/reading does not call this (see
-// firstPassCacheVerdict); a test fails if the route imports it again.
+// `npm run eval -- --gate`. /api/reading does not call this; a test fails if
+// the route imports it again.
 // Never throws.
 export async function gateForCache(input: GateForCacheInput): Promise<GateForCacheResult> {
   const {

@@ -162,22 +162,70 @@ function budgetKey(): string {
   return `axis:budget:${dayStamp()}`
 }
 
+function spendKey(): string {
+  return `axis:spend:${dayStamp()}`
+}
+
+// The daily DOLLAR ceiling, in whole USD. Unset or 0 = no dollar ceiling (the
+// call cap alone applies). A call count is a poor proxy for money once the
+// model changes: 2000 calls was ~$20 on Sonnet and is ~$170 on Opus 5.5.
+export function dailySpendCeilingUsd(): number {
+  return intEnv('AXIS_DAILY_SPEND_CEILING_USD', 0)
+}
+
 // Read-only preflight: reports the current daily count without incrementing.
 // `allowed` uses `used < cap` (strict) because the caller is about to add calls;
 // fails open exactly like the recorder — a Redis outage never takes readings
 // down globally.
-export async function readGlobalDailyBudget(): Promise<{ allowed: boolean; used: number; cap: number }> {
-  const cap = intEnv('AXIS_DAILY_READING_CALL_CAP', DEFAULT_DAILY_CAP)
+//
+// Two limits, either of which refuses: the call cap, and — when
+// AXIS_DAILY_SPEND_CEILING_USD is set — the dollars actually billed today
+// (recordModelSpend). `reason` says which one tripped.
+export interface DailyBudget {
+  allowed: boolean
+  used: number
+  cap: number
+  spentUsd: number
+  ceilingUsd: number
+  reason?: 'calls' | 'spend'
+}
+
+export async function readGlobalDailyBudget(): Promise<DailyBudget> {
+  const cap        = intEnv('AXIS_DAILY_READING_CALL_CAP', DEFAULT_DAILY_CAP)
+  const ceilingUsd = dailySpendCeilingUsd()
+  const open: DailyBudget = { allowed: true, used: 0, cap, spentUsd: 0, ceilingUsd }
 
   const redis = getRedis()
-  if (!redis) return { allowed: true, used: 0, cap }
+  if (!redis) return open
 
   try {
-    const raw  = await redis.get<string | number | null>(budgetKey())
-    const used = Number(raw ?? 0)
-    return { allowed: used < cap, used, cap }
+    const [rawCalls, rawSpend] = await Promise.all([
+      redis.get<string | number | null>(budgetKey()),
+      ceilingUsd > 0 ? redis.get<string | number | null>(spendKey()) : Promise.resolve(null),
+    ])
+    const used     = Number(rawCalls ?? 0)
+    const spentUsd = Number(rawSpend ?? 0) / 1e6
+    const reason   = used >= cap ? 'calls' : ceilingUsd > 0 && spentUsd >= ceilingUsd ? 'spend' : undefined
+    return { allowed: !reason, used, cap, spentUsd, ceilingUsd, reason }
   } catch {
-    return { allowed: true, used: 0, cap }
+    return open
+  }
+}
+
+// Adds what one model call actually cost (whole micro-dollars, from the API's
+// own usage — lib/model-pricing.ts) to today's spend. Recorded AFTER the call,
+// since the cost is unknown before it: the counter lags by the calls in flight,
+// which the call cap (reserved up front) still bounds. Best-effort, never throws.
+export async function recordModelSpend(microUsd: number): Promise<void> {
+  if (!Number.isFinite(microUsd) || microUsd <= 0) return
+
+  const redis = getRedis()
+  if (!redis) return
+
+  try {
+    await redis.eval(_BUDGET_INCRBY_SCRIPT, [spendKey()], [String(Math.ceil(microUsd)), String(BUDGET_TTL_SECS)])
+  } catch {
+    // Spend recording is best-effort; never throw into the request path.
   }
 }
 

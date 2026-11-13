@@ -43,7 +43,7 @@
 // actually trip — which is far cheaper than the gate's one evaluate call on
 // every section, trip or not.
 import {
-  countWords, scoreLength, detectBannedOpeners, detectRescuePhrasings, MIN_INDIVIDUAL,
+  countWords, scoreLength, detectBannedOpeners, detectRescuePhrasings, detectBannedPhrasings, isTruncated, MIN_INDIVIDUAL,
 } from '@/lib/reading-quality-gate'
 import { scanSectionRules, antithesisVerdict, type RuleFinding } from '@/lib/reading-rule-scan'
 import { checkNumericFacts, type FactFinding } from '@/lib/reading-fact-check'
@@ -157,6 +157,53 @@ export function preflightSection(opts: {
   }
 
   return { findings, instruction: findings.length === 0 ? '' : buildInstruction(findings) }
+}
+
+/**
+ * What the CACHE may keep. Run after the stream has closed, on text the reader
+ * already has: every hard finding of `preflightSection`, plus the doctrine scan
+ * (`detectBannedPhrasings`), which the pre-flight leaves to the cache because
+ * THE LAW is a veto on what is stored and replayed for 30 days.
+ *
+ * `clean` is the only state that may be cached. `truncated` is not worth a
+ * regeneration (it would be cut at the same ceiling); anything else earns ONE,
+ * with `instruction` as its extra turn. Pure: no model call, no I/O.
+ */
+export interface CacheScan {
+  state: 'clean' | 'truncated' | 'findings'
+  findings: PreflightFinding[]
+  instruction: string
+}
+
+export function cacheScan(opts: {
+  text:          string
+  truncated:     boolean
+  chartContext:  string
+  section:       string
+  planetSection: string
+  band:          WordBand
+}): CacheScan {
+  const { text, truncated } = opts
+  if (truncated || !text.trim() || isTruncated(text)) return { state: 'truncated', findings: [], instruction: '' }
+
+  const findings = [...preflightSection(opts).findings]
+  const doctrine = detectBannedPhrasings(text)
+  if (doctrine.length > 0) {
+    findings.push({
+      check: 'doctrine',
+      detail: `phrasing with no legitimate use in an AXIS reading: ${doctrine.map(p => `"${p}"`).join(', ')}. Remove each one and do not substitute a synonym for the same move: a difficulty stays a difficulty, a strength is named as plain function, and the two systems are held side by side with neither placed beneath the other.`,
+    })
+  }
+  return findings.length === 0
+    ? { state: 'clean', findings, instruction: '' }
+    : { state: 'findings', findings, instruction: buildInstruction(findings) }
+}
+
+/** One greppable line per generated section: what the cache did with it. */
+export function formatCacheLog(section: string, outcome: string, first: CacheScan, second?: CacheScan): string {
+  const checks = (s: CacheScan) => s.findings.map(f => f.check).join(',') || '-'
+  return `[AXIS_CACHE] section=${section} outcome=${outcome} first=${first.state} checks=${checks(first)}` +
+    (second ? ` regen=${second.state} regen_checks=${checks(second)}` : '')
 }
 
 /**

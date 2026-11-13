@@ -28,6 +28,7 @@
 // Pluto is the local Meeus fallback (no JPL call): the route only uses JPL when
 // the client forwards it, and an offline harness keeps runs reproducible.
 import { describe, it, expect, vi } from 'vitest'
+import { PRICES_USD_PER_MTOK, priceUsd } from '@/lib/model-pricing'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
@@ -43,7 +44,7 @@ import { gateForCache, countWords, countAspectsInContext, scoreLength, type Gate
 import { NATAL_SECTION_ORDER, priorSectionsFor } from '@/lib/reading-order'
 import type { PriorSection } from '@/lib/reading-thread'
 import { READING_PROMPT_VERSION } from '@/lib/reading-cache'
-import { classifyGenerationError } from '@/lib/reading-stream'
+import { classifyGenerationError, assertNotRefusal } from '@/lib/reading-stream'
 import { MODEL } from '@/lib/reading-model-config'
 import { getAnthropicKey, isAnthropicKeyConfigured } from '@/lib/env'
 import { logUsage, type ModelCallKind } from '@/lib/usage-log'
@@ -119,16 +120,7 @@ const ENABLED     = process.env.AXIS_EVAL === '1'
 
 const FRAMES: NatalFrame[] = ['tropical', 'sidereal', 'synthesis']
 
-// List prices, USD per million tokens (Anthropic first-party API, 2026-10). Every
-// cache_control in the pipeline is the default 5-minute ephemeral breakpoint:
-// cache writes bill at 1.25× input, cache reads at 0.1× input. A model missing
-// from this table reports usd: null rather than a guessed number — add it here.
-const PRICES: Record<string, { input: number; output: number }> = {
-  'claude-sonnet-5':   { input: 2, output: 10 },
-  'claude-opus-5-5':   { input: 4, output: 20 },  // v10.51 generator
-  'claude-sonnet-5-5': { input: 2, output: 10 },  // the v10.30 evaluator
-  'claude-opus-5':     { input: 5, output: 25 },  // the pre-v10.30 evaluator; kept so an older run still prices
-}
+const PRICES = PRICES_USD_PER_MTOK
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ChartSpec {
@@ -206,11 +198,7 @@ interface SectionScope { calls: CallRecord[]; chartId: string; section: string; 
 const scope = new AsyncLocalStorage<SectionScope>()
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function priceOf(model: string, u: { input: number; cache_read: number; cache_write: number; output: number }): number | null {
-  const p = PRICES[model]
-  if (!p) return null
-  return (u.input * p.input + u.cache_write * p.input * 1.25 + u.cache_read * p.input * 0.1 + u.output * p.output) / 1e6
-}
+const priceOf = priceUsd
 
 function addTotals(into: Record<string, TokenTotals>, calls: CallRecord[]): void {
   for (const c of calls) {
@@ -478,6 +466,9 @@ async function readChart(ctx: RunCtx, spec: ChartSpec): Promise<SectionRecord[]>
             if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') firstText += event.delta.text
           }
           finalMessage = await stream.finalMessage()
+          // As in production: a refusal is a failed section, never prose.
+          if (finalMessage.stop_reason === 'refusal') logUsage(label, 'generate', MODEL, finalMessage.usage, { stop: 'refusal', prior: prior.length })
+          assertNotRefusal(finalMessage.stop_reason, label)
         } catch (err) {
           const { fatal, code } = classifyGenerationError(err)
           Object.assign(rec, {

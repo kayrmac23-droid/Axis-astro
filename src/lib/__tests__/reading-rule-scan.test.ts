@@ -600,3 +600,17 @@ describe('the antithesis allowance is text-intrinsic (v10.45)', () => {
     expect('ANTITHESIS_WORDS_PER_USE' in prompts).toBe(false)
   })
 })
+
+// "fulfilled" / "fulfilling" are British as well as American; only the bare
+// verb, its -s form and "fulfillment" are Americanisms. The scan used to send
+// correct prose to a rewrite (Chicago, 2026-11-12, sidereal/rahu_ketu).
+describe('american-spelling — fulfil', () => {
+  it('does not flag "fulfilled" or "fulfilling"', () => {
+    expect(has('You feel fulfilled only once the work is checked, and find the checking fulfilling.', 'american-spelling')).toBe(false)
+  })
+  it('still flags "fulfill", "fulfills" and "fulfillment"', () => {
+    for (const w of ['fulfill', 'fulfills', 'fulfillment']) {
+      expect(has(`You call it ${w} and move on.`, 'american-spelling'), w).toBe(true)
+    }
+  })
+})

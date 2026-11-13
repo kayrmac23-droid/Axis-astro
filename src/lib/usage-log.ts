@@ -10,7 +10,10 @@ import type Anthropic from '@anthropic-ai/sdk'
 // section pays when the deterministic pre-flight (reading-preflight.ts) catches
 // a hard fault before the reader has seen anything. Distinct from 'repair',
 // which is the gate's post-response rewrite against an LLM critique.
-export type ModelCallKind = 'generate' | 'preflight-rewrite' | 'evaluate' | 'recheck' | 'repair' | 'doctrine-repair'
+// 'cache-regen' is the post-stream regeneration: the reader already has the
+// first pass, which carried a hard or doctrine finding, and this one attempt
+// is written for the cache only.
+export type ModelCallKind = 'generate' | 'preflight-rewrite' | 'cache-regen' | 'evaluate' | 'recheck' | 'repair' | 'doctrine-repair'
 
 // Pure, so the line format is testable. Returns null when the response carried
 // no usage (a mocked SDK, or a malformed response) — nothing is logged then.
