@@ -160,3 +160,27 @@ describe('quotaFailure — a refusal no retry can fix today', () => {
     expect(quotaFailure(429, 'chart', 'DAILY_QUOTA')?.message).not.toBe('DAILY_QUOTA')
   })
 })
+
+describe('a model refusal (stop_reason "refusal")', () => {
+  it('assertNotRefusal throws only on a refusal', async () => {
+    const { assertNotRefusal, ModelRefusalError } = await import('../reading-stream')
+    expect(() => assertNotRefusal('end_turn')).not.toThrow()
+    expect(() => assertNotRefusal('max_tokens')).not.toThrow()
+    expect(() => assertNotRefusal(null)).not.toThrow()
+    expect(() => assertNotRefusal('refusal', 'tropical/sun')).toThrow(ModelRefusalError)
+  })
+
+  it('is a failed section, retryable, and not fatal for the run', async () => {
+    const { ModelRefusalError, streamErrorSentinel } = await import('../reading-stream')
+    const failure = classifyGenerationError(new ModelRefusalError())
+    expect(failure).toEqual({ fatal: false, code: 'refused' })
+    const body = `I can't write this.${streamErrorSentinel(failure)}`
+    expect(detectStreamError(body)).toMatchObject({ fatal: false, code: 'refused' })
+  })
+
+  it('leaves the other sentinels exactly as they were', async () => {
+    const { streamErrorSentinel } = await import('../reading-stream')
+    expect(streamErrorSentinel({ fatal: false, code: 'generation' })).toBe('\n\n[AXIS_STREAM_ERROR: generation failed]')
+    expect(streamErrorSentinel({ fatal: true, code: 'billing' })).toBe('\n\n[AXIS_STREAM_ERROR: unavailable:billing]')
+  })
+})

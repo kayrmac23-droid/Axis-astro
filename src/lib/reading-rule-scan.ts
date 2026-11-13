@@ -199,7 +199,8 @@ const AMERICAN_SPELLINGS: readonly [RegExp, string][] = [
   [/\brationaliz(e|es|ed|ing)\b/gi,           'rationalise'],
   [/\bintellectualiz(e|es|ed|ing)\b/gi,       'intellectualise'],
   [/\bdefens(e|es)\b/gi,                      'defence'],
-  [/\bfulfill(s|ed|ing|ment)?\b/gi,           'fulfil'],
+  // "fulfilled" and "fulfilling" double the l in British English too.
+  [/\bfulfill(s|ment)?\b/gi,                  'fulfil'],
 ]
 
 // ── 4. Formatting ────────────────────────────────────────────────────────────

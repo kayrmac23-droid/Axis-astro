@@ -33,6 +33,7 @@ Read in code; grep `process.env` to confirm. Integer vars go through `intEnv` (`
 | `AXIS_PREFLIGHT_ENABLED=true` | Hot-path deterministic pre-flight. Off by default (it forces buffering). |
 | `AXIS_LEAN_RULES=true` | Swaps in `SHARED_RULES_LEAN`. **Experiment only**; never in production without a measurement and a version bump. |
 | `AXIS_DAILY_READING_CALL_CAP` | Global daily model-call cap, default 2000, per Australia/Melbourne day, keyed by `VERCEL_ENV`. |
+| `AXIS_DAILY_SPEND_CEILING_USD` | Daily dollar ceiling, whole USD. Unset = off. |
 | `AXIS_READING_RATE_LIMIT_MAX` | Per-IP `/api/reading` limit per 60s, default 20. |
 | `AXIS_READING_DAILY_PER_IP` / `_PER_CHART` | Uncached requests per day, defaults 120 / 40. |
 | `NEXT_PUBLIC_POSTHOG_KEY`/`_HOST` | Analytics; no-op when absent. |
@@ -67,7 +68,7 @@ All routes parse bodies through `lib/request-security.ts` (16 KB cap, content-ty
 4. Cache check. A hit is free and bypasses every limit.
 5. Per-minute IP limit → per-chart daily quota → per-IP daily quota → global daily budget, **in that order** (a source over its own allowance must be stopped before it can count against the shared cap). Refusals carry `X-Axis-Quota: chart|ip|global`; the panels treat that as fatal for the run (`quotaFailure`). All fail open without Redis.
 6. Build the request with `buildSectionRequest` (`lib/reading-request.ts`) — the same builder the eval harness uses. Synastry is assembled inline in the route.
-7. Generate, deliver, store in the thread, close the stream, then cache under `after()` (see *What gets cached*).
+7. Generate, deliver, store in the thread, close the stream, then scan and cache under `after()`.
 
 ### Models and request shape
 
@@ -85,27 +86,29 @@ A section **streams** token by token unless something will inspect it before the
 
 ### What gets cached
 
-There is **no LLM gate on the live path**. After the stream closes, `after()` runs `firstPassCacheVerdict` (pure, no model call) and caches the first pass for 30 days — the text the reader saw, so a returning reader finds the same words. Two vetoes leave a section uncached, to be regenerated on the next request: truncated or empty output, and a doctrine-scan hit (`[AXIS_DOCTRINE_UNCACHED]`). **Cost per uncached section: 1 call** (+1 for a pre-flight rewrite when that is on); a natal reading is 21. `reading-route-budget.test.ts` fails if the route imports the gate again.
+**No LLM gate on the live path.** After the stream closes, `after()` runs `cacheScan` (`reading-preflight.ts`): the pre-flight's hard findings plus the doctrine scan. Clean → the first pass is cached for 30 days. A finding → **one** `cache-regen` call naming the faults, cached only if it scans clean; the reader keeps what they saw. Truncated, refused or still-unclean text is never cached. **Cost per uncached section: 1 call, 2 on a finding.** `reading-route-budget.test.ts` pins this.
 
-- **Doctrine scan** (`detectBannedPhrasings`): literal lists (`BANNED_HIERARCHY_PHRASINGS`, `BANNED_RESCUE_PHRASINGS`, `BANNED_META_PHRASINGS`) plus a contextual pass (`detectContextualHierarchy`: ordinary words such as "underneath" only within `HIERARCHY_PROXIMITY_CHARS` of identity/system language). Keep bare ordinary words out of the literal lists — a false positive now means a section that regenerates on every view, bounded only by the daily quotas.
+- **Refusals:** `assertNotRefusal` throws on `stop_reason: "refusal"` at every call site. Live, that writes `[AXIS_STREAM_ERROR: refused]`; nothing is threaded or cached.
+- **Timeouts:** every generation call ends by `GENERATION_HARD_DEADLINE_MS`, one SDK retry.
+- **Spend:** each call's dollar cost (`lib/model-pricing.ts`) feeds a daily counter; `readGlobalDailyBudget` refuses on the call cap or the dollar ceiling.
+- **Doctrine scan** (`detectBannedPhrasings`): literal lists (`BANNED_HIERARCHY_PHRASINGS`, `BANNED_RESCUE_PHRASINGS`, `BANNED_META_PHRASINGS`) plus a contextual pass (`detectContextualHierarchy`: ordinary words such as "underneath" only within `HIERARCHY_PROXIMITY_CHARS` of identity/system language). Keep bare ordinary words out of the literal lists: a false positive costs a regeneration.
 
 ### The quality gate — offline only (`lib/reading-quality-gate.ts`)
 
-`gateForCache` (evaluate → surgical doctrine edit or one full repair → re-score) is a **measuring tool**: `npm run eval -- --gate` runs it on each first pass, `npm run rescore` runs the evaluator on frozen prose. Nothing it returns reaches a reader. Why it left the live path: `docs/PIPELINE-HISTORY.md`, 2026-11-12.
+`gateForCache` (evaluate → surgical doctrine edit or one full repair → re-score) is a **measuring tool** for `npm run eval -- --gate`; `npm run rescore` runs the evaluator on frozen prose. Nothing it returns reaches a reader.
 
 - **Pass rule** (`computePassFromScores`): ten criteria, average ≥ `MIN_PASS_AVERAGE` (3.40) and every criterion ≥ `MIN_INDIVIDUAL` (3). Nine are scored by the evaluator; `length` is computed (`scoreLength` against the chart-scaled band). The evaluator is not told the bar and is not asked for a verdict.
-- **Deterministic clamps, applied before the pass rule:** banned opener → `specificity` below the bar; antithesis density (`antithesisVerdict`) → `voice_quality` to the bar, or below it when severe; `hard` fact finding (`checkNumericFacts`) → `chart_evidence` below the bar; `hard` rule-scan finding → `voice_quality` to the bar; rescue phrasing → `contradiction_handling` below the bar. The same clamps run on the repair's re-score.
+- **Deterministic clamps, before the pass rule and again on the re-score:** banned opener → `specificity` below the bar; antithesis density → `voice_quality` to the bar, below it when severe; `hard` fact finding → `chart_evidence` below the bar; `hard` rule-scan finding → `voice_quality` to the bar; rescue phrasing → `contradiction_handling` below the bar.
 - `doctrineRepairTargets` must measure the hierarchy window exactly as the scan does.
 
 **Known state, measured — read before trusting a score:**
 
-- On the frozen rater bench the evaluator awarded no 5s under three rubrics; treat it as a 2–4 scale. First passes are mostly blocked by one sub-3 criterion (`specificity`, then `voice_quality`).
-- The stated length targets run about 24% below what is written (2026-11-07, one chart). Not yet corrected.
+- On the frozen rater bench the evaluator awarded no 5s under three rubrics; treat it as a 2–4 scale.
 - The evaluator has not been validated against a human rating. The one human reading on record (2026-11-10) contradicted it on sentence length, which is why PART 4 now says FINISH EVERY THOUGHT. **Do not re-add a sentence-length target without a human reading.**
 
 ### Logs
 
-One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason), `[AXIS_GATE]` (eval runs only: outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_QUOTA]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
+One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason, `ms`), `[AXIS_CACHE]` (what the cache kept, and why), `[AXIS_GATE]` (eval runs only: outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_QUOTA]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
 
 ## Prompts (`lib/prompts.ts`)
 
@@ -182,7 +185,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 |---|---|
 | Prompts | `reading-review-fixes`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
 | The gate (offline) | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
-| The route | `reading-route-budget` (incl. *no gate on the live path*), `-quota`, `-thread`, `-preflight`, `eval-harness-parity` |
+| The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |
 | Calculation | `astro-calc` (pinned to JPL reference values), `pluto-source`, `interpretation-engine`, `synastry-calc`, `tz`, `readout` |
 | Security / limits | `security-hardening`, `api-routes`, `route-rate-limiter` |

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { preflightSection, pickBetter, formatPreflightLog } from '@/lib/reading-preflight'
-import { wordBandFor } from '@/lib/prompts'
+import { preflightSection, pickBetter, formatPreflightLog, cacheScan, formatCacheLog } from '@/lib/reading-preflight'
+import { wordBandFor, BANNED_RESCUE_PHRASINGS } from '@/lib/prompts'
 
 const BAND = wordBandFor('tropical', 'sun', 0)
 const CONTEXT = `TROPICAL CHART
@@ -144,5 +144,34 @@ describe('pickBetter — an empty rewrite never wins', () => {
     const first = { text: '## The Sun\n\nYou notice it.', findings: [{ check: 'length', detail: 'x' }] }
     expect(pickBetter(first, { text: '', findings: [] })).toEqual({ text: first.text, kept: 'first' })
     expect(pickBetter(first, { text: '   \n ', findings: [] })).toEqual({ text: first.text, kept: 'first' })
+  })
+})
+
+describe('cacheScan — what the cache may keep', () => {
+  const scan = (text: string, truncated = false) =>
+    cacheScan({ text, truncated, chartContext: CONTEXT, section: 'tropical', planetSection: 'sun', band: BAND })
+
+  it('clean prose is clean', () => {
+    expect(scan(clean())).toEqual({ state: 'clean', findings: [], instruction: '' })
+  })
+
+  it('truncated or empty text is not worth a regeneration', () => {
+    expect(scan(clean(), true).state).toBe('truncated')
+    expect(scan('   ').state).toBe('truncated')
+    expect(scan('## The Sun\n\nYou notice the drive here is').state).toBe('truncated')
+  })
+
+  it('a doctrine hit is a finding, which the pre-flight alone does not raise', () => {
+    const dirty = `${clean()} This is ${BANNED_RESCUE_PHRASINGS[0]}.`
+    const r = scan(dirty)
+    expect(r.state).toBe('findings')
+    expect(r.findings.map(f => f.check)).toContain('doctrine')
+    expect(r.instruction).toContain('REWRITE REQUIRED')
+  })
+
+  it('a hard rule finding is a finding; a soft one is not', () => {
+    expect(scan(clean().replace('You notice it first', 'You will notice it first')).findings.map(f => f.check)).toContain('prediction')
+    expect(formatCacheLog('tropical/sun', 'cached-first', scan(clean()))).toBe(
+      '[AXIS_CACHE] section=tropical/sun outcome=cached-first first=clean checks=-')
   })
 })

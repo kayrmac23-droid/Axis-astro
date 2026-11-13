@@ -17,8 +17,11 @@ let generations = 0
 vi.mock('@anthropic-ai/sdk', () => {
   class Anthropic {
     messages = {
-      stream: () => {
-        generations++
+      // Counts first passes only. The stub prose is far under the length
+      // floor, so each request also makes one cache regeneration (two content
+      // blocks); those are not what the quota is being asked about.
+      stream: (params: { messages: { content: unknown[] }[] }) => {
+        if (params.messages[0].content.length === 1) generations++
         return {
           async *[Symbol.asyncIterator]() {
             yield { type: 'content_block_delta', delta: { type: 'text_delta', text: '## The Sun\n\nYou notice it first.' } }
@@ -42,8 +45,9 @@ vi.mock('@/lib/route-rate-limiter', async importOriginal => {
   return {
     ...actual,
     checkRateLimit: async () => ({ allowed: true, retryAfter: 0 }),
-    readGlobalDailyBudget: async () => ({ allowed: budgetAllowed, used: 0, cap: 2000 }),
+    readGlobalDailyBudget: async () => ({ allowed: budgetAllowed, used: 0, cap: 2000, spentUsd: 0, ceilingUsd: 0 }),
     recordModelCalls: async () => {},
+    recordModelSpend: async () => {},
   }
 })
 

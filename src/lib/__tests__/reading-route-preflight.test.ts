@@ -54,8 +54,9 @@ vi.mock('@/lib/route-rate-limiter', async importOriginal => {
   return {
     ...actual,
     checkRateLimit: async () => ({ allowed: true, retryAfter: 0 }),
-    readGlobalDailyBudget: async () => ({ allowed: true, used: 0, cap: 2000 }),
+    readGlobalDailyBudget: async () => ({ allowed: true, used: 0, cap: 2000, spentUsd: 0, ceilingUsd: 0 }),
     recordModelCalls: async (n: number) => { reserved.push(n) },
+    recordModelSpend: async () => {},
   }
 })
 
@@ -145,8 +146,11 @@ describe('/api/reading — the reader is served the pre-flighted text', () => {
     delete process.env.AXIS_PREFLIGHT_ENABLED
     const bad = clean('There is a particular kind of restlessness here.')
     attempts = [bad, clean()]
+    // The reader is served the first pass untouched. The one later call is
+    // the cache regeneration, made after the stream has closed.
     expect(await read()).toBe(bad)
-    expect(sentTurns).toHaveLength(1)
+    await new Promise(r => setTimeout(r, 0))
+    expect(sentTurns.length).toBeLessThanOrEqual(2)
   })
 
   it('with the pre-flight ON, writes the section in ONE piece and says so in a header', async () => {

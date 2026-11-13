@@ -570,12 +570,16 @@ export const LENGTH_CLAUSE_SLOT = '⟪AXIS_LENGTH_CLAUSE⟫'
 // will actually score against so the prose the model reads and the numbers the
 // gate enforces cannot drift apart.
 export function lengthClause(band: WordBand): string {
-  let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}. Below ${band.hardMin} means required material was thinned or skipped — that fails the quality gate on length, so go deeper. Above ${band.fullMax} costs marks and risks the padding checks (PROSE FAILURE MODES: cadence, repetition), so stay tight; but earned depth is not a length failure — only runaway length far past the range is. Reach the target through substance, never padding.`
+  // v10.52: the ceiling is stated as a ceiling. The previous wording followed
+  // it with "earned depth is not a length failure — only runaway length far
+  // past the range is", and Opus 5.5 took the licence: 10 to 13 of 21 sections
+  // landed over fullMax, most by under 10%. The scoring is unchanged.
+  let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}; ${band.fullMax} is the ceiling. Aim at the target: once the draft is there, finish the thought in hand and end the section. Below ${band.hardMin} means required material was thinned or skipped, so go deeper. A section over ${band.fullMax} has kept a paragraph the reader did not need (PROSE FAILURE MODES: cadence, repetition); cut it before you finish. Reach the target through substance, never padding.`
   if (band.evidenceAllowance != null) {
     s += ` These numbers are already scaled to what THIS chart's plan actually allocated to this section (the baseline is about ${band.evidenceBaseline} items), down as well as up — a quiet plan legitimately yields a shorter section and that is NOT a length failure. The quality gate scores you against exactly these numbers. Write what the evidence supports and stop; never pad to reach a number.`
   }
   if (band.aspectAllowance != null) {
-    s += ` These numbers are already scaled UP to how many major aspects this placement actually carries (the baseline is about ${band.aspectBaseline}), because a densely aspected placement needs the room. The quality gate scores you against exactly these numbers. Reach them by working each aspect once to its own dynamic — never by repetition or padding; length fails only when it is too thin or truly runaway.`
+    s += ` These numbers are already scaled UP to how many major aspects this placement actually carries (the baseline is about ${band.aspectBaseline}), because a densely aspected placement needs the room. The quality gate scores you against exactly these numbers. Reach them by working each aspect once to its own dynamic — never by repetition or padding. The ceiling above already includes that room.`
   }
   return s
 }
@@ -1116,7 +1120,8 @@ written for this chart, never for this Sun sign.
   extra length. Varying the wording while
   keeping the contrastive shape does not satisfy this limit: a dash-balanced or
   "not merely…but" equivalent is the same tic.
-- Banned outright: predictions ("you will", "this will bring"); prescriptions
+- Banned outright: predictions ("you will", "this will bring") — a habit is
+  present tense too: "you check the terms first"; prescriptions
   ("you should", "work on", "consider"); vague affirmations ("your sensitivity
   is a gift"); mystical language; wellness-industry framing; bullet points
   (continuous prose only); greetings and sign-offs — open mid-thought.
@@ -1728,7 +1733,7 @@ Start with: ## The Central Tension
 
 Work the evidence allocated to tension — the aspects and conditions that LINK the leading divergences to each other. This section is about the relationship BETWEEN the divergences, never a re-listing of them: the divergence section has already walked them and the reader has just read it, so refer to them in a phrase and advance a different claim about how they connect.
 
-Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies. Anchor it to the tightest link the plan gives. An aspect the plan labels wide cannot carry the defining tension of a life (FACT DISCIPLINE): where the only link is wide, the linking evidence is thin.
+Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies. Set the two pulls down in running sentences inside a paragraph (PART 8: no lists). Anchor it to the tightest link the plan gives. An aspect the plan labels wide cannot carry the defining tension of a life (FACT DISCIPLINE): where the only link is wide, the linking evidence is thin.
 
 Where the linking evidence is thin, say what the leading divergences do and do not have to do with each other, and stop there. A claimed connection the plan does not support is a fabrication, and a forced central tension is worse than a narrower true one. Do not manufacture a defining friction the chart has not produced.
 

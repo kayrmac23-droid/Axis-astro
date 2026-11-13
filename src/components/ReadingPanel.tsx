@@ -332,6 +332,47 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     part2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [frame])
 
+  // ── Reach analytics ────────────────────────────────────────────────────────
+  // How far a reader actually gets, as opposed to how far the pipeline wrote.
+  // Each event carries a part number and an ordinal only — never the heading
+  // text, a sign or anything else from the chart (see /privacy).
+  const panelRef   = useRef<HTMLDivElement | null>(null)
+  const reachedRef = useRef<Set<string>>(new Set())
+  const part2Sent  = useRef(false)
+  useEffect(() => {
+    if (!part2Open || part2Sent.current) return
+    part2Sent.current = true
+    capture('reading_part2_opened', { via: frame === 'sidereal' ? 'frame_control' : 'toggle' })
+  }, [part2Open, frame])
+
+  // Re-observe when a heading appears, not on every streamed token.
+  const headingCount = useMemo(
+    () => Object.values(readings).reduce((n, t) => n + (t.match(/^##\s/gm)?.length ?? 0), 0),
+    [readings]
+  )
+  useEffect(() => {
+    const root = panelRef.current
+    if (!root || typeof IntersectionObserver === 'undefined') return
+    const parts = Array.from(root.querySelectorAll(':scope > section'))
+    const observer = new IntersectionObserver(entries => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        observer.unobserve(entry.target)
+        const host = entry.target.closest('section')
+        const part = host ? parts.indexOf(host) + 1 : 0
+        const ordinal = host ? Array.from(host.querySelectorAll('h3')).indexOf(entry.target as HTMLHeadingElement) + 1 : 0
+        const key = `${threadIdRef.current}:${part}:${ordinal}`
+        if (!part || !ordinal || reachedRef.current.has(key)) continue
+        reachedRef.current.add(key)
+        capture('reading_section_reached', { part, ordinal })
+      }
+    }, { threshold: 0.5 })
+    // A collapsed PART 2 is display:none and never intersects, so its headings
+    // only count once the reader has opened it.
+    root.querySelectorAll('section h3').forEach(h => observer.observe(h))
+    return () => observer.disconnect()
+  }, [headingCount, part2Open])
+
   const generateSingleReading = useCallback(async (
     sec: SystemSection,
     signal: AbortSignal
@@ -920,7 +961,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} ref={panelRef}>
       {/* Screen-reader live region */}
       <div role="status" aria-live="polite" aria-atomic="false" className={styles.srOnly}>
         {liveStatus}
