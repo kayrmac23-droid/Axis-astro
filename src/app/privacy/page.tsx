@@ -33,17 +33,6 @@ export default function PrivacyPage() {
       </section>
 
       <section className={styles.body}>
-        <aside className={styles.rail}>
-          {RAIL.map(item => (
-            <span key={item.n} className={styles.railItem}>
-              <span className={styles.railNum}>{item.n}</span>{item.label}
-            </span>
-          ))}
-          <div className={styles.railNote}>
-            NO ACCOUNTS.<br />NOTHING SOLD.<br />EVERYTHING EXPIRES.
-          </div>
-        </aside>
-
         <div className={styles.prose}>
           <div className={styles.entry}>
             <div className={styles.microLabel}>01 · WHAT YOU GIVE US</div>
@@ -124,6 +113,17 @@ export default function PrivacyPage() {
             <Link href="/method" className={`${styles.btn} ${styles.btnOutline}`}>THE METHOD</Link>
           </div>
         </div>
+
+        <aside className={styles.rail}>
+          {RAIL.map(item => (
+            <span key={item.n} className={styles.railItem}>
+              <span>{item.label}</span><span className={styles.railNum}>{item.n}</span>
+            </span>
+          ))}
+          <div className={styles.railNote}>
+            NO ACCOUNTS.<br />NOTHING SOLD.<br />EVERYTHING EXPIRES.
+          </div>
+        </aside>
       </section>
     </main>
   )

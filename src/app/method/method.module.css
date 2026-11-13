@@ -113,7 +113,7 @@
 .defList { font-family: var(--font-mono); display: flex; flex-direction: column; margin: 0; }
 .defRow {
   display: grid;
-  grid-template-columns: 150px 1fr;
+  grid-template-columns: 190px 1fr;   /* fits LIVING THE DIVERGENCE on one line */
   gap: 20px;
   padding: 14px 0;
   border-bottom: 1px solid var(--hairline);
@@ -163,7 +163,7 @@
 
 .steps {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));   /* five steps, one row; no orphaned fifth */
   gap: 20px 0;
   padding-top: 32px;
 }
@@ -179,8 +179,8 @@
 }
 
 .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 40px; font-size: 11px; letter-spacing: 0.12em; }
-.chip { border: 1px solid var(--border-2); color: var(--text-2); padding: 7px 14px; border-radius: var(--r-pill); }
-.chipCopper { border: 1px solid var(--copper-dim); color: var(--copper-kicker); padding: 7px 14px; border-radius: var(--r-pill); }
+.chip { border: 1px solid var(--border-2); color: var(--text-2); padding: 7px 14px; }
+.chipCopper { border: 1px solid var(--copper-rule); color: var(--copper-kicker); padding: 7px 14px; }
 
 /* ── Closer ────────────────────────────────────────── */
 .closer {
@@ -213,21 +213,18 @@
 /* ── CTAs / buttons ────────────────────────────────── */
 .ctas { display: flex; flex-wrap: wrap; gap: 12px; }
 .btn {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 16px 26px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  transition: background 150ms ease, border-color 150ms ease;
+  composes: ax-btn from global;
 }
-.btnSolid { background: var(--copper); color: var(--void); border: 1px solid var(--copper); }
-.btnSolid:hover { background: var(--copper-bright); border-color: var(--copper-bright); }
-.btnOutline { color: var(--text); background: transparent; border: 1px solid var(--copper-bright); }
-.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
+.btnSolid {
+  composes: ax-btn-solid from global;
+}
+.btnOutline {
+  composes: ax-btn-line from global;
+}
+
+@media (max-width: 1000px) {
+  .steps { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+}
 
 /* ── Responsive · 760px ────────────────────────────── */
 @media (max-width: 760px) {

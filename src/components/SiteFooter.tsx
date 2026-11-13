@@ -1,12 +1,17 @@
 import Link from 'next/link'
+import { lahiriAyanamsaForDate } from '@/lib/ayanamsa'
+import { dms } from '@/lib/readout'
 import styles from './SiteFooter.module.css'
 
 export default function SiteFooter() {
+  // Derived, not typed: the offset widens ~50″ a year.
+  const now = new Date()
+  const delta = dms(lahiriAyanamsaForDate(now.getFullYear(), now.getMonth() + 1, now.getDate()))
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.col}>
-          Δ 24°13′ · LAHIRI<br />
+          Δ {delta} · LAHIRI<br />
           WIDENING 50.2564″ / YR<br />
           ZERO POINT · c. 285 CE
         </div>

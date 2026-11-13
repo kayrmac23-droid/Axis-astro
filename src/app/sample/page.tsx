@@ -26,7 +26,7 @@ export default function SamplePage() {
           <h1 className={styles.h1}>This is what AXIS looks for: not traits, but tension.</h1>
         </div>
         <div className={styles.heroMeta}>
-          ANONYMISED CHART · 2 AUG 1994 · 09:20 PM · SYDNEY<br />
+          ILLUSTRATIVE CHART · COMPOSED TO SHOW THE FORMAT · NOT A REAL BIRTH<br />
           <span className={styles.heroMetaDim}>EXCERPT ONLY. A FULL DOSSIER RUNS 9 TROPICAL SECTIONS, 8 SIDEREAL AND THE DIVERGENCE.</span>
         </div>
       </section>
@@ -65,7 +65,7 @@ export default function SamplePage() {
               )}
             </div>
           ))}
-          <div className={styles.flipFoot}>4 OF 12 BODIES CHANGE SIGN BETWEEN FRAMES · VIOLET MARKS UNRESOLVED TENSION</div>
+          <div className={styles.flipFoot}>4 OF THE 5 BODIES SHOWN CHANGE SIGN · VIOLET MARKS UNRESOLVED TENSION</div>
         </div>
       </section>
 
@@ -77,17 +77,20 @@ export default function SamplePage() {
             <span>CENTRAL TENSION · SECTION 3 OF 4</span>
           </div>
           <div className={styles.divBody}>
-            <aside className={styles.rail}>
-              <div className={styles.railWhite}>CONCORDANCE</div>
-              <div className={styles.railViolet}>WHERE THEY PART</div>
-              <div className={styles.railViolet}>CENTRAL TENSION</div>
-              <div>LIVING THE DIVERGENCE</div>
-            </aside>
             <div className={styles.prose}>
               <div className={styles.proseKicker}>CENTRAL TENSION</div>
               <p className={styles.para}>The Tropical Sun in Leo in the tenth house builds a public self that is legible from across a room: warm, composed, visibly in charge of its own story. The Sidereal Sun in Cancer in the ninth is doing something else. It is protecting a belief system, and it protects it by withdrawing rather than performing. Both are true at once. This person is most visible exactly when they are most defended.</p>
               <p className={styles.para}>The Scorpio Moon, which holds its sign in both frames, is the fixed point the two Suns argue over. It wants depth and it wants it privately. The Leo Sun offers it a stage; the Cancer Sun offers it a shell. The event this produces is specific: a confident public statement followed, within hours, by the private conviction that too much was said. AXIS does not resolve this into balance. The stage and the shell are the terrain.</p>
             </div>
+            {/* Prose left, narrow index right: the same frame as a real dossier's
+                Divergence band, which carries no placement card. */}
+            <aside className={styles.rail}>
+              <div className={styles.railHead}>MOVEMENTS</div>
+              <div className={styles.railWhite}>CONCORDANCE</div>
+              <div className={styles.railViolet}>WHERE THEY PART</div>
+              <div className={styles.railViolet}>CENTRAL TENSION</div>
+              <div>LIVING THE DIVERGENCE</div>
+            </aside>
           </div>
         </div>
       </div>

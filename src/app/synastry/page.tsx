@@ -67,7 +67,7 @@ export default function SynastryPage() {
         if (!el) return
         // Explicit offset — the site header is sticky, so a plain
         // scrollIntoView would tuck the dossier kicker underneath it.
-        const top = el.getBoundingClientRect().top + window.scrollY - 90
+        const top = el.getBoundingClientRect().top + window.scrollY - ((document.querySelector('header')?.getBoundingClientRect().height ?? 74) + 16)
         window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
       }, 300)
     } catch (err) {
@@ -160,7 +160,8 @@ export default function SynastryPage() {
             <div className={styles.resultsHead}>
               <div>
                 <div className={styles.kicker}>{'// SYNASTRY DOSSIER'}</div>
-                <h2 className={styles.resultsTitle}>Two natal charts, both frames</h2>
+                {/* The hero h1 is unmounted once results show, so this is the page's main heading. */}
+                <h1 className={styles.resultsTitle}>Two natal charts, both frames</h1>
               </div>
               <div className={styles.resultsLines}>
                 <span className={styles.abTag}>A</span>&nbsp; {castLine(personAData)}<br />

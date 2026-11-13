@@ -45,7 +45,7 @@ export default function DossierHeader({
       <div className={styles.head}>
         <div>
           <div className={styles.kicker}>{'// DOSSIER'}</div>
-          <h2 className={styles.title}>{title}</h2>
+          <h1 className={styles.title}>{title}</h1>
           <div className={styles.castLine}>{castLine}</div>
         </div>
         <div className={styles.provenance}>

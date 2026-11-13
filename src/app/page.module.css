@@ -13,7 +13,7 @@
   flex-direction: column;
   align-items: center;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;   /* hidden makes .main a scroll container → every sticky child stops sticking */
 }
 
 /* ─── Dossier ─────────────────────────────────────── */
@@ -21,7 +21,7 @@
   width: 100%;
   /* The header is sticky — keep the dossier kicker clear of it when the cast
      flow scrolls this into view. */
-  scroll-margin-top: 90px;
+  scroll-margin-top: 116px;   /* clears the two-row mobile header (~100px) as well as the desktop one */
   animation: axRise 0.7s cubic-bezier(0, 0, 0.2, 1) both;
 }
 
@@ -49,32 +49,8 @@
   padding: 56px clamp(20px, 5vw, 56px) 96px;
 }
 
-.btnOutline,
-.btnGhost {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 14px 28px;
-  background: transparent;
-  cursor: pointer;
-  transition: background 0.3s, color 0.3s, border-color 0.3s;
-}
-
-.btnOutline {
-  color: var(--text);
-  border: 1px solid var(--copper-kicker);
-}
-.btnOutline:hover { background: rgba(184, 115, 51, 0.12); }
-
-.btnGhost {
-  color: var(--text-3);
-  border: 1px solid var(--border-2);
-}
-.btnGhost:hover { color: var(--text); border-color: var(--text); }
-
-.btnOutline:focus-visible,
-.btnGhost:focus-visible { outline: 1px solid var(--cyan); outline-offset: 2px; }
+.btnOutline { composes: ax-btn ax-btn-line from global; }
+.btnGhost { composes: ax-btn ax-btn-ghost from global; }
 
 @keyframes axRise {
   from { opacity: 0; transform: translateY(14px); }
@@ -112,7 +88,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border-bottom: 1px solid rgba(184, 115, 51, 0.25);
+  border-bottom: 1px solid var(--copper-rule);
 }
 .resumeText { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .resumeKicker {

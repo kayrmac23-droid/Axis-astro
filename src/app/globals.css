@@ -24,15 +24,15 @@
   --reading-surface: #0C0B0E;
 
   /* ── Borders ──────────────────────────────────────── */
-  --border:        #1A1940;
-  --border-2:      #282660;
-  --border-bright: #3E3C80;
+  --border:        rgba(234, 232, 248, 0.08);   /* neutral — the navy scale is retired */
+  --border-2:      rgba(234, 232, 248, 0.22);   /* control outline */
+  --border-bright: rgba(234, 232, 248, 0.40);
 
   /* ── Text scale ───────────────────────────────────── */
   --text:   #EAE8F8;
   --text-2: #A8A4C8;
   --text-3: #9490C4;
-  --text-4: #625E90;
+  --text-4: #7F7BAE;   /* ≈5.2:1 on the void (was #625E90, ≈3.4:1) */
 
   /* --fg aliases for backward compat */
   --fg:   var(--text);
@@ -55,6 +55,7 @@
   --copper-glow:   rgba(184, 115, 51, 0.18);
   --copper-subtle: rgba(184, 115, 51, 0.10);
   --copper-border: rgba(184, 115, 51, 0.28);
+  --copper-rule:   rgba(216, 148, 85, 0.35);   /* the one copper hairline */
 
   /* ── Cyan accent — LIVE / SELECTED / NOW only ─────── */
   /* Doctrine: cyan means "this is happening now" or "this is selected" —
@@ -165,8 +166,8 @@
   --shadow-deep: 0 28px 90px rgba(0, 0, 0, 0.5);
   --glow-copper:      0 0 20px rgba(184, 115, 51, 0.45), 0 0 40px rgba(184, 115, 51, 0.15);
   --glow-copper-soft: 0 0 14px rgba(184, 115, 51, 0.25);
-  --glow-cyan:      0 0 20px rgba(61, 216, 200, 0.4);
-  --glow-violet:    0 0 20px rgba(142, 138, 207, 0.4);
+  --glow-cyan:      0 0 20px rgba(44, 200, 192, 0.4);
+  --glow-violet:    0 0 20px rgba(120, 68, 255, 0.4);
 
   /* ── Motion tokens ────────────────────────────────── */
   --dur-fast:    120ms;
@@ -211,7 +212,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  overflow-x: clip;   /* hidden would make this a scroll container and break position: sticky */
 }
 
 /* Noise grain — SVG encodes 4% opacity; CSS opacity is additional attenuation */
@@ -222,12 +223,13 @@ body::before {
   background-image: var(--noise-overlay);
   pointer-events: none;
   z-index: 9999;
-  opacity: 0.04;
+  opacity: 0.6;   /* 4% in the SVG × 0.6 ≈ 2.4% — was × 0.04, i.e. invisible */
 }
 
-::-webkit-scrollbar { width: 3px; }
+html { scrollbar-width: thin; scrollbar-color: var(--border-bright) transparent; }
+::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--void); }
-::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 0; }
 
 ::selection {
   background: var(--copper-dim);
@@ -308,4 +310,37 @@ p {
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ── Shared button — one definition; modules pull it in with
+   `composes: ax-btn … from global` ─────────────────────────── */
+.ax-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  text-align: center;
+  display: inline-block;
+  padding: 16px 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, opacity 0.3s ease;
+}
+.ax-btn-sm { padding: 11px 18px; }
+.ax-btn-solid { background: var(--copper); border-color: var(--copper); color: var(--void); }
+.ax-btn-solid:hover:not(:disabled) { background: var(--copper-bright); border-color: var(--copper-bright); }
+.ax-btn-line { border-color: var(--copper-bright); color: var(--text); }
+.ax-btn-line:hover:not(:disabled) { background: rgba(184, 115, 51, 0.12); }
+.ax-btn-ghost { border-color: var(--border-2); color: var(--text-2); }
+.ax-btn-ghost:hover:not(:disabled) { color: var(--text); border-color: var(--text); }
+.ax-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Focus — cyan everywhere (text inputs keep their own ring) ── */
+:where(a, button, summary, [tabindex]):focus-visible {
+  outline: 1px solid var(--cyan);
+  outline-offset: 2px;
 }

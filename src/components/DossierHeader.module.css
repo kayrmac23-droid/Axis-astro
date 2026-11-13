@@ -64,7 +64,7 @@
   align-items: start;
   margin-top: 20px;
   padding: 14px 18px;
-  border: 1px solid rgba(216, 148, 85, 0.35);
+  border: 1px solid var(--copper-rule);
   font-family: var(--font-mono);
 }
 .warnIcon { color: var(--copper-kicker); font-size: 12px; }

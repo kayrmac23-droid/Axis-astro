@@ -85,7 +85,7 @@ export default function SynastryAspectsPanel({ data }: Props) {
           </div>
           <div className={styles.aspectList}>
             {aspects.map((a, i) => (
-              <div key={i} className={`${styles.aspectRow} ${styles[`row_${ASPECT_HARMONY[type]}`]}`}>
+              <div key={i} className={styles.aspectRow}>
                 <span className={styles.planetA}>
                   {PLANET_SYMBOLS[a.planetA] ?? ''} {a.planetA}
                 </span>

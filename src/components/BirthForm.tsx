@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import styles from './BirthForm.module.css'
 
 interface BirthFormProps {
@@ -37,7 +37,9 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   // Shown in the place field's meta slot when a search returns nothing usable.
   const [searchNotice, setSearchNotice] = useState('')
   const geocodeAbortRef = useRef<AbortController | null>(null)
-  const listboxId = 'location-listbox'
+  const formId = useId()
+  const placeId = `${formId}-birth-place`
+  const listboxId = `${formId}-location-listbox`
 
   useEffect(() => {
     return () => {
@@ -226,7 +228,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
     <form className={styles.form} onSubmit={handleSubmit}>
       {/* DATE ─────────────────────────────────────────── */}
       <div className={styles.formRow}>
-        <label className={styles.rowLabel}>DATE OF BIRTH</label>
+        <span className={styles.rowLabel}>DATE OF BIRTH</span>
         <div className={styles.rowField}>
           <input
             type="text" inputMode="numeric" name="day" placeholder="DD" maxLength={2}
@@ -253,7 +255,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
 
       {/* TIME ─────────────────────────────────────────── */}
       <div className={`${styles.formRow} ${styles.formRowTop}`}>
-        <label className={`${styles.rowLabel} ${styles.rowLabelTime}`}>TIME OF BIRTH</label>
+        <span className={`${styles.rowLabel} ${styles.rowLabelTime}`}>TIME OF BIRTH</span>
         <div className={styles.timeStack}>
           <div className={styles.rowField} style={{ opacity: birthTimeUnknown ? 0.35 : 1 }}>
             <input
@@ -267,7 +269,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
               value={formData.minute} onChange={handleChange} disabled={birthTimeUnknown}
               required={!birthTimeUnknown} aria-label="Minute" className={styles.numInput}
             />
-            <div className={styles.ampmGroup} role="radiogroup" aria-label="AM or PM">
+            <div className={styles.ampmGroup} role="group" aria-label="AM or PM">
               <button
                 type="button"
                 className={`${styles.ampmButton} ${formData.ampm === 'AM' ? styles.ampmButtonActive : ''}`}
@@ -295,14 +297,15 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
 
       {/* PLACE ────────────────────────────────────────── */}
       <div className={`${styles.formRow} ${styles.formRowLast}`}>
-        <label className={styles.rowLabel}>PLACE OF BIRTH</label>
+        <label className={styles.rowLabel} htmlFor={placeId}>PLACE OF BIRTH</label>
         <div className={styles.placeWrap}>
+          <div className={styles.placeField}>
           <input
-            type="text" name="location" placeholder="City, country"
+            id={placeId} type="text" name="location" placeholder="City, country"
             value={formData.location} onChange={handleChange} onKeyDown={handleLocationKeyDown}
             autoComplete="off" role="combobox" aria-expanded={locationSuggestions.length > 0}
             aria-autocomplete="list" aria-controls={listboxId}
-            aria-activedescendant={activeSuggestion >= 0 ? `location-option-${activeSuggestion}` : undefined}
+            aria-activedescendant={activeSuggestion >= 0 ? `${listboxId}-option-${activeSuggestion}` : undefined}
             className={styles.placeInput}
           />
           <button
@@ -311,12 +314,13 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
             onClick={() => canSearch && searchLocation(formData.location.trim())}
             disabled={!canSearch || locationLoading}
           >SEARCH</button>
+          </div>
           <span className={styles.placeMeta}>{locationLoading ? 'SEARCHING…' : placeMeta}</span>
           {locationSuggestions.length > 0 && (
             <ul id={listboxId} className={styles.suggestionList} role="listbox">
               {locationSuggestions.map((s, i) => (
                 <li
-                  key={s.display_name} id={`location-option-${i}`}
+                  key={s.display_name} id={`${listboxId}-option-${i}`}
                   className={`${styles.suggestionItem} ${i === activeSuggestion ? styles.suggestionItemActive : ''}`}
                   role="option" aria-selected={i === activeSuggestion}
                   onClick={() => selectLocation(s)} onMouseEnter={() => setActiveSuggestion(i)}

@@ -12,7 +12,6 @@ const NAV = [
 
 // Chrome-display ayanamsa. The live value comes from the chart; this is the
 // current-epoch label shown in the header pill (matches the design system).
-const HEADER_DELTA = '24°13′'
 
 export default function SiteHeader() {
   const pathname = usePathname()
@@ -42,7 +41,6 @@ export default function SiteHeader() {
         </nav>
 
         <div className={styles.navActions}>
-          <span className={styles.deltaPill}>Δ {HEADER_DELTA} · LAHIRI</span>
           <Link href="/#get-reading" className={styles.ctaBtn}>Cast a Chart</Link>
         </div>
       </div>

@@ -97,7 +97,10 @@
 }
 .ampmButton:last-child { border-right: none; }
 .ampmButton:disabled { cursor: not-allowed; }
-.ampmButtonActive { color: var(--cyan); }
+.ampmButtonActive {
+  color: var(--cyan);
+  box-shadow: inset 0 -2px 0 var(--cyan);   /* same selected-state as FrameControl */
+}
 
 /* ── Birth-time-unknown card ───────────────────────── */
 .unknownCard {
@@ -142,6 +145,8 @@
 
 /* ── Place ─────────────────────────────────────────── */
 .placeWrap { position: relative; }
+/* input + SEARCH only, so the button never stretches over the meta line below */
+.placeField { position: relative; }
 
 .placeInput {
   width: 100%;
@@ -183,18 +188,14 @@
 }
 
 .placeMeta {
-  position: absolute;
-  right: 96px;
-  top: 50%;
-  transform: translateY(-50%);
+  display: block;
+  min-height: 1.5em;
+  margin-top: 8px;
   font-size: 11px;
+  line-height: 1.5;
   color: var(--text-3);
   letter-spacing: 0.1em;
-  pointer-events: none;
-  max-width: 45%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .suggestionList {
@@ -260,22 +261,10 @@
 .formStatusLive { color: var(--cyan); }
 
 .submitBtn {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  background: var(--copper);
-  color: var(--void);
+  composes: ax-btn ax-btn-solid from global;
   padding: 16px 28px;
   min-width: 272px;
-  text-align: center;
-  border: 1px solid var(--copper);
-  cursor: pointer;
-  transition: background 150ms ease, border-color 150ms ease, opacity 0.3s ease;
 }
-.submitBtn:hover:not(:disabled) { background: var(--copper-bright); border-color: var(--copper-bright); }
-.submitBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnLoading { display: inline-flex; align-items: center; gap: 10px; }
 .btnSpinner {
