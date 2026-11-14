@@ -193,3 +193,11 @@ Not changed, deliberately: The Divergence's third-person register (a product dec
 - **Dollar ceiling.** The call cap was sized on Sonnet. Measured Opus cost is $0.085 per call ($1.87 for 22 calls), so the default 2000-call cap allows about $170 a day. `AXIS_DAILY_SPEND_CEILING_USD` adds a ceiling on dollars actually billed, recorded per call from usage. Unset until Kay names the number.
 - **Analytics.** `reading_section_reached` (part and ordinal only) and `reading_part2_opened`.
 - **npm audit.** All 8 moderate findings are one `minimatch` advisory under `typescript-eslint` (dev-only, lint). No non-breaking fix exists: the newest `typescript-eslint` still pins the affected range, and `--force` downgrades `eslint-config-next` to 15. Lockfile patch bumps only.
+
+## 2026-11-14 — first Opus reading in production logs (v10.52)
+
+- **One natal reading, 2026-11-13, 21 sections, 25 calls, $2.04** ($0.081 per call), plus one synastry reading at $0.39. Pre-flight was not active for it (no `[AXIS_PREFLIGHT]` lines).
+- **First pass:** 17 of 21 clean. 2 hard findings (a prediction each in `tropical/ascendant` and `sidereal/mars`), 2 doctrine hits (`tropical/sun`, `synthesis/diverge`), 0 truncated, 0 refused. Three of the four regenerations came back clean and were cached; `sidereal/mars` regenerated with a prescription and stayed uncached.
+- **Length:** 6 of 21 over the band ceiling, all within 9% and none past the hard cap; 12,557 words. Same chart on Sonnet (2026-11-10): 4 over, one past the hard cap. Not like-for-like with Chicago's 10 of 21, so the length-clause change is supported, not proven.
+- **Seconds per section:** 6–44; Sun 44, Moon 40, `diverge` 34. Longest invocation was Sun at 86s including its cache regeneration, inside the 120s limit.
+- **Upstream 503s.** Seven generation calls failed in 2–5s with `503 credential validation failed` or an empty 503, in two bursts. Moon and Ascendant failed both client attempts and the run went on without them, so 18 later sections were written with neither in the thread; the reader retried them by hand afterwards. v10.52 had cut SDK retries from two to one, which made this worse. Now three.

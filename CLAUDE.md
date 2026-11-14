@@ -89,7 +89,7 @@ A section **streams** token by token unless something will inspect it before the
 **No LLM gate on the live path.** After the stream closes, `after()` runs `cacheScan` (`reading-preflight.ts`): the pre-flight's hard findings plus the doctrine scan. Clean → the first pass is cached for 30 days. A finding → **one** `cache-regen` call naming the faults, cached only if it scans clean; the reader keeps what they saw. Truncated, refused or still-unclean text is never cached. **Cost per uncached section: 1 call, 2 on a finding.** `reading-route-budget.test.ts` pins this.
 
 - **Refusals:** `assertNotRefusal` throws on `stop_reason: "refusal"` at every call site. Live, that writes `[AXIS_STREAM_ERROR: refused]`; nothing is threaded or cached.
-- **Timeouts:** every generation call ends by `GENERATION_HARD_DEADLINE_MS`, one SDK retry.
+- **Timeouts:** every generation call ends by `GENERATION_HARD_DEADLINE_MS`, three SDK retries.
 - **Spend:** each call's dollar cost (`lib/model-pricing.ts`) feeds a daily counter; `readGlobalDailyBudget` refuses on the call cap or the dollar ceiling.
 - **Doctrine scan** (`detectBannedPhrasings`): literal lists (`BANNED_HIERARCHY_PHRASINGS`, `BANNED_RESCUE_PHRASINGS`, `BANNED_META_PHRASINGS`) plus a contextual pass (`detectContextualHierarchy`: ordinary words such as "underneath" only within `HIERARCHY_PROXIMITY_CHARS` of identity/system language). Keep bare ordinary words out of the literal lists: a false positive costs a regeneration.
 

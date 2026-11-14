@@ -163,9 +163,9 @@ describe('/api/reading — spend, and what the cache keeps', () => {
     expect(spend).toEqual([24_000])
   })
 
-  it('bounds every generation call: a deadline inside maxDuration, one SDK retry', async () => {
+  it('bounds every generation call: a deadline inside maxDuration, three SDK retries', async () => {
     await run('10.1.0.9')
-    expect(requestOptions[0]?.maxRetries).toBe(1)
+    expect(requestOptions[0]?.maxRetries).toBe(3)
     expect(requestOptions[0]?.timeout).toBeGreaterThan(5_000)
     expect(requestOptions[0]?.timeout).toBeLessThanOrEqual(112_000)
   })

@@ -473,7 +473,10 @@ const GENERATION_HARD_DEADLINE_MS = 112_000
               messages:    [{ role: 'user', content }],
             }, {
               timeout:    Math.max(5_000, startedAt + GENERATION_HARD_DEADLINE_MS - callStarted),
-              maxRetries: 1,
+              // The timeout above bounds the total, so retries are cheap: a 503
+              // fails in 2–5s. With one retry, a ~15s burst of upstream 503s
+              // (production, 2026-11-13) cost a reader two whole sections.
+              maxRetries: 3,
             })
             let text = ''
             for await (const event of stream) {
