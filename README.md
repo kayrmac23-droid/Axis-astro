@@ -239,6 +239,6 @@ This section describes what is hardened now and what requires distributed infras
 - [x] Guides page — how to read each system, what The Divergence means
 - [x] Synastry reading — inter-aspects + midpoint composite chart for two people
 - [ ] Swiss Ephemeris for Pluto (requires dedicated compute layer outside Vercel)
-- [ ] Monetisation gate — free chart generation, paid ongoing access
+- [ ] Monetisation gate — the cut and its server-side enforcement exist behind `AXIS_PAYWALL_ENABLED` (off; `src/lib/paywall.ts`). Checkout, durable storage, re-access, deletion and export are not built
 - [ ] Dasha timeline view — visualise active Jyotish planetary periods
 - [ ] Save / share reading — persistent URL for generated readings

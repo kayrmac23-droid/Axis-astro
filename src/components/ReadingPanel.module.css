@@ -387,6 +387,40 @@
 }
 .queuedLabel { font-weight: 700; color: var(--text); }
 
+/* ─── The wall (where the free reading ends) ──────── */
+.wall {
+  border: 1px solid var(--copper-rule);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 2.5rem 0 1rem;
+  font-family: var(--font-mono);
+}
+.wallLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--text);
+}
+.wallText {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+.wallCount {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-3);
+}
+.wallBtn {
+  composes: ax-btn ax-btn-sm ax-btn-solid from global;
+  align-self: flex-start;
+}
+
 /* ─── Length-limit note ───────────────────────────── */
 .sectionNote {
   font-family: var(--font-mono);
@@ -720,6 +754,7 @@
 /* ─── Print ───────────────────────────────────────── */
 @media print {
   .band::before { display: none; }
+  .wall { display: none; }
   .rail { display: none; }
   .bandGrid { grid-template-columns: minmax(0, 1fr); }
   /* The saved dossier is the whole reading, in reading order, whatever the

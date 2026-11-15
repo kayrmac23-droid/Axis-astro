@@ -7,6 +7,7 @@ import styles from './ReadingPanel.module.css'
 import { capture } from '@/lib/analytics'
 import { detectStreamError, ReadingUnavailableError, retryDelayForStatus, quotaFailure } from '@/lib/reading-stream'
 import { NATAL_SECTION_ORDER } from '@/lib/reading-order'
+import { ReadingLockedError, isPaywallResponse, lockedCounts } from '@/lib/paywall'
 
 // A reading-thread id (see reading-thread.ts): one per cast chart, so each
 // section is written after the ones already read. crypto.randomUUID exists only
@@ -307,7 +308,9 @@ function ReadoutCard({ row, ayanamsa }: { row: ReadoutRow; ayanamsa: number }) {
 }
 
 type PlanetSectionState = 'pending' | 'loading' | 'done' | 'failed'
-type TabStatus = 'pending' | 'loading' | 'done' | 'failed'
+// 'locked': behind the paywall (lib/paywall.ts). An ending, not a failure —
+// nothing is retried and there is no error to show.
+type TabStatus = 'pending' | 'loading' | 'done' | 'failed' | 'locked'
 type SystemSection = 'tropical' | 'sidereal' | 'synthesis'
 
 export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
@@ -337,6 +340,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   // fetch() resolves, long before the body, so the wait can be explained only
   // when there is one — by default a section streams and needs no explanation.
   const [bufferedDelivery, setBufferedDelivery] = useState(false)
+  // The part in which the server refused a section as paid (X-Axis-Paywall),
+  // or null. The wall is rendered at the end of that part's prose.
+  const [lockedIn, setLockedIn] = useState<SystemSection | null>(null)
+  const [unlockAsked, setUnlockAsked] = useState(false)
   const part2Ref = useRef<HTMLElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
@@ -458,6 +465,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               signal: combinedSignal
             })
 
+            if (isPaywallResponse(res)) throw new ReadingLockedError()
             if (!res.ok) {
               const body = await res.json().catch(() => ({}))
               // A daily quota or the site-wide cap: no retry helps today, so
@@ -524,6 +532,19 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             // Fatal-service unwind and user aborts both pass straight through:
             // neither is a section-level failure and neither may be retried.
             if (fetchErr instanceof ReadingUnavailableError) throw fetchErr
+            if (fetchErr instanceof ReadingLockedError) {
+              // The wall. Drop this section's marker so the rail does not link
+              // to a heading that was never written, and end the part where
+              // the free reading ends.
+              accumulatedText = accumulatedText.replace(`[AXIS_SECTION:${planetSec}]\n\n`, '')
+              setReadings(prev => ({ ...prev, [sec]: accumulatedText }))
+              setSectionStates(prev => ({ ...prev, [`${sec}:${planetSec}`]: 'pending' }))
+              setTabStatus(prev => ({ ...prev, [sec]: accumulatedText ? 'done' : 'locked' }))
+              setLockedIn(sec)
+              setLiveStatus('The free reading ends here')
+              capture('paywall_reached', { section: sec, planet_section: planetSec })
+              throw fetchErr
+            }
             if (fetchErr instanceof Error && fetchErr.name === 'AbortError' && signal.aborted) {
               throw fetchErr
             }
@@ -555,6 +576,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       setLiveStatus(`${sec} reading complete`)
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') throw err
+      if (err instanceof ReadingLockedError) throw err
       const msg = err instanceof Error ? err.message : 'Reading generation failed. Please try again.'
       setTabErrors(prev => ({ ...prev, [sec]: msg }))
       setTabStatus(prev => ({ ...prev, [sec]: 'failed' }))
@@ -584,6 +606,8 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     setPlanetSectionErrors({})
     setReadings({})
     setPart2Open(false)
+    setLockedIn(null)
+    setUnlockAsked(false)
 
     const id = setTimeout(async () => {
       const { signal } = controller
@@ -596,6 +620,10 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             const rest = order.slice(i + 1)
             setTabErrors(prev => ({ ...prev, ...Object.fromEntries(rest.map(s => [s, err.message])) }))
             setTabStatus(prev => ({ ...prev, ...Object.fromEntries(rest.map(s => [s, 'failed' as TabStatus])) }))
+          }
+          if (err instanceof ReadingLockedError) {
+            const rest = order.slice(i + 1)
+            setTabStatus(prev => ({ ...prev, ...Object.fromEntries(rest.map(s => [s, 'locked' as TabStatus])) }))
           }
           break  // aborted or fatal; per-section errors are handled inside
         }
@@ -746,6 +774,40 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
     [readoutRows]
   )
 
+  // Bodies that change sign between the frames — the Divergence's evidence
+  // table. Derived from the same rows the READOUT rail renders.
+  const flips = buildFlips(readoutRows)
+  const bodyCount = countBodies(readoutRows)
+
+  // The wall: where the free reading ends and what is behind it. Screen-only
+  // (the print stylesheet drops it). There is no purchase path yet, so the
+  // button records the ask and says so plainly.
+  const locked = lockedCounts()
+  const wall = (
+    <div className={styles.wall}>
+      <p className={styles.wallLabel}>THE FREE READING ENDS HERE</p>
+      <p className={styles.wallText}>
+        The full dossier continues with {locked.tropical} more Tropical sections,
+        the {locked.sidereal}-section Sidereal reading and the {locked.synthesis} movements
+        of The Divergence.
+      </p>
+      <p className={styles.wallCount}>
+        {flips.length} OF {bodyCount} BODIES CHANGE SIGN BETWEEN FRAMES
+      </p>
+      {unlockAsked ? (
+        <p className={styles.wallText} role="status">The full dossier is not on sale yet.</p>
+      ) : (
+        <button
+          type="button"
+          className={styles.wallBtn}
+          onClick={() => { setUnlockAsked(true); capture('paywall_unlock_clicked') }}
+        >
+          Unlock the full dossier
+        </button>
+      )}
+    </div>
+  )
+
   // Renders one reading section's header, progress, states, and prose blocks.
   // Tropical and Sidereal render side by side; the divergence section renders below both.
   // withData=true (single-frame) pins each placement's readout data beside its prose.
@@ -880,6 +942,13 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
             )
           )}
 
+          {/* Locked — behind the wall. A still line, like a queued part. */}
+          {currentStatus === 'locked' && (
+            <div className={styles.queued}>
+              <span className={styles.queuedLabel}>LOCKED · PART OF THE FULL DOSSIER</span>
+            </div>
+          )}
+
           {/* Loading — this section is actively streaming */}
           {!currentError && currentStatus === 'loading' && !currentText && (
             <div className={styles.generating}>
@@ -941,6 +1010,8 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
               </div>
             )
           )}
+
+          {lockedIn === section && wall}
         </div>
       </>
     )
@@ -968,11 +1039,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       ? <a key={key} href={`#axis-${sec}-${key}`} className={`${styles.railRow} ${styles.railLink} ${railState(`${sec}:${key}`)}`}>{inner}</a>
       : <span key={key} className={`${styles.railRow} ${railState(`${sec}:${key}`)}`}>{inner}</span>
   }
-
-  // Bodies that change sign between the frames — the Divergence's evidence
-  // table. Derived from the same rows the READOUT rail renders.
-  const flips = buildFlips(readoutRows)
-  const bodyCount = countBodies(readoutRows)
 
   // PART 2's header metadata. The minute estimate comes from the prose actually
   // loaded, not from the band table, so it never promises a length the reader is
