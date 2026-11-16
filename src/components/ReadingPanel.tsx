@@ -338,7 +338,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   // or null. The wall is rendered at the end of that part's prose.
   const [lockedIn, setLockedIn] = useState<SystemSection | null>(null)
   const [unlockAsked, setUnlockAsked] = useState(false)
-  const part2Ref = useRef<HTMLElement | null>(null)
 
   const abortRef = useRef<AbortController | null>(null)
   // The reading thread for the chart currently on screen. Replaced whenever a new
@@ -347,14 +346,14 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
   const readingsRef = useRef<Record<string, string>>({})
   useEffect(() => { readingsRef.current = readings }, [readings])
 
-  // The frame toggle's new job for the prose: selecting SIDEREAL opens PART 2 and
-  // brings it into view. Selecting TROPICAL does NOT close it again — collapsing
-  // something the reader deliberately opened is hostile, and PART 1 is above it
-  // on the page either way.
+  // The frame toggle's job for the prose: selecting SIDEREAL opens PART 2.
+  // It does NOT scroll to it — the toggle sits above the wheel, and scrolling
+  // away took the reader off the band rotation the toggle exists to show.
+  // Selecting TROPICAL does not close PART 2 again: collapsing something the
+  // reader deliberately opened is hostile.
   useEffect(() => {
     if (frame !== 'sidereal') return
     setPart2Open(true)
-    part2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [frame])
 
   // ── Reach analytics ────────────────────────────────────────────────────────
@@ -1093,7 +1092,6 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
           runs: a reader who skips it knows they skipped it, which is what the
           frame toggle could not tell them. The frame control opens it. */}
       <section
-        ref={part2Ref}
         className={styles.band}
         aria-label="Part 2 — Sidereal reading"
       >

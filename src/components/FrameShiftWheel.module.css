@@ -136,8 +136,14 @@
 }
 
 /* ---------- expanded stage ---------- */
-/* The wheel is drawn at a fixed 900px and the stage pans, so every label is
-   at the size it was designed for instead of being scaled into illegibility. */
+/* The wheel is drawn at a fixed 1000px — one CSS pixel per viewBox unit — and
+   the stage pans (and pinch-zooms), so labels are the size they were drawn
+   at instead of being scaled into illegibility. The degree labels and house
+   numerals get the same lift the desktop wheel gives them.
+   ⚠ `position: fixed` resolves against the nearest ancestor with a transform,
+   not the viewport. page.module.css keeps .dossier free of one once its
+   entrance animation ends; a lingering transform there turns this overlay
+   into a page-tall box with the wheel somewhere in the middle of it. */
 .rootExpanded {
   position: fixed;
   inset: 0;
@@ -151,6 +157,10 @@
   overscroll-behavior: contain;
 }
 .rootExpanded .stage {
+  /* Block, not the inline wheel's centred flex row: centring an item wider
+     than its scroller pushes its left half to negative offsets, which a
+     scroll container cannot reach. */
+  display: block;
   flex: 1;
   min-height: 0;
   width: 100%;
@@ -159,11 +169,13 @@
   touch-action: pan-x pan-y pinch-zoom;
 }
 .rootExpanded .wheel {
-  width: 900px;
+  width: 1000px;
   max-width: none;
   height: auto;
-  margin: auto;
+  margin: 0 auto;
 }
+.rootExpanded .microLabel { font-size: 12px; }
+.rootExpanded .houseNum { font-size: 13px; }
 .rootExpanded .expandBtn { display: inline-block; flex: none; }
 .rootExpanded .legend { display: none; }
 

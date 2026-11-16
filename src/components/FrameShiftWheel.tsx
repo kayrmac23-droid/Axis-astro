@@ -86,6 +86,7 @@ export default function FrameShiftWheel({
   data, frame, selected = null, onSelect, deltaRef, treatment = 'stellar',
 }: FrameShiftWheelProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  const stageRef = useRef<HTMLDivElement>(null)
   const builtRef = useRef(false)
   const aRef = useRef(0)
   const apiRef = useRef<{ setA: (a: number) => void; AY: number } | null>(null)
@@ -463,6 +464,21 @@ export default function FrameShiftWheel({
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setExpanded(false) }
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+    // Open on something worth reading: the selected body, else the Sun. The
+    // stage is several screens wide on a phone, and both its top-left corner
+    // and its centre are empty sky.
+    const stage = stageRef.current
+    if (stage) {
+      const target = glyphElsRef.current[selectedIdRef.current ?? 'sun'] ?? glyphElsRef.current['sun']
+      const box = stage.getBoundingClientRect()
+      const at = target?.getBoundingClientRect()
+      stage.scrollLeft = at
+        ? stage.scrollLeft + (at.left + at.width / 2) - (box.left + box.width / 2)
+        : (stage.scrollWidth - stage.clientWidth) / 2
+      stage.scrollTop = at
+        ? stage.scrollTop + (at.top + at.height / 2) - (box.top + box.height / 2)
+        : (stage.scrollHeight - stage.clientHeight) / 2
+    }
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
@@ -472,7 +488,7 @@ export default function FrameShiftWheel({
 
   return (
     <div className={`${styles.root} ${expanded ? styles.rootExpanded : ''}`}>
-      <div className={styles.stage}>
+      <div className={styles.stage} ref={stageRef}>
       <svg
         ref={svgRef}
         className={styles.wheel}
