@@ -1,6 +1,7 @@
 'use client'
 import { useState, useRef, useEffect, useId } from 'react'
 import styles from './BirthForm.module.css'
+import { SUGGEST_MIN_CHARS, SUGGEST_DEBOUNCE_MS } from '@/lib/place-suggest'
 
 interface BirthFormProps {
   onSubmit: (data: Record<string, string>) => void
@@ -37,6 +38,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   // Shown in the place field's meta slot when a search returns nothing usable.
   const [searchNotice, setSearchNotice] = useState('')
   const geocodeAbortRef = useRef<AbortController | null>(null)
+  const suggestTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const formId = useId()
   const placeId = `${formId}-birth-place`
   const listboxId = `${formId}-location-listbox`
@@ -44,6 +46,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   useEffect(() => {
     return () => {
       geocodeAbortRef.current?.abort()
+      if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
     }
   }, [])
 
@@ -58,14 +61,30 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
     if (name === 'location') {
-      // No search per keystroke. Nominatim's usage policy forbids autocomplete
-      // against its public API (and caps clients at 1 request/second); typing
-      // only edits the query, and the search runs on Enter or the SEARCH button.
+      // Typing offers suggestions after a pause (suggestLocation, below). Those
+      // come from Photon; Nominatim's usage policy forbids autocomplete against
+      // its public API, so the full search still runs only on Enter or SEARCH.
       setLocationConfirmed(false)
       setActiveSuggestion(-1)
-      setLocationSuggestions([])
       setSearchNotice('')
+      if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
+      geocodeAbortRef.current?.abort()
+      const query = value.trim()
+      if (query.length < SUGGEST_MIN_CHARS) { setLocationSuggestions([]); return }
+      suggestTimerRef.current = setTimeout(() => suggestLocation(query), SUGGEST_DEBOUNCE_MS)
     }
+  }
+
+  // Type-ahead. Quiet by design: a failed or empty suggestion shows nothing and
+  // leaves the explicit search as the way forward, so it never raises a notice.
+  const suggestLocation = async (query: string) => {
+    const controller = new AbortController()
+    geocodeAbortRef.current = controller
+    try {
+      const res = await fetch(`/api/geocode?mode=suggest&q=${encodeURIComponent(query)}`, { signal: controller.signal })
+      const data = res.ok ? await res.json() : []
+      if (!controller.signal.aborted) setLocationSuggestions(Array.isArray(data) ? data : [])
+    } catch { /* aborted or offline — the SEARCH button still works */ }
   }
 
   const canSearch = formData.location.trim().length > 2 && !locationConfirmed
@@ -94,6 +113,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   }
 
   const searchLocation = async (query: string) => {
+    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
     if (geocodeAbortRef.current) geocodeAbortRef.current.abort()
     geocodeAbortRef.current = new AbortController()
     setLocationLoading(true)
@@ -145,6 +165,8 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   }
 
   const selectLocation = async (result: GeoResult) => {
+    if (suggestTimerRef.current) clearTimeout(suggestTimerRef.current)
+    geocodeAbortRef.current?.abort()
     // Fallback: rough estimate from longitude (±15°/hour)
     let tz = String(Math.round(parseFloat(result.lon) / 15))
     let tzName = ''
@@ -221,7 +243,7 @@ export default function BirthForm({ onSubmit, loading, submitLabel = 'Begin the 
   const placeMeta = placeOk
     ? `${parseFloat(formData.latitude).toFixed(3)} · ${parseFloat(formData.longitude).toFixed(3)}${formData.tzName ? ' · ' + formData.tzName.toUpperCase() : ''}`
     : (formData.location
-        ? (locationSuggestions.length ? 'SELECT A RESULT' : searchNotice || 'PRESS ENTER TO SEARCH')
+        ? (locationSuggestions.length ? 'SELECT A RESULT' : searchNotice || 'KEEP TYPING, OR PRESS ENTER TO SEARCH')
         : '')
 
   return (

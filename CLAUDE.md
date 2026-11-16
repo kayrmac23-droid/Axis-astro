@@ -53,7 +53,7 @@ Page routes: `/` (main app), `/method`, `/guides`, `/sample`, `/synastry`, `/pri
 
 - **`/api/calculate`** (`maxDuration=30`): validates birth data, rate-limited 30/60s, DST-accurate offset via `Intl.DateTimeFormat`. Pluto comes from JPL Horizons only for births outside 1885–2099 (`plutoNeedsJpl`; inside that span local Meeus agrees with DE440 to ~2″), 5s timeout, Meeus fallback. Returns `DualChartData` with `plutoSource`.
 - **`/api/synastry`** (`maxDuration=30`): 20/60s. Two natal charts, inter-aspects, midpoint composite.
-- **`/api/geocode`**: Nominatim proxy. 30/60s per IP plus one app-wide 1 req/s gate; results cached 30 days. Nominatim forbids autocomplete, so `BirthForm` searches only on Enter or the SEARCH button.
+- **`/api/geocode`**: two upstreams, both cached 30 days. `mode=suggest` is type-ahead via Photon (`lib/place-suggest.ts`), 90/60s per IP, debounced in `BirthForm`. The default is Nominatim, 30/60s per IP plus one app-wide 1 req/s gate, reached only on Enter or the SEARCH button: **Nominatim forbids autocomplete, so type-ahead must never be routed to it.**
 - **`/api/timezone`**: `tz-lookup`, offline. 60/60s.
 - **`/api/reading`** (`maxDuration=120`): see *The reading pipeline*.
 
@@ -176,7 +176,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 - **`BirthForm.tsx`**: geocode search, `birthTimeUnknown` toggle, AM/PM → 24h.
 - **The dossier** (`app/page.tsx`): `DossierHeader` → `FrameControl` → `FrameShiftWheel` + `ReadoutRail` → `ReadingPanel` → actions row. Frame and selection are page state.
 - **`ReadingPanel.tsx`**: sequential fetch per section with one retry; `SECTION_TIMEOUT_MS` must stay above the route's `maxDuration`. The prose is **stacked in reading order** — PART 1 Tropical, PART 2 Sidereal (collapsed by default), PART 3 The Divergence — because each part is written assuming the reader has read the ones before it. **PART 2 is always in the DOM and collapsed with CSS**, never `hidden` or a conditional render: SAVE DOSSIER · PDF is `window.print()`, and anything absent from the DOM is absent from the saved dossier.
-- **`FrameShiftWheel.tsx`**, **`ReadoutRail.tsx`**: the instrument and the both-frames readout. No angles or houses with an unknown birth time.
+- **`FrameShiftWheel.tsx`**, **`ReadoutRail.tsx`**: the instrument and the both-frames readout. No angles or houses with an unknown birth time. Glyphs of close bodies are fanned apart (`lib/wheel-layout.ts`); the pointer line marks the true longitude.
 - **`SynastryReadingPanel.tsx`**, **`SynastryAspectsPanel.tsx`**, chrome (`SiteHeader`, `SiteFooter`, `Starfield`, `ComputationInterstitial`), landing (`HeroWheel`, `landing/PreviewLanding`).
 
 ## Tests
@@ -190,7 +190,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 | The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity`, `paywall` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |
 | Calculation | `astro-calc` (pinned to JPL reference values), `pluto-source`, `interpretation-engine`, `synastry-calc`, `tz`, `readout` |
-| Security / limits | `security-hardening`, `api-routes`, `route-rate-limiter` |
+| Security / limits | `security-hardening`, `api-routes`, `route-rate-limiter`, `place-suggest` |
 
 Fixtures that include prose must contain a second-person sentence, or `register-drift` fires on every one.
 

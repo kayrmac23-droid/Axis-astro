@@ -29,6 +29,7 @@ import { DualChartData } from '@/lib/astro-calc'
 import {
   ZODIAC_GLYPHS as SG, PLANET_GLYPH, PLANET_ORDER, norm, dms,
 } from '@/lib/readout'
+import { spreadLongitudes } from '@/lib/wheel-layout'
 import styles from './FrameShiftWheel.module.css'
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII']
@@ -44,6 +45,9 @@ const ASPECT_DEFS: [number, number, AspectKind][] = [
   [0, 8, 'conj'], [180, 8, 'hard'], [120, 8, 'soft'], [90, 8, 'hard'], [60, 6, 'soft'],
 ]
 const ANGLE_ORB = 5
+// Least angle between two drawn glyphs: at the degree-label radius this is
+// just over the width of the widest label ("29°59′ ♑").
+const GLYPH_MIN_SEP_DEG = 11
 const ANGLE_IDS = new Set(['asc', 'mc'])
 function computeAspects(lonOf: Record<string, number>): [string, string, AspectKind][] {
   const ids = Object.keys(lonOf)
@@ -148,20 +152,16 @@ export default function FrameShiftWheel({
 
     // ── data arrays from the engine ──
     const tMap = Object.fromEntries(tropical.planets.map(p => [p.name, p]))
-    interface Body { id: string; n: string; g: string; lon: number; r: number }
+    // `lon` is where the body is; `at` is where its glyph and degree label are
+    // drawn. Close neighbours are fanned apart along the ring (wheel-layout.ts)
+    // and the pointer line runs from the true longitude on the band to the
+    // glyph. Stepping clustered bodies inward instead put one body's degree
+    // label on the next body's glyph, and ran out of steps at four bodies.
+    interface Body { id: string; n: string; g: string; lon: number; at: number; r: number }
     const bodyList: Body[] = PLANET_ORDER
       .filter(name => tMap[name])
-      .map(name => ({ id: name.toLowerCase(), n: name.toUpperCase(), g: PLANET_GLYPH[name] ?? '', lon: tMap[name].longitude, r: 262 }))
-    // radial spread so clustered bodies stay legible
-    {
-      const sorted = [...bodyList].sort((a, b) => a.lon - b.lon)
-      let lastLon = -99, tier = 0
-      for (const b of sorted) {
-        if (norm(b.lon - lastLon) < 9) { tier = (tier + 1) % 3 } else { tier = 0 }
-        b.r = 262 - tier * 13
-        lastLon = b.lon
-      }
-    }
+      .map(name => ({ id: name.toLowerCase(), n: name.toUpperCase(), g: PLANET_GLYPH[name] ?? '', lon: tMap[name].longitude, at: tMap[name].longitude, r: 262 }))
+    spreadLongitudes(bodyList.map(b => b.lon), GLYPH_MIN_SEP_DEG).forEach((at, i) => { bodyList[i].at = at })
     const ANGLES = [
       { id: 'asc', n: 'ASC', lon: tropical.ascendant },
       { id: 'mc', n: 'MC', lon: tropical.midheaven },
@@ -302,14 +302,14 @@ export default function FrameShiftWheel({
     interface Sweep { id: string; lon: number; px: number; py: number; glyphEl: SVGElement | null; degEl: SVGElement; lastS: number }
     const SWEEP: Sweep[] = []
     bodyList.forEach(b => {
-      const [px, py] = pt(b.lon, b.r)
-      const [hx0, hy0] = pt(b.lon, 336), [hx1, hy1] = pt(b.lon, b.r + 18)
+      const [px, py] = pt(b.at, b.r)
+      const [hx0, hy0] = pt(b.lon, 336), [hx1, hy1] = pt(b.at, b.r + 18)
       const pointer = mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
       pointerElsRef.current[b.id] = pointer
       const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer', class: styles.planetGlyph }, gSky)
       glyph.textContent = b.g
       glyphElsRef.current[b.id] = glyph
-      const [dx, dy] = pt(b.lon, b.r - 24)
+      const [dx, dy] = pt(b.at, b.r - 24)
       const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)', class: styles.microLabel }, gSky)
       const selRing = mk('circle', {
         cx: px, cy: py, r: 17, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,

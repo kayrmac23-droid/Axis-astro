@@ -67,12 +67,6 @@ const SECTION_DISPLAY: Record<string, string> = {
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }
 
-// Words per minute for PART 2's length estimate. Deliberately conservative:
-// this is dense analytical prose about the reader's own chart, which is read
-// more slowly than narrative, and an estimate that undersells the time is worse
-// than one that oversells it.
-const WORDS_PER_MINUTE = 220
-
 // The band kicker beside the frame name — what this frame is a reading OF.
 const FRAME_KICKER: Record<string, string> = {
   tropical: 'THE PSYCHOLOGICAL INTERIOR',
@@ -1040,12 +1034,9 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
       : <span key={key} className={`${styles.railRow} ${railState(`${sec}:${key}`)}`}>{inner}</span>
   }
 
-  // PART 2's header metadata. The minute estimate comes from the prose actually
-  // loaded, not from the band table, so it never promises a length the reader is
-  // not about to get; it is withheld until there is text to measure.
+  // PART 2's header metadata. No reading-time estimate: a minute count on a
+  // collapsed part reads as a cost and gives the reader a reason to skip it.
   const sidStreaming = streamingTab === 'sidereal' && tabStatus.sidereal === 'loading'
-  const sidWords = (readings.sidereal || '').replace(/\[AXIS_[A-Z]+:[^\]]+\]/g, '').trim().split(/\s+/).filter(Boolean).length
-  const sidMinutes = sidStreaming || sidWords === 0 ? null : Math.max(1, Math.round(sidWords / WORDS_PER_MINUTE))
 
   // One frame's prose band. Called twice now, in reading order, rather than once
   // for whichever frame the toggle selected.
@@ -1120,7 +1111,7 @@ export default function ReadingPanel({ chartData, frame }: ReadingPanelProps) {
                 moment PART 2 was open. */}
             <span className={styles.partToggleTitle}>PART 2 — THE SIDEREAL READING</span>
             <span className={styles.partToggleMeta}>
-              {sidMinutes ? `${PLANET_SECTIONS.sidereal.length} SECTIONS · ~${sidMinutes} MIN` : `${PLANET_SECTIONS.sidereal.length} SECTIONS`}
+              {`${PLANET_SECTIONS.sidereal.length} SECTIONS`}
               {' · READ AFTER PART 1'}
             </span>
           </span>
