@@ -63,9 +63,8 @@ import {
   BANNED_OPENER_PATTERNS,
   countPlanEvidence,
   detectContextualHierarchy,
+  contextualHierarchySpans,
   HIERARCHY_CONTEXTUAL_TERMS,
-  HIERARCHY_IDENTITY_TOKENS,
-  HIERARCHY_PROXIMITY_CHARS,
   openerModeFor,
   wordBandFor,
   WordBand,
@@ -1291,20 +1290,14 @@ function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
   // only those occurrences are at fault. A literal phrasing is at fault wherever
   // it appears.
   const contextual = new Set(HIERARCHY_CONTEXTUAL_TERMS.map(t => t.toLowerCase()))
-  const identity = new RegExp(`(?:${HIERARCHY_IDENTITY_TOKENS.join('|')})`, 'gi')
   const lower = draft.toLowerCase()
-  // Each identity token as [start, end). The window is measured from the
-  // token's END when it precedes the term, exactly as detectContextualHierarchy
-  // measures it (`ident[\s\S]{0,gap}term`). Measuring from its start made this
-  // stricter than the detector by the token's own length, so a hit the scan
-  // reported 61–73 chars after e.g. "incarnational" localised to no sentence,
-  // the surgical edit threw before making its call, and a section whose rubric
-  // had passed took a full repair instead (seen in production 2026-11-07,
+  // The occurrences the scan itself counted as breaches, by offset. One
+  // implementation of the window (prompts.ts contextualHierarchySpans): a second
+  // copy here once measured it differently, a hit localised to no sentence, and
+  // the surgical edit threw before making its call (production 2026-11-07,
   // synthesis/closing: "No sentence found for doctrine hit").
-  const identityAt: Array<[number, number]> = []
-  for (const m of Array.from(draft.matchAll(identity))) if (m.index != null) identityAt.push([m.index, m.index + m[0].length])
-  const nearIdentity = (start: number, end: number) =>
-    identityAt.some(([s, e]) => s <= end + HIERARCHY_PROXIMITY_CHARS && e + HIERARCHY_PROXIMITY_CHARS >= start)
+  const flagged = new Set(contextualHierarchySpans(draft).map(s => `${s.term}@${s.start}`))
+  const nearIdentity = (needle: string, start: number) => flagged.has(`${needle}@${start}`)
 
   for (const needle of needles) {
     // Find every occurrence of this hit in the draft and take the sentence(s)
@@ -1323,7 +1316,7 @@ function doctrineRepairTargets(draft: string, hits: string[]): TextSpan[] {
       const at = lower.indexOf(needle, from)
       if (at < 0) break
       const hitEnd = at + needle.length
-      if (contextual.has(needle) && !nearIdentity(at, hitEnd)) { from = at + Math.max(1, needle.length); continue }
+      if (contextual.has(needle) && !nearIdentity(needle, at)) { from = at + Math.max(1, needle.length); continue }
       for (let i = 0; i < segments.length; i++) {
         if (segments[i].end > at && segments[i].start < hitEnd && !taken.has(i)) {
           taken.add(i)

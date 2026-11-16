@@ -614,3 +614,54 @@ describe('american-spelling — fulfil', () => {
     }
   })
 })
+
+// ── v10.53 audit: false positives that each cost a paid regeneration ─────────
+describe('false-positive controls from the 2026-11-16 audit', () => {
+  const hard = (t: string) => scanSectionRules(t, { frame: 'tropical' }).filter(f => f.severity === 'hard').map(f => f.rule)
+
+  it.each([
+    'High-stakes conversations are where you slow down.',
+    'Hidden work suits you.',
+    'Welcome attention unsettles you.',
+    'Dear to you is the small circle.',
+    'Hello is the hardest word for you to say first.',
+  ])('does not read an ordinary opening as a greeting: %s', t => {
+    expect(hard(t)).not.toContain('greeting')
+  })
+
+  it.each([
+    'Hi, and welcome to your reading, you.',
+    'Hello! You are a Leo.',
+    'Welcome to your chart, where you begin.',
+    'Dear reader, you are warm.',
+  ])('still catches a greeting: %s', t => {
+    expect(hard(t)).toContain('greeting')
+  })
+
+  it.each([
+    'Only hours later do you start to notice what it cost you.',
+    'You learn to accept less than you asked for, and you resent it.',
+    'The hours you work on your own are the ones you trust.',
+    'Before you answer, you consider what you owe them.',
+    'You tend to stop to see whether anyone followed.',
+    'You need to know where you stand before you commit.',
+    'You need to feel that the terms are fixed.',
+    'You must have decided this long ago, because you no longer notice it.',
+  ])('does not read description as prescription: %s', t => {
+    expect(hard(t)).not.toContain('prescription')
+  })
+
+  it.each([
+    'Try to notice when you do this.',
+    'You hold back. Learn to accept the offer.',
+    'Work on your boundaries.',
+    'You could work on this.',
+    'Consider what you owe them.',
+    'You should try to see it their way.',
+    'You need to stop apologising.',
+    'You must set the terms yourself.',
+    'You must have a conversation about your boundaries.',
+  ])('still catches a prescription: %s', t => {
+    expect(hard(t)).toContain('prescription')
+  })
+})

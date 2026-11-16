@@ -24,73 +24,73 @@ const PLANET_CORE: Record<string, {
   Sun: {
     coreFunction: 'identity, will, vitality, ego, the conscious self, authority',
     drives: 'need to matter, to be recognized as significant, to express the essential self',
-    gift: 'a steady centre others orient around; warmth and vitality that bring a room to life; the capacity to be genuinely, generously oneself without needing to perform it',
+    gift: 'a steady centre to act from; warmth and vitality given freely to what it has committed to; the capacity to be oneself without performing it',
     shadow: 'pride, need for constant validation, inability to admit weakness or need'
   },
   Moon: {
     coreFunction: 'emotional instinct, subconscious habit, security needs, the mother, memory',
     drives: 'need for emotional safety, belonging, and nurturing connection',
-    gift: 'attunement that reads what a room needs before words; the capacity to make others feel safe and held; an emotional memory that keeps faith with the people it loves',
+    gift: 'attunement that registers what a situation needs before anything is said; the capacity to settle and to give shelter; an emotional memory that keeps faith with what it loves',
     shadow: 'emotional reactivity, clinging to the past, moodiness, irrational fear'
   },
   Mercury: {
     coreFunction: 'mind, communication, perception, reasoning, information processing',
     drives: 'need to understand, to exchange ideas, to make connections between concepts',
-    gift: 'quickness that connects what others keep separate; clarity that makes the complicated usable; genuine curiosity that makes people feel heard and understood',
+    gift: 'quickness that links ideas usually kept apart; clarity that makes the complicated usable; curiosity that stays with a question until it is understood',
     shadow: 'over-analysis, anxiety, scattered thinking, using intellect to avoid feeling'
   },
   Venus: {
     coreFunction: 'love, beauty, pleasure, values, attraction, harmony, relationship',
     drives: 'need for connection, beauty, sensory pleasure, and relational harmony',
-    gift: 'the capacity to draw people and beauty close; warmth that makes others feel valued and chosen; a sure eye for what is worth keeping and a real talent for pleasure',
+    gift: 'the capacity to draw what it values close; warmth offered with discernment; a sure eye for what is worth keeping and a talent for pleasure',
     shadow: 'vanity, dependency, prioritizing harmony over truth, inability to be alone'
   },
   Mars: {
     coreFunction: 'assertion, desire, drive, anger, courage, conflict, sexual energy',
     drives: 'need to act, to assert, to pursue desire, to overcome obstacles',
-    gift: 'the courage to act when others hesitate; energy that starts things and sees them through; a protective drive that will go to the wall for what and whom it loves',
+    gift: 'the courage to act while the outcome is still uncertain; energy that starts things and sees them through; a protective drive that goes to the wall for what and whom it loves',
     shadow: 'aggression, impulsivity, combativeness, inability to modulate anger'
   },
   Jupiter: {
     coreFunction: 'expansion, wisdom, philosophy, faith, abundance, growth, meaning',
     drives: 'need for meaning, growth, and connection to something larger than self',
-    gift: 'generosity of spirit and an eye for the larger picture; faith that lifts the people nearby; the instinct to grow and to make room for others to grow too',
+    gift: 'generosity of spirit and an eye for the larger picture; faith that holds when evidence is thin; the instinct to grow and to leave room for growth around it',
     shadow: 'excess, overconfidence, grandiosity, laziness through over-abundance'
   },
   Saturn: {
     coreFunction: 'structure, discipline, limitation, time, karma, responsibility, mastery',
     drives: 'need for security through earned achievement and demonstrated competence',
-    gift: 'the capacity to build what lasts; a reliability others quietly lean on; mastery earned slowly that hardens into genuine, unbluffable authority',
+    gift: 'the capacity to build what lasts; reliability that holds under load; mastery earned slowly into authority that cannot be bluffed',
     shadow: 'rigidity, chronic fear, self-limitation, emotional contraction, depression'
   },
   Uranus: {
     coreFunction: 'disruption, innovation, liberation, rebellion, sudden change, awakening',
     drives: 'need for radical freedom, authenticity, liberation from conventional constraint',
-    gift: 'originality that sees straight past the given; the nerve to be authentically different; a spark that frees others from assumptions they had stopped questioning',
+    gift: 'originality that sees past the given; the nerve to differ without apology; a readiness to question assumptions long left unexamined',
     shadow: 'chaos, instability, willful contrarianism, inability to commit'
   },
   Neptune: {
     coreFunction: 'dissolution, spirituality, imagination, compassion, illusion, transcendence',
     drives: 'need to transcend ego boundaries, to merge with something infinite',
-    gift: 'compassion that actually reaches people; imaginative and creative attunement; the capacity to sense what goes unspoken and to give it form',
+    gift: 'compassion that reaches its object; imaginative and creative attunement; the capacity to sense what goes unspoken and to give it form',
     shadow: 'delusion, escapism, addiction, victim patterns, losing self in others'
   },
   Pluto: {
     coreFunction: 'transformation, power, depth, destruction and rebirth, the unconscious',
     drives: 'need for total transformation, power, and truth at any cost',
-    gift: 'depth that does not flinch from the real; the power to regenerate after loss; the capacity to transform oneself and to hold others through their own undoing',
+    gift: 'depth that does not flinch from what is there; the power to regenerate after loss; the capacity to transform oneself and to stay present through an undoing',
     shadow: 'obsession, control, destructive rage, psychological manipulation'
   },
   Rahu: {
     coreFunction: 'desire, obsession, karmic hunger, the direction of soul evolution, ambition',
     drives: 'karmic hunger for the sign/house qualities — what the soul is moving toward in this life',
-    gift: 'hunger that drives real growth into unfamiliar territory; the nerve to want openly and to reach beyond what was inherited',
+    gift: 'appetite that drives growth into unfamiliar territory; the nerve to want openly and to reach beyond what was inherited',
     shadow: 'insatiable craving, illusion, overreach, inflation in pursuit of the new'
   },
   Ketu: {
     coreFunction: 'release, detachment, past-life mastery, liberation, dissolution of ego',
     drives: 'karmic release — moving away from the sign/house qualities that have been over-developed',
-    gift: 'innate mastery that needs no proving; the capacity to let go cleanly and to see through to essence; wisdom that arrives without effort',
+    gift: 'competence so practised it needs no proving; the capacity to let go cleanly and to see what is not needed',
     shadow: 'disconnection, inability to fully engage, self-undoing through detachment'
   }
 }

@@ -521,6 +521,10 @@ const GENERATION_HARD_DEADLINE_MS = 112_000
           // First pass.
           let { text: firstText, message: firstMessage } = await generate('generate', undefined, streamLive)
           let truncated = firstMessage.stop_reason === 'max_tokens'
+          // No prose at all (the token budget went on thinking, or the model
+          // returned nothing). Served as-is this was a blank section stored
+          // nowhere; as a failure the client retries it once.
+          if (!firstText.trim()) throw new Error(`empty generation (stop=${firstMessage.stop_reason})`)
 
           // ── DETERMINISTIC PRE-FLIGHT ─────────────────────────────────────
           // The reader has not seen a character yet, so a fault caught here is

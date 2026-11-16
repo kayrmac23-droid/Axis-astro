@@ -222,6 +222,21 @@ describe('/api/reading — spend, and what the cache keeps', () => {
     }
   })
 
+  it('an empty first pass is a retryable failure, never a blank section', async () => {
+    // The whole token budget can go on thinking. Served as-is this was an empty
+    // 200 that the client rendered as a blank section and never retried.
+    attempts = [{ text: '  ', stop: 'max_tokens' }]
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const { body } = await run('10.1.0.14')
+      expect(detectStreamError(body)).toMatchObject({ fatal: false, code: 'generation' })
+      expect(body).not.toContain('[AXIS_TRUNCATED]')
+      expect(cacheWrites).toEqual([])
+    } finally {
+      errors.mockRestore()
+    }
+  })
+
   it('a refused regeneration is not cached', async () => {
     attempts = [{ text: DOCTRINE }, { text: PROSE, stop: 'refusal' }]
     await run('10.1.0.13')

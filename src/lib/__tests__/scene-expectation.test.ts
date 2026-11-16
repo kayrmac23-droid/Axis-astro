@@ -92,7 +92,7 @@ describe('sceneClause — what the writer is told', () => {
   it('gives The Divergence a third-person moment built from plan aspects', () => {
     const c = sceneClause('third-person', 'synthesis')
     expect(c).toMatch(/third person/i)
-    expect(c).toMatch(/aspect the plan lists/)
+    expect(c).toMatch(/aspect listed in the plan/)
   })
 
   it('does not model the antithesis tic or long sentences it is sent beside', () => {

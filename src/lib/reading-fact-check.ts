@@ -170,6 +170,14 @@ function degreeFigures(text: string): { raw: string; value: number }[] {
 /** How close an aspect must be for a worded sub-degree claim to be supported. */
 const CLOSENESS_LIMIT_DEG = 1.5
 
+/**
+ * Figures that are the definition of an aspect or of the zodiac, never a
+ * measurement of this chart: a sextile is 60°, a square 90°, a sign spans 30°.
+ * "The square, a 90° angle" was a hard `unstated-degree`. None of these can be
+ * an orb, and none can be a position within a sign.
+ */
+const GEOMETRY_DEGREES = new Set([30, 60, 90, 120, 180, 360])
+
 /** Rounding slack when matching a prose figure to a context figure. */
 const DEGREE_TOLERANCE = 0.55
 
@@ -281,6 +289,7 @@ export function checkNumericFacts(text: string, chartContext: string): FactFindi
   for (const sentence of sentences(prose)) {
     // ── 1. Degree figures the context never states.
     for (const fig of degreeFigures(sentence)) {
+      if (GEOMETRY_DEGREES.has(fig.value)) continue
       if (!allowed.some(a => Math.abs(a - fig.value) <= DEGREE_TOLERANCE)) {
         out.push({
           check: 'unstated-degree',

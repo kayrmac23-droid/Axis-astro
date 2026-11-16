@@ -324,3 +324,17 @@ describe('checkExemplarBleed — the worked example\'s chart leaking into a read
     expect(checkExemplarBleed('### Mercury in Aries, House 12', '')).toEqual([])
   })
 })
+
+describe('geometry figures are not chart measurements', () => {
+  const ctx = 'Sun 14.2° Leo\n• Square Mars (3.6°, close)'
+  it.each([
+    'The square, a 90° angle, keeps the two at odds for you.',
+    'You sit opposite, 180 degrees away from that ease.',
+    'Each sign spans 30° and you feel the edge of it.',
+  ])('does not report %s', t => {
+    expect(checkNumericFacts(t, ctx).filter(f => f.check === 'unstated-degree')).toEqual([])
+  })
+  it('still reports an invented orb', () => {
+    expect(checkNumericFacts('Venus sits 9° from your Sun.', ctx).map(f => f.check)).toContain('unstated-degree')
+  })
+})
