@@ -836,3 +836,35 @@ describe('EVAL_SYSTEM_PROMPT — scale reachability', () => {
     expect(EVAL_SYSTEM_PROMPT).toMatch(/Do not reason about whether the section is ready to ship/)
   })
 })
+
+// The three contextual doctrine hits on fixtures/rater-bench, all false. Each
+// cost a regeneration; none ranks one frame beneath the other.
+describe('contextual hierarchy: sentence-bounded, frame names at 30 chars', () => {
+  it.each([
+    'the Sun in fall here means vitality and self-assertion run beneath their natural register',
+    'ruled in both by the same Mars whose own dignity shifts underneath it — detriment in Libra for the Tropical reading',
+    "asking a debility to carry Pluto's weight on top of its own. The Tropical account is the stronger of the two here",
+    'The identity is assertive. Underneath the table, the hands are still.',
+  ])('does not flag: %s', t => {
+    expect(detectContextualHierarchy(t)).toEqual([])
+  })
+
+  it.each([
+    ['the Sidereal chart is what sits underneath the constructed identity', 'underneath'],
+    ['what sits underneath the Tropical reading is the Sidereal one', 'underneath'],
+    ['the Tropical chart is the mask over a truer reading', 'the mask'],
+    ['the Sidereal placement is built on top of the Tropical one', 'on top of'],
+    ['the constructed self is only a layer over what lies beneath', 'beneath'],
+    ['beneath the persona, a different person waits', 'beneath'],
+  ])('still flags: %s', (t, term) => {
+    expect(detectContextualHierarchy(t)).toContain(term)
+  })
+
+  it('the frozen bench carries no contextual hierarchy hit', async () => {
+    const fs = await import('fs')
+    const dir = 'fixtures/rater-bench'
+    for (const f of fs.readdirSync(dir).filter(n => /^\d/.test(n))) {
+      expect(detectContextualHierarchy(fs.readFileSync(`${dir}/${f}`, 'utf8')), f).toEqual([])
+    }
+  })
+})

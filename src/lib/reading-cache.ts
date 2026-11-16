@@ -270,7 +270,9 @@ export async function getCachedReading(key: string): Promise<string | null> {
   const redis = getRedis()
   if (!redis) return null
   try {
-    return await redis.get<string>(key)
+    // Upstash deserialises JSON, so a row that is not a string is not a reading.
+    const row = await redis.get<unknown>(key)
+    return typeof row === 'string' && row.trim() ? row : null
   } catch (err) {
     console.error('Redis GET error:', err instanceof Error ? err.message : err)
     return null

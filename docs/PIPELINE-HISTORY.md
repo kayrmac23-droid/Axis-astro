@@ -223,3 +223,22 @@ An audit of `prompts.ts` against its own rule that the prompt must not demonstra
 - Synastry's depth requirements (every inter-aspect, natal context for both planets, composite, overlay, a scene) sit against 275–350-word bands. Synastry is not on the bench.
 - The cadence clause (~900 characters) is byte-identical in every section since v10.45, so the reason it lives in the uncached tail is gone. Moving it to the cached block saves little money and gives up the recency position.
 
+
+## 2026-11-16 — v10.53: audit of the reading libs (scans, context copy, route)
+
+Same PR as the prompt audit above. No paid run. The scan changes are measured on `fixtures/rater-bench` and on probe sentences; the context-copy change is unmeasured.
+
+- **Contextual hierarchy scan: 3 of 3 bench hits were false.** `sidereal/lagna` ("self-assertion run beneath their natural register": `self` matched a compound), `synthesis/agree` ("dignity shifts underneath it — detriment in Libra for the Tropical reading": a frame name 33 characters away, and The Divergence names a frame in nearly every sentence), `synthesis/diverge` ("…on top of its own. The Tropical account…": across a full stop). Each costs a regeneration, and an unclean regeneration leaves the section uncached. Production showed the same shape: `underneath` in `tropical/sun` and `synthesis/diverge` in both readings on record. The window is now sentence-bounded, `self` excludes compounds, and the two frame names use 30 characters (verify-thesis.sh's figure) while identity language keeps 60. One implementation, `contextualHierarchySpans`; the gate's repair targeting reads its offsets. **This narrows a doctrine scan. Kay should confirm it.** Recall given up: a ranking split across two sentences with no identity word in the second.
+- **Rule scan false positives**, each a hard finding (a paid regeneration): `greeting` had no word boundary, so a paragraph opening "High-stakes…", "His…", "Hidden…" or "Welcome attention…" matched; the bare-verb prescription patterns matched plain second-person description ("you start to notice", "the hours you work on your own", "you consider what you owe"); "you must have decided" and "you need to feel/know" (the Moon's instructed opening) matched. Bare verbs now match only as an imperative or after an advising modal. True positives are pinned beside each control.
+- **Fact check.** 30/60/90/120/180/360° are the geometry of an aspect or sign, never a measurement; "a 90° angle" was a hard `unstated-degree`.
+- **Context copy seeded what the rules ban.** The per-planet `gift` strings, injected into every planet section's STRENGTHS block, were written in the observer frame PART 5 #3 bans ("a steady centre others orient around", "makes others feel valued and chosen", "the courage to act when others hesitate") and carried six of the words `reading-thread.ts` lists as overused tics (genuine, real, chosen, quietly, hunger, actually). Ketu's said "see through to essence", an identity token for the hierarchy scan, and "wisdom that arrives without effort", which the Rahu/Ketu instruction forbids. Rewritten in the self frame. The exemplar's "connect what others keep separate" went with them.
+- **Empty first pass.** With thinking counted against `max_tokens`, a call can return no prose. The route served an empty 200 (plus the truncation marker), which the client rendered blank. It now throws to the retryable sentinel.
+- **Cache read** returns only a non-empty string (Upstash deserialises JSON).
+- `at stake` is on the thread's stock-phrase list and was in the Mars instruction and closer; reworded.
+- CLAUDE.md listed Tropical `key_aspects` before `rahu_ketu`; `NATAL_SECTION_ORDER` has them the other way.
+
+**Found and left alone:**
+- `countWords` counts `##` markers and spaced em dashes as words, about 2–3% on a dash-heavy section. The bands were measured with it, so changing it moves every length number.
+- `checkNumericFacts` accepts any figure within 0.55° of *any* degree in the context, and a context lists a dozen positions, so most invented small orbs pass. It is precise and has low recall by design.
+- The cache-regen call under `after()` is reserved against the call cap but does not re-read the budget first.
+- The offline gate (`reading-quality-gate.ts`) beyond the functions the live path imports, and `interpretation-engine.ts` beyond its injected copy, were not audited line by line.

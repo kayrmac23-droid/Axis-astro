@@ -91,12 +91,15 @@ export const HIERARCHY_CONTEXTUAL_TERMS = [
 // Identity / system tokens that turn a contextual term into a hierarchy claim.
 // `self` is word-bounded so "yourself", "themselves" and "itself" do not match —
 // without that, "you find yourself underneath a pile of it" reads as doctrine.
+// It also does not match a compound ("self-assertion", "self-doubt"): on the
+// frozen bench "self-assertion run beneath their natural register" was reported
+// as a depth-ranking of the self.
 export const HIERARCHY_IDENTITY_TOKENS = [
-  'constructed', 'identity', '\\bself\\b', 'tropical', 'sidereal',
+  'constructed', 'identity', '\\bself\\b(?!-)', 'tropical', 'sidereal',
   'performance', 'persona', 'essence', 'essential', 'incarnational',
 ] as const
 
-// Character window either side of a contextual term.
+// Character window either side of a contextual term, for IDENTITY language.
 //
 // Wider than the 30 in scripts/verify-thesis.sh, deliberately: that script scans
 // terse hand-authored UI copy, where the identity token and the depth term sit
@@ -106,27 +109,78 @@ export const HIERARCHY_IDENTITY_TOKENS = [
 //
 // It is not widened further, because the two error directions cost very
 // differently. A false NEGATIVE caches one doctrine-breaching section. A false
-// POSITIVE makes a section permanently uncacheable: a full model call on every
-// page load, forever, against the global daily cap — and it prevents nothing,
-// since this scan runs after the text has already streamed to the reader. When
-// in doubt, miss.
+// POSITIVE costs a regeneration, and a section whose regeneration trips again is
+// never cached: two model calls on every view. When in doubt, miss.
 export const HIERARCHY_PROXIMITY_CHARS = 60
 
-// True when `text` uses a contextual depth-ranking term adjacent to identity or
+// The window for the two FRAME names. Narrower, because The Divergence names a
+// frame in nearly every sentence: at 60, "Mars whose own dignity shifts
+// underneath it — detriment in Libra for the Tropical reading" was a hit. A
+// ranking of the frames puts the frame name beside the depth word ("underneath
+// the Tropical", "the Sidereal chart is the mask"); 30 matches verify-thesis.sh.
+export const HIERARCHY_SYSTEM_PROXIMITY_CHARS = 30
+const SYSTEM_TOKEN_RE = /^(?:tropical|sidereal)$/i
+
+export interface HierarchySpan { term: string; start: number; end: number }
+
+// Every occurrence of a contextual depth-ranking term that sits, IN THE SAME
+// SENTENCE, within the window of identity or system language. Sentence-bounded
+// because a claim is made by a sentence: "…carry Pluto's weight on top of its
+// own. The Tropical account is…" is two unrelated statements, and was a hit.
+// All three contextual hits on fixtures/rater-bench were of these kinds.
+//
+// The one implementation of the window. detectContextualHierarchy reports the
+// terms; the gate's surgical repair uses the offsets, so the two cannot measure
+// it differently (they once did, and the repair threw — production 2026-11-07).
+export function contextualHierarchySpans(text: string): HierarchySpan[] {
+  const hay = text.toLowerCase()
+  const identRe = new RegExp(HIERARCHY_IDENTITY_TOKENS.join('|'), 'gi')
+  const spans: HierarchySpan[] = []
+  for (const term of HIERARCHY_CONTEXTUAL_TERMS) {
+    let from = 0
+    for (;;) {
+      const start = hay.indexOf(term, from)
+      if (start < 0) break
+      const end = start + term.length
+      from = end
+      // The sentence this occurrence sits in. A spaced em dash is treated as a
+      // clause break, like a semicolon.
+      let lo = start
+      while (lo > 0 && !isSentenceBreak(hay, lo - 1)) lo--
+      let hi = end
+      while (hi < hay.length && !isSentenceBreak(hay, hi)) hi++
+      const sentence = hay.slice(lo, hi)
+      identRe.lastIndex = 0
+      let m: RegExpExecArray | null
+      let hit = false
+      while (!hit && (m = identRe.exec(sentence)) !== null) {
+        if (m[0].length === 0) { identRe.lastIndex++; continue }
+        const tokStart = lo + m.index
+        const tokEnd   = tokStart + m[0].length
+        const gap = tokEnd <= start ? start - tokEnd : tokStart >= end ? tokStart - end : 0
+        const limit = SYSTEM_TOKEN_RE.test(m[0]) ? HIERARCHY_SYSTEM_PROXIMITY_CHARS : HIERARCHY_PROXIMITY_CHARS
+        if (gap <= limit) hit = true
+      }
+      if (hit) spans.push({ term, start, end })
+    }
+  }
+  return spans.sort((x, y) => x.start - y.start)
+}
+
+function isSentenceBreak(hay: string, i: number): boolean {
+  const c = hay[i]
+  if (c === '\n' || c === '!' || c === '?' || c === ';') return true
+  // A full stop ends a sentence unless it is a decimal point ("3.6°").
+  if (c === '.') return !(/\d/.test(hay[i - 1] ?? '') && /\d/.test(hay[i + 1] ?? ''))
+  return c === '—' && hay[i - 1] === ' ' && hay[i + 1] === ' '
+}
+
+// True when `text` uses a contextual depth-ranking term beside identity or
 // system language. Shared by the live route scan and the doctrine parity tests so
 // prompt, source checker and runtime cannot drift. Returns the terms that hit.
 export function detectContextualHierarchy(text: string): string[] {
-  const hay   = text.toLowerCase()
-  const ident = HIERARCHY_IDENTITY_TOKENS.join('|')
-  const gap   = HIERARCHY_PROXIMITY_CHARS
-  const hits: string[] = []
-  for (const term of HIERARCHY_CONTEXTUAL_TERMS) {
-    const t = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    const before = new RegExp(`(?:${ident})[\\s\\S]{0,${gap}}${t}`, 'i')
-    const after  = new RegExp(`${t}[\\s\\S]{0,${gap}}(?:${ident})`, 'i')
-    if (before.test(hay) || after.test(hay)) hits.push(term)
-  }
-  return hits
+  const hit = new Set(contextualHierarchySpans(text).map(s => s.term))
+  return HIERARCHY_CONTEXTUAL_TERMS.filter(t => hit.has(t))
 }
 
 // Rescue-clause phrasings — the SECOND banned rescue move (ease → hidden strength).
@@ -259,7 +313,7 @@ export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
     moon:    'a misreading — something this person believes about their own emotional nature that the chart shows differently (a capacity they discount as readily as a need they misname), named through the situation in which the gap shows.',
     mercury: 'the condition — the kind of exchange or problem in which this cognitive style works best and the kind in which it fails, as two concrete situations.',
     venus:   'the repeat — the relational sequence most likely to recur, told as a sequence: what starts it, what the person does, where it leaves them.',
-    mars:    'practice — what this drive does when something is at stake, followed through to its outcome, in the present tense.',
+    mars:    'practice — what this drive does once something matters enough to act on, followed through to its outcome, in the present tense.',
   },
   sidereal: {
     sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
@@ -730,7 +784,7 @@ and the speed is real; what is thin is any sense that you were entitled to start
 The twelfth house means most of this happens before anyone else is in the room.
 You draft the argument on the walk, at two in the morning, and the version people
 hear is the fourth draft delivered as though it were the first. That private
-quickness genuinely does connect what others keep separate, and it does the
+quickness genuinely does connect what is usually kept separate, and it does the
 connecting where nobody can check it. Under pressure the privacy closes into a
 loop: you answer the conversation you rehearsed instead of the one you are in,
 and you register the mismatch a beat too late to correct it.
@@ -1587,7 +1641,7 @@ Start with: ## Mars → then ### Mars in [Sign], House [N] → ### Aspects.
 
 ${openingClause('tropical', 'mars')}
 
-Cover sign, house, dignity, the condition of Mars's sign ruler, and the aspects Mars receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this person moves when something is at stake, what happens in their body and behaviour when frustrated, and how they pursue what they want.
+Cover sign, house, dignity, the condition of Mars's sign ruler, and the aspects Mars receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this person moves when something matters to them, what happens in their body and behaviour when frustrated, and how they pursue what they want.
 
 Cross-reference the Moon explicitly: state the Mars impulse and then state whether the Moon's sign and house allow it to complete, override it, or create an internal conflict. Never describe Mars behaviour as the full picture without accounting for what the Moon is doing. The tension between Mars's instinct and the Moon's emotional reality is often more accurate than either stated alone.
 

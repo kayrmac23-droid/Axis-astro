@@ -139,15 +139,26 @@ const RELATIVISED_YOU = String.raw`(?<!\b${RELATIVE_HEADS}\s+)`
 // "you should have a plan" — should + have-as-possession — is still caught.
 const COUNTERFACTUAL_HAVE = String.raw`(?!\s+have\s+(?:been|done|made|said|known|seen|told|gone|taken|given|had|felt|kept|left|let|put|thought|got|gotten|chosen|spoken|heard|meant|won|lost|\w+ed)\b)`
 
+// A bare verb is a prescription only as an IMPERATIVE or under an advising
+// modal. A reading written in the second-person present is full of the same
+// verbs as plain description — "only hours later do you start to notice", "the
+// hours you work on your own", "before you answer, you consider what you owe" —
+// and each of those was a hard finding, i.e. a paid regeneration. So the three
+// bare-verb patterns below match only at the head of a sentence or clause, or
+// directly after could/might/should/must/may.
+const IMPERATIVE_POSITION = String.raw`(?:(?<=^\s*|[.!?;:—]\s+)|(?<=\b(?:could|might|should|must|may)\s+))`
+
 const PRESCRIPTION_RES: readonly RegExp[] = [
   new RegExp(String.raw`\byou (?:should|ought to)\b` + COUNTERFACTUAL_HAVE, 'gi'),
-  new RegExp(SUBORDINATED_YOU + RELATIVISED_YOU + String.raw`\byou (?:need to|must|have to)\b`, 'gi'),
+  // "you need to feel/know/hear/sense …" states a NEED, which the Moon section
+  // is instructed to open on; "you must have" is an inference about the past.
+  new RegExp(SUBORDINATED_YOU + RELATIVISED_YOU + String.raw`\byou (?:need to(?! (?:feel|know|hear|sense)\b)|must(?! have\b)|have to)\b`, 'gi'),
   /\byou(?:'| a)?r?e? (?:better off|best served)\b/gi,
-  /\b(?:try|work|focus|start|stop|learn) to (?:notice|see|accept|let go)\b/gi,
+  new RegExp(IMPERATIVE_POSITION + String.raw`(?:try|work|focus|start|stop|learn) to (?:notice|see|accept|let go)\b`, 'gi'),
   /\byou (?:might|may|could) (?:want|wish) to\b/gi,
-  /\bwork on (?:your|this|that|it)\b/gi,
+  new RegExp(IMPERATIVE_POSITION + String.raw`work on (?:your|this|that|it)\b`, 'gi'),
   /\bthe (?:work|task|invitation) here is to\b/gi,
-  /\bconsider (?:whether|how|what) you\b/gi,
+  new RegExp(IMPERATIVE_POSITION + String.raw`consider (?:whether|how|what) you\b`, 'gi'),
 ]
 
 // ── 2. Predictions ───────────────────────────────────────────────────────────
@@ -212,7 +223,10 @@ const SUMMARY_HEADING_RE =
 
 // ── 5. Greetings and sign-offs ───────────────────────────────────────────────
 // "No greetings, no sign-offs. Open mid-thought."
-const GREETING_RE = /^(?:hello|hi|welcome|greetings|dear\b)/i
+// Whole words, in a greeting's own shape. The first version had no word
+// boundary, so any paragraph opening "High-stakes…", "His…", "Hidden…" or
+// "Welcome attention…" was a hard `greeting`.
+const GREETING_RE = /^(?:(?:hello|hi|hey|greetings)\b(?=[,!.]|\s+(?:there|and|again)\b|$)|welcome\b(?=[,!.]|\s+(?:to|back)\b|$)|dear\s+(?:reader|friend|[A-Z]))/
 const SIGNOFF_RES: readonly RegExp[] = [
   /\b(?:in closing|to sum up|to summarise|to summarize|in conclusion|all in all)\b/gi,
   /\bI hope (?:this|these)\b/gi,
@@ -508,7 +522,7 @@ export function scanSectionRules(text: string, opts: RuleScanOptions = {}): Rule
         push('american-spelling', 'hard', `${m} → ${british}`, line)
 
     if (BULLET_RE.test(raw)) push('bullet-list', 'hard', raw, line)
-    if (GREETING_RE.test(raw.trim())) push('greeting', 'hard', raw, line)
+    if (GREETING_RE.test(raw.trim().replace(/^[A-Z]/, c => c.toLowerCase()))) push('greeting', 'hard', raw, line)
 
     for (const re of SIGNOFF_RES)
       for (const m of allMatches(raw, re)) push('sign-off', 'hard', m, line)
