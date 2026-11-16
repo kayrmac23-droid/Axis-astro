@@ -19,6 +19,7 @@ import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
 import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
 import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
+import { sectionLocked, PAYWALL_HEADER, PAYWALL_STATUS } from '@/lib/paywall'
 import {
   parseThreadId, loadPriorSections, storeThreadSection, priorDigest, type ThreadScope, type PriorSection,
 } from '@/lib/reading-thread'
@@ -191,6 +192,18 @@ const GENERATION_HARD_DEADLINE_MS = 112_000
     }
     if (!VALID_PLANET_SECTIONS[section].has(planetSection)) {
       return NextResponse.json({ error: 'Invalid planetSection for this section' }, { status: 400 })
+    }
+
+    // ── Paywall (off unless AXIS_PAYWALL_ENABLED=true) ─────────────────────────
+    // Ahead of the thread load and the cache check on purpose: the cache is
+    // keyed on birth data, so a hit would otherwise hand a locked section to
+    // anyone who sent the same birth data (DOCTRINE.md: cache-as-paywall).
+    if (sectionLocked(section, planetSection)) {
+      console.log(`[AXIS_PAYWALL] locked section=${section}/${planetSection}`)
+      return NextResponse.json(
+        { error: 'PAYWALL', message: 'This section is part of the full dossier.' },
+        { status: PAYWALL_STATUS, headers: { [PAYWALL_HEADER]: 'locked' } }
+      )
     }
 
     // ── Validate birth data ────────────────────────────────────────────────────

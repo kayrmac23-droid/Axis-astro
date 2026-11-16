@@ -30,6 +30,7 @@ Read in code; grep `process.env` to confirm. Integer vars go through `intEnv` (`
 | `ANTHROPIC_API_KEY` | Required. Placeholder values from the docs are rejected as missing. |
 | `UPSTASH_REDIS_REST_URL`/`_TOKEN` or `KV_REST_API_URL`/`_TOKEN` | Cache, rate limits, reading thread. In-memory / no-op fallback when absent. |
 | `AXIS_READINGS_ENABLED=false` | Kill switch for all AI reading generation. |
+| `AXIS_PAYWALL_ENABLED=true` | Locks every natal section after `FREE_SECTIONS` (`lib/paywall.ts`). Off by default. **No purchase path exists**, so nothing unlocks them. |
 | `AXIS_PREFLIGHT_ENABLED=true` | Hot-path deterministic pre-flight. Off by default (it forces buffering). |
 | `AXIS_LEAN_RULES=true` | Swaps in `SHARED_RULES_LEAN`. **Experiment only**; never in production without a measurement and a version bump. |
 | `AXIS_DAILY_READING_CALL_CAP` | Global daily model-call cap, default 2000, per Australia/Melbourne day, keyed by `VERCEL_ENV`. |
@@ -63,6 +64,7 @@ All routes parse bodies through `lib/request-security.ts` (16 KB cap, content-ty
 ### Request order in `/api/reading`
 
 1. Validate section/planetSection against allow-lists; parse birth data; **recompute the chart server-side**. The only client-supplied position is the Pluto hint (longitude + source), range- and enum-checked, and folded into the cache key so a bad hint can only poison its own row.
+   Then the paywall: a locked section returns 402 + `X-Axis-Paywall: locked` **before the thread load and the cache check** — the cache is keyed on birth data, so a hit would serve a paid section to anyone. The free tier must stay a prefix of `NATAL_SECTION_ORDER`. `ReadingPanel` treats the header as an ending, not an error: it stops the run and renders the wall.
 2. Load the reading thread (earlier sections) — it is part of the cache key.
 3. Unknown birth time + `ascendant`/`lagna` → return the deterministic notice (`lib/unknown-time-notice.ts`). No model call.
 4. Cache check. A hit is free and bypasses every limit.
@@ -108,7 +110,7 @@ A section **streams** token by token unless something will inspect it before the
 
 ### Logs
 
-One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason, `ms`), `[AXIS_CACHE]` (what the cache kept, and why), `[AXIS_GATE]` (eval runs only: outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_QUOTA]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
+One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/write, stop reason, `ms`), `[AXIS_CACHE]` (what the cache kept, and why), `[AXIS_GATE]` (eval runs only: outcome + scores; on a failed repair these are the re-score's), `[AXIS_LEN]` (generated words vs band), `[AXIS_RULES]`, `[AXIS_FACTS]`, `[AXIS_PREFLIGHT]`, `[AXIS_QUOTA]`, `[AXIS_PAYWALL]`, `[AXIS_GEN_FAIL]`, `[AXIS_DOCTRINE_UNCACHED]`.
 
 ## Prompts (`lib/prompts.ts`)
 
@@ -185,7 +187,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 |---|---|
 | Prompts | `reading-review-fixes`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
 | The gate (offline) | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
-| The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity` |
+| The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity`, `paywall` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |
 | Calculation | `astro-calc` (pinned to JPL reference values), `pluto-source`, `interpretation-engine`, `synastry-calc`, `tz`, `readout` |
 | Security / limits | `security-hardening`, `api-routes`, `route-rate-limiter` |
