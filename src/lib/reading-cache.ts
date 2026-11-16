@@ -125,7 +125,12 @@ import type { BirthData } from '@/lib/astro-calc'
 // landing 10–13 of 21 sections over it); PART 4's prediction ban adds the
 // habitual present; the central tension is told to write its two pulls as
 // prose. Not yet measured on a paid run — see docs/PIPELINE-HISTORY.md.
-export const READING_PROMPT_VERSION = 'v10.52'
+// v10.53: prompt audit. The prompt stops demonstrating what its scans reject
+// (the Tropical frame's "mask" line, "the plan allocates/lists/ranks", the Mars
+// closers' "the next time"); the aspect length clause no longer contradicts the
+// secondaries' orb weighting; unknown-birth-time charts get a clause overriding
+// house-based headings and modes. Unmeasured — see docs/PIPELINE-HISTORY.md.
+export const READING_PROMPT_VERSION = 'v10.53'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

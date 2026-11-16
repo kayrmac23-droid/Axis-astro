@@ -201,3 +201,25 @@ Not changed, deliberately: The Divergence's third-person register (a product dec
 - **Length:** 6 of 21 over the band ceiling, all within 9% and none past the hard cap; 12,557 words. Same chart on Sonnet (2026-11-10): 4 over, one past the hard cap. Not like-for-like with Chicago's 10 of 21, so the length-clause change is supported, not proven.
 - **Seconds per section:** 6–44; Sun 44, Moon 40, `diverge` 34. Longest invocation was Sun at 86s including its cache regeneration, inside the 120s limit.
 - **Upstream 503s.** Seven generation calls failed in 2–5s with `503 credential validation failed` or an empty 503, in two bursts. Moon and Ascendant failed both client attempts and the run went on without them, so 18 later sections were written with neither in the thread; the reader retried them by hand afterwards. v10.52 had cut SDK retries from two to one, which made this worse. Now three.
+
+## 2026-11-16 — v10.53: prompt audit (unmeasured)
+
+An audit of `prompts.ts` against its own rule that the prompt must not demonstrate what it bans. Every change below is wording; no rule, band or scan changed. **No paid run was made.** Verify with one generate-only Chicago run plus `unknown-time-glasgow-1996` before trusting any of it.
+
+- **The uncached tail was demonstrating scan hits.** The `agree` instruction read "If the plan allocates little… Where it allocates nothing" while `BANNED_META_PHRASINGS` carried `the plan allocates` because a reader had been shown exactly that sentence (2026-11-10). `diverge` said "If the plan lists none", the Divergence frame "a divergence the plan ranks", and both Divergence scene clauses "the plan lists". All reworded. The `diverge` fallback also told the model to *say* that every ranked divergence had been worked, which is narration of the plan; it now adds nothing.
+- **Tropical frame prompt.** `This is not the "mask."` is gone. It named the mask beside "identity" in the cached prefix of nine sections, and `tropical/sun` is one of the two sections that failed the doctrine scan in both production readings on record. Not shown to be the cause; it is the nearest demonstration. PART 4's own "let it work underneath later observations" was reworded for the same reason.
+- **Mars closers.** Both said "the next time" something is at stake. `sidereal/mars` shipped a prediction on its first pass and a prescription on its regeneration in the 2026-11-13 reading. They now say "when"/"whenever … in the present tense". `tropical/ascendant` also predicted in that reading and nothing in its instruction explains it.
+- **Length clause contradicted the secondaries.** The aspect-scaled clause said "working each aspect once to its own dynamic" directly after the Mercury/Venus/Mars instruction said to work the tightest and give each remaining one a single clause. It now defers to the instruction. The Ascendant's "rather than wrapping early. Reach the length through substance" duplicated the length clause and pushed the same way as the wording v10.52 removed; cut.
+- **Unknown birth time.** The natal heading plans ("### Mercury in [Sign], House [N]", "### Sun in the [House] House") and seven opening/closing modes (lordship, drishti cast onto houses, dasha) ask for what the context omits and PART 2 forbids when the time is unknown, from the position nearest the generation. `renderSectionInstruction` now appends `UNKNOWN_TIME_CLAUSE` for those charts.
+- **Dead references.** `tension` cited "PART 8: no lists" (the ban is in PART 4); the cadence clause and the synastry voice rule cited `SHARED_RULES`, an identifier the model never sees.
+- **Antithesis in the instructions' own voice.** `detectAntithesisTic` found three (Ascendant, composite, navigation); Venus had two the detector does not match. Reworded.
+- **Guard.** `prompt-self-consistency.test.ts` extends the SHARED_RULES-only guards to the frame prompts, every rendered section instruction and the scene clauses.
+- **Comments.** Five blocks still said the banned lists are interpolated into the prompt; they have not been since v10.40.
+
+**Found and left alone, each needing a measurement or a ruling:**
+- PRIORITY 2 says *every* pattern is shown in a moment addressed to "you"; PART 1 and the scene clause require one only where a trigger exists, and The Divergence is third person.
+- PART 4 asks for hedged behavioural claims ("tends to"); PART 1 and the exemplar write the moment categorically.
+- The secondaries are told to work only the tightest aspect in full; the exemplar works both close ones.
+- Synastry's depth requirements (every inter-aspect, natal context for both planets, composite, overlay, a scene) sit against 275–350-word bands. Synastry is not on the bench.
+- The cadence clause (~900 characters) is byte-identical in every section since v10.45, so the reason it lives in the uncached tail is gone. Moving it to the cached block saves little money and gives up the recency position.
+

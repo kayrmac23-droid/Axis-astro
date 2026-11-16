@@ -94,7 +94,9 @@ export function buildSectionRequest(
   const aspectCount   = countAspectsInContext(contextBlock)
   const evidenceCount = countPlanEvidence(contextBlock, planetSection) ?? undefined
   const band          = wordBandFor(section, planetSection, aspectCount, evidenceCount)
-  const sectionInstruction = renderSectionInstruction(section, planetSection, { aspectCount, evidenceCount })!
+  const sectionInstruction = renderSectionInstruction(section, planetSection, {
+    aspectCount, evidenceCount, birthTimeUnknown: dual.birthData.birthTimeUnknown === true,
+  })!
   // Whether this section's evidence names a trigger PART 1's moment can be
   // built from. Stated beside the instruction, in the uncached tail, because
   // the nearer instruction is the one this model follows; the evaluator

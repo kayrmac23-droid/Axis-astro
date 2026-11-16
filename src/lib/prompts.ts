@@ -1,5 +1,6 @@
 // lib/prompts.ts
-// AXIS Production System Prompts v10.49
+// AXIS production system prompts. The version is READING_PROMPT_VERSION in
+// lib/reading-cache.ts; it is not restated here.
 // Architecture:
 //   1. SHARED_RULES  — voice, constraints, astrological knowledge base (shared by all)
 //   2. System prompts — one each for Tropical, Sidereal, The Divergence (establishes reading mode)
@@ -20,9 +21,10 @@
 
 // Barnum / universal-endorsement phrasings the FALSIFIABILITY rule bans. These
 // land on almost every reader regardless of chart, so they do comfort work, not
-// astrological work. Single source of truth: the prompt below interpolates this
-// list into its banned-as-written line, and the reading quality gate's
-// `falsifiability` criterion imports the same list so the two can never drift.
+// astrological work. The list is for the offline gate's `falsifiability`
+// criterion only. It is NOT rendered into the generation prompt (v10.40: a
+// quoted phrase in the prompt teaches the phrase); the prompt states the general
+// form and a positive example.
 export const BANNED_BARNUM_PHRASINGS = [
   'you feel most like yourself when things are in proportion, when the exchange is mutual',
   'the sense of self can go with it when the relational field is unclear',
@@ -37,16 +39,16 @@ export const BANNED_BARNUM_LIST = BANNED_BARNUM_PHRASINGS.map(p => `"${p}"`).joi
 // Resolution-by-hierarchy phrasings — the THIRD banned rescue move. These resolve
 // the Tropical/Sidereal divergence by depth-ranking the two systems, positioning
 // one as more true, deeper, or more essential than the other. That is a hierarchy,
-// not the simultaneous holding THE LAW requires. Single source of truth: the
-// sidereal/synthesis prompts interpolate this into their banned-as-written line and
-// the reading quality gate imports the same list, so prompt and gate cannot drift.
+// not the simultaneous holding THE LAW requires. Scanned by detectBannedPhrasings
+// (the post-stream cache scan and the offline gate). NOT rendered into the
+// generation prompt since v10.40.
 // These are LITERAL bans: every entry is a construction with no innocent use in a
 // reading, so a bare case-insensitive substring match is a safe signal.
 //
 // Deliberately NOT here: bare "underneath", bare "beneath", and bare "the mask".
 // Those are ordinary English that a reading uses innocently all the time ("the
-// warmth shuts off on the surface while the attachment continues underneath" is
-// AXIS's own Leo copy, three hundred lines below). Banning them literally made
+// warmth shuts off on the surface while the attachment continues underneath").
+// Banning them literally made
 // every section containing the word permanently uncacheable — a pure cost with no
 // doctrinal benefit, since the runtime scan happens after the text has already
 // streamed to the reader. They now live in HIERARCHY_CONTEXTUAL_TERMS and are
@@ -131,9 +133,8 @@ export function detectContextualHierarchy(text: string): string[] {
 // A trailing value-assertion appended to a placement description that adds no
 // astrological information, only reassurance: delete the clause and the chart claim
 // is untouched. Sycophantic padding aimed at strengths and soft aspects, the mirror
-// of the difficulty → gift compensation UNCOMPENSATED CONSTRAINT already bans. Single
-// source of truth: the shared rules interpolate this list and the reading quality
-// gate scans for it, so prompt and gate cannot drift.
+// of the difficulty → gift compensation PART 3 (a) already bans. Scanned by
+// detectBannedPhrasings; NOT rendered into the generation prompt since v10.40.
 // Curated for precision: every entry is a trailing-reassurance frame that is
 // almost never a load-bearing mechanism, so the gate can hard-fail on a literal
 // match without spuriously catching legitimate prose (e.g. a bare "goes
@@ -159,8 +160,10 @@ export const BANNED_RESCUE_LIST = BANNED_RESCUE_PHRASINGS.map(p => `"${p}"`).joi
 // ("the cost is real rather than a secretly deeper form of love", "these are not
 // mask and face"). The reader has never seen the rules, so each of these reads
 // as the prose arguing with an invisible critic. Every entry is a rule-echo with
-// no use in a reading. Single source of truth: SHARED_RULES interpolates the
-// list and the gate's doctrine scan matches it, so prompt and gate cannot drift.
+// no use in a reading. Scanned by detectBannedPhrasings; NOT rendered into the
+// generation prompt. ⚠ The prompt's own wording must not use these collocations
+// either: "the plan allocates nothing" reached a reader while the `agree`
+// instruction itself said "If the plan allocates little" (fixed v10.53).
 export const BANNED_META_PHRASINGS = [
   'not mask and face',
   'a secretly deeper',
@@ -256,14 +259,14 @@ export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
     moon:    'a misreading — something this person believes about their own emotional nature that the chart shows differently (a capacity they discount as readily as a need they misname), named through the situation in which the gap shows.',
     mercury: 'the condition — the kind of exchange or problem in which this cognitive style works best and the kind in which it fails, as two concrete situations.',
     venus:   'the repeat — the relational sequence most likely to recur, told as a sequence: what starts it, what the person does, where it leaves them.',
-    mars:    'practice — what this drive does the next time something is at stake, followed through to its outcome.',
+    mars:    'practice — what this drive does when something is at stake, followed through to its outcome, in the present tense.',
   },
   sidereal: {
     sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
     moon:    "the nakshatra — its instinct named as the condition under which the Moon's emotional pattern surfaces.",
     mercury: "the drishti — how the graha relationships Mercury receives or casts shape where its thinking is tested; if it has none, what working unaspected means for it in this frame.",
     venus:   'lordship — the houses Venus rules from the Lagna and what valuing them costs or gives in a concrete situation.',
-    mars:    "sign status — what Mars's Jyotish sign status means functionally the next time this drive is called on.",
+    mars:    "sign status — what Mars's Jyotish sign status means functionally whenever this drive is called on, in the present tense.",
   },
 }
 
@@ -292,9 +295,9 @@ function closingClause(frame: NatalFrame, planet: PersonalPlanetSection): string
 // The existential opener every personal-planet section converged on. Matched
 // ONLY against a section's first sentence (headings stripped): "There is a"
 // mid-paragraph is ordinary English and stays legal. Each entry pairs the
-// pattern the gate scans with the example the prompt states, so the rendered
-// ban and the scan cannot drift (the parity test matches every example against
-// its own pattern).
+// pattern the gate scans with an example of it (the parity test matches every
+// example against its own pattern). The examples are for the gate's critique;
+// the generation prompt does not quote them (v10.40).
 export const BANNED_OPENER_PATTERNS: readonly { pattern: RegExp; example: string }[] = [
   { pattern: /^there(?:\s+is|['’]s)\s+an?\s+(?:specific|particular|certain|distinct|distinctive|peculiar)\b/i, example: 'There is a particular…' },
   { pattern: /^there(?:\s+is|['’]s)\s+an?\s+(?:kind|sort|type|way|quality|texture|mode)\s+of\b/i,             example: 'There is a kind of…' },
@@ -419,6 +422,7 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 
 // LOWEST in that class (303/356 tropical, 297/367 sidereal — both frames landing
 // near 330 at BASELINE aspect count, which is why one band now serves both).
 //
+// (Figures in this note predate the v10.49 ×1.2 raise; the reasoning stands.)
 // The target is 440, not that 330. Backing the allowance out of an observation
 // gives what a section would need at BASELINE aspect count — the right input for a
 // band that keeps scaling, since the scaling then adds the rest back. This band
@@ -430,7 +434,7 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 
 // 303 and 356 words, 5 aspects produced 297 and 367. Left in the secondary band
 // after that band rose 1.69x, the allowance pushed its scaled FLOOR to 467 words
 // against an observed 415 — a floor above what the section has to say, which is
-// precisely the "a floor is an instruction to pad" failure the v10.30 note below
+// precisely the "a floor is an instruction to pad" failure the v10.30 note above
 // warns about. Granting it nothing is what the evidence supports.
 const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
@@ -556,7 +560,7 @@ export function countPlanEvidence(chartContext: string, planetSection: string): 
 // drift is not cosmetic: on roughly half of all sections the model was told a
 // target that scores 3/5 on the gate's own `length` criterion rather than 5/5
 // (tropical Venus on a 7-aspect chart: instruction "target 350, range 300–400",
-// gate band 450–700), and with MIN_PASS_AVERAGE at 3.75 across ten criteria a
+// gate band 450–700), and with MIN_PASS_AVERAGE then at 3.75 across ten criteria a
 // baked-in 3 forces the other nine to carry it — a repair tax the pipeline
 // created for itself and then paid for in Opus calls.
 //
@@ -576,15 +580,15 @@ export function lengthClause(band: WordBand): string {
   // landed over fullMax, most by under 10%. The scoring is unchanged.
   let s = `Target ${band.target} words. Acceptable range ${band.fullMin}–${band.fullMax}; ${band.fullMax} is the ceiling. Aim at the target: once the draft is there, finish the thought in hand and end the section. Below ${band.hardMin} means required material was thinned or skipped, so go deeper. A section over ${band.fullMax} has kept a paragraph the reader did not need (PROSE FAILURE MODES: cadence, repetition); cut it before you finish. Reach the target through substance, never padding.`
   if (band.evidenceAllowance != null) {
-    s += ` These numbers are already scaled to what THIS chart's plan actually allocated to this section (the baseline is about ${band.evidenceBaseline} items), down as well as up — a quiet plan legitimately yields a shorter section and that is NOT a length failure. The quality gate scores you against exactly these numbers. Write what the evidence supports and stop; never pad to reach a number.`
+    s += ` These numbers are already scaled to how much evidence THIS chart gives this section (the baseline is about ${band.evidenceBaseline} items), down as well as up — a quiet plan legitimately yields a shorter section and that is NOT a length failure. The quality gate scores you against exactly these numbers. Write what the evidence supports and stop; never pad to reach a number.`
   }
   if (band.aspectAllowance != null) {
-    s += ` These numbers are already scaled UP to how many major aspects this placement actually carries (the baseline is about ${band.aspectBaseline}), because a densely aspected placement needs the room. The quality gate scores you against exactly these numbers. Reach them by working each aspect once to its own dynamic — never by repetition or padding. The ceiling above already includes that room.`
+    s += ` These numbers are already scaled UP to how many major aspects this placement actually carries (the baseline is about ${band.aspectBaseline}), because a densely aspected placement needs the room. The quality gate scores you against exactly these numbers. Reach them through the aspects this instruction has you work in full, each worked once — never by repetition or padding. The ceiling above already includes that room.`
   }
   return s
 }
 
-// ── THE ANTITHESIS CAP, SCALED BY BAND LENGTH ────────────────────────────────
+// ── THE ANTITHESIS LIMIT (a density, not a per-section cap) ──────────────────
 //
 // The contrastive construction ("X rather than Y", "not X but Y", "less a X
 // than Y") is the house tic: measured at 141 occurrences across the 63 sections
@@ -623,7 +627,7 @@ export function antithesisClause(): string {
   // this prompt, example outranks rule, twice measured. A clause that modelled
   // the tic while capping it would teach the tic.
   // reading-review-fixes.test.ts fails the build if a bare one reappears here.
-  return `CADENCE ALLOWANCE: the contrastive construction — "X rather than Y", and its variants "not X but Y", "less a X than Y", "X, not Y" as a standalone contrast — is legitimate when the contrast carries a claim you cannot make as cleanly any other way, and becomes a TEMPLATE when it repeats close to itself. The limit is on how densely it falls, not on how many times it appears in the section: use it AT MOST ONCE IN ANY ONE PARAGRAPH, and across the section no more often than once every two paragraphs. Twice in a single paragraph is a fault; three times in one paragraph is a failure. Everywhere else, make the claim directly — say what IS, and let what it is not stay unsaid. This is checked on the finished text (SHARED_RULES PART 4: VARY THE ANTITHESIS).`
+  return `CADENCE ALLOWANCE: the contrastive construction — "X rather than Y", and its variants "not X but Y", "less a X than Y", "X, not Y" as a standalone contrast — is legitimate when the contrast carries a claim you cannot make as cleanly any other way, and becomes a TEMPLATE when it repeats close to itself. The limit is on how densely it falls, not on how many times it appears in the section: use it AT MOST ONCE IN ANY ONE PARAGRAPH, and across the section no more often than once every two paragraphs. Twice in a single paragraph is a fault; three times in one paragraph is a failure. Everywhere else, make the claim directly — say what IS, and let what it is not stay unsaid. This is checked on the finished text (PART 4: VARY THE ANTITHESIS).`
 }
 
 // SHADOW COVERAGE — the anti-quota counterpart to the rescue-move bans.
@@ -1098,8 +1102,8 @@ written for this chart, never for this Sun sign.
   on — do not vary it, extend it, or echo it later.
 - Qualify behavioural claims: "tends to", "often", "can produce". A categorical
   "is" overstates what the chart gives you, which is pattern and tendency.
-- Name each pattern ONCE, precisely, then let it work underneath later
-  observations. Do not rename a tendency you have already named — "difficulty
+- Name each pattern ONCE, precisely, then let later observations build on
+  it. Do not rename a tendency you have already named — "difficulty
   with commitment" must not reappear as "aversion to permanence" and then
   "resistance to the settled" two paragraphs later.
 - VARY THE ANTITHESIS. The construction "X rather than Y" is LIMITED BY DENSITY,
@@ -1418,7 +1422,7 @@ export const SHARED_RULES_LEAN: string = (() => {
 export const TROPICAL_SYSTEM_PROMPT = `
 You are reading in the TROPICAL frame.
 
-The Tropical chart maps the symbolic architecture of conscious identity — the psychological interior as it has been organised through experience, relationship, and self-construction. This is not the "mask." It is the territory of how a person organises their sense of self, what they construct in response to the world, and the drives that are closest to their waking awareness. Ego structure, relational patterns, cognitive style, and the shape of a person's defences all live here.`
+The Tropical chart maps the symbolic architecture of conscious identity — the psychological interior as it has been organised through experience, relationship, and self-construction: how a person organises their sense of self, what they construct in response to the world, and the drives that are closest to their waking awareness. Ego structure, relational patterns, cognitive style, and the shape of a person's defences all live here.`
 
 export const SIDEREAL_SYSTEM_PROMPT = `
 You are reading in the SIDEREAL (Jyotish) frame.
@@ -1461,7 +1465,7 @@ THE DIVERGENCE — VOICE:
 Third person only — "this person", "they", "them", "their". You do not know the reader's gender and nothing in the chart states it, so "he", "him", "his", "she", "her" and "hers" are never used of the reader: a reader addressed as the wrong one stops trusting every line around it. This overrides the second-person register in PART 4 of the shared rules. Precise and analytical, like a case study written by someone who has read both charts in full and is naming what the relationship between them reveals. The warmth of the earlier sections gives way to precision: no comfort, no resolution, no softening. Name what is, not what might be done about it, and name specific planets, signs, houses and degrees from both systems throughout — never abstractions.
 
 WRITTEN AFTER BOTH READINGS:
-When THE READING SO FAR is present, the reader has read the whole Tropical reading and the whole Sidereal reading, then any earlier movements of The Divergence. Use them for two things only. Do not re-describe what those readings portrayed: refer to what the reader already carries in a phrase and spend the words on the relationship between the frames. And where a divergence the plan ranks lands on something one of the readings made vivid, name that link, so The Divergence lands on what the reader already holds instead of starting cold. The plan remains the only evidence base: an interpretive claim in the earlier prose is not chart evidence.
+When THE READING SO FAR is present, the reader has read the whole Tropical reading and the whole Sidereal reading, then any earlier movements of The Divergence. Use them for two things only. Do not re-describe what those readings portrayed: refer to what the reader already carries in a phrase and spend the words on the relationship between the frames. And where a ranked divergence lands on something one of the readings made vivid, name that link, so The Divergence lands on what the reader already holds instead of starting cold. The plan remains the only evidence base: an interpretive claim in the earlier prose is not chart evidence.
 
 "The plan" is the name these instructions use for your evidence. The reader has never seen it, so the word never appears in what you write: say "the chart", or state the fact.`
 
@@ -1492,7 +1496,7 @@ SIDEREAL DIVERGENCE OVERLAY:
 The tropical inter-aspects and composite are the PRIMARY reading and stay primary. When the context supplies a SIDEREAL DIVERGENCE OVERLAY block listing sign-shift contacts, treat it as an overlay, never a second parallel reading. For each divergent contact named there, one or both planets occupy a different sign in that person's sidereal chart than in their tropical chart. Name what that sign shift does to the contact's meaning — how the sidereal framing of that planet re-reads the same contact you have just interpreted tropically, and what that costs or complicates. Do this only for the contacts the context actually flags as divergent; contacts not listed there read identically in both systems and get no sidereal note. If the block states there are no sign-shifts in this section, do not manufacture one. Never recompute or re-aspect on sidereal positions, never introduce a sidereal composite (it does not exist here), and never resolve, average, or reconcile the two framings — "carries both", "holds both at once", or any blend is banned (PROSE FAILURE MODES). The tropical reading stands; the sidereal note names the divergence and what it does, and the two are left unreconciled.
 
 SYNASTRY VOICE:
-Second person plural — "between you", "what you create together", "where you meet" — or name them as "the Sun person" and "the Moon person" when describing specific aspect dynamics. This overrides the natal second-person singular default from SHARED_RULES. Direct, unsentimental, and precise. No predictions, no prescriptions, no affirmations, no mystical language.`
+Second person plural — "between you", "what you create together", "where you meet" — or name them as "the Sun person" and "the Moon person" when describing specific aspect dynamics. This overrides the second-person singular register in PART 4. Direct, unsentimental, and precise. No predictions, no prescriptions, no affirmations, no mystical language.`
 
 // ── SECTION INSTRUCTIONS ──────────────────────────────────────────────────────
 // Appended to the user message for each section, after the chart data blocks.
@@ -1553,7 +1557,7 @@ Use ### sub-headers: ## The Ascendant → ### [Sign] Rising → ### How the Asce
 
 Cover: what this rising sign produces as the person's instinctive way of entering a situation — what they do first, how they move into a room, a conversation or a decision, felt from the inside before any reflection; how the chart ruler's condition (house, sign, dignity) shapes the chart's overall style and either amplifies or complicates the Sun's expression; any 1st house planets and how each modifies the rising sign. Do not open on what other people notice, register or see first.
 
-This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully rather than wrapping early. Reach the length through substance, never padding or repetition (see DEPTH AND LENGTH and PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. Being perceived may appear here, but only routed through the native's own experience — what they notice of how they land, what they brace for or are surprised by (PROSE FAILURE MODES #3) — never as the section's lens. Any concrete scene must be built from chart factors you can name; do not invent specifics (durations, counts, exact circumstances) the chart does not supply. Do NOT end on a struck aphoristic fragment.`,
+This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully (DEPTH AND LENGTH, PROSE FAILURE MODES). Anchor each pattern to the situation that activates it — when and where the rising sign's manner actually shows up, not only its structural effect. Being perceived may appear here, but only routed through the native's own experience — what they notice of how they land, what they brace for or are surprised by (PROSE FAILURE MODES #3) — never as the section's lens. Any concrete scene must be built from chart factors you can name; do not invent specifics (durations, counts, exact circumstances) the chart does not supply. Do NOT end on a struck aphoristic fragment.`,
 
     mercury: `Interpret Mercury.
 
@@ -1571,9 +1575,9 @@ Start with: ## Venus → then ### Venus in [Sign], House [N] → ### Aspects.
 
 ${openingClause('tropical', 'venus')}
 
-Cover sign, house, dignity, the condition of Venus's sign ruler, and the aspects Venus receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this Venus actually expresses affection — not what the sign is known for, but what this specific combination of sign, house, dignity, and aspects produces. Describe what this person finds worth giving and worth having in intimacy versus what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
+Cover sign, house, dignity, the condition of Venus's sign ruler, and the aspects Venus receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name how this Venus actually expresses affection: what this specific combination of sign, house, dignity and aspects produces, which the sign's reputation alone cannot tell you. Describe what this person finds worth giving and worth having in intimacy, where that differs from what they think they value, and where the relational pattern creates problems. What they need in order to feel safe is the Moon's subject, not this section's.
 
-Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion — this is a different love language, not coldness. Reserve should only be named if genuinely indicated by challenging aspects, not assumed from the sign.
+Do not default to emotional coldness or reserve based on sign reputation alone. Venus in earth signs shows love through reliability and practical devotion, a love language of its own. Name reserve only where challenging aspects indicate it.
 
 ${closingClause('tropical', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1707,7 +1711,7 @@ Work the evidence allocated to agree in the SHARED DIVERGENCE PLAN — the conco
 
 These are the points where the chart is least negotiable: the facts that hold no matter which framework is used, because both frameworks insist on them at once. Frame them as the narrow, fixed ground, never as a resolution the rest of the reading builds toward. Concordance is consistency across two frameworks; it is not independent proof, and it does not license a stronger psychological claim than a single placement would.
 
-Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems. If the plan allocates little, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Where it allocates nothing, say that no placement holds across both frameworks and stop: offer no theory of why. The ayanamsa moves every position by the same amount, so how near a body sits to a sign boundary explains nothing here, and two adjacent signs always differ in element, so that is not a finding either. Do not preview the divergence analysis.
+Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems. If few concordances are listed, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Where none is listed, say that no placement holds across both frameworks and stop: offer no theory of why. The ayanamsa moves every position by the same amount, so how near a body sits to a sign boundary explains nothing here, and two adjacent signs always differ in element, so that is not a finding either. Do not preview the divergence analysis.
 
 ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1721,7 +1725,7 @@ Work the divergences allocated to diverge IN DEPTH. However many that is, is how
 
 A divergence's moment is told once. Each divergence you work gets its own situation, drawn from its own evidence; do not reuse one situation, or one image, for two of them.
 
-Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each widening the gap between the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If the plan lists none, say that every ranked divergence has been worked.
+Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each widening the gap between the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If none is listed there, add no such clause: the divergences you worked are all of them.
 
 Do not resolve the divergence and do not average the two readings into a compromise: name each divergence exactly and let it stand open. A divergence the plan shows as narrow is named at that size — hold it open without inflating it into conflict, suffering, or an invented history.
 
@@ -1733,7 +1737,7 @@ Start with: ## The Central Tension
 
 Work the evidence allocated to tension — the aspects and conditions that LINK the leading divergences to each other. This section is about the relationship BETWEEN the divergences, never a re-listing of them: the divergence section has already walked them and the reader has just read it, so refer to them in a phrase and advance a different claim about how they connect.
 
-Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies. Set the two pulls down in running sentences inside a paragraph (PART 8: no lists). Anchor it to the tightest link the plan gives. An aspect the plan labels wide cannot carry the defining tension of a life (FACT DISCIPLINE): where the only link is wide, the linking evidence is thin.
+Name the single most defining unresolved tension across both charts — the one friction that makes this person specifically this person and not a type. State it precisely enough that it could not be mistaken for anyone else's tension: the exact Tropical pull, the exact Sidereal pull, and the specific point where they refuse to agree, anchored to the linking evidence the plan supplies. Set the two pulls down in running sentences inside a paragraph (PART 4: continuous prose, no lists). Anchor it to the tightest link the plan gives. An aspect the plan labels wide cannot carry the defining tension of a life (FACT DISCIPLINE): where the only link is wide, the linking evidence is thin.
 
 Where the linking evidence is thin, say what the leading divergences do and do not have to do with each other, and stop there. A claimed connection the plan does not support is a fabrication, and a forced central tension is worse than a narrower true one. Do not manufacture a defining friction the chart has not produced.
 
@@ -1787,7 +1791,7 @@ ${LENGTH_CLAUSE_SLOT}`,
 
 Start with: ## The Composite Chart
 
-The composite is the chart of the relationship itself — not either person, but what they create together. Interpret the composite Sun, Moon, and Ascendant as the core identity, emotional life, and outward presentation of the relationship. Then address the most significant planet positions by house and sign. Cover what the relationship naturally moves toward, what it tends to produce in the world, and what its central psychological challenge is.
+The composite is the chart of the relationship itself: what the two people create together, distinct from either of them. Interpret the composite Sun, Moon, and Ascendant as the core identity, emotional life, and outward presentation of the relationship. Then address the most significant planet positions by house and sign. Cover what the relationship naturally moves toward, what it tends to produce in the world, and what its central psychological challenge is.
 
 Name specific composite placements throughout. Do not interpret composite positions as if they were natal positions — they describe a relationship's character, not a person's.
 
@@ -1811,11 +1815,20 @@ For each person, name what their chart structurally requires from a partner — 
 
 Then address 2–3 specific friction points evident from the inter-aspects and composite data in the context. For each friction point: name what Person A's placement produces as a behavioural pattern and what it is actually doing at the chart level; name how Person B's placement reads or receives that behaviour and what it triggers in their chart; then reverse — name what Person B's placement produces, and how Person A's chart encounters it.
 
-The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that it can be recognised as chart-driven rather than personal, chosen, or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
+The purpose is to make each person's behaviour legible to the other — not to resolve the friction, but to name the mechanism precisely enough that each can recognise it as coming from the chart, where it had looked personal, chosen or aimed. Name the planets, signs, and houses throughout. No prescriptions. No advice. No affirmations. No softening. Name what is structurally true about how these two charts meet.
 
 ${LENGTH_CLAUSE_SLOT}`,
   },
 }
+
+// The natal heading plans and several OPENING/CLOSING MODES name a house, a
+// lordship or the dasha. With the birth time unknown the context carries none
+// of them, so the instruction nearest the generation was asking for the one
+// thing PART 2 forbids ("### Mercury in [Sign], House [N]"; "open on house
+// lordship"). This clause is appended only for those charts. Synastry states
+// its own unknown-time rule in its frame prompt; The Divergence works from the
+// plan, which already excludes houses.
+export const UNKNOWN_TIME_CLAUSE = `BIRTH TIME UNKNOWN: this chart has no reliable houses, house lordships, Lagna or dasha timing (PART 2, WHEN THE BIRTH TIME IS UNKNOWN), and the context omits them. Wherever the instruction above names one of them, leave that element out. Head a placement "### [Planet] in [Sign]", with no house in the sub-header. Where the OPENING MODE or CLOSING MODE is built on a house, a lordship or the dasha, build it on the sign status or dignity, the nakshatra where the context gives one, or an aspect or graha relationship the context lists.`
 
 // ── Per-request section instruction ──────────────────────────────────────────
 // The ONLY supported way to read a section instruction. SECTION_INSTRUCTIONS
@@ -1834,7 +1847,7 @@ ${LENGTH_CLAUSE_SLOT}`,
 export function renderSectionInstruction(
   section: string,
   planetSection: string,
-  opts: { aspectCount?: number; evidenceCount?: number } = {},
+  opts: { aspectCount?: number; evidenceCount?: number; birthTimeUnknown?: boolean } = {},
 ): string | undefined {
   const raw = SECTION_INSTRUCTIONS[section]?.[planetSection]
   if (raw === undefined) return undefined
@@ -1842,10 +1855,12 @@ export function renderSectionInstruction(
   const withLength = raw.includes(LENGTH_CLAUSE_SLOT)
     ? raw.split(LENGTH_CLAUSE_SLOT).join(lengthClause(band))
     : raw
+  const body = opts.birthTimeUnknown && (section === 'tropical' || section === 'sidereal')
+    ? `${withLength}\n\n${UNKNOWN_TIME_CLAUSE}`
+    : withLength
   // The cadence allowance is appended rather than slotted: it applies to every
   // section without exception, so a per-section token would be 27 places to
-  // forget it. Appended here it cannot be missing from a section, and it is
-  // rendered from the same band the length clause and the gate's `length`
-  // criterion read — so prompt and gate cannot state different caps.
-  return `${withLength}\n\n${antithesisClause()}`
+  // forget it. Appended here it cannot be missing from a section. It states no
+  // number of its own (v10.45), so it is byte-identical in every section.
+  return `${body}\n\n${antithesisClause()}`
 }

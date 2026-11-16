@@ -119,10 +119,10 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 **Rules for editing prompts.** Each was learned by breaking it; the record is in `docs/PIPELINE-HISTORY.md`.
 
 1. **Bump `READING_PROMPT_VERSION`** after any change to prompt text or context format. `SYNASTRY_PROMPT_REVISION` invalidates synastry rows only.
-2. **The prompt must not demonstrate what it bans.** Example outranks rule on this model. Rule prose is written in the register it requires (second person, present tense) and does not use the capped antithesis construction. Tests enforce both.
+2. **The prompt must not demonstrate what it bans.** Example outranks rule on this model. Rule prose is written in the register it requires (second person, present tense) and does not use the capped antithesis construction or a `BANNED_META_PHRASINGS` collocation — in the frame prompts, section instructions and scene clauses as well as `SHARED_RULES`. Tests enforce it.
 3. **Banned-phrase lists stay out of the generation prompt.** They are exported for the gate and the scans only; the prompt states the general form and a positive example.
 4. **`SCENE_EXEMPLAR` obeys every rule it teaches** (zero rule-scan findings, in band) and its chart is not an eval chart. `EXEMPLAR_PLACEMENTS` in `reading-fact-check.ts` pins its placements for the bleed check — update both together.
-5. **Never read `SECTION_INSTRUCTIONS` directly.** Use `renderSectionInstruction`, which substitutes the length clause for the band this chart is scored against and appends the cadence clause.
+5. **Never read `SECTION_INSTRUCTIONS` directly.** Use `renderSectionInstruction`, which substitutes the length clause for the band this chart is scored against and appends the cadence clause (and `UNKNOWN_TIME_CLAUSE` for a natal section with no birth time).
 6. **Nothing per-section goes in `SHARED_RULES`** — it must be byte-identical across a reading or the cache is lost.
 7. **Section instructions cite PARTs by name.** Rename a PART and you must rename the citations; `SHARED_RULES_LEAN` is sliced on the same headings.
 8. **An opener mode names a chart quantity to look up, never a thing to invent.** `OPENER_MODES`/`CLOSER_MODES` are keyed by frame and planet.
@@ -185,7 +185,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 
 | Editing | Run / read |
 |---|---|
-| Prompts | `reading-review-fixes`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
+| Prompts | `reading-review-fixes`, `prompt-self-consistency`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
 | The gate (offline) | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
 | The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity`, `paywall` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |
