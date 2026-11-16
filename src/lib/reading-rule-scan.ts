@@ -151,8 +151,10 @@ const IMPERATIVE_POSITION = String.raw`(?:(?<=^\s*|[.!?;:—]\s+)|(?<=\b(?:could
 const PRESCRIPTION_RES: readonly RegExp[] = [
   new RegExp(String.raw`\byou (?:should|ought to)\b` + COUNTERFACTUAL_HAVE, 'gi'),
   // "you need to feel/know/hear/sense …" states a NEED, which the Moon section
-  // is instructed to open on; "you must have" is an inference about the past.
-  new RegExp(SUBORDINATED_YOU + RELATIVISED_YOU + String.raw`\byou (?:need to(?! (?:feel|know|hear|sense)\b)|must(?! have\b)|have to)\b`, 'gi'),
+  // is instructed to open on; "you must have" + past participle is an inference
+  // about the past ("you must have decided"), while "you must have a
+  // conversation" is advice and still matches.
+  new RegExp(SUBORDINATED_YOU + RELATIVISED_YOU + String.raw`\byou (?:need to(?! (?:feel|know|hear|sense)\b)|must` + COUNTERFACTUAL_HAVE + String.raw`|have to)\b`, 'gi'),
   /\byou(?:'| a)?r?e? (?:better off|best served)\b/gi,
   new RegExp(IMPERATIVE_POSITION + String.raw`(?:try|work|focus|start|stop|learn) to (?:notice|see|accept|let go)\b`, 'gi'),
   /\byou (?:might|may|could) (?:want|wish) to\b/gi,

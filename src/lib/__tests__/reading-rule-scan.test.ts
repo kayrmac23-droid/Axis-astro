@@ -660,6 +660,7 @@ describe('false-positive controls from the 2026-11-16 audit', () => {
     'You should try to see it their way.',
     'You need to stop apologising.',
     'You must set the terms yourself.',
+    'You must have a conversation about your boundaries.',
   ])('still catches a prescription: %s', t => {
     expect(hard(t)).toContain('prescription')
   })
