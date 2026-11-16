@@ -49,8 +49,9 @@ export default function PrivacyPage() {
             <h2 className={styles.entryH}>Outside services, each given only what it needs</h2>
             <p className={styles.para}>
               <strong>Place search.</strong> The text you type into the place field is sent, from
-              our server, to OpenStreetMap&rsquo;s Nominatim service to find coordinates. Your
-              own IP address is not passed on.
+              our server, to two OpenStreetMap-based services to find coordinates: Komoot&rsquo;s
+              Photon as you type, for suggestions, and OpenStreetMap&rsquo;s Nominatim when you
+              press Enter or SEARCH. Your own IP address is not passed on.
             </p>
             <p className={styles.para}>
               <strong>Pluto&rsquo;s position.</strong> Only for a birth before 1885 or after 2099:

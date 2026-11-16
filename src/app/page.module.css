@@ -22,7 +22,11 @@
   /* The header is sticky — keep the dossier kicker clear of it when the cast
      flow scrolls this into view. */
   scroll-margin-top: 116px;   /* clears the two-row mobile header (~100px) as well as the desktop one */
-  animation: axRise 0.7s cubic-bezier(0, 0, 0.2, 1) both;
+  /* `backwards`, not `both`: a forwards fill leaves an identity transform on
+     this element for good, and any transform makes it the containing block for
+     `position: fixed` descendants. The wheel's EXPAND overlay is one, and it
+     opened as a page-tall box instead of covering the screen. */
+  animation: axRise 0.7s cubic-bezier(0, 0, 0.2, 1) backwards;
 }
 
 .dossierHead {

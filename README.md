@@ -81,7 +81,7 @@ The JPL Horizons API is the practical equivalent — same JPL data, same accurac
 | Language | TypeScript |
 | AI backend | Anthropic Claude Opus 5.5 (adaptive thinking) for generation and repair, Sonnet 5.5 for quality evaluation, via streaming API with prompt caching |
 | Planetary calculations | VSOP87 (astronomia) + ELP2000 Moon + Meeus Ch. 37 Pluto (JPL Horizons outside 1885–2099) |
-| Geocoding | OpenStreetMap Nominatim |
+| Geocoding | Photon (type-ahead suggestions) and OpenStreetMap Nominatim (explicit search) |
 | Timezone | tz-lookup (offline IANA lookup) |
 | Deployment | Vercel |
 | Fonts | Cormorant Garamond · Cinzel · Courier Prime |
@@ -207,7 +207,7 @@ This section describes what is hardened now and what requires distributed infras
 - `/api/reading` applies a Redis-backed per-IP rate limiter (20 req / 60s fixed window via Upstash, with an atomic Lua INCR+EXPIRE; in-memory fallback when Redis env vars are absent)
 - `/api/calculate` and `/api/synastry` enforce a 16 KB payload size limit with explicit JSON parse guard (reject oversized or malformed bodies before any processing)
 - `/api/calculate` applies a Redis-backed per-IP rate limiter (30 req / 60s); `/api/synastry` applies 20 req / 60s
-- `/api/geocode` enforces a 200-character query length limit, a Redis-backed per-IP rate limiter (30 req / 60s) and a single app-wide 1 request/second gate to Nominatim; results are cached in Redis for 30 days and field-whitelisted rather than forwarding raw Nominatim output. The birth form searches only on Enter or its SEARCH button — never per keystroke, which Nominatim's policy forbids
+- `/api/geocode` enforces a 200-character query length limit, a Redis-backed per-IP rate limiter (30 req / 60s) and a single app-wide 1 request/second gate to Nominatim; results are cached in Redis for 30 days and field-whitelisted rather than forwarding raw Nominatim output. The birth form reaches Nominatim only on Enter or its SEARCH button — never per keystroke, which Nominatim's policy forbids. Suggestions while typing come from Photon (`mode=suggest`, 90 req / 60s per IP, debounced, cached and field-whitelisted the same way)
 - `/api/timezone` applies a Redis-backed per-IP rate limiter (60 req / 60s) so the offline lookup cannot be used as an unbounded compute or scraping surface
 - All internal error messages are scrubbed from client-facing responses (server-side logging only)
 - Per-section streaming retry (2 attempts) with visible failure fallback
@@ -221,6 +221,7 @@ This section describes what is hardened now and what requires distributed infras
 - Anthropic API — a natal reading is **21 sections** (19 with unknown birth time). Each uncached section costs one generation call, plus one more when the scans find something, so a fully uncached natal reading is **21 calls or a few more**. Cached sections cost nothing. The per-section accounting is in [`CLAUDE.md`](CLAUDE.md) (`/api/reading`). Measured cost per reading comes from the `[AXIS_USAGE]` log lines or `npm run eval`. API key must be set in Vercel environment variables.
 - JPL Horizons (`ssd.jpl.nasa.gov`) — one HTTP call per chart calculation, only for a birth outside 1885–2099, for the Pluto position. Falls back to the local Meeus Ch. 37 calculation if unreachable.
 - OpenStreetMap Nominatim — geocoding for birth location. Subject to Nominatim usage policy (1 req/s for the whole app, no autocomplete, results cached), all three enforced by `/api/geocode` and `BirthForm`.
+- Photon (photon.komoot.io) — type-ahead place suggestions. Fair-use public API with no availability guarantee; when it fails the form falls back silently to the explicit Nominatim search.
 
 ---
 
