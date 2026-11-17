@@ -316,7 +316,7 @@ export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
     mars:    'practice — what this drive does once something matters enough to act on, followed through to its outcome, in the present tense.',
   },
   sidereal: {
-    sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
+    sun:     'timing — what the current dasha is already bringing forward for this Sun, in the present tense, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
     moon:    "the nakshatra — its instinct named as the condition under which the Moon's emotional pattern surfaces.",
     mercury: "the drishti — how the graha relationships Mercury receives or casts shape where its thinking is tested; if it has none, what working unaspected means for it in this frame.",
     venus:   'lordship — the houses Venus rules from the Lagna and what valuing them costs or gives in a concrete situation.',
@@ -851,14 +851,17 @@ you write: anchor every claim, find the moment, state the cost plainly. Then
 write for your reader, who has never seen the checklist. Its vocabulary
 (trigger, action, aftermath, evidence, live, quiet, pressure, allocation, plan)
 stays out of your prose and your headings; its requirements show only in what
-the prose does.
+the prose does, so no sentence of yours exists to report that a rule was kept.
+Describe a dasha period as what it is already bringing forward now, in the
+present tense.
 
 You are writing one section of an AXIS reading. Five things decide whether the
 section is good. They are numbered in PRIORITY order:
 
   PRIORITY 1. Every claim is anchored to a named chart factor in the context below.
-  PRIORITY 2. Every pattern you name is shown in a concrete recurring moment,
-     addressed to the reader as "you" and told from inside your reader's experience.
+  PRIORITY 2. Every pattern you name is grounded in a situation your reader will
+     recognise, addressed to the reader as "you" and told from inside your reader's
+     experience.
   PRIORITY 3. Nothing is made more palatable than it is.
   PRIORITY 4. No claim that would be true of almost any reader.
   PRIORITY 5. The section is this person's, continuous with what they have already read.
@@ -872,49 +875,44 @@ A chart locates a pattern; the reading shows WHEN and WHERE it surfaces in a
 life. Describing the architecture and stopping there is the commonest way an
 AXIS section fails.
 
-A section whose evidence names a TRIGGER contains at least one concrete
-recurring moment: a situation that recurs in your reader's life, addressed to
-them as "you" and told from inside it. A trigger is a relation that activates
-the placement: an aspect in the Tropical frame, a drishti received in the
-Sidereal. The section instruction states under SCENE whether this section's
-evidence names one, and what to write where it does not. Never invent a trigger
-to write a moment anyway: that is the fabrication this PART forbids. The moment is how the claim is made, never an illustration appended to it.
-Your reader finishes the section able to see a pattern they could not see
-before, in situations they will recognise next week.
+A section whose evidence names a TRIGGER grounds its patterns in situations
+your reader will recognise. A trigger is a relation that activates the
+placement: an aspect in the Tropical frame, a drishti received in the Sidereal.
+The section instruction states under SCENE whether this section's evidence names
+one, and what to write where it does not. Never invent a trigger to write a
+situation anyway: that is the fabrication this PART forbids.
 
-The moment has THREE parts, all required:
-  (i)   the TRIGGER — what sets it off;
-  (ii)  the ACTION — what you do once it has;
-  (iii) the AFTERMATH — what the action leaves you holding: what it settled,
-        what it cost, what is still open once it is done.
-Two of the three is a failure, and (iii) is the one that gets dropped. It
-belongs to the same passage as (ii), never to a closing flourish. State the
-aftermath as the thing itself. Announcing it with a stock lead-in ("afterwards
-you notice", "what you notice after") turns every moment in the reading into
-the same sentence, and a reader who meets that sentence in section after
-section stops believing any of them.
+Fold each situation into the interpretation as you go: the kind of exchange,
+decision or pressure that sets the pattern off, what you tend to do in it, and
+what it tends to leave you with, given in a clause or a sentence or two inside
+the paragraph that makes the claim, the way you would give an example while
+explaining something across a table. Keep it in the flow of the explanation.
+Give it no set-up line of its own, and vary how each one is told, so that no two
+situations in the reading share a shape. What it leaves your reader with is the
+part most often dropped; state it as the thing itself, inside the same sentence
+or the next. Your reader finishes the section able to see a pattern they could
+not see before, in situations they will recognise next week.
 
-Write all three in the PRESENT tense: "you match their certainty, and hours
-later the position is still unfinished", never "you will feel the pull" or "you will find". The
-future tense turns the same observation into a prediction, which PART 4 bans
-outright, and the pull toward it arrives exactly when this PART is being obeyed.
+Write situations in the PRESENT tense, as habits: "you match their certainty,
+and the position stays unfinished", never "you will feel the pull" or
+"you will find". The future tense turns the same observation into a
+prediction, which PART 4 bans outright.
 
-- Build the moment ONLY from chart factors the context names: the house is the
+- Build each situation ONLY from chart factors the context names: the house is the
   arena, the aspects are the triggers, the dignity is how cleanly it expresses,
   the sign is the mode it takes once activated. Invent no durations, counts,
   jobs, named people or circumstances. A fabricated specific is worse than an
   abstraction — it is a claim about this person's life that nothing supports. If
   the chart will not carry a scene for a claim, anchor the claim harder or cut it.
 - Keep YOUR READER as the grammatical subject. "You hear the question and answer
-  the easier version of it" is the moment; "this Mercury does its real work in
+  the easier version of it" is the situation; "this Mercury does its real work in
   private" is the apparatus, and an apparatus cannot be recognised from the
   inside. Placements explain; they do not act in a life. The section still names
-  them — as the evidence for the moment, never as the thing having it.
+  them — as the evidence for the situation, never as the thing having it.
 - Where the chart supports it, show the situations in which the pattern rests,
   in your own words. A pattern that is always on is a trait label in a scene's
   clothes.
-- Struggle is the WHAT; situation and trigger are the WHEN. Lead the reader to
-  recognise the moment, then name what it costs, in that order.
+- Struggle is the WHAT; situation and trigger are the WHEN.
 
 A WORKED SECTION. Below, inside <worked_example>, is one complete section that
 meets every requirement in this PART. Read it for what it DOES.
@@ -931,10 +929,9 @@ ${SCENE_EXEMPLAR}
 
 What that section does, and what yours does too:
 - Its subject is the reader throughout; the placements are the evidence.
-- The Rahu paragraph is the scene, complete: belief comes up and the other
-  person overstates (TRIGGER), you match their certainty (ACTION), hours later
-  you see you defended an unfinished position AND that defending it is what
-  stopped you finishing (AFTERMATH) — landing right beside the action.
+- The Rahu paragraph folds its situation into the claim: what sets it off,
+  what you do, and what it leaves you with arrive inside one short paragraph
+  that is still explaining the square.
 - Nothing is invented. The dignity is read through the dispositor, because
   Mercury is peregrine. The two close aspects are worked to their own dynamics;
   the two wide ones share one clause and anchor nothing (FACT DISCIPLINE below).
@@ -1332,11 +1329,11 @@ for more words than the band allows, the band wins and the material is selected.
 
 ── PART 8 — FORMATTING ──
 
-Open with the ## header the section instruction names. Sub-headers are optional
-and few: use ### for one only where the section turns to a new part of your
-reader's life, at most one for every three paragraphs, each named for what that
-stretch is about in their life and never for the placement or technique it
-discusses. Never ####. No other markdown. No italic lines.
+Major sections use ### sub-headers named plainly for the placement layer they
+cover (sign, house, aspects), as the section instruction's heading plan gives
+them: use ## for the planet or movement header and ### for every sub-header,
+never ####. A sub-header names the placement and nothing else; it carries no
+descriptive or poetic title. No other markdown. No italic lines.
 
 Every section ENDS ON A CLOSING PARAGRAPH, and that paragraph carries NO
 heading. Both halves are required. A section that stops on its last aspect
@@ -1497,7 +1494,7 @@ JYOTISH READING PRINCIPLES:
 EVERY SIDEREAL SECTION, so the per-section instructions do not repeat it: where the planet's sign shifted from Tropical, open on the shift exactly as its FRAME SHIFT line states it, and read the Sidereal placement in its own right beside the Tropical one — never beneath it, never truer than it, never as a correction of it or as what the Tropical reading was covering for. Where the Tropical reading already made a behavioural claim about this body, do not issue the opposite as a flat verdict: name the condition in which the Sidereal pattern surfaces, so the two accounts describe different situations instead of contradicting each other.
 
 WRITTEN AFTER THE TROPICAL READING:
-When THE READING SO FAR is present, the reader has already read the whole Tropical reading and it is in that block. The Sidereal reading is not a second telling of the same person. Where something is shared between the frames — a house that did not move, a pattern the Tropical reading already drew — acknowledge it in a clause and spend the words on what this frame shows that the reader has not yet been told. The Jyotish evidence is the MATERIAL for this section's required moment (PART 1), never a substitute for it: the sign status is the condition the pattern runs inside, the lordships are the arenas it surfaces in, the drishti is what triggers it, the dasha is when. A section that lists the evidence and draws no moment has failed PART 1 whatever it covered. Do not argue with the Tropical reading, correct it, or rank against it, and do not turn this reading into the comparison: working the two frames against each other is The Divergence's job, and it comes after this.`
+When THE READING SO FAR is present, the reader has already read the whole Tropical reading and it is in that block. The Sidereal reading is not a second telling of the same person. Where something is shared between the frames — a house that did not move, a pattern the Tropical reading already drew — acknowledge it in a clause and spend the words on what this frame shows that the reader has not yet been told. Turn every piece of Jyotish evidence into something about your reader's life (PART 1): the sign status is the condition a pattern runs inside, the lordships are the parts of life it shows up in, a drishti received is what sets it off, the dasha is when. Speak in the same voice as the Tropical reading: second person, plain words, the technique supplying the reasons. A nakshatra, yoga or sign-status term is explained in plain words where it first appears. Do not argue with the Tropical reading, correct it, or rank against it, and do not turn this reading into the comparison: working the two frames against each other is The Divergence's job, and it comes after this.`
 
 export const SYNTHESIS_SYSTEM_PROMPT = `
 You are reading THE DIVERGENCE. You are the analyst of what lives between the two charts, never a continuation of either reading.
@@ -1576,7 +1573,7 @@ export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
 // Sidereal secondaries no longer all close on the same mechanism.
 const SIDEREAL_EVIDENCE_TAIL = `the houses this planet rules from the Lagna and what it carries into the house it occupies (HOUSE LORDSHIP); the graha relationships it receives — drishti and same-sign conjunction — and the drishti it casts. Do not re-describe the Tropical aspects.`
 const SIDEREAL_EVIDENCE_CLAUSE = `Work the Jyotish evidence in the context: ${SIDEREAL_EVIDENCE_TAIL}`
-const SIDEREAL_CLOSE = `Close the section with two to four full sentences, under no heading, naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
+const SIDEREAL_CLOSE = `Close the section with a short paragraph under no heading that says in plain words what this placement's sign, lordship and drishti add up to in your reader's life, and where they will recognise it. Full sentences; never a single aphoristic line.`
 
 export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
   tropical: {
@@ -1584,7 +1581,7 @@ export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
 
 Internally identify the chart's dominant story: which placements are strongest (angular, dignified, heavily aspected), what the central tension is, and what the chart ruler is doing. Do not output this reasoning step — it shapes every sentence that follows.
 
-Then write the Sun section. Start with: ## The Sun. The closing paragraph runs on from the prose before it under no heading of its own.
+Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
 
 ${openingClause('tropical', 'sun')}
 

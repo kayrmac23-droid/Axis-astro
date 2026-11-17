@@ -685,7 +685,7 @@ function formatJyotishPlanetBlock(planet: PlanetPosition, chart: ChartData, time
   }
   const nb = neechaBhangaConditions(chart, planet, timeKnown)
   if (nb.length > 0) {
-    lines.push(`NEECHA BHANGA CONDITIONS MET (classical cancellation of debilitation — sources weigh these differently; name the condition, do not declare the debilitation erased):`)
+    lines.push(`NEECHA BHANGA CONDITIONS MET (classical conditions that temper a debilitation; name the condition and what it tempers, and leave the debilitation standing):`)
     nb.forEach(c => lines.push(`  · ${c}`))
   }
   lines.push('')

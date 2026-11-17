@@ -68,17 +68,17 @@ export function sceneExpectation(
  */
 export function sceneClause(expectation: SceneExpectation, section: string): string {
   if (expectation === 'third-person') {
-    return 'SCENE, IN THIRD PERSON: The Divergence is written in third person, so PART 1\'s moment takes a third-person form here. Draw at least one concrete situation in which the two frames lead this person to act differently. Say what sets it off, using an aspect listed in the plan as evidence. Say what they do under each frame\'s account. Say what each leaves them holding once it is done. Build it only from the plan\'s facts, use "they" and "them" for the reader throughout, and never write the word "plan".'
+    return 'SCENE, IN THIRD PERSON: The Divergence is written in third person, so PART 1\'s situations take a third-person form here. Show where the two frames lead this person to act differently, set off by an aspect listed in the plan, and fold it into your account of that divergence in a sentence or two. Tell each one differently, so no two divergences share a shape. Build it only from the plan\'s facts, use "they" and "them" for the reader throughout, and never write the word "plan".'
   }
   if (expectation === 'yes') {
     const trigger = section === 'sidereal' ? 'a drishti this placement receives' : 'an aspect'
-    return `SCENE: this section's evidence names a trigger (${trigger}), so PART 1's recurring moment is required. Build its trigger from that evidence.`
+    return `SCENE: this section's evidence names a trigger (${trigger}), so ground its patterns in situations built from that evidence, folded into the interpretation (PART 1).`
   }
   if (section === 'synthesis') {
     // The Divergence is third person by its own instruction, so the no-scene
     // form keeps that register: "your reader" would contradict it.
-    return 'SCENE: this section\'s evidence names no trigger, so a recurring moment would have to be invented, and PART 1 forbids that. Write no scene here. Name instead the arena each finding governs, the condition under which it is live in this person\'s life, and when it goes quiet. Tie each to an entry in the plan, without writing the word "plan". Keep the third person this section is written in.'
+    return 'SCENE: this section\'s evidence names no trigger, so a recurring moment would have to be invented, and PART 1 forbids that. Write no scene here. Say instead which part of this person\'s life each finding governs, when it is active and when it rests, in your own words. Tie each to an entry in the plan, without writing the word "plan". Keep the third person this section is written in.'
   }
   const missing = section === 'sidereal' ? 'no drishti reaches this placement' : 'no aspect reaches this placement'
-  return `SCENE: this section's evidence names no trigger: ${missing}. A recurring moment would have to be invented, and PART 1 forbids that, so write no scene here. Name instead the arena this placement governs, the condition under which its pattern is live, and when it goes quiet. Tie each to a factor the context names. Your reader stays the grammatical subject.`
+  return `SCENE: this section's evidence names no trigger: ${missing}. A recurring moment would have to be invented, and PART 1 forbids that, so write no scene here. Say instead which part of life this placement governs, when its pattern is active and when it rests, in your own words. Tie each to a factor the context names. Your reader stays the grammatical subject.`
 }
