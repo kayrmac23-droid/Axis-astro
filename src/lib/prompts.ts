@@ -292,7 +292,7 @@ type NatalFrame = 'tropical' | 'sidereal'
 // showing convergence no longer happens without it.
 export const OPENER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, string>> = {
   tropical: {
-    sun:     "the Sun's condition — its dignity, or, where it is peregrine, the state of its sign ruler — stated as what that condition does to how this identity asserts itself. Lead with the effect on the person, never with a definition of the dignity. NOT a scene: the section's concrete moment comes later, where this has given it something to demonstrate.",
+    sun:     "what the Sun's condition — its dignity, or, where it is peregrine, the state of its sign ruler — makes of how this identity asserts itself. The first sentence is about your reader's life; the condition is named later in the paragraph as the reason for it. NOT a scene: the section's concrete moment comes later, where this has given it something to demonstrate.",
     moon:    'the need itself — the one condition this person must have in place to feel emotionally safe, stated plainly as a need. Not a scene and not a trait list; what happens when the need goes unmet comes after.',
     mercury: "Mercury's condition — its dignity, or its sign ruler's state where the dignity is peregrine — stated as what that condition does to this person's thinking in a live exchange. Lead with the effect, never with a definition of the dignity.",
     venus:   "the strongest modifier of this Venus — the aspect it receives with the smallest orb the context gives, naming the aspecting planet (choose it by the orbs; do not call it the tightest unless the context does), or, if it receives none, the condition of its sign ruler — stated as what that modifier does to what this person finds worth giving and worth having.",
@@ -836,6 +836,23 @@ placement within the whole: which planets are strongest, what the central
 tension is, where the ruler chain leads. An interpretation that could have been
 written for a different chart has failed.
 
+THE VOICE. Your reader is about to spend most of an hour with this reading and
+wants to feel read by someone who has studied their chart closely and is
+talking to them directly. Write the way a perceptive astrologer talks across a
+table to the person whose chart it is: plain words, sentences with rhythm, an
+image when an image says it best, and the chart facts woven in as the reasons
+for what you say. Your reader came for themselves; the chart is how you know. A
+degree, a dignity or a Jyotish term appears when it earns its sentence, and a
+Jyotish term your reader would not know is explained where it first appears or
+left out.
+
+The rules below are your checklist. Work through them while you think, before
+you write: anchor every claim, find the moment, state the cost plainly. Then
+write for your reader, who has never seen the checklist. Its vocabulary
+(trigger, action, aftermath, evidence, live, quiet, pressure, allocation, plan)
+stays out of your prose and your headings; its requirements show only in what
+the prose does.
+
 You are writing one section of an AXIS reading. Five things decide whether the
 section is good. They are numbered in PRIORITY order:
 
@@ -893,8 +910,9 @@ outright, and the pull toward it arrives exactly when this PART is being obeyed.
   private" is the apparatus, and an apparatus cannot be recognised from the
   inside. Placements explain; they do not act in a life. The section still names
   them — as the evidence for the moment, never as the thing having it.
-- Name the conditions under which the pattern goes QUIET wherever the chart
-  supports it. A pattern that is always on is a trait label in a scene's clothes.
+- Where the chart supports it, show the situations in which the pattern rests,
+  in your own words. A pattern that is always on is a trait label in a scene's
+  clothes.
 - Struggle is the WHAT; situation and trigger are the WHEN. Lead the reader to
   recognise the moment, then name what it costs, in that order.
 
@@ -1135,12 +1153,12 @@ written for this chart, never for this Sun sign.
   instruction, and synastry, which is second person plural.
 - Direct, unsentimental, warm-but-honest. Precision is the warmth: an
   observation that lands accurately makes the reader feel seen without being
-  flattered. Where a sentence could be analytically sharp or lyrically
-  evocative, choose sharp.
+  flattered. Let the precision carry the feeling: an exact observation, said
+  in a sentence with some life in it, is what makes your reader feel seen.
 - British spelling throughout: favour, colour, recognised, emphasise, analyse,
   practise (verb), licence (noun), centre, honour.
-- Paragraphs are 3–4 sentences maximum, for mobile readability. One idea per
-  paragraph, fully developed, then stop.
+- Keep paragraphs short enough to read on a phone, and let their length vary
+  with what each one carries. One idea per paragraph, fully developed, then stop.
 - FINISH EVERY THOUGHT. A sentence runs as long as its thought needs and
   ends where the thought ends. Never clip a sentence, drop a clause or swap
   in a shorter word to save length; the band is met by choosing what to
@@ -1151,33 +1169,15 @@ written for this chart, never for this Sun sign.
   appear ONLY routed through the native's own experience — something they
   register, manage, brace for, or are surprised by — never as the lens that
   establishes the insight (PART 5 #3; hardest to catch when the frame flatters).
-- Allow ONE carefully chosen image per section that gives a quality its exact
-  name: not mystical, not decorative, precise. One. If a metaphor lands, move
-  on — do not vary it, extend it, or echo it later.
+- Use an image wherever it gives a quality its exact name: precise, never
+  mystical or decorative. Once an image has landed, move on; do not extend it
+  or echo it later.
 - Qualify behavioural claims: "tends to", "often", "can produce". A categorical
   "is" overstates what the chart gives you, which is pattern and tendency.
 - Name each pattern ONCE, precisely, then let later observations build on
   it. Do not rename a tendency you have already named — "difficulty
   with commitment" must not reappear as "aversion to permanence" and then
   "resistance to the settled" two paragraphs later.
-- VARY THE ANTITHESIS. The construction "X rather than Y" is LIMITED BY DENSITY,
-  and the limit is stated in this section's instruction under CADENCE ALLOWANCE.
-  Treat it as hard. What is governed is how closely the construction falls to
-  itself: used once in a paragraph it is a sentence, twice in that same
-  paragraph it is a fault, three times and it has become the paragraph's default
-  shape. It is the house tic — left unchecked it arrives three to seven times a
-  section, every section, and a reader going straight through hears a template
-  where the content should be. The limit covers its near variants: "not X but
-  Y", "less X than Y", "X, not Y" as a standalone contrast.
-  This is enforced on the finished text, not taken on trust. Where the
-  allowance is spent, make every further claim directly: say what IS, and let
-  what it is not stay unsaid.
-  Worked example — "she commits to the work rather than to the people doing it"
-  becomes "she commits to the work; the people doing it stay interchangeable to
-  her". The second sentence carries the same claim and one more fact, at no
-  extra length. Varying the wording while
-  keeping the contrastive shape does not satisfy this limit: a dash-balanced or
-  "not merely…but" equivalent is the same tic.
 - Banned outright: predictions ("you will", "this will bring") — a habit is
   present tense too: "you check the terms first"; prescriptions
   ("you should", "work on", "consider"); vague affirmations ("your sensitivity
@@ -1332,15 +1332,16 @@ for more words than the band allows, the band wins and the material is selected.
 
 ── PART 8 — FORMATTING ──
 
-Major sections use ### sub-headers to structure the evidence layers (sign,
-house, aspects). Each section instruction gives its own heading plan: use ## for
-the planet or movement header and ### for every sub-header, never ####. No other
-markdown. No italic lines.
+Open with the ## header the section instruction names. Sub-headers are optional
+and few: use ### for one only where the section turns to a new part of your
+reader's life, at most one for every three paragraphs, each named for what that
+stretch is about in their life and never for the placement or technique it
+discusses. Never ####. No other markdown. No italic lines.
 
 Every section ENDS ON A CLOSING PARAGRAPH, and that paragraph carries NO
 heading. Both halves are required. A section that stops on its last aspect
 sub-section has not closed, and a one-line sign-off is not a closing paragraph.
-It is a full paragraph that names ONE live tension the section's evidence has
+It is a full paragraph that names ONE tension the section's evidence has
 established and shows what inhabiting it costs — the thing the person is most
 likely to misread about themselves here. It does not re-list placements, which
 is PART 5 #4.
@@ -1583,7 +1584,7 @@ export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
 
 Internally identify the chart's dominant story: which placements are strongest (angular, dignified, heavily aspected), what the central tension is, and what the chart ruler is doing. Do not output this reasoning step — it shapes every sentence that follows.
 
-Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
+Then write the Sun section. Start with: ## The Sun. The closing paragraph runs on from the prose before it under no heading of its own.
 
 ${openingClause('tropical', 'sun')}
 
@@ -1775,11 +1776,11 @@ Start with: ## Where They Part
 
 This is the main event of The Divergence reading, never a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not walk every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
 
-Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, in this order: the specific Tropical placement and what it produces as a psychological pattern; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; then precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Use the plan's dignity, dispositor-condition and aspect evidence to say which account is under more pressure. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, state that as a difference between the frames and nothing more: within its own frame a placement near a boundary is fully in its sign, and is never weaker, unstable or "edge-adjacent" for it.
+Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, in this order: the specific Tropical placement and what it produces as a psychological pattern; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; then precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Weigh the plan's dignity, dispositor-condition and aspect evidence while you think, and let it show in what each account costs this person; never state it as a verdict on either account. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, you may name that difference in a clause. Within its own frame such a placement is fully in its sign; that is for you to know, and needs no sentence.
 
 A divergence's moment is told once. Each divergence you work gets its own situation, drawn from its own evidence; do not reuse one situation, or one image, for two of them.
 
-Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each widening the gap between the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If none is listed there, add no such clause: the divergences you worked are all of them.
+Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each drawn differently by the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If none is listed there, add no such clause: the divergences you worked are all of them.
 
 Do not resolve the divergence and do not average the two readings into a compromise: name each divergence exactly and let it stand open. A divergence the plan shows as narrow is named at that size — hold it open without inflating it into conflict, suffering, or an invented history.
 
@@ -1916,5 +1917,7 @@ export function renderSectionInstruction(
   // section without exception, so a per-section token would be 27 places to
   // forget it. Appended here it cannot be missing from a section. It states no
   // number of its own (v10.45), so it is byte-identical in every section.
-  return `${body}\n\n${antithesisClause()}`
+  // v10.54-exp (scratch only): the cadence allowance is withheld from the
+  // generation prompt; the scans still measure the construction.
+  return body
 }
