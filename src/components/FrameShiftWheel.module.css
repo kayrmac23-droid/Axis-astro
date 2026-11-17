@@ -114,8 +114,11 @@
 }
 
 /* ---------- expand control ---------- */
+/* Shown at every width (ruling 2026-11-17). On a phone it restores the labels
+   the inline wheel drops; on desktop it opens the same instrument at one CSS
+   pixel per viewBox unit, larger than the 760px inline cap. */
 .expandBtn {
-  display: none;
+  display: inline-block;
   margin-top: 10px;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -130,10 +133,6 @@
 }
 .expandBtn:hover { color: var(--text); border-color: var(--copper-bright); }
 .expandBtn:focus-visible { outline: 1px solid var(--cyan); outline-offset: 2px; }
-
-@media (max-width: 760px) {
-  .expandBtn { display: inline-block; }
-}
 
 /* ---------- expanded stage ---------- */
 /* The wheel is drawn at a fixed 1000px — one CSS pixel per viewBox unit — and
@@ -176,7 +175,7 @@
 }
 .rootExpanded .microLabel { font-size: 12px; }
 .rootExpanded .houseNum { font-size: 13px; }
-.rootExpanded .expandBtn { display: inline-block; flex: none; }
+.rootExpanded .expandBtn { flex: none; }
 .rootExpanded .legend { display: none; }
 
 @media print {

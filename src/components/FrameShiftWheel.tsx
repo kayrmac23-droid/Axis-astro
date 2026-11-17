@@ -98,10 +98,10 @@ export default function FrameShiftWheel({
   const selectedIdRef = useRef<string | null>(selected)
   const onSelectRef = useRef<(id: string) => void>(() => {})
   // Below the stacking breakpoint the inline wheel drops its smallest labels
-  // (see the module CSS) because they render at ~3px. Expanded, the SAME DOM
-  // node is restyled into a pannable full-screen stage at natural size, so
-  // every label comes back — one build, one wheel, no second instance to
-  // keep in step with selection or the rotation.
+  // (see the module CSS) because they render at ~3px. Expanded (offered at
+  // every width), the SAME DOM node is restyled into a pannable full-screen
+  // stage at natural size, so every label comes back — one build, one wheel,
+  // no second instance to keep in step with selection or the rotation.
   const [expanded, setExpanded] = useState(false)
 
   const { tropical, sidereal, ayanamsa } = data
@@ -465,8 +465,8 @@ export default function FrameShiftWheel({
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     // Open on something worth reading: the selected body, else the Sun. The
-    // stage is several screens wide on a phone, and both its top-left corner
-    // and its centre are empty sky.
+    // stage is several screens wide on a phone and taller than a laptop
+    // viewport, and both its top-left corner and its centre are empty sky.
     const stage = stageRef.current
     if (stage) {
       const target = glyphElsRef.current[selectedIdRef.current ?? 'sun'] ?? glyphElsRef.current['sun']
