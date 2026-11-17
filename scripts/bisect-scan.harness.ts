@@ -22,6 +22,12 @@ const VOCAB: Record<string, RegExp> = {
   unify:     /\bunif\w*/gi,
   gap:       /\bgaps?\b/gi,
 }
+// DOCTRINE.md SMOKE DETECTOR terms not in the brief's list; reported apart.
+const DOCTRINE_EXTRA: Record<string, RegExp> = {
+  reconcile: /\b(?:ir)?reconcil\w*/gi,
+  harmonize: /\bharmoni[sz]\w*/gi,
+  bridge:    /\bbridg\w*/gi,
+}
 
 describe('bisect scan', () => {
   it('scans', () => {
@@ -35,6 +41,7 @@ describe('bisect scan', () => {
         contextual: detectContextualHierarchy(text),
         vocab,
         vocab_total: Object.values(vocab).reduce((a, v) => a + v.length, 0),
+        doctrine_extra: Object.fromEntries(Object.entries(DOCTRINE_EXTRA).map(([k, re]) => [k, text.match(re) ?? []])),
       }
     }
     writeFileSync(OUT, JSON.stringify(out, null, 2))
