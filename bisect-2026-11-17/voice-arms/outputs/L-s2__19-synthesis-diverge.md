@@ -1,0 +1,33 @@
+## Where They Part
+
+Four placements carry the weight of the divergence: Mars, the Ascendant, the Sun and Jupiter. Each changes sign between the frames. In the Sun, Mars and Jupiter the change of sign also changes dignity, so each account has its own evidence and its own consequence.
+
+### Mars: Libra in Detriment, Virgo Peregrine
+
+The Tropical Mars sits at Libra 15°56' in the twelfth house, in detriment. It is ruled by Venus in Scorpio in the first, also in detriment, and it rules the Scorpio Ascendant. The chart's instinctive posture therefore runs on a will asked to act through a sign built for agreement, and the planet that governs that will is strained too. The result is assertion converted into negotiation: the urge to act is weighed for fairness, privately, until it can be presented as something the other party can accept.
+
+The Sidereal Mars sits at Virgo 22°15', still in the twelfth, now peregrine, in Hasta. Its dispositor is Mercury in Libra in the first, peregrine and retrograde. Here the withheld assertion is processed through correction. The question this Mars puts to a grievance is whether it is precise, where the Tropical Mars asks whether it is fair. Of the two, the Tropical account is under more pressure. It has detriment on detriment, while the Sidereal Mars and its dispositor both run without dignity in either direction.
+
+The Mars–Saturn sextile, at 2.8° and applying, is where the two accounts lead to different actions. When a commitment already in place calls for this person to object to something, Saturn's structure gives the objection somewhere to land. Under the Tropical account, they carry the objection into private and bring it back as a proposal balanced to the other side's comfort. The agreement holds, and the original want stays unasked. Under the Sidereal account, they rework the objection until every claim in it is defensible, and send the corrected version. It is accurate and hard to refute, and it has arrived late enough that the conversation it answered has moved on.
+
+### The Ascendant: Scorpio and Libra
+
+The Tropical Ascendant is Scorpio 6°57', fixed water. Its need is transformation through depth, and it meets a threshold by probing for what is concealed. The Sidereal Lagna is Libra 13°16', cardinal air. Its need is harmony through relationship, and it meets the same threshold by measuring whether the terms between people have settled. The element shifts from water to air, and the ruler shifts from Mars in detriment to Venus in detriment.
+
+On entering an unfamiliar group, the Tropical account has this person locating the undeclared power and keeping the finding to themselves. They leave knowing more than they said. The Sidereal account has them tracking who has conceded what and treating the room as unfinished until the exchange evens out. They leave carrying a settlement they only half-believe. Both frames give the Ascendant a ruler in detriment, so neither threshold opens easily. They differ in what has to be satisfied before this person relaxes: the Scorpio rising needs disclosure, and the Libra Lagna needs parity.
+
+### The Sun: Peregrine in Scorpio, Fall in Libra
+
+The Tropical Sun is Scorpio 9°32' in the first, peregrine, ruled by Mars in detriment. Identity here runs at its own pressure, fused with Pluto at 0.4°, and it goes straight to the thing under the thing. The Sidereal Sun is Libra 15°51' in the first, in fall, in Swati, ruled by Venus in Scorpio in the second, in detriment. Self-assertion costs more in this account, because a claim to standing is checked against everyone else's before it is made. On dignity, the Sidereal Sun is under more pressure.
+
+The same conjunction to Pluto runs through both frames as one relationship. When something touches this person's standing at depth, a slight or a shift in someone's loyalty, the Tropical Sun names the motive behind it and stays inside the intensity. The Sidereal Sun holds that same intensity and asks whether it is entitled to object at all. It ends up holding a grievance it has not licensed itself to voice.
+
+### Jupiter: Aries Peregrine, Pisces Domicile
+
+The Tropical Jupiter sits at Aries 22°43' in the sixth, peregrine and retrograde, ruled by Mars in detriment. Improvement here means initiation: a routine or a regimen rebuilt from a fresh start, driven by a dispositor that hesitates to assert. The Sidereal Jupiter sits at Pisces 29°02' in the sixth, in domicile and retrograde, in Revati, its own dispositor. It forms Harsha Yoga, a difficulty-house lord confined to its own house. Expansion here means immersion, taking in the whole condition of the work and the body, with nothing outside Jupiter qualifying it. The Sidereal placement lies within 3° of the sign's end, and the Tropical one lies clear of any boundary. That is a difference between the frames and nothing more. In its own frame, this Jupiter is fully in Pisces.
+
+The trine to Uranus, at 1.6° and separating, sets off the scene: something breaks the daily pattern without warning. Under the Tropical account, this person treats the break as licence to start over, and they are left with a new system whose first week outruns the will that has to sustain it. Under the Sidereal account, they absorb the disruption into the existing routine and widen what that routine holds. They are left with more work than before and no clear point at which it has become too much. The Tropical Jupiter carries more pressure, through its dispositor in detriment.
+
+The divergence continues across Ketu, the Midheaven, Rahu, the Moon, Neptune, Mercury, Pluto, Saturn, Venus and Uranus, and each one leaves its own gap between the two accounts open.
+
+The live tension sits in the Mars that rules one frame's Ascendant and serves under the other's. In the Tropical chart, the detriment Mars governs this person's instinctive approach to everything, so the private weighing shapes the whole stance. In the Sidereal chart, Venus holds the Lagna and Mars works from the twelfth as a corrector of drafts. The current Mercury antardasha makes the Sidereal account more salient for now, because Mercury disposits that Virgo Mars. What this person is most likely to misread is the delay. They may count it as one failure of nerve when it is two distinct procedures, fairness and precision, each holding the original want back for its own reasons. Neither procedure, once finished, returns that want to them in the form they first felt it.

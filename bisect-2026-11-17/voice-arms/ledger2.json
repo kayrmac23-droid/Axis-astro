@@ -1,0 +1,125 @@
+{
+ "steps": [
+  {
+   "sample": 1,
+   "ckpt": "L",
+   "section": "tropical/sun",
+   "usd": 0.11016,
+   "ok": true,
+   "words": 917,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-50-55_generate"
+  },
+  {
+   "sample": 1,
+   "ckpt": "L",
+   "section": "sidereal/sun",
+   "usd": 0.1103772,
+   "ok": true,
+   "words": 530,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-51-24_generate"
+  },
+  {
+   "sample": 1,
+   "ckpt": "L",
+   "section": "synthesis/diverge",
+   "usd": 0.21071420000000002,
+   "ok": true,
+   "words": 1055,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-51-44_generate"
+  },
+  {
+   "sample": 1,
+   "ckpt": "R",
+   "section": "tropical/sun",
+   "usd": 0.136601,
+   "ok": true,
+   "words": 1007,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-52-20_generate"
+  },
+  {
+   "sample": 1,
+   "ckpt": "R",
+   "section": "sidereal/sun",
+   "usd": 0.1100842,
+   "ok": true,
+   "words": 558,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-52-55_generate"
+  },
+  {
+   "sample": 1,
+   "ckpt": "R",
+   "section": "synthesis/diverge",
+   "usd": 0.20449720000000002,
+   "ok": true,
+   "words": 1106,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-53-14_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "L",
+   "section": "tropical/sun",
+   "usd": 0.06792160000000001,
+   "ok": true,
+   "words": 978,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-53-48_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "L",
+   "section": "sidereal/sun",
+   "usd": 0.0537544,
+   "ok": true,
+   "words": 560,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-54-21_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "L",
+   "section": "synthesis/diverge",
+   "usd": 0.11980919999999999,
+   "ok": true,
+   "words": 1080,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-54-39_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "R",
+   "section": "tropical/sun",
+   "usd": 0.0659492,
+   "ok": true,
+   "words": 1022,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-55-14_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "R",
+   "section": "sidereal/sun",
+   "usd": 0.053046,
+   "ok": true,
+   "words": 551,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-55-46_generate"
+  },
+  {
+   "sample": 2,
+   "ckpt": "R",
+   "section": "synthesis/diverge",
+   "usd": 0.11961680000000001,
+   "ok": true,
+   "words": 1070,
+   "stop": "end_turn",
+   "dir": "2026-11-17_13-56-03_generate"
+  }
+ ],
+ "total": 1.362531
+}
