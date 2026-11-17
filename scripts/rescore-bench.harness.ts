@@ -28,8 +28,8 @@
 // judged on `llm`; `final` is what the gate would actually do.
 import { describe, it, expect } from 'vitest'
 import { execSync } from 'node:child_process'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join, resolve } from 'node:path'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { calculateDualChart, type DualChartData } from '@/lib/astro-calc'
@@ -65,6 +65,12 @@ const LABEL       = process.env.RESCORE_LABEL || 'run'
 const OUT_DIR     = process.env.RESCORE_OUT   || join(ROOT, 'eval-output', `rescore_${LABEL}`)
 const REPEATS     = Number(process.env.RESCORE_REPEATS || '1')
 const ONLY        = (process.env.RESCORE_SECTIONS || '').split(',').filter(Boolean)
+// RESCORE_BENCH=DIR (--bench=DIR): score every `*NN-<frame>-<section>.md` in DIR
+// instead of the bench prose. Priors still come from fixtures/rater-bench, so a
+// file generated with --thread-from=<the bench> is scored against the same
+// reading so far it was written after. The baseline column is the bench's score
+// for the same section.
+const SCORE_DIR   = process.env.RESCORE_BENCH || ''
 
 interface BenchRow {
   file: string
@@ -78,12 +84,24 @@ interface BenchRow {
 
 function benchRows(): BenchRow[] {
   const all = JSON.parse(readFileSync(join(BENCH_DIR, 'scores.json'), 'utf8')).sections as BenchRow[]
+  if (SCORE_DIR) {
+    const rows: BenchRow[] = []
+    for (const f of readdirSync(SCORE_DIR).filter(f => f.endsWith('.md')).sort()) {
+      const m = f.match(/(\d\d)-(tropical|sidereal|synthesis)-([a-z_]+)\.md$/)
+      if (!m) continue
+      const base = all.find(r => r.section === m[2] && r.planet_section === m[3])
+      if (!base) throw new Error(`--bench: no bench row for ${m[2]}/${m[3]} (${f})`)
+      rows.push({ ...base, file: join(SCORE_DIR, f) })
+    }
+    if (rows.length === 0) throw new Error(`--bench: no NN-<frame>-<section>.md files in ${SCORE_DIR}`)
+    return rows
+  }
   if (ONLY.length === 0) return all
   return all.filter(r => ONLY.includes(`${r.section}/${r.planet_section}`) || ONLY.includes(r.section))
 }
 
 function benchText(file: string): string {
-  return readFileSync(join(BENCH_DIR, file), 'utf8').trim()
+  return readFileSync(isAbsolute(file) ? file : join(BENCH_DIR, file), 'utf8').trim()
 }
 
 function castBenchChart(): DualChartData {
