@@ -339,3 +339,13 @@ The opening section on Kay's chart in production said the Leo Sun "rules six of 
 **Not addressed, deliberately:** the other weaknesses in that production draft (a causal non-sequitur, a recital of two squares, a closing line that gave a "hidden you" the final say). They are quality variance, and adding rules or examples for that kind of thing has failed before (CLAUDE.md rule 11).
 
 **Measured:** nothing yet. Next step: `npm run eval -- --gate --charts=control-chicago-1987 --through=tropical`, and read the opening section.
+
+## 2026-11-18 — v10.59: the opening section at medium effort (unmeasured)
+
+Kay compared a live v10.57 opening section on her chart with the v10.57 eval sample. Same prompt, but the live draft was weaker: it miscounted the dispositor chain, had a causal non-sequitur, and stacked a recital of aspects. Both passed every deterministic scan. The likely cause is variance between samples, which `effort: 'low'` widens because the model plans less before it writes.
+
+**Change.** `outputConfigFor(planetSection)` in `reading-model-config.ts`; `overview` runs at `medium` and every other section stays on `EFFORT` (`low`). The route and `buildSectionRequest` both use it. The offline gate's repairs still use `OUTPUT_CONFIG`. Version bumped so cached low-effort openings are not served.
+
+**Expected cost:** on Chicago (2026-11-12), medium took 32–82s per section against low's 13–36s, at about 40% more cost. That applies to one section of 22. The overview streams, so the extra time shows as first-token latency. `GENERATION_HARD_DEADLINE_MS` is 112s.
+
+**Measured:** nothing. To check, generate Kay's overview about three times at each effort and read them side by side.

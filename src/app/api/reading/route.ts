@@ -17,7 +17,7 @@ import { preflightSection, pickBetter, formatPreflightLog, cacheScan, formatCach
 import { logUsage, type ModelCallKind } from '@/lib/usage-log'
 import { summariseRuleScan, formatRuleScanLog } from '@/lib/reading-rule-scan'
 import { getAnthropicKey, isAnthropicKeyConfigured, intEnv } from '@/lib/env'
-import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
+import { MODEL, THINKING, outputConfigFor, maxTokensFor } from '@/lib/reading-model-config'
 import { unknownTimeAngleNotice } from '@/lib/unknown-time-notice'
 import { sectionLocked, PAYWALL_HEADER, PAYWALL_STATUS } from '@/lib/paywall'
 import {
@@ -481,7 +481,7 @@ const GENERATION_HARD_DEADLINE_MS = 112_000
               model:       MODEL,
               max_tokens:    maxTokens,
               thinking:      THINKING,
-              output_config: OUTPUT_CONFIG,
+              output_config: outputConfigFor(planetSection),
               system:      systemBlocks,
               messages:    [{ role: 'user', content }],
             }, {

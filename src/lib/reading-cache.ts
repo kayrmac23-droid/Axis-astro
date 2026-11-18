@@ -133,7 +133,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // v10.57: the voice rewrite for Opus 5.5 (scratch rounds 3-5, 17-18 Nov) and
 // a new opening section, The Shape of Your Chart (tropical/overview), which
 // shifts every later section's prior digest. See docs/PIPELINE-HISTORY.md.
-export const READING_PROMPT_VERSION = 'v10.58'
+export const READING_PROMPT_VERSION = 'v10.59'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate
