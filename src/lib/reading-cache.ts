@@ -130,7 +130,7 @@ import type { BirthData } from '@/lib/astro-calc'
 // closers' "the next time"); the aspect length clause no longer contradicts the
 // secondaries' orb weighting; unknown-birth-time charts get a clause overriding
 // house-based headings and modes. Unmeasured — see docs/PIPELINE-HISTORY.md.
-export const READING_PROMPT_VERSION = 'v10.55-exp'
+export const READING_PROMPT_VERSION = 'v10.56-exp'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

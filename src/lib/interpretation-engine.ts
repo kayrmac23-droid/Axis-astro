@@ -310,9 +310,9 @@ const NAKSHATRA_DATA: Record<string, {
 
 const ASPECT_DEFS = [
   { name: 'Conjunction', angle: 0,   orb: 8, glyph: '☌', nature: 'merger — the two planets operate as a single intensified unit; their energies amplify each other, for better or worse; the combined effect is harder to modulate than either alone', quality: 'intensifying' },
-  { name: 'Sextile',     angle: 60,  orb: 6, glyph: '⚹', nature: 'latent cooperation — the planets can work in concert when intentional, but the ease requires activation and tends to go unnoticed because it creates no friction', quality: 'cooperative' },
+  { name: 'Sextile',     angle: 60,  orb: 6, glyph: '⚹', nature: 'cooperation — the planets can work in concert, and because the ease creates no friction it tends to go unnoticed', quality: 'cooperative' },
   { name: 'Square',      angle: 90,  orb: 8, glyph: '□', nature: 'productive friction — the planets pull in incompatible directions; this conflict returns again and again without clean resolution; the most generative difficult aspect', quality: 'tense' },
-  { name: 'Trine',       angle: 120, orb: 8, glyph: '△', nature: 'natural flow — the planets work together easily and automatically; the coordination is automatic enough that it is rarely examined, and therefore rarely developed past its default level', quality: 'flowing' },
+  { name: 'Trine',       angle: 120, orb: 8, glyph: '△', nature: 'natural flow — the planets work together easily; the coordination is easy enough that it is rarely examined, and therefore rarely developed past its default level', quality: 'flowing' },
   { name: 'Opposition',  angle: 180, orb: 8, glyph: '☍', nature: 'polarization — the person tends to identify with one pole and project the other onto partners or adversaries; what feels external is often an unintegrated internal tension', quality: 'polarizing' }
 ]
 
@@ -685,7 +685,7 @@ function formatJyotishPlanetBlock(planet: PlanetPosition, chart: ChartData, time
   }
   const nb = neechaBhangaConditions(chart, planet, timeKnown)
   if (nb.length > 0) {
-    lines.push(`NEECHA BHANGA CONDITIONS MET (classical conditions that temper a debilitation; name the condition and what it tempers, and leave the debilitation standing):`)
+    lines.push(`NEECHA BHANGA CONDITIONS MET (classical conditions that temper a debilitation; say what each one adds):`)
     nb.forEach(c => lines.push(`  · ${c}`))
   }
   lines.push('')
@@ -1052,7 +1052,7 @@ function buildStrengths(planet: PlanetPosition, aspects: Aspect[]): string[] {
       // the model pasted onto each one, which is recital, not interpretation.
       const flavour = a.aspectName === 'Trine'
         ? 'the two functions coordinate without friction — say what that coordination concretely produces in this chart'
-        : 'cooperation between the two functions is available but not automatic — name the specific situation in this chart that switches it on'
+        : 'the two functions cooperate — say what that cooperation concretely produces in this chart, and in what kind of situation'
       strengths.push(`${planet.name} ${a.aspectName.toLowerCase()} ${other} (orb ${a.orb}°, ${orbTier(a.orb)}): ${flavour}; ${planet.name}'s function and ${other}'s (${otherArena}) reinforce one another`)
     })
 
@@ -1094,7 +1094,7 @@ function buildSituationalFrame(planet: PlanetPosition, aspects: Aspect[]): strin
     const otherData = PLANET_CORE[other]
     if (!otherData) continue
     const otherArena = otherData.coreFunction.split(',').slice(0, 2).join(',').trim()
-    lines.push(`Trigger — ${a.aspectName} ${other} (orb ${a.orb}°, ${orbTier(a.orb)}): this pattern comes live in situations involving ${otherArena}; the ${other} contact is what activates it in lived experience, ${a.applying ? 'and the pull is intensifying (applying)' : 'as a recurring, settled-in dynamic (separating)'}.`)
+    lines.push(`Trigger — ${a.aspectName} ${other} (orb ${a.orb}°, ${orbTier(a.orb)}, ${a.applying ? 'applying' : 'separating'}): situations involving ${otherArena}.`)
   }
 
   return lines
@@ -1358,7 +1358,7 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
 
   const situational = buildSituationalFrame(planet, aspects)
   if (situational.length > 0) {
-    lines.push('SITUATIONAL FRAME (when/where this shows up — render the scene, not only the structure):')
+    lines.push('SITUATIONAL FRAME (when/where this shows up in the life):')
     situational.forEach(s => lines.push(`• ${s}`))
     lines.push('')
   }

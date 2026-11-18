@@ -502,6 +502,13 @@ describe('prediction/prescription — clausal false positives (2026-11-08 eval)'
   it('"the insistence on perfecting it before you\'ll trust it"', () => {
     expect(quiet("the insistence on perfecting it before you'll trust it")).toBe(true)
   })
+  // Round 4 (voice experiment, contractions allowed): an embedded question.
+  it('"testing whether you\'ll give way" — an embedded question, not a forecast', () => {
+    expect(quiet("someone pushing for a decision or testing whether you'll give way")).toBe(true)
+    expect(quiet("questions about whether you'll survive as yourself")).toBe(true)
+    // The main-clause forecast is still caught.
+    expect(quiet("you'll give way in the end")).toBe(false)
+  })
   it('"quietly reconstructing the argument you should have made first" (counterfactual)', () => {
     expect(quiet('quietly reconstructing the argument you should have made first')).toBe(true)
   })
