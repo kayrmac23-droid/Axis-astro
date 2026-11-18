@@ -1,0 +1,13 @@
+## Venus
+
+### Venus in Gemini, House 7
+
+You tend to love someone more steadily once you believe the two of you are headed somewhere. That comes from Jupiter, strong in its own sign in your Lagna, which casts its full gaze back onto Venus in the seventh. Venus keeps the same sign and house in both frames, so the talkative, play-driven way you value a partner carries over. What this frame adds is the condition under which it settles. When a relationship feels tied to a shared direction, such as a plan you both believe in, a teacher you both follow, or a life you're building toward, your attention stops roaming and you give a constancy the Gemini placement wouldn't predict. Without that sense of purpose, the same affection keeps scanning for what's next. Jupiter is retrograde, so the direction you need is often one you've privately decided on and never told your partner.
+
+Gemini is a friend's sign for Venus in Jyotish, since Mercury, its ruler, is a natural ally. Your taste for wit, news and variety works with your nature here, not against it. You know quickly what you enjoy in someone, and you say so in a way they can take in.
+
+The instinct underneath is Mrigashira, the nakshatra Venus occupies, ruled by Mars and presided over by Soma, the moon god. It gives your loving the quality of a deer at the edge of a clearing: gentle, alert, always lifting its head toward the next sound. You tend to keep looking for something in a partner even after you've found them. That's the tenderness of your attention, and under strain it turns into a low restlessness that reads a good evening as not quite enough. Mars shares both the sign and the nakshatra, and since Mars rules Mrigashira, the searching gets a sharpened edge. Wanting someone and wanting to find out more about them arrive as one hunger, so you rarely feel finished with a person you love.
+
+Venus is the lord of the whole chapter you're living through, with its mahadasha running to 2031. Partnership and what you find worth having stay at the centre of these years. The Saturn sub-period inside it presses for proof that the attraction can carry weight.
+
+Venus rules your sixth and eleventh houses and carries both into partnership. Your daily work and your friendships tend to arrive through the one person you're closest to, or to end up living inside the relationship. You may take on a partner's work troubles as your own, or let your friends become the couple's friends until you have few left who are only yours. That gives you a partnership woven through the whole week. What it takes from you is somewhere to stand outside it when the relationship strains, because by then the job, the routine and the friendships all run through the same door.

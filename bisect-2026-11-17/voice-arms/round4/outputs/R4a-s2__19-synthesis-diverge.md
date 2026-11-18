@@ -1,0 +1,29 @@
+## Where They Part
+
+### Mars
+
+When something needs pushing for, this person's two charts disagree about what the push is for. In the Tropical chart Mars sits in Libra in the twelfth, in detriment, and it rules the Scorpio Ascendant, so the will that steers the whole chart is one that weighs, defers and settles its grievances out of view. Its dispositor is Venus in Scorpio, also in detriment, which means the will answers to a planet that wants proof of depth before it moves. The pattern is a demand turned into a fair proposal before anyone hears it, with the unfairness still privately felt. In the Sidereal chart Mars sits in Virgo in the same twelfth house, peregrine, under Hasta, and it answers to Mercury in Libra in the first, retrograde. Here the private labour is correction: the complaint gets refined until it's precise and defensible, and from this Lagna Mars rules the second and seventh, so what they're owed and what they'd raise with a partner both get settled in that unseen workshop.
+
+The close sextile to Saturn, applying, shows where the two accounts lead them to act differently. Given a commitment with firm terms, the Tropical Mars spends its effort on whether the terms are balanced between the two parties, while the Sidereal Mars spends it on whether the work meets a standard only they are checking. A wide opposition to Jupiter in the sixth sits behind both. They can come out of the same arrangement feeling short-changed by the bargain and dissatisfied with their own execution, and each account is accurate to its own evidence.
+
+### Ascendant
+
+The two charts hand this person different first moves in a room. Tropical Scorpio rising, fixed water, has them reading for what's concealed, with Mars as chart ruler carrying that assessment into private deliberation. Sidereal Libra rising, cardinal air at 13°, has them measuring whether the exchange has reached a fair settlement, and its Lagna lord is Venus, in detriment in Scorpio in the second, joined there by Saturn in the Raja Yoga the Lagna reading described.
+
+The tight Moon–Venus trine is where this shows. When warmth flows easily toward someone, the Tropical account puts that Venus in the first house, so the warmth meets a threshold that asks first whether this person is who they seem. The Sidereal account puts the same Venus, as ruler of the body and circumstances, in the second, so the warmth meets a question about what the bond is worth and whether it can be kept. They can feel drawn to someone and, in the same moment, be testing both their sincerity and their value, with the two tests running on separate clocks.
+
+### Sun
+
+A careless remark aimed at them lands twice. The Tropical Sun is in Scorpio in the first, peregrine, fused at 0.4° with Pluto, and the remark registers as a breach at the level of identity, felt in the body and slow to discharge. The Sidereal Sun is in Libra in the first, in fall, with Pluto at the same tight distance, under Swati, ruled by Rahu, and here the same remark registers as an imbalance in standing: their place among others, the eleventh house this Sun rules, is suddenly unsettled, and plain self-assertion costs extra effort. Its dispositor is the detriment Venus in the second, so recovering from it runs through a question of worth.
+
+The sextile to Neptune, separating, adds a third view: Neptune is in Capricorn in the third in one chart and Sagittarius in the third in the other. In both they can turn the injury into a read of what the other person was feeling, though the Tropical version reaches it through structure and the Sidereal through belief. What they live with is a self that, after one sentence from someone else, is both wounded and recalculating its position, and it doesn't always know which response it's having.
+
+### Jupiter
+
+Their daily routine grows by two different methods. Tropical Jupiter is in Aries in the sixth, peregrine and retrograde, ruled by the detriment Mars in the twelfth: improvement arrives as an urge to start the new regime, which then has to pass through a will that delays. Sidereal Jupiter is in Pisces in the sixth, in its own sign and retrograde, its own dispositor, and the Harsha Yoga confines it to the sixth house it rules, so difficulty in work and health tends to turn toward advantage there, though not toward comfort. Its method is immersion: taking in a regime or the body's condition whole before changing anything. At 29° of Pisces it stands at the very edge of the sign, so this Sidereal account holds with less certainty than the Tropical one, which sits settled mid-sign.
+
+The tight trine to Uranus, separating, is where they behave differently. When routine starts to feel stale, the Tropical account has them break it and begin again; the Sidereal account has them absorb the disruption into a larger, looser routine that never formally resets. The trine to Saturn, applying, lets either version proceed without friction, so neither one is checked by the other.
+
+Ketu, the Midheaven, Rahu, the Moon, Neptune, Mercury, Pluto, Saturn, Venus and Uranus also read differently across the two charts, and those differences stay where the charts leave them.
+
+Most days, this person acts from both accounts without choosing between them. The same hour can hold a demand weighed for fairness and a demand corrected for precision, a room read for what's hidden and for what's owed, a slight taken as wound and as lost standing, a routine they want to restart and one they've already folded into something larger. What this takes from them is a single clear sense of what went wrong when something does. Each chart gives a full and accurate account of the moment, so the explanations don't cancel, and a conflict or a stalled improvement often ends with two sound diagnoses and no shared conclusion between them.

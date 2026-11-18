@@ -1,0 +1,15 @@
+{
+  "round": 4,
+  "prompt_version": "v10.56-exp",
+  "model": "claude-opus-5-5",
+  "date": "2026-11-18",
+  "spend_usd": {
+    "chicago_intermediate_6_sections": 1.173,
+    "chicago_final_6_sections": 1.175,
+    "kay_full_21_sections": 1.725,
+    "mumbai_full_21_sections": 1.643,
+    "tense_reruns_8_sections": 0.641,
+    "total": 6.357
+  },
+  "running_total_usd": 13.81
+}

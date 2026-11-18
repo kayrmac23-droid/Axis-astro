@@ -1,0 +1,13 @@
+## Mars
+
+### Mars in Gemini, House 7
+
+What you fight for inside a partnership doesn't stay there. It spills into your career, your body and your bank balance, because from the seventh house Mars casts its gaze onto your tenth, your Lagna and your second. Mars keeps the same sign and house in both frames, so the sparring, talking drive you already know stays put. What this frame shows is where its force lands afterwards. A clash at home can harden into a stance you take at work, where Uranus and Pluto sit. It can also set you grabbing at money and standing through Rahu in your second, as if winning the quarrel needed proof in your accounts. And because Mars's gaze reaches Jupiter in your Lagna, a heated exchange registers in your body and redraws your plans before you've decided anything.
+
+Mars rules your fifth and twelfth houses and carries both into partnership. Romance, creative risk and play get pursued through one other person, so the ventures you're boldest about tend to be the ones you share with someone. The twelfth brings expense and loss along with them. You spend money, give up sleep or let ground slip on a partner's behalf, often before you've added up what it cost. This is the protective nerve of your Mars: you'll go to the wall for someone while the outcome is still unclear, and the bill for it arrives later.
+
+Jupiter returns the gaze from your Lagna, and that's what moves this Mars from banter into action. When a partner's demand touches something you believe in, the needling stops and you commit. You argue for the principle with a stamina Gemini wouldn't give you on its own. Where no conviction is at stake, you keep circling. Venus shares the sign and softens how the push arrives, so a partner often hears warmth and misses that you meant to win.
+
+Mars sits in Mrigashira, a nakshatra (one of the twenty-seven lunar divisions of the zodiac) that Mars itself rules. It gives your drive a searching instinct. You pursue by asking the next question, and you often keep pursuing after the answer has come, because the hunt was the thing you wanted.
+
+Gemini counts as an enemy's sign for Mars in Jyotish, because its ruler, Mercury, is Mars's natural opponent, so your drive works on uneasy, borrowed terms. Whenever you need to act, the action comes routed through words, options and second thoughts, and the plain move of wanting something and taking it is the one you find hardest. Your force goes into building the case for acting. By the time you're ready to do the thing, part of your nerve has already been spent on the argument, and you're holding a sharper position with less push left to carry it.

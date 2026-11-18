@@ -1,0 +1,17 @@
+## Jupiter and Saturn
+
+### Jupiter in Sagittarius, House 1
+
+You tend to recover from a setback faster than the setback seems to allow, because some part of you has already decided it was never going to finish you. In this frame Jupiter moves back one sign, from Capricorn in the second to Sagittarius in the first, and the steady, recoverable ground already described gets its particular flavour from Purva Ashadha, the nakshatra Jupiter sits in, ruled by Venus and presided over by Apas, the water goddesses. Its instinct is an undefeated confidence that washes the slate clean. When a plan fails you rinse it off and start the next one, and that's how you keep moving. Under strain the same cleansing turns impatient, so you can sweep away an early win's lessons along with its failures and meet the same trouble again with a fresh conviction that you'll beat it.
+
+What Jupiter is oriented toward shows in where it looks. Its gaze falls on the Sun and Mercury in the fifth, so your faith gets spent on what you're making and the ideas you're playing with, and on Venus and Mars in the seventh, so you extend a large benefit of the doubt to a partner. That generosity is genuine and it does widen the people near you. It also means you often back a partner's venture before you've tested it, because believing in them comes as easily as believing in yourself. The ninth house it also watches is empty, so formal teachers and doctrines matter less to you than the direction you've worked out for yourself.
+
+### Saturn in Taurus, House 6
+
+Saturn is where you meet the opposite pressure, and it sits in your working day. In this frame it moves back one sign, from Gemini in the seventh to Taurus in the sixth. Taurus is a friend's sign for Saturn, since Venus, its ruler, is Saturn's natural ally, so discipline comes to you as patient routine more than as punishment. You can master a skill by repeating it until it's yours, and you keep a regimen going under load. Rohini, ruled by the Moon and presided over by Brahma the creator, adds a love of the well-made, so you care how the work feels in your hands. That care can grow possessive, and you resist changing a method you've grown attached to.
+
+Saturn rules your second and third houses, which carries money and your own effort and nerve into the sixth. What you earn and how hard you push both get decided by daily labour, and your income tends to grow only as fast as your stamina. Neptune casts its gaze back from Scorpio in your twelfth, and that's what Saturn works hardest against. Hidden fatigue, an unclear expense or a loss with no obvious source seeps into the routine, and you answer it by working harder at the very structure that's leaking. Saturn's own gaze reaches Ketu in your eighth, so you take on other people's shared burdens as one more duty in the schedule.
+
+The Saturn sub-period runs to February 2027, which puts this whole working machinery in the foreground of the Venus chapter.
+
+You'll know this pair from how a hard month goes for you: you're sure in yourself that it comes out well, and you meet that certainty each morning with a list of tasks that has to be done in full before it does. Your confidence and your stamina are two separate accounts, and the gap between them shows up in your body before it shows up anywhere else.

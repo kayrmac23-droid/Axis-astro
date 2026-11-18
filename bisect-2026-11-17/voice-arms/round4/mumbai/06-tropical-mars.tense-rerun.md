@@ -1,0 +1,17 @@
+## Mars
+
+When someone close to you does something that annoys you, you want to say so straight away, quickly and with a bit of bite, and almost in the same moment you want to make sure that when you say it, it lands completely and settles the matter for good. Those two impulses come from Mars in Gemini squaring Pluto in Virgo in your tenth house, a tight square that is still applying. Mars wants a fast, light exchange. Pluto wants control of the outcome. A quick objection about a small thing can turn, partway through, into an exact accounting of everything the other person got wrong, delivered with a precision that surprises you as much as them. You win the point and lose the easy footing you had before it.
+
+### Mars in Gemini, House 7
+
+You go after what you want by talking. Gemini gives your drive its form: you argue, persuade, question and keep reopening a subject from new angles, and you push on several fronts at once. The seventh house aims all of this at one particular person, so your will is most fully awake when there's a partner or an opponent in front of you. Mars is peregrine, so it has no settled authority of its own. It takes its direction from Mercury, which is peregrine in Aries in your fifth house, and that's why your assertion runs on pleasure and sport. You fight best when it's half a game, and you can lose the thread once the contest stops being fun.
+
+Your Moon decides whether that drive gets to finish what it starts. In Pisces in the fourth, it rarely lets it. The urge to answer back rises, and then the feeling underneath softens it, takes it in and holds onto it, so frustration lands in your body before it reaches your words. You talk faster, you get restless, you can't settle, and the confrontation you didn't have stays with you long after the moment for it has passed. The attachment the Moon carries means a fight you never finished doesn't fade on its own. It stays in you, unresolved.
+
+### Aspects
+
+The Pluto square sharpens all of this whenever something in a relationship becomes a question of who decides. It might be a disagreement about terms, an imbalance of power or an authority you can't easily challenge. Your quick, adaptable push hardens into something thorough and slow to release, and you keep going back over the case after the other person thinks it's closed. That persistence can actually change an arrangement that needed changing. It also costs you the lightness Gemini runs on, and some relationships end up feeling like a long negotiation you can't put down.
+
+Venus beside Mars means your anger tends to arrive looking like charm, which makes it harder for you to recognise it as anger. The square from the Moon means you fight late, if at all. The sextile from Mercury is the cooperative part: your drive and your wit turn a heated moment into a clear argument that the other person can actually answer.
+
+Once something matters enough to act on, you move toward the person involved. You open a conversation, make your case and keep at it with real nerve, often before you're sure how it ends. When the exchange stays playful and two-sided, it gets you somewhere, because you think on your feet and adjust as the other person answers. When control becomes the real subject, you press for the whole outcome, the Moon holds back what you actually feel, and you come away with the argument won and the bond strained. Then you spend the following days going over it in private.

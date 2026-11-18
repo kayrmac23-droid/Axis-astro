@@ -1,5 +1,25 @@
 # Handoff: voice drift and the Opus voice rewrite (17–18 Nov 2026)
 
+## 0. Round 4 status (18 Nov 2026), read this first
+
+- **Branch:** `ccr-1ceadba5-3tbyjg`, which contains this scratch branch plus round 4. Prompt version `v10.56-exp`. Still scratch, still not for merging.
+- **Report:** `voice-arms/round4/ROUND4.md`. Kay's round-4 reading is not in git; it was sent to her directly.
+- **What round 4 did:**
+  - rewrote `SCENE_EXEMPLAR` (no staged "hours later", no invented specifics, contractions, grouped aspects);
+  - added contractions and connected sentences to THE VOICE;
+  - stopped the instructions and the context copy seeding phrases the model repeated (sextile "switches it on", "comes live", "distortion is mild", "unwalked", "evidence check");
+  - Sidereal: one sub-header and the ORDER BY THE LIFE rule;
+  - Divergence: life first, no degree recitals, no case-study voice, boundary note kept with nothing to narrate;
+  - appended a tense reminder to every section instruction;
+  - added `whether` to the scan's prediction introducers.
+- **Decisions waiting on Kay:**
+  1. Kay's Tropical Sun read her 0°17′ Leo Sun as "at the very threshold… newly lit". Should one FACT DISCIPLINE line be added against within-sign boundary readings? CLAUDE.md rule 9 currently forbids any boundary rule in the natal prompts.
+  2. Contractions are at about 17 per 1,000 words. Keep them, or tone them down? They bring the habitual "you'll": 7 of 42 sections before the tense reminder, 1 of 7 re-runs after.
+  3. Paragraphs now run 5–8 sentences. Bring back a soft cap?
+- **Then:** if Kay is happy with her reading, the real PR to `main` (§5, step 3). 15 tests fail by design, listed in ROUND4.md.
+- **Spend:** round 4 was $6.36, so $13.81 in total.
+
+
 Scratch branch `ccr-060447b1-55wr0p`, draft PR #266 (**do not merge**). `main` is untouched at `f17bbb3`.
 
 ## 1. Where the voice drifted (measured)
