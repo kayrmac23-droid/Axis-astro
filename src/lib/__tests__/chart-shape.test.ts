@@ -11,7 +11,7 @@ import { calculateDualChart, type BirthData, type ChartData } from '@/lib/astro-
 import { buildInterpretationContext, dispositorChain, formatChartShapeBlock } from '@/lib/interpretation-engine'
 import { NATAL_SECTION_ORDER, priorSectionsFor } from '@/lib/reading-order'
 import { FREE_SECTIONS, natalReadingOrder } from '@/lib/paywall'
-import { SECTION_INSTRUCTIONS, SHARED_RULES, renderSectionInstruction, wordBandFor } from '@/lib/prompts'
+import { SHARED_RULES, renderSectionInstruction, wordBandFor } from '@/lib/prompts'
 import { countAspectsInContext, scoreLength } from '@/lib/reading-quality-gate'
 import { buildSectionRequest } from '@/lib/reading-request'
 import { maxTokensFor, THINKING_HEADROOM_TOKENS } from '@/lib/reading-model-config'
@@ -119,7 +119,7 @@ describe('the instructions take the fences down', () => {
   })
 
   it('the Sun builds on the shape and no longer hides the chart\'s story', () => {
-    const sun = SECTION_INSTRUCTIONS.tropical.sun
+    const sun = renderSectionInstruction('tropical', 'sun')!
     expect(sun).not.toMatch(/Do not output this reasoning step/)
     expect(sun).toMatch(/Build the Sun section on it/)
     // The Moon is no longer walled off: its effect on the Sun is fair game.
