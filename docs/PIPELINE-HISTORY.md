@@ -242,3 +242,90 @@ Same PR as the prompt audit above. No paid run. The scan changes are measured on
 - `checkNumericFacts` accepts any figure within 0.55° of *any* degree in the context, and a context lists a dozen positions, so most invented small orbs pass. It is precise and has low recall by design.
 - The cache-regen call under `after()` is reserved against the call cap but does not re-read the budget first.
 - The offline gate (`reading-quality-gate.ts`) beyond the functions the live path imports, and `interpretation-engine.ts` beyond its injected copy, were not audited line by line.
+
+## 2026-11-18 — v10.57: the Opus voice rewrite, and The Shape of Your Chart
+
+Kay's brief: the readings should read like a master astrologer giving her a reading. That means the whole chart taken into account, how one placement acts on another and what that produces, real and accurate, intelligent without sounding like a professor. On v10.53 they read "like homework" and "less alive". The model stays Opus 5.5. The scratch rounds are on draft PR #266 (bisect, rounds 1–3) and in the history of #267 (round 4, `bisect-2026-11-17/voice-arms/round4/ROUND4.md` at 655455b).
+
+**Diagnosis (bisect, 17 Nov).**
+- The drift was the model switch (Sonnet 5 without thinking → Opus 5.5). Effort and the v10.52/v10.53 edits were noise.
+- The prompts had been tuned to force a resistant model, and Opus followed them literally, so the scaffolding showed in the prose:
+  - per-placement headings;
+  - verdicts on which frame is under more pressure;
+  - "live / goes quiet" headings;
+  - compliance sentences;
+  - jargon recited without explanation.
+- The evaluator scored Opus +0.56 higher. That is the same preference for clipped prose it showed against Kay's 10 Nov reading, so **the evaluator was not used to judge voice**. Kay read the outputs.
+
+**What changed, in order of what moved the prose.**
+
+1. **`SCENE_EXEMPLAR` rewritten.** The old one staged the three-beat moment ("Hours later the position is still unfinished"), invented specifics ("at two in the morning", "on Thursday", "the fourth draft") and opened on a dignity recital. Round 3's Sun sections copied its wording verbatim. The new one, on the same chart:
+   - opens on the reader's life;
+   - talks, with contractions;
+   - gives each claim its reason in the same sentence;
+   - groups the aspects;
+   - invents nothing.
+
+   It is still held to zero scan findings and length 5.
+2. **THE VOICE**, at the head of `SHARED_RULES`:
+   - a perceptive astrologer talking across a table;
+   - contractions (never "you'll");
+   - the reason inside the sentence;
+   - no paragraph that opens on a recital;
+   - Jyotish terms explained or left out;
+   - the rules as a checklist worked while thinking, whose vocabulary (trigger, aftermath, evidence, check, live, quiet, shadow, distortion, "the cost") stays out of the prose. It names the compliance lines to avoid.
+3. **PART 1.** The three-part staged moment is gone. Situations are folded into the claim as habits: no little stories with a cast and a time jump, and an example names a *kind* of situation, never a job, workplace or time of day. What comes of the pattern is still required.
+4. **Phrases the instructions and context copy were handing over, all removed** (the model repeated each one):
+   - "MOON SCOPE: this is an EVIDENCE CHECK" became "A Moon check sharpens this";
+   - the sextile line "available but not automatic — … switches it on" and the aspect-type definitions became "the cooperation isn't automatic; it switches on when…";
+   - "comes live" and "settled-in dynamic";
+   - "if mild, say so" became "Its distortion is mild";
+   - "without walking each" became "unwalked";
+   - "most likely to misread" became the identical close "likely to read X as indecision";
+   - "leave the debilitation standing" became "the debilitation stays".
+
+   The appendix's aspect-type definitions are deleted.
+5. **Structure.**
+   - Tropical Sun and Moon have two sub-headers (`### The Sun in [Sign], House [N]`, `### Aspects`), with aspects grouped by what they do.
+   - Each Sidereal section has one sub-header and the ORDER BY THE LIFE rule: no technique gets a heading or a paragraph to itself. Lordship is used "wherever it explains" (it used to be "for every planet"), and a nakshatra's lord and deity appear only where they explain its instinct.
+   - The Divergence opens each divergence on the life, gives a degree only where the point depends on one, and drops the "case study" voice. It stays third person (rule 10).
+6. **The Shape of Your Chart** (`tropical/overview`, new and first; the reading is now 22 sections).
+   - The Sun instruction used to tell the model to identify the chart's dominant story "internally" and never output it. The opening section now says it, from `formatChartShapeBlock`.
+   - That block covers the chart-ruler chain, where every dispositor chain ends, mutual receptions, dignities, angular planets, stelliums, element and modality balance, and the tight and close aspects. All of it is computed, and with no birth time it omits houses, angles and the ruler chain.
+   - Band 700 (580–820), unscaled. The free tier keeps Sun, Moon and Ascendant, behind the opening section.
+7. **The fences come down.**
+   - New PART 6 rule, THE PLACEMENTS ACT ON EACH OTHER: show what the rest of the chart does to this placement, within this frame, and what the combination produces.
+   - The Sun may use the Moon's sign, house and aspects to show what the Moon does to it.
+   - An ALREADY READ aspect is built on from this planet's side, where it used to get one sentence.
+8. **The cadence allowance is withdrawn from the prompt.** With the clause gone, Opus exceeded the density limit in 1 of 48 sections, against 4 of 6 Sonnet samples. The density is still measured, and still triggers the live regeneration and the offline clamp.
+9. **The tense reminder** (`TENSE_CLAUSE`) is appended last to every instruction. With contractions on, the habitual "you'll" ("you'll go to the wall for someone") appeared in 7 of 42 sections, each one a hard prediction and a paid regeneration. With the reminder, 1 of 7 re-runs, and 1 of 22 in Kay's v10.57 reading.
+10. **Scanner false positives fixed, with controls:**
+    - `whether` is a prediction introducer ("testing whether you'll give way");
+    - the sign-off farewells match only at the start of a sentence ("when a new love starts to go well" was a hard `sign-off`).
+
+**Measured (free counts; voice is judged by reading).**
+
+Chicago, fixed priors, two samples each of Tropical Sun, Sidereal Sun and diverge:
+
+| | round 3 | v10.56-exp |
+|---|---|---|
+| sentence length (words) | 19.0 | 22.8 |
+| sub-headers per section | 3.7 | 2.3 |
+| degree-minute recitals | 17 | 3 |
+| contractions per 1k words | 0.2 | 16.8 |
+
+Kay's chart on v10.57:
+- 22 sections, 13,209 words, $1.81.
+- 0 hard fact findings, 0 doctrine hits.
+- 1 hard rule finding (the habitual "you'll").
+- 8 of 22 sections over the band ceiling, all within 16% and none past the hard cap; the interplay costs words.
+- The opening section ran 752–850 words across Kay, Chicago, Mumbai and Glasgow (no birth time); two ran over 820. The Glasgow one stated the unknown time once and claimed no house.
+
+Spend for rounds 3–5: about $16.
+
+**Open, each needing Kay.**
+- **A within-sign boundary reading** appeared once, in round 4 (Kay's 0°17′ Leo Sun: "at the very threshold… newly lit"). It did not appear in v10.57's reading. The natal prompts still carry no boundary rule (rule 9).
+- **The Divergence is still third person.**
+- **Paragraphs now run 5–8 sentences.**
+- **Contraction density** is about 17 per 1,000 words.
+- **The `SHARED_RULES_LEAN` "materially shorter" threshold** moved from 0.7 to 0.75, because the appendix shrank.

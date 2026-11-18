@@ -77,7 +77,7 @@ describe('/api/reading — sections are written after the reading so far', () =>
   beforeEach(() => { streamCalls.length = 0; _resetThreadMemoryForTests() })
 
   it('the opening section is sent with no reading so far', async () => {
-    await read('tropical', 'sun', '## The Sun\n\nSUN-PROSE.')
+    await read('tropical', 'overview', '## The Shape of Your Chart\n\nSHAPE-PROSE.')
     const blocks = lastUserBlocks()
     expect(blocks).toHaveLength(1)
     expect(blocks[0].text).not.toContain('THE READING SO FAR')

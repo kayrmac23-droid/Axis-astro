@@ -56,6 +56,9 @@ export function sceneExpectation(
     return PLAN_ASPECT_RE.test(context) ? 'third-person' : 'no'
   }
   if (section === 'sidereal')  return DRISHTI_RECEIVED_RE.test(context) ? 'yes' : 'no'
+  // The opening section has no planet block; its aspects are the chart's tight
+  // and close ones, listed under KEY ASPECTS IN THE CHART.
+  if (section === 'tropical' && planetSection === 'overview') return /^KEY ASPECTS IN THE CHART/m.test(context) ? 'yes' : 'no'
   if (section === 'tropical')  return aspectCount > 0 ? 'yes' : 'no'
   // Synastry is built on inter-aspects and keeps PART 1 as it always was.
   return 'yes'

@@ -73,8 +73,9 @@ describe('sceneClause — what the writer is told', () => {
     const c = sceneClause('no', 'sidereal')
     expect(c).toMatch(/no drishti reaches this placement/)
     expect(c).toMatch(/write no scene/)
-    expect(c).toMatch(/condition under which its pattern is live/)
-    expect(c).toMatch(/goes quiet/)
+    // v10.57: said in plain words; "live" and "goes quiet" were being echoed.
+    expect(c).toMatch(/when its pattern is active and when it rests/)
+    expect(c).not.toMatch(/goes quiet/)
   })
 
   it('keeps The Divergence in third person when there is no trigger', () => {

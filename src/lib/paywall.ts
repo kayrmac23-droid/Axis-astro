@@ -16,7 +16,10 @@
 // `sectionLocked`, ahead of the cache check, never in the anonymous cache.
 import { NATAL_SECTION_ORDER, type NatalSection, type SectionRef } from './reading-order'
 
+// v10.57: the opening section joins the prefix, so the free tier keeps the Sun,
+// Moon and Ascendant it had and reads them after the shape of the chart.
 export const FREE_SECTIONS: readonly SectionRef[] = [
+  { section: 'tropical', planetSection: 'overview' },
   { section: 'tropical', planetSection: 'sun' },
   { section: 'tropical', planetSection: 'moon' },
   { section: 'tropical', planetSection: 'ascendant' },

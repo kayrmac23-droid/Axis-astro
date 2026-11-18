@@ -490,6 +490,10 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 
 // against an observed 415 — a floor above what the section has to say, which is
 // precisely the "a floor is an instruction to pad" failure the v10.30 note above
 // warns about. Granting it nothing is what the evidence supports.
+// The opening section (v10.57): the whole chart in about three minutes of reading.
+// No aspect scaling: it lists the chart's tight and close aspects under its own
+// header, which countAspectsInContext does not read.
+const BAND_OVERVIEW:           WordBand = { target: 700, fullMin: 580, fullMax: 820, hardMin: 500, hardMax: 920 }
 const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
 const BAND_NODES_TROP:         WordBand = { target: 280, fullMin: 235, fullMax: 330, hardMin: 205, hardMax: 410 }
@@ -506,6 +510,7 @@ const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax: 
 export const DEFAULT_WORD_BAND: WordBand = { target: 400, fullMin: 250, fullMax: 900, hardMin: 150, hardMax: 1200 }
 
 export const SECTION_WORD_BANDS: Record<string, WordBand> = {
+  'tropical:overview': BAND_OVERVIEW,
   'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
   'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
   'tropical:jupiter_saturn': BAND_JUPSAT, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
@@ -642,47 +647,15 @@ export function lengthClause(band: WordBand): string {
   return s
 }
 
-// ── THE ANTITHESIS LIMIT (a density, not a per-section cap) ──────────────────
-//
+// ── THE ANTITHESIS LIMIT — withdrawn from the generation prompt (v10.57) ─────
 // The contrastive construction ("X rather than Y", "not X but Y", "less a X
-// than Y") is the house tic: measured at 141 occurrences across the 63 sections
-// of the 2026-11-02 eval run, 39 sections at two or more. PART 4 capped it at
-// ONE per section, flat, and the gate clamped `voice_quality` on that count.
-//
-// ⚠ v10.45 — THE RULE IS DENSITY IN A SPAN, AND A PER-SECTION CAP CANNOT STATE
-// IT. v10.39 replaced the flat cap with one scaled to the band (one use per 450
-// words of target, min 1) and it did not hold: 10 of the 21 frozen sections in
-// fixtures/rater-bench breached it and 6 breached it hard. The reason is in
-// reading-rule-scan.ts in full; in short, `Math.max(1, Math.round(target/450))`
-// quantises to an integer and the real allowance it buys swings from 2.0 to 4.4
-// uses per 1000 words across the band table, so two sections at the identical
-// rate got opposite verdicts and the longest sections got the tightest rule.
-// And the count was measuring the wrong thing: in a domain whose subject is
-// contrast, most of those occurrences are ordinary English naming where a
-// placement operates and where it does not, while what a reader hears as a
-// template is ADJACENT repetition. The allowance is therefore no longer derived
-// from the band at all — it is a property of the finished text, which is why
-// `antithesisCapFor` and `ANTITHESIS_WORDS_PER_USE` are gone and the clause
-// below states no number of its own.
-
-/**
- * The per-section cadence allowance, rendered for the section instruction.
- *
- * ⚠ It goes in the SECTION INSTRUCTION, never in SHARED_RULES, for the same
- * reason the length clause does: SHARED_RULES is sent as a prompt-cached block
- * and must be byte-identical across all ~21 sections of a reading. A per-section
- * number interpolated into it would destroy the cache on every section.
- */
-export function antithesisClause(): string {
-  // ⚠ This clause is held to the rule it states: no contrastive construction
-  // of its own outside the quoted forms it names. The v10.34 finding was that
-  // the antithesis rule's OWN use of "rather than" beat its explicit cap, and
-  // the v10.35 finding was that PART 1's third person beat PART 4's second — in
-  // this prompt, example outranks rule, twice measured. A clause that modelled
-  // the tic while capping it would teach the tic.
-  // reading-review-fixes.test.ts fails the build if a bare one reappears here.
-  return `CADENCE ALLOWANCE: the contrastive construction — "X rather than Y", and its variants "not X but Y", "less a X than Y", "X, not Y" as a standalone contrast — is legitimate when the contrast carries a claim you cannot make as cleanly any other way, and becomes a TEMPLATE when it repeats close to itself. The limit is on how densely it falls, not on how many times it appears in the section: use it AT MOST ONCE IN ANY ONE PARAGRAPH, and across the section no more often than once every two paragraphs. Twice in a single paragraph is a fault; three times in one paragraph is a failure. Everywhere else, make the claim directly — say what IS, and let what it is not stay unsaid. This is checked on the finished text (PART 4: VARY THE ANTITHESIS).`
-}
+// than Y") was the house tic on Sonnet, and every section instruction carried a
+// CADENCE ALLOWANCE stating its density limit (v10.39–v10.56). Opus 5.5 does not
+// produce the tic: with the clause withdrawn, 1 of 48 sections exceeded the
+// density limit, against 4 of 6 Sonnet samples. The clause was one more rule the
+// prose visibly obeyed, so it went. The density is still measured
+// (`antithesisVerdict`, reading-rule-scan.ts) and still triggers the live cache
+// regeneration and the offline gate's clamp.
 
 // SHADOW COVERAGE — the anti-quota counterpart to the rescue-move bans.
 //
@@ -1041,8 +1014,9 @@ case, so this rule is where the whole constraint lives.
 
 READING METHOD: identify the chart's central story before interpreting any
 planet — which placements are strongest (angular, dignified, heavily aspected),
-what tension runs through the chart, what the chart ruler is doing. Every
-interpretation either confirms or complicates that story. Then read every
+what tension runs through the chart, what the chart ruler is doing. The
+Tropical reading opens on that story, and every interpretation after it either
+confirms or complicates it. Then read every
 placement against what modifies it, which carries most of the work:
 - Aspects are mechanisms, never keywords. Where the aspecting planet sits and
   what it rules are the reasons an aspect does what it does in this life: give
@@ -1278,6 +1252,13 @@ same person. Write this section as its continuation.
   pattern, a scene, the chart ruler, a dispositor chain, an aspect already
   worked: refer to it briefly and build on it, never re-derive it. Spend the
   words on what THIS placement adds, sharpens, contradicts or complicates.
+- THE PLACEMENTS ACT ON EACH OTHER. A section is about one placement and never
+  about it alone. Show what the rest of the chart does to it: the ruler it
+  answers to, the planets it aspects or shares a sign with, and the patterns the
+  reading so far has drawn in this frame (in the Tropical reading, starting from
+  the shape of the chart it opened on). Then say what the combination produces
+  in your reader's life. A placement read on its own is the half of a reading
+  your reader could have found in a book.
 - Refer back through the content, never the document: name the planet or the
   pattern ("the same restlessness the Moon carries is what Mars acts on"). "As
   established in the Sun section" and "as we saw above" are dead weight.
@@ -1607,9 +1588,21 @@ const SIDEREAL_CLOSE = `Close the section with a short paragraph under no headin
 
 export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
   tropical: {
+    overview: `Write the opening of the whole reading: the shape of the chart.
+
+Start with: ## The Shape of Your Chart. No sub-headers.
+
+This is where a master astrologer starts, before any single planet: the chart read as one system. From the CHART SHAPE facts and the chart block, find the two or three patterns that define this chart: what's strongest (a dignified or angular planet, a stellium, the final dispositor), the central tension (the tightest hard aspects, a debilitated chart ruler, an element missing or crowded), and where the chart ruler's chain leads. Then show how the key placements act on each other and what that produces in your reader's life: this placement leans on that one, this aspect pulls against that dignity, and here is what living with the combination is like. Each placement you name is the reason for something you say about your reader.
+
+Open on your reader, with the chart's most defining pattern stated plainly as something about their life. Then bring in the second and third patterns and show where they meet the first. Every later section goes deeper into one placement, so this one stays at the level of the whole: give each placement as much as its part in the pattern needs, and leave its full portrait to its own section. Don't walk the placements one by one, and don't preview the sections to come.
+
+The last paragraph lands on the one tension that runs through the whole chart, said as what it's like to live inside it, under no heading.
+
+${LENGTH_CLAUSE_SLOT}`,
+
     sun: `Interpret the Sun.
 
-Internally identify the chart's dominant story: which placements are strongest (angular, dignified, heavily aspected), what the central tension is, and what the chart ruler is doing. Do not output this reasoning step — it shapes every sentence that follows.
+The reading opened on the shape of the whole chart, and it is in THE READING SO FAR. Build the Sun section on it: show where the Sun sits in that shape and what the rest of the chart does to it, and never re-state the shape itself.
 
 Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign], House [N] → ### Aspects. The closing paragraph runs on from the last sub-section under no heading of its own.
 
@@ -1617,7 +1610,7 @@ ${openingClause('tropical', 'sun')}
 
 Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives, with where each aspecting planet sits and what it rules given as the reasons for what the aspect does in this life; the condition of the Sun's sign ruler and how it modifies what the Sun can deliver.
 
-MOON SCOPE — a cross-reference, never a Moon interpretation. Read the MOON EMOTIONAL EVIDENCE in the context before any behavioural statement, and say in one or two sentences what your reader's feelings do to the Sun's impulse, as a plain fact about them with the Moon named as the reason ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity or aspects anywhere in this section, the close included — no "Virgo Moon grounds through constancy", no unpacking its house domain, no characterising its emotional operating mode. The Moon has its own full section and has NOT been interpreted yet. The moment a sentence is about the Moon and not about the Sun-Moon cross-purpose, it belongs in the Moon section.
+THE MOON AND THE SUN — read the MOON EMOTIONAL EVIDENCE in the context before any behavioural statement, and show what your reader's feelings do to the Sun's impulse: where they back it, where they pull against it, and what the combination produces ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). The Moon's sign, house and aspects are fair reasons for that. The Moon's own portrait comes in the next section, so keep to what the Moon does to the Sun: everything the Moon is on its own belongs there.
 
 This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop each part fully: the sign in its house, the dignity and the ruler chain, each aspect worked to what it does in this life (grouped where aspects do related work), and the close. Anchor each pattern to the kind of situation that sets it off, using the SITUATIONAL FRAME in the context. Close on something the section has earned but not yet stated: the single tension the SUN navigates, built from the Sun's own placement, dignity, ruler chain and aspects. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…") and do NOT restate the section's central quality as if newly discovered.`,
 
@@ -1940,18 +1933,16 @@ export function renderSectionInstruction(
   const body = opts.birthTimeUnknown && (section === 'tropical' || section === 'sidereal')
     ? `${withLength}\n\n${UNKNOWN_TIME_CLAUSE}`
     : withLength
-  // The cadence allowance is appended rather than slotted: it applies to every
-  // section without exception, so a per-section token would be 27 places to
-  // forget it. Appended here it cannot be missing from a section. It states no
-  // number of its own (v10.45), so it is byte-identical in every section.
-  // v10.54-exp (scratch only): the cadence allowance is withheld from the
-  // generation prompt; the scans still measure the construction.
-  // v10.56-exp (scratch only): with contractions allowed, Opus wrote the
-  // habitual "you'll" ("you'll go to the wall for someone") in 7 of 42 sections
-  // although THE VOICE excludes it, and the scan reports each as a hard
-  // prediction. The reminder sits last, nearest the generation.
+  // The tense reminder is appended rather than slotted, so it cannot be missing
+  // from a section, and it sits last, nearest the generation. With contractions
+  // allowed (THE VOICE), Opus wrote the habitual "you'll" ("you'll go to the
+  // wall for someone") in 7 of 42 sections although THE VOICE excludes it, and
+  // the scan reports each as a hard prediction (a paid regeneration). With the
+  // reminder, 1 of 7 re-runs. The cadence allowance that used to sit here was
+  // withdrawn in v10.57 (see docs/PIPELINE-HISTORY.md); the scans still
+  // measure the construction.
   return `${body}\n\n${TENSE_CLAUSE}`
 }
 
-// Appended to every section instruction (scratch experiment, v10.56-exp).
+// Appended to every section instruction.
 export const TENSE_CLAUSE = `TENSE: write every habit in the present tense: "you match their certainty", never "you'll match it" or "you will match it". "You'll" never appears in your prose, even where it would mean "you tend to".`

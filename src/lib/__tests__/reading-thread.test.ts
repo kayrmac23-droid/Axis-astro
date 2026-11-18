@@ -19,12 +19,18 @@ const THREAD = '3f2b8c1e-9a4d-4e7b-8c21-5d6f7a8b9c0d'
 const scope: ThreadScope = { threadId: THREAD, birth: BIRTH }
 
 describe('priorSectionsFor — reading order', () => {
+  // v10.57: The Shape of Your Chart opens the reading.
   it('the opening section has nothing before it', () => {
-    expect(priorSectionsFor('tropical', 'sun')).toEqual([])
+    expect(priorSectionsFor('tropical', 'overview')).toEqual([])
+  })
+
+  it('the Sun is written after the shape of the chart', () => {
+    expect(priorSectionsFor('tropical', 'sun')).toEqual([{ section: 'tropical', planetSection: 'overview' }])
   })
 
   it('a tropical section follows the earlier tropical sections', () => {
     expect(priorSectionsFor('tropical', 'ascendant')).toEqual([
+      { section: 'tropical', planetSection: 'overview' },
       { section: 'tropical', planetSection: 'sun' },
       { section: 'tropical', planetSection: 'moon' },
     ])

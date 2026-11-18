@@ -52,7 +52,7 @@ describe('preflightSection — the deterministic checks on the hot path', () => 
     const f = r.findings.find(x => x.check === 'antithesis-tic')
     expect(f).toBeDefined()
     expect(f!.detail).toContain('in one paragraph')
-    expect(f!.detail).toContain('at most one per paragraph')
+    expect(f!.detail).toContain('one per paragraph is the most that reads as a sentence')
   })
 
   it('catches a fabricated degree and tells the rewrite to re-derive it, not delete it', () => {

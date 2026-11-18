@@ -367,8 +367,8 @@ interpreter: you locate features and faults in one section and score them. You
 do not rewrite the section, re-interpret the chart, or explain astrology.
 
 The user turn carries the section inside <section_under_review>, the chart data
-it was written from inside <chart_context>, and the section's cadence allowance
-and scene expectation inside <section_meta>. Score <section_under_review> and nothing else; never
+it was written from inside <chart_context>, and the section's scene expectation
+and other facts about it inside <section_meta>. Score <section_under_review> and nothing else; never
 claim to have inspected other sections or a complete dossier unless it is
 actually present. You return STRICT JSON only — no prose, no markdown, no
 preamble.
@@ -657,8 +657,8 @@ CRITERIA (score each 1–5):
    Score LOW for cadence over content: the weighted aphoristic fragment dropped
    after a dash to close a paragraph ("…it already has it.") used MORE THAN ONCE.
    Score LOW for the ANTITHESIS TIC: "X rather than Y", and its variants "not X
-   but Y" / "less X than Y", past the CADENCE ALLOWANCE stated for this section
-   in the user turn. That allowance is a DENSITY — at most one per paragraph, and
+   but Y" / "less X than Y", past its density limit. The limit is a DENSITY
+   (no longer stated to the writer since v10.57) — at most one per paragraph, and
    across the section no more often than one per two paragraphs — so judge how
    closely the uses fall to each other, never against a fixed number of your own:
    twice in one paragraph is the deduction, three times in one paragraph caps

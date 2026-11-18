@@ -144,7 +144,7 @@ const FRAME_LABEL: Record<string, string> = {
   tropical: 'Tropical reading', sidereal: 'Sidereal reading', synthesis: 'The Divergence',
 }
 const PART_LABEL: Record<string, string> = {
-  sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', lagna: 'Lagna', mercury: 'Mercury',
+  overview: 'The shape of the chart', sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', lagna: 'Lagna', mercury: 'Mercury',
   venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', rahu_ketu: 'Rahu & Ketu',
   key_aspects: 'Key aspects', agree: 'Concordance', diverge: 'Where they part',
   tension: 'The central tension', closing: 'Living the divergence',

@@ -94,6 +94,11 @@ describe('reading-rule-scan — spelling, formatting, sign-offs', () => {
     expect(has('Welcome to your reading.', 'greeting')).toBe(true)
     expect(has('In conclusion, the Sun carries the weight.', 'sign-off')).toBe(true)
     expect(has('I hope this lands.', 'sign-off')).toBe(true)
+    expect(has('That is the shape of it. Go well.', 'sign-off')).toBe(true)
+    expect(has('Good luck with all of it.', 'sign-off')).toBe(true)
+    // Mid-sentence they are ordinary English, not a farewell.
+    expect(has('When a new love starts to go well, you back it beyond its means.', 'sign-off')).toBe(false)
+    expect(has('You put the win down to good luck and move on.', 'sign-off')).toBe(false)
   })
 
   it('flags a summary heading — the v10.30 unheaded-close rule', () => {

@@ -1350,7 +1350,7 @@ function formatPlanetBlock(planet: PlanetPosition, chart: ChartData, system: 'tr
       lines.push(`• ${a.aspectName} ${other} (${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})${hInfo}${read}`)
     })
     if (aspects.some(a => workedHomes.has(a.planet1 === planet.name ? a.planet2 : a.planet1))) {
-      lines.push(`ALREADY READ: the section named walked that aspect in full and the reader has just read it. Do not walk it again, do not give it a sub-heading, and do not retell its moment. State it once from ${planet.name}'s side, in a sentence, adding only a consequence that section did not give; where an instruction selects such an aspect (as an opening, say), do the same and move on. The words it would have taken go to what this section alone can say: the sign, the house, the dispositor, and the aspects not marked.`)
+      lines.push(`ALREADY READ: the section named worked that aspect in full and the reader has just read it. Do not work it again from the start, do not give it a sub-heading, and do not retell its moment. Build on it from ${planet.name}'s side: what that contact does to ${planet.name} in particular, and what the two placements produce together that the reader hasn't been told yet, in as much as that needs and no more.`)
     }
     lines.push('ORB WEIGHT: tight ≤2°, close ≤4°, moderate ≤6°, wide >6°. A wide aspect is mentioned once, briefly, inside a sentence about something else: it never carries "real force" and never anchors a theme the reading returns to. Never tell the reader how much space an aspect is being given.')
     lines.push('')
@@ -1801,10 +1801,164 @@ function formatSynthesisBlock(chartData: DualChartData): string {
   return lines.join('\n')
 }
 
+// ── CHART SHAPE (the opening section, tropical/overview) ──────────────────────
+// Until v10.57 the reading opened on the Sun, and the Sun instruction told the
+// model to work out the chart's dominant story "internally" and never say it.
+// Kay (2026-11-18): it should read like a master astrologer, who starts from the
+// whole chart and shows how the placements act on each other. The opening
+// section says it, and these are the whole-chart facts it is read from: where
+// the ruler chains end, what is strong and what is compromised, what is crowded
+// and what is missing. All computed, so the section reasons from facts and
+// never from a guess about the chart's structure.
+const TRADITIONAL_SEVEN = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+const SHAPE_BODIES = [...TRADITIONAL_SEVEN, 'Uranus', 'Neptune', 'Pluto']
+
+export interface DispositorChain {
+  chain: string[]
+  /** 'domicile': ends on a planet in its own sign. 'loop': the rulers close a circle (a mutual reception when two long). */
+  end: 'domicile' | 'loop'
+  loop?: string[]
+}
+
+/** Follow traditional sign rulers from `start` until a planet rules its own sign or the chain closes a loop. */
+export function dispositorChain(chart: ChartData, start: string): DispositorChain {
+  const chain: string[] = [start]
+  let cur = start
+  for (let i = 0; i < TRADITIONAL_SEVEN.length + 1; i++) {
+    const p = chart.planets.find(x => x.name === cur)
+    const ruler = p ? SIGN_RULERS_TRADITIONAL[p.sign] : undefined
+    if (!p || !ruler || ruler === cur) return { chain, end: 'domicile' }
+    const seen = chain.indexOf(ruler)
+    if (seen >= 0) return { chain, end: 'loop', loop: chain.slice(seen) }
+    chain.push(ruler)
+    cur = ruler
+  }
+  return { chain, end: 'loop', loop: [] }
+}
+
+export function formatChartShapeBlock(chart: ChartData, timeKnown: boolean): string {
+  const lines: string[] = []
+  const find = (n: string) => chart.planets.find(p => p.name === n)
+  const where = (n: string): string => {
+    const p = find(n)
+    if (!p) return n
+    return `${n} in ${p.sign}${timeKnown ? ` H${p.house}` : ''} [${dignityLabel(n, p.sign)}]`
+  }
+
+  lines.push('CHART SHAPE — the Tropical chart as one system (computed from the chart block above):')
+  lines.push('')
+
+  if (timeKnown) {
+    const ruler = SIGN_RULERS_TRADITIONAL[chart.ascendantSign]
+    if (ruler) {
+      const c = dispositorChain(chart, ruler)
+      const tail = c.end === 'domicile'
+        ? `ends on ${c.chain[c.chain.length - 1]}, in its own sign`
+        : `closes a loop (${(c.loop ?? []).join(' ↔ ')})`
+      lines.push(`CHART RULER CHAIN: ${chart.ascendantSign} rising → ${c.chain.map(where).join(' → ')}; the chain ${tail}.`)
+    }
+  }
+
+  // Where every traditional planet's chain of rulers ends.
+  const ends = new Map<string, string[]>()
+  for (const name of TRADITIONAL_SEVEN) {
+    if (!find(name)) continue
+    const c = dispositorChain(chart, name)
+    const key = c.end === 'domicile' ? c.chain[c.chain.length - 1] : `loop ${(c.loop ?? []).join(' ↔ ')}`
+    ends.set(key, [...(ends.get(key) ?? []), name])
+  }
+  if (ends.size === 1) {
+    const [only] = Array.from(ends.keys())
+    lines.push(only.startsWith('loop')
+      ? `DISPOSITORS: every planet's chain of rulers runs into one ${only}.`
+      : `FINAL DISPOSITOR: ${where(only)}. Every planet's chain of sign rulers ends here.`)
+  } else {
+    lines.push(`DISPOSITORS: no single final dispositor. Chains end at: ${Array.from(ends.entries()).map(([k, v]) => `${k.startsWith('loop') ? k : `${k} (own sign)`} ← ${v.join(', ')}`).join(' · ')}.`)
+  }
+
+  // Mutual receptions by sign.
+  const receptions: string[] = []
+  for (let i = 0; i < TRADITIONAL_SEVEN.length; i++) {
+    for (let j = i + 1; j < TRADITIONAL_SEVEN.length; j++) {
+      const a = find(TRADITIONAL_SEVEN[i]); const b = find(TRADITIONAL_SEVEN[j])
+      if (a && b && SIGN_RULERS_TRADITIONAL[a.sign] === b.name && SIGN_RULERS_TRADITIONAL[b.sign] === a.name) {
+        receptions.push(`${a.name} (${a.sign}) ↔ ${b.name} (${b.sign})`)
+      }
+    }
+  }
+  if (receptions.length > 0) lines.push(`MUTUAL RECEPTION: ${receptions.join(' · ')}.`)
+
+  const dignified   = TRADITIONAL_SEVEN.filter(n => { const p = find(n); return p && /Domicile|Exaltation/.test(dignityLabel(n, p.sign)) })
+  const debilitated = TRADITIONAL_SEVEN.filter(n => { const p = find(n); return p && /Detriment|Fall/.test(dignityLabel(n, p.sign)) })
+  lines.push(`DIGNIFIED: ${dignified.length ? dignified.map(where).join(' · ') : 'none'}.`)
+  lines.push(`DEBILITATED: ${debilitated.length ? debilitated.map(where).join(' · ') : 'none'}.`)
+
+  if (timeKnown) {
+    const angular = SHAPE_BODIES.filter(n => { const p = find(n); return p && [1, 4, 7, 10].includes(p.house) })
+    lines.push(`ANGULAR (houses 1, 4, 7, 10): ${angular.length ? angular.map(n => `${n} H${find(n)!.house}`).join(' · ') : 'none'}.`)
+  }
+
+  const bySign = new Map<string, string[]>()
+  const byHouse = new Map<number, string[]>()
+  for (const n of SHAPE_BODIES) {
+    const p = find(n); if (!p) continue
+    bySign.set(p.sign, [...(bySign.get(p.sign) ?? []), n])
+    if (timeKnown) byHouse.set(p.house, [...(byHouse.get(p.house) ?? []), n])
+  }
+  const stelliums = [
+    ...Array.from(bySign.entries()).filter(([, v]) => v.length >= 3).map(([k, v]) => `${k}: ${v.join(', ')}`),
+    ...Array.from(byHouse.entries()).filter(([, v]) => v.length >= 3).map(([k, v]) => `House ${k}: ${v.join(', ')}`),
+  ]
+  if (stelliums.length > 0) lines.push(`STELLIUM (three or more bodies): ${stelliums.join(' · ')}.`)
+
+  // Element and modality balance over the seven, plus the Ascendant when known.
+  const counted: Array<[string, string]> = TRADITIONAL_SEVEN
+    .map(n => [n, find(n)?.sign] as [string, string | undefined])
+    .filter((x): x is [string, string] => Boolean(x[1]))
+  if (timeKnown) counted.push(['Ascendant', chart.ascendantSign])
+  const tally = (key: 'element' | 'modality', names: string[]) => names.map(name => {
+    const who = counted.filter(([, sign]) => SIGN_DATA[sign]?.[key] === name).map(([n]) => n)
+    return { name, who }
+  })
+  const elements   = tally('element', ['Fire', 'Earth', 'Air', 'Water'])
+  const modalities = tally('modality', ['Cardinal', 'Fixed', 'Mutable'])
+  const fmtTally = (t: { name: string; who: string[] }[]) => t.map(e => `${e.name} ${e.who.length}${e.who.length ? ` (${e.who.join(', ')})` : ''}`).join(' · ')
+  lines.push(`ELEMENTS, of ${counted.length}: ${fmtTally(elements)}.`)
+  lines.push(`MODALITIES, of ${counted.length}: ${fmtTally(modalities)}.`)
+  const missing = elements.filter(e => e.who.length === 0).map(e => e.name)
+  const crowded = [...elements, ...modalities].filter(e => e.who.length >= 4).map(e => e.name)
+  if (missing.length) lines.push(`MISSING ELEMENT: ${missing.join(', ')}.`)
+  if (crowded.length) lines.push(`EMPHASIS (four or more): ${crowded.join(', ')}.`)
+
+  const aspects = computeAspects(chart.planets)
+  if (aspects.length > 0) {
+    const t = aspects[0]
+    lines.push('')
+    lines.push(`TIGHTEST ASPECT IN THE CHART: ${t.planet1} ${t.aspectName.toLowerCase()} ${t.planet2} (orb ${t.orb}°). No other aspect may be called the tightest, closest or most exact.`)
+    const key = aspects.filter(a => a.orb <= 4).slice(0, 8)
+    if (key.length > 0) {
+      lines.push('KEY ASPECTS IN THE CHART (tight and close only, tightest first):')
+      for (const a of key) {
+        const p1 = find(a.planet1); const p2 = find(a.planet2)
+        const stalled = a.applying && ((p1 && isNearStation(p1)) || (p2 && isNearStation(p2)))
+        const motion = stalled ? 'applying, but a station is near' : a.applying ? 'applying' : 'separating'
+        const houses = timeKnown && p1 && p2 ? `, ${a.planet1} H${p1.house}, ${a.planet2} H${p2.house}` : ''
+        lines.push(`  ${a.planet1} ${a.aspectName.toLowerCase()} ${a.planet2} (orb ${a.orb}°, ${orbTier(a.orb)}, ${motion}${houses})`)
+      }
+    }
+  }
+
+  const retro = SHAPE_BODIES.filter(n => find(n)?.retrograde)
+  if (retro.length > 0) lines.push(`RETROGRADE: ${retro.join(', ')}.`)
+
+  return lines.join('\n')
+}
+
 // ── PUBLIC API ────────────────────────────────────────────────────────────────
 
 const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
   tropical: {
+    overview:       [],
     sun:            ['Sun'],
     moon:           ['Moon'],
     ascendant:      [],
@@ -1905,6 +2059,13 @@ export function buildInterpretationContext(
         yogas.forEach(y => lines.push(`• ${y}`))
       }
     }
+    return lines.join('\n')
+  }
+
+  // The opening section reads the whole Tropical chart, so it gets the whole-chart
+  // facts and no single planet's block.
+  if (planetSection === 'overview' && section === 'tropical') {
+    lines.push(formatChartShapeBlock(chart, !birthTimeUnknown))
     return lines.join('\n')
   }
 
