@@ -30,6 +30,22 @@ export const THINKING: Anthropic.ThinkingConfigParam = { type: 'adaptive' }
 export const EFFORT: Anthropic.OutputConfig['effort'] = 'low'
 export const OUTPUT_CONFIG: Anthropic.OutputConfig = { effort: EFFORT }
 
+// Per-section effort overrides. The opening section (`overview`) is the first
+// thing every reader sees and is free, and it is one section of 22, so it gets
+// more planning before it writes. v10.59: a live v10.57 overview on Kay's chart
+// miscounted the Sun's dispositor chain and stacked a recital of aspects that the
+// eval sample did not; low effort widens the spread between samples. Unmeasured
+// at the time of the change; see docs/PIPELINE-HISTORY.md.
+const EFFORT_OVERRIDES: Partial<Record<string, Anthropic.OutputConfig['effort']>> = {
+  overview: 'medium',
+}
+
+/** The output_config sent for a section: EFFORT unless the section overrides it. */
+export function outputConfigFor(planetSection: string): Anthropic.OutputConfig {
+  const effort = EFFORT_OVERRIDES[planetSection]
+  return effort ? { effort } : OUTPUT_CONFIG
+}
+
 // Thinking tokens bill as output and count against max_tokens. The prose budgets
 // below are sized for the prose alone; the headroom is added on top so a long
 // think cannot truncate the section (a truncated section is never cached).

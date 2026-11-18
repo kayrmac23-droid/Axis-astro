@@ -14,7 +14,7 @@ import { FREE_SECTIONS, natalReadingOrder } from '@/lib/paywall'
 import { SHARED_RULES, renderSectionInstruction, wordBandFor } from '@/lib/prompts'
 import { countAspectsInContext, scoreLength } from '@/lib/reading-quality-gate'
 import { buildSectionRequest } from '@/lib/reading-request'
-import { maxTokensFor, THINKING_HEADROOM_TOKENS } from '@/lib/reading-model-config'
+import { maxTokensFor, outputConfigFor, OUTPUT_CONFIG, THINKING_HEADROOM_TOKENS } from '@/lib/reading-model-config'
 
 // The reference chart (Kay, Epping, 23 Jul 1999 23:45 AEST).
 const KAY: BirthData = {
@@ -99,6 +99,14 @@ describe('the opening section is wired into the reading', () => {
     expect(band.target).toBe(700)
     expect(scoreLength(band.target, band)).toBe(5)
     expect(maxTokensFor('overview')).toBe(2600 + THINKING_HEADROOM_TOKENS)
+  })
+
+  it('runs at medium effort; every other section keeps the default (v10.59)', () => {
+    expect(outputConfigFor('overview')).toEqual({ effort: 'medium' })
+    expect(buildSectionRequest(kay, 'tropical', 'overview', []).params.output_config).toEqual({ effort: 'medium' })
+    for (const s of ['sun', 'moon', 'ascendant', 'lagna', 'diverge', 'luminaries']) {
+      expect(outputConfigFor(s)).toEqual(OUTPUT_CONFIG)
+    }
   })
 
   it('builds a request whose scene clause asks for situations from the chart\'s aspects', () => {

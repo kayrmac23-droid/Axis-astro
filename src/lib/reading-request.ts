@@ -16,7 +16,7 @@ import {
 import { countAspectsInContext } from '@/lib/reading-quality-gate'
 import { sceneExpectation, sceneClause, type SceneExpectation } from '@/lib/scene-expectation'
 import { buildInterpretationContext, formatEliteChartBlock } from '@/lib/interpretation-engine'
-import { MODEL, THINKING, OUTPUT_CONFIG, maxTokensFor } from '@/lib/reading-model-config'
+import { MODEL, THINKING, outputConfigFor, maxTokensFor } from '@/lib/reading-model-config'
 import {
   priorSectionBlocks, phrasesAlreadyUsedBlock, READING_SO_FAR_FOOTER, type PriorSection,
 } from '@/lib/reading-thread'
@@ -116,7 +116,7 @@ export function buildSectionRequest(
       model:      MODEL,
       max_tokens:    maxTokensFor(planetSection),
       thinking:      THINKING,
-      output_config: OUTPUT_CONFIG,
+      output_config: outputConfigFor(planetSection),
       system: [
         { type: 'text', text: rulesBlock(), cache_control: { type: 'ephemeral' } },
         { type: 'text', text: SYSTEM_PROMPT_MAP[section], cache_control: { type: 'ephemeral' } },
