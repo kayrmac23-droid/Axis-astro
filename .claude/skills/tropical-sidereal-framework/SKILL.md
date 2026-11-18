@@ -94,4 +94,8 @@ These are the two accounts in each case, not conclusions. Read them through the 
 2. **Name the divergence explicitly**, and frame it as something navigated, never resolved.
 3. **Never assign a "real" sign.** Always say which system, and why it is relevant to the question.
 4. **Use each frame's own technique and vocabulary.** Jungian and psychological framing pairs with Tropical; Jyotish terminology (lordship, drishti, nakshatra, dasha) pairs with Sidereal. Neither vocabulary makes its frame the deeper one.
-5. **Dasha is context, never a forecast.** Name the period only where it illuminates what is being lived now. Never write a current dasha into reference material like this skill: it goes stale.
+5. **In an AXIS reading (v10.57), each frame reads as one system.**
+   - The Tropical reading opens on The Shape of Your Chart (ruler chain, final dispositor, element balance, the tight aspects), and every later section shows what the rest of its own frame does to its placement.
+   - Sidereal sections are ordered by the reader's life, never by technique. Sign status, lordship, drishti, nakshatra and dasha come in as reasons where they explain something, never as headings or topics of their own.
+   - Neither frame borrows the other's facts: the shape of the chart is Tropical evidence.
+6. **Dasha is context, never a forecast.** Name the period only where it illuminates what is being lived now. Never write a current dasha into reference material like this skill: it goes stale.

@@ -47,7 +47,7 @@ Next.js 16 App Router, TypeScript. Vercel, auto-deploys from `main`.
 
 Page routes: `/` (main app), `/method`, `/guides`, `/sample`, `/synastry`, `/privacy`.
 
-**Sections.** Tropical: sun, moon, ascendant, mercury, venus, mars, jupiter_saturn, rahu_ketu, key_aspects · Sidereal: lagna, sun, moon, mercury, venus, mars, jupiter_saturn, rahu_ketu · Synthesis (The Divergence): agree, diverge, tension, closing · Synastry: luminaries, venus_mars, outer_planets, composite_chart, central_dynamic, navigation. A natal reading is 21 sections, read in that order (`NATAL_SECTION_ORDER`).
+**Sections.** Tropical: overview (The Shape of Your Chart: the whole chart as one system, from the computed CHART SHAPE block), sun, moon, ascendant, mercury, venus, mars, jupiter_saturn, rahu_ketu, key_aspects · Sidereal: lagna, sun, moon, mercury, venus, mars, jupiter_saturn, rahu_ketu · Synthesis (The Divergence): agree, diverge, tension, closing · Synastry: luminaries, venus_mars, outer_planets, composite_chart, central_dynamic, navigation. A natal reading is 22 sections, read in that order (`NATAL_SECTION_ORDER`); the free tier (`FREE_SECTIONS`) is overview, sun, moon, ascendant.
 
 ### API routes
 
@@ -115,7 +115,7 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 
 ## Prompts (`lib/prompts.ts`)
 
-`SHARED_RULES` (cached) is a persona, five numbered PRIORITIES, then eight PARTs: 1 THE SCENE REQUIREMENT (with `SCENE_EXEMPLAR` inside `<worked_example>`), 2 EVIDENCE, 3 HONESTY, 4 VOICE, 5 PROSE FAILURE MODES, 6 ONE CONTINUOUS READING, 7 DEPTH AND LENGTH, 8 FORMATTING, then the AXIS INTERPRETIVE STANCES appendix. Precedence follows the PRIORITY numbers, not the PART numbers. Frame prompts (`TROPICAL_`/`SIDEREAL_`/`SYNTHESIS_`/`SYNASTRY_SYSTEM_PROMPT`) carry only what is specific to the frame.
+`SHARED_RULES` (cached) is a persona, THE VOICE (a perceptive astrologer talking across a table: contractions, the chart fact as the reason inside the sentence, no paragraph opening on a recital, the rules' vocabulary kept out of the prose), five numbered PRIORITIES, then eight PARTs: 1 THE SCENE REQUIREMENT (with `SCENE_EXEMPLAR` inside `<worked_example>`), 2 EVIDENCE, 3 HONESTY, 4 VOICE, 5 PROSE FAILURE MODES, 6 ONE CONTINUOUS READING, 7 DEPTH AND LENGTH, 8 FORMATTING, then the AXIS INTERPRETIVE STANCES appendix. Precedence follows the PRIORITY numbers, not the PART numbers. Frame prompts (`TROPICAL_`/`SIDEREAL_`/`SYNTHESIS_`/`SYNASTRY_SYSTEM_PROMPT`) carry only what is specific to the frame.
 
 **Rules for editing prompts.** Each was learned by breaking it; the record is in `docs/PIPELINE-HISTORY.md`.
 
@@ -123,7 +123,7 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 2. **The prompt must not demonstrate what it bans.** Example outranks rule on this model. Rule prose is written in the register it requires (second person, present tense) and does not use the capped antithesis construction or a `BANNED_META_PHRASINGS` collocation — in the frame prompts, section instructions and scene clauses as well as `SHARED_RULES`. Tests enforce it.
 3. **Banned-phrase lists stay out of the generation prompt.** They are exported for the gate and the scans only; the prompt states the general form and a positive example.
 4. **`SCENE_EXEMPLAR` obeys every rule it teaches** (zero rule-scan findings, in band) and its chart is not an eval chart. `EXEMPLAR_PLACEMENTS` in `reading-fact-check.ts` pins its placements for the bleed check — update both together.
-5. **Never read `SECTION_INSTRUCTIONS` directly.** Use `renderSectionInstruction`, which substitutes the length clause for the band this chart is scored against and appends the cadence clause (and `UNKNOWN_TIME_CLAUSE` for a natal section with no birth time).
+5. **Never read `SECTION_INSTRUCTIONS` directly.** Use `renderSectionInstruction`, which substitutes the length clause for the band this chart is scored against, appends `UNKNOWN_TIME_CLAUSE` for a natal section with no birth time, and ends on `TENSE_CLAUSE` (THE VOICE allows contractions; the habitual "you'll" is a hard prediction finding).
 6. **Nothing per-section goes in `SHARED_RULES`** — it must be byte-identical across a reading or the cache is lost.
 7. **Section instructions cite PARTs by name.** Rename a PART and you must rename the citations; `SHARED_RULES_LEAN` is sliced on the same headings.
 8. **An opener mode names a chart quantity to look up, never a thing to invent.** `OPENER_MODES`/`CLOSER_MODES` are keyed by frame and planet.
@@ -138,6 +138,7 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 
 | Class | Target | Full-marks band | Hard cap |
 |---|---|---|---|
+| The Shape of Your Chart (`overview`) | 700 | 580–820 | 920 |
 | Sun / Moon | 910 | 770–1055 | 1175 |
 | Ascendant | 590 | 485–690 | 780 |
 | Sidereal Lagna / Sun / Moon | 480 | 395–560 | 640 |
@@ -157,6 +158,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 
 - **`astro-calc.ts`**: VSOP87B planets, ELP2000 Moon, Meeus Ch.37 Pluto, true node, Lahiri ayanamsa (`lib/ayanamsa.ts`, client-safe), Whole Sign houses. **Planets are evaluated in TT (ΔT added), angles in UT.** Pluto's heliocentric position is J2000-frame: subtract Earth's `position2000()` and precess only the result. Exports `calculateDualChart(BirthData, overrides?)`.
 - **`interpretation-engine.ts`**: derives the facts and formats the context block every section is written from.
+  - The opening section gets `formatChartShapeBlock`: chart-ruler chain, where every dispositor chain ends, mutual receptions, dignified/debilitated, angular planets, stelliums, element/modality balance, tight and close aspects. Its aspect header is deliberately not `ASPECTS (tightest first):`, so the opening band is never aspect-scaled. No houses, angles or ruler chain with an unknown birth time.
   - Tropical blocks carry Western aspects with orb classes (tight ≤2°, close ≤4°, moderate ≤6°, wide >6°), `NEAR STATION` flags, and Ascendant aspects at a 5° orb.
   - Sidereal blocks carry Jyotish evidence instead: sign status, house lordships, graha drishti and same-sign conjunction, neecha bhanga conditions, yogas, nakshatra, a `FRAME SHIFT` line. **Western aspects are not sent to the Sidereal frame.**
   - `buildDivergencePlan` is the *only* evidence The Divergence receives. Concordance has two grades (full, and same-sign with the house moved — needed because Whole Sign houses renumber whenever the Ascendant changes sign). Divergences are ranked in code, max 4 worked in depth, the rest named in one clause. `SIGN_RULERS_VEDIC` equals the traditional rulers, so a changed ruler is never independent evidence.
@@ -186,7 +188,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 
 | Editing | Run / read |
 |---|---|
-| Prompts | `reading-review-fixes`, `prompt-self-consistency`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation` |
+| Prompts | `reading-review-fixes`, `prompt-self-consistency`, `prompts-length-wiring`, `divergence-prompts`, `scene-expectation`, `chart-shape` |
 | The gate (offline) | `reading-quality-gate` (incl. *scale reachability*), `gate-for-cache` (its own file so the SDK mock cannot leak) |
 | The route | `reading-route-budget`, `-quota`, `-thread`, `-preflight`, `eval-harness-parity`, `paywall` |
 | Scans | `reading-rule-scan`, `reading-fact-check`, `reading-preflight` — false-positive controls are first-class cases |

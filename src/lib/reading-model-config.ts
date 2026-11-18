@@ -44,6 +44,8 @@ export const THINKING_HEADROOM_TOKENS = 14000
 // (sun, moon, mercury, venus, mars, jupiter_saturn) apply to both tropical
 // and sidereal readings. Falls back to DEFAULT_PROSE_TOKENS for any unlisted key.
 const PROSE_TOKENS_PER_SECTION: Record<string, number> = {
+  // The opening section (tropical only): the shape of the whole chart
+  overview: 2600,
   // Tropical + sidereal primaries
   sun: 3200, moon: 3200, ascendant: 2800, lagna: 2500,
   // Secondaries (shared names across systems)

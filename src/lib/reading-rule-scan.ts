@@ -179,8 +179,10 @@ const PRESCRIPTION_RES: readonly RegExp[] = [
 // Bare "that" is deliberately NOT an introducer: a lookbehind cannot tell the
 // relative "that" ("the thing that you will resent") from the complementiser
 // ("the chart suggests that you will meet someone"), and the second is the
-// exact shape this rule exists to catch.
-const PREDICTION_INTRODUCERS = String.raw`(?:${RELATIVE_HEAD_WORDS}|before|until|till|once|when|whenever|where|wherever|while|unless|after|than)`
+// exact shape this rule exists to catch. "whether" (round 4, voice experiment):
+// an embedded question is not a forecast — "testing whether you'll give way" —
+// and with contractions allowed it was the commonest false hit.
+const PREDICTION_INTRODUCERS = String.raw`(?:${RELATIVE_HEAD_WORDS}|before|until|till|once|when|whenever|where|wherever|while|unless|after|than|whether)`
 const CLAUSAL_YOU = String.raw`(?<!\b${PREDICTION_INTRODUCERS}\s+)`
 
 const PREDICTION_RES: readonly RegExp[] = [
@@ -232,7 +234,10 @@ const GREETING_RE = /^(?:(?:hello|hi|hey|greetings)\b(?=[,!.]|\s+(?:there|and|ag
 const SIGNOFF_RES: readonly RegExp[] = [
   /\b(?:in closing|to sum up|to summarise|to summarize|in conclusion|all in all)\b/gi,
   /\bI hope (?:this|these)\b/gi,
-  /\b(?:good luck|go well|walk gently)\b/gi,
+  // A farewell opens its sentence. Mid-sentence these are ordinary English:
+  // "when a new love starts to go well" was a hard `sign-off` (v10.57, Kay's
+  // Tropical Sun) and would have cost a paid regeneration.
+  /(?:^|[.!?]\s+)(?:good luck|go well|walk gently)\b/gi,
 ]
 
 // ── 6. THE SMOKE DETECTOR (DOCTRINE.md) ──────────────────────────────────────

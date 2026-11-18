@@ -12,8 +12,8 @@ import {
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
 import { phrasesAlreadyUsed, overusedTics, phrasesAlreadyUsedBlock, type PriorSection } from '@/lib/reading-thread'
-import { SHARED_RULES, SHARED_RULES_LEAN, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, antithesisClause, SECTION_WORD_BANDS } from '@/lib/prompts'
-import { scanSectionRules, detectAntithesisTic } from '@/lib/reading-rule-scan'
+import { SHARED_RULES, SHARED_RULES_LEAN, SCENE_EXEMPLAR, SECTION_INSTRUCTIONS, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, BANNED_META_PHRASINGS, wordBandFor, renderSectionInstruction, TENSE_CLAUSE, SECTION_WORD_BANDS } from '@/lib/prompts'
+import { scanSectionRules, detectAntithesisTic, antithesisVerdict } from '@/lib/reading-rule-scan'
 import { checkExemplarBleed, EXEMPLAR_PLACEMENTS } from '@/lib/reading-fact-check'
 import { countWords, scoreLength, EVAL_SYSTEM_PROMPT } from '@/lib/reading-quality-gate'
 import { TROPICAL_DESCRIPTORS, SIDEREAL_DESCRIPTORS, SYNTHESIS_DESCRIPTORS } from '@/lib/planet-descriptors'
@@ -300,11 +300,14 @@ describe('register — the prompt states its rules in the register it requires (
     expect(part1).not.toMatch(/what they themselves register/)
   })
 
-  it('PART 1 names all three parts of the moment, and that two is a failure', () => {
-    for (const part of ['TRIGGER', 'ACTION', 'AFTERMATH']) expect(part1).toContain(part)
-    // The aftermath is the one that was being dropped — 0 instances in most
-    // sections — so the rule has to say so.
-    expect(part1).toMatch(/Two of the three is a failure/i)
+  // v10.57: the three-part staged moment (trigger, action, aftermath) is gone.
+  // Kay read the staged "hours later" scene as homework; the situation is now
+  // folded into the claim as a habit, and the consequence is still required.
+  it('PART 1 folds the situation into the claim and bans the staged scene', () => {
+    expect(part1).toMatch(/Fold each situation into the interpretation/)
+    expect(part1).toMatch(/Never narrate it as a little story/)
+    expect(part1).toMatch(/What\s+comes of it is the part most often dropped/)
+    expect(part1).toMatch(/An example names a KIND of situation/)
   })
 
   it('PART 1 requires the reader, not the placement, as grammatical subject', () => {
@@ -328,129 +331,56 @@ describe('register — the prompt states its rules in the register it requires (
   })
 })
 
-// ── v10.34: the antithesis rule must not demonstrate the antithesis ─────────
-// The cap was already emphatic and already predicted the exact failure rate,
-// and the model breached it on 15 of 21 sections anyway (2026-11-03 eval run).
-// One cause was in the rule itself: "a reader reading straight through hears the
-// template rather than the content" used the construction inside the sentence
-// prohibiting it. Examples outrank instructions. The rule may now QUOTE the
-// banned forms as named specimens, but must not use one in its own prose.
-describe('PART 4 — the antithesis limit does not model the tic (v10.34)', () => {
-  const block = SHARED_RULES
-    .slice(SHARED_RULES.indexOf('VARY THE ANTITHESIS'))
-    .split('\n- Banned outright')[0]
-
-  it('no longer contains the self-demonstrating clause', () => {
-    expect(block).not.toMatch(/hears\s+the\s+template\s+rather\s+than\s+the\s+content/)
-  })
-
-  it('states that the limit is enforced on the finished text', () => {
-    expect(block).toMatch(/enforced on the finished text/i)
-  })
-
-  it('carries a worked rewrite, so the fix is shown and not only named', () => {
-    expect(block).toMatch(/Worked example/i)
-    expect(block).toMatch(/stay\s+interchangeable\s+to\s+her/)
-  })
-
-  it('closes the reword loophole the gate also closes', () => {
-    expect(block).toMatch(/keeping the\s*\n?\s*contrastive shape does not satisfy/i)
-  })
-
-  // ── v10.39: the cap is per-section, so PART 4 must not state a number ──────
-  // SHARED_RULES is sent as a prompt-cached block and must be byte-identical
-  // across the ~21 sections of a reading, so it cannot carry the band-scaled
-  // allowance — the number travels in the section instruction instead (exactly
-  // as the length clause does). If PART 4 ever restates a flat cap, the prompt
-  // and the gate are enforcing two different numbers and the longer sections
-  // get told one thing and scored against another.
-  it('states no flat per-section number of its own', () => {
-    expect(block).not.toMatch(/AT MOST\s*\n?\s*ONCE/i)
-    expect(block).not.toMatch(/may appear\s+(?:at most\s+)?(?:once|one time)/i)
-  })
-
-  it('points at the section instruction for the limit', () => {
-    expect(block).toMatch(/CADENCE\s*\n?\s*ALLOWANCE/)
-    // v10.45: what governs is proximity, not the section's length.
-    expect(block).toMatch(/how closely the construction falls to\s*\n?\s*itself/i)
-  })
-
-  // ⚠ THE RULE MUST NOT MODEL THE TIC IT BANS. Measured twice in this prompt:
-  // the antithesis rule's own use of "rather than" beat its explicit cap
-  // (v10.34), and PART 1's third person beat PART 4's second-person rule in 16
-  // of 17 sections (v10.35). Example outranks rule here. So PART 4's own prose
-  // — and the per-section clause it points at — must be clean of the
-  // construction, outside the quoted forms they name and the worked example
-  // they quote as the fault. Quoted spans are stripped before counting.
+// ── The antithesis: withdrawn from the generation prompt, still measured ────
+// v10.34–v10.56 capped the contrastive construction in PART 4 (VARY THE
+// ANTITHESIS) and in a CADENCE ALLOWANCE clause appended to every section. On
+// Opus 5.5 with the clause withdrawn, 1 of 48 sections exceeded the density
+// limit (4 of 6 Sonnet samples did), so v10.57 dropped the rule from the prompt.
+// What must survive is the older lesson: the prompt never models the tic in its
+// own voice, because example outranks rule on this model.
+describe('the antithesis — withdrawn from the prompt, still measured (v10.57)', () => {
   const unquoted = (t: string) => t.replace(/["“”][^"“”]*["“”]/g, '…')
 
-  it('uses no antithesis construction in its own prose', () => {
-    expect(detectAntithesisTic(unquoted(block))).toEqual([])
+  it('no longer contains the self-demonstrating clause', () => {
+    expect(SHARED_RULES).not.toMatch(/hears\s+the\s+template\s+rather\s+than\s+the\s+content/)
   })
 
-  // ⚠ SCOPE: the whole cached block, not just the rule that states the cap.
-  // Guarding only PART 4 fixed the instance and left the class: an audit of
-  // SHARED_RULES found the construction five more times in the prompt's own
-  // descriptive voice, one of them inside PART 1's exemplar commentary — the
-  // single most emphatic block in the prompt, telling the model what to
-  // imitate, in the construction capped at one or two uses per section. That is
-  // the v10.35 mechanism exactly. Quoted spans are stripped, so the rule may
-  // still NAME the forms it bans and the worked example may still quote the
-  // fault; what it may not do is write that way itself.
   it('does not model the tic anywhere in the cached rules', () => {
     const body = SHARED_RULES.slice(0, SHARED_RULES.indexOf('── APPENDIX'))
     expect(detectAntithesisTic(unquoted(body))).toEqual([])
   })
 
-  it('renders a cadence clause that is itself clean of the construction', () => {
-    expect(detectAntithesisTic(unquoted(antithesisClause()))).toEqual([])
+  it('carries no cadence allowance in the rules or in any section instruction', () => {
+    expect(SHARED_RULES).not.toContain('VARY THE ANTITHESIS')
+    for (const key of Object.keys(SECTION_WORD_BANDS)) {
+      const [section, planetSection] = key.split(':')
+      expect(renderSectionInstruction(section, planetSection)!, key).not.toContain('CADENCE ALLOWANCE')
+    }
   })
 
-  it('states the limit as density, not as a total for the section (v10.45)', () => {
-    // ⚠ The v10.39 per-section cap did not hold — 10 of the 21 frozen bench
-    // sections breached it, 6 hard — and was not tracking density at all (see
-    // reading-rule-scan.ts). PART 4 and the clause must now say what is
-    // actually measured, or the model is told one rule and scored on another.
-    expect(block).toMatch(/density/i)
-    const clause = antithesisClause()
-    expect(clause).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
-    expect(clause).toContain('once every two paragraphs')
-    // And no absolute total survives, in either place.
-    expect(clause).not.toMatch(/AT MOST \d+ TIMES in this section/)
-    expect(block).not.toMatch(/the number stated in its instruction/)
-  })
-
-  it('renders the SAME clause for every section, so the prompt cache is not broken', () => {
-    // The allowance is a property of the finished text now, so no per-section
-    // number travels at all — the clause is byte-identical across bands, which
-    // is strictly safer for the cache than the v10.39 interpolated cap was.
-    const a = renderSectionInstruction('tropical', 'key_aspects')!
-    const b = renderSectionInstruction('tropical', 'sun')!
-    const clause = (t: string) => t.slice(t.indexOf('CADENCE ALLOWANCE'))
-    expect(clause(a)).toBe(clause(b))
-    expect(clause(a)).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
+  it('is still measured as density on the finished text', () => {
+    const three = '## X\n\nYou act on instinct rather than plan, on loyalty rather than reward, and on feeling rather than proof.'
+    expect(antithesisVerdict(three).severity).toBe('hard')
+    expect(antithesisVerdict('## X\n\nYou act on instinct rather than plan.').severity).toBe('clean')
   })
 })
 
-// ── v10.39: the cadence allowance reaches EVERY section ──────────────────────
-// It is appended by renderSectionInstruction rather than slotted per section,
-// because it applies without exception and a token would be 27 places to forget
-// it. These assert it is actually present everywhere and always agrees with the
-// band the gate scores against — the same coupling prompts-length-wiring.ts
-// pins for the length clause, and for the same reason: a section told one cap
-// and scored against another pays a repair the pipeline levied on itself.
-describe('the cadence allowance is wired to every section (v10.39, density v10.45)', () => {
-  it('appears in every section instruction, stating the density rule', () => {
+// ── v10.57: the tense reminder reaches EVERY section ────────────────────────
+// THE VOICE allows contractions, and with them Opus wrote the habitual "you'll"
+// in 7 of 42 sections, each a hard prediction finding and a paid regeneration.
+// renderSectionInstruction appends the reminder last, nearest the generation.
+describe('the tense reminder is wired to every section (v10.57)', () => {
+  it('ends every section instruction', () => {
     for (const key of Object.keys(SECTION_WORD_BANDS)) {
       const [section, planetSection] = key.split(':')
       const rendered = renderSectionInstruction(section, planetSection)
       expect(rendered, key).toBeDefined()
-      expect(rendered!, key).toContain('CADENCE ALLOWANCE')
-      expect(rendered!, key).toContain('AT MOST ONCE IN ANY ONE PARAGRAPH')
+      expect(rendered!.endsWith(TENSE_CLAUSE), key).toBe(true)
     }
+    expect(TENSE_CLAUSE).toMatch(/never appears in your prose/)
   })
 
-  it('never leaves the length slot unsubstituted while appending the clause', () => {
+  it('never leaves the length slot unsubstituted', () => {
     for (const key of Object.keys(SECTION_WORD_BANDS)) {
       const [section, planetSection] = key.split(':')
       expect(renderSectionInstruction(section, planetSection)!, key).not.toContain('LENGTH_CLAUSE')
@@ -487,9 +417,10 @@ describe('PART 8 — the closing paragraph is required (v10.34)', () => {
   })
 
   it('says what the close must DO, so the requirement is not satisfied by padding', () => {
-    // One live tension and its cost — not a re-list of placements, which is the
-    // pseudo-synthesis PROSE FAILURE MODES #4 catches.
-    expect(SHARED_RULES).toMatch(/ONE live tension/i)
+    // One tension and what living inside it is like — not a re-list of
+    // placements, which is the pseudo-synthesis PROSE FAILURE MODES #4 catches.
+    expect(SHARED_RULES).toMatch(/lands on ONE tension/i)
+    expect(SHARED_RULES).toMatch(/Open it on\s+your reader's life/)
     expect(SHARED_RULES).toMatch(/does not re-list placements/i)
   })
 })
@@ -527,15 +458,24 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
     expect(SCENE_EXEMPLAR).not.toMatch(/\bthe native\b/i)
   })
 
-  it('contains all three parts of the moment, aftermath included', () => {
-    // The aftermath is the component that was delivered 0 times in most
-    // sections, so the example has to carry an unmistakable one.
-    // v10.49: stated as the thing itself. "Hours later you notice" was copied
-    // into seven sections of one reading as "afterwards you notice".
-    expect(SCENE_EXEMPLAR).toMatch(/Hours later the position is still\s+unfinished/)
-    expect(SCENE_EXEMPLAR).toMatch(/the\s+defending is what stopped you finishing it/)
+  // v10.57: the exemplar is rewritten in the voice Kay asked for. It keeps the
+  // consequence (the part that used to be dropped) and loses the staged time
+  // jump and the invented clock, weekday and count it used to model.
+  it('states the consequence as the thing itself, with no staged time jump', () => {
+    expect(SCENE_EXEMPLAR).toMatch(/the defending is exactly what keeps you from finishing\s+it/)
+    expect(SCENE_EXEMPLAR).not.toMatch(/Hours later|hours later/)
     expect(SCENE_EXEMPLAR).not.toMatch(/you notice/)
     expect(SCENE_EXEMPLAR).not.toMatch(/feel the pull/)
+  })
+
+  it('invents no clock, weekday or count', () => {
+    expect(SCENE_EXEMPLAR).not.toMatch(/in the morning|Thursday|fourth draft|on the walk/i)
+  })
+
+  it('talks: contractions, and the reader\'s life before the dignity', () => {
+    expect(SCENE_EXEMPLAR).toMatch(/\b(?:you're|it's|can't|you'd|that's)\b/)
+    const firstPara = SCENE_EXEMPLAR.split('\n\n')[2]
+    expect(firstPara.split('.')[0]).not.toMatch(/dignity|peregrine/i)
   })
 
   it('is carried into PART 1, interpolated rather than left as a slot', () => {
@@ -596,8 +536,8 @@ describe('SCENE_EXEMPLAR — the example must obey the rules it teaches', () => 
 
   it('keeps PART 1 stating the rules, so the example supplements rather than replaces them', () => {
     const part1 = SHARED_RULES.slice(SHARED_RULES.indexOf('PART 1 — THE SCENE')).split('── PART 2')[0]
-    for (const part of ['TRIGGER', 'ACTION', 'AFTERMATH']) expect(part1).toContain(part)
-    expect(part1).toMatch(/Two of the three is a failure/i)
+    expect(part1).toMatch(/Fold each situation into the interpretation/)
+    expect(part1).toMatch(/Invent no durations, counts,\s*\n?\s*jobs, named people or circumstances/)
     expect(part1).toMatch(/Placements explain; they do not act in a life/)
   })
 })
@@ -615,7 +555,7 @@ describe('PART 1 — the moment is written in the present tense (v10.38)', () =>
     .split('── PART 2')[0]
 
   it('states the present tense as the rule', () => {
-    expect(part1).toMatch(/Write all three in the PRESENT tense/)
+    expect(part1).toMatch(/Write situations in the PRESENT tense, as habits/)
   })
 
   it('names the banned future forms, so the rule is checkable from the text', () => {
@@ -669,8 +609,10 @@ describe('SHARED_RULES_LEAN — the dilution probe is derived, not duplicated', 
     for (const para of paras) expect(SHARED_RULES).toContain(para)
   })
 
+  // v10.57 deleted the appendix's aspect-type definitions (the model pasted
+  // them into the prose), so the slice it drops is smaller: 0.7 became 0.75.
   it('is materially shorter, or it is not a probe', () => {
-    expect(SHARED_RULES_LEAN.length).toBeLessThan(SHARED_RULES.length * 0.7)
+    expect(SHARED_RULES_LEAN.length).toBeLessThan(SHARED_RULES.length * 0.75)
   })
 })
 
@@ -710,7 +652,9 @@ describe('v10.49 — an aspect is walked once, in the first section that owns it
       expect(bullet(mars, other)).not.toBe('')
       expect(bullet(mars, other)).not.toContain('ALREADY READ')
     }
-    expect(mars).toMatch(/Do not walk it again/)
+    expect(mars).toMatch(/Do not work it again from the start/)
+    // v10.57: build on it from this planet's side, as much as that needs.
+    expect(mars).toMatch(/Build on it from Mars's side/)
   })
 
   it('leaves the aspect count, and so the word band, unchanged', () => {

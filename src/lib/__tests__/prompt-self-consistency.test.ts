@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import { calculateDualChart, type BirthData } from '@/lib/astro-calc'
 import {
-  SECTION_INSTRUCTIONS, renderSectionInstruction, antithesisClause, UNKNOWN_TIME_CLAUSE,
+  SECTION_INSTRUCTIONS, renderSectionInstruction, TENSE_CLAUSE, UNKNOWN_TIME_CLAUSE,
   TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTEM_PROMPT, SYNASTRY_SYSTEM_PROMPT,
   BANNED_META_PHRASINGS, OPENER_MODES, CLOSER_MODES,
 } from '@/lib/prompts'
@@ -24,7 +24,7 @@ const FRAMES = { TROPICAL_SYSTEM_PROMPT, SIDEREAL_SYSTEM_PROMPT, SYNTHESIS_SYSTE
 
 describe('the uncached tail does not model what the scans reject', () => {
   it.each(SECTIONS)('%s/%s: no antithesis construction in the instruction\'s own voice', (section, p) => {
-    const body = renderSectionInstruction(section, p)!.replace(antithesisClause(), '')
+    const body = renderSectionInstruction(section, p)!
     expect(detectAntithesisTic(unquoted(body))).toEqual([])
   })
 
@@ -77,8 +77,9 @@ describe('unknown birth time', () => {
     for (const [section, p] of [['tropical', 'mercury'], ['sidereal', 'venus']] as const) {
       const text = renderSectionInstruction(section, p, { birthTimeUnknown: true })!
       expect(text).toContain(UNKNOWN_TIME_CLAUSE)
-      // The cadence clause stays last.
-      expect(text.indexOf(UNKNOWN_TIME_CLAUSE)).toBeLessThan(text.indexOf(antithesisClause()))
+      // The tense reminder stays last, nearest the generation.
+      expect(text.indexOf(UNKNOWN_TIME_CLAUSE)).toBeLessThan(text.indexOf(TENSE_CLAUSE))
+      expect(text.endsWith(TENSE_CLAUSE)).toBe(true)
     }
   })
 

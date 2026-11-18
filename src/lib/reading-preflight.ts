@@ -123,8 +123,8 @@ export function preflightSection(opts: {
       check: 'antithesis-tic',
       detail: `the contrastive construction is too dense: ${
         antithesis.cause === 'paragraph'
-          ? `${antithesis.maxPerParagraph} in one paragraph (${antithesis.hits.length} in the section), where the CADENCE ALLOWANCE permits at most one per paragraph`
-          : `${antithesis.hits.length} across ${antithesis.paragraphs} paragraphs, where the CADENCE ALLOWANCE permits ${antithesis.allowance}`
+          ? `${antithesis.maxPerParagraph} in one paragraph (${antithesis.hits.length} in the section), where one per paragraph is the most that reads as a sentence`
+          : `${antithesis.hits.length} across ${antithesis.paragraphs} paragraphs, where ${antithesis.allowance} is the most that reads as a sentence`
       }. The instances: ${antithesis.hits.map(t => `"${t.match}"`).join(', ')}. Keep the most load-bearing one in each affected paragraph and state every other claim directly. A dash-balanced or "not merely…but" equivalent is the same tic.`,
     })
   }

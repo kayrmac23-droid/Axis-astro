@@ -292,7 +292,7 @@ type NatalFrame = 'tropical' | 'sidereal'
 // showing convergence no longer happens without it.
 export const OPENER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, string>> = {
   tropical: {
-    sun:     "the Sun's condition — its dignity, or, where it is peregrine, the state of its sign ruler — stated as what that condition does to how this identity asserts itself. Lead with the effect on the person, never with a definition of the dignity. NOT a scene: the section's concrete moment comes later, where this has given it something to demonstrate.",
+    sun:     "what the Sun's condition — its dignity, or, where it is peregrine, the state of its sign ruler — makes of how this identity asserts itself. The first sentence is about your reader's life; the condition is named later in the paragraph as the reason for it. NOT a scene: the section's concrete moment comes later, where this has given it something to demonstrate.",
     moon:    'the need itself — the one condition this person must have in place to feel emotionally safe, stated plainly as a need. Not a scene and not a trait list; what happens when the need goes unmet comes after.',
     mercury: "Mercury's condition — its dignity, or its sign ruler's state where the dignity is peregrine — stated as what that condition does to this person's thinking in a live exchange. Lead with the effect, never with a definition of the dignity.",
     venus:   "the strongest modifier of this Venus — the aspect it receives with the smallest orb the context gives, naming the aspecting planet (choose it by the orbs; do not call it the tightest unless the context does), or, if it receives none, the condition of its sign ruler — stated as what that modifier does to what this person finds worth giving and worth having.",
@@ -312,11 +312,11 @@ export const CLOSER_MODES: Record<NatalFrame, Record<PersonalPlanetSection, stri
     sun:     "a consequence — what the Sun's central tension costs or makes possible in a situation the section has already drawn.",
     moon:    'a misreading — something this person believes about their own emotional nature that the chart shows differently (a capacity they discount as readily as a need they misname), named through the situation in which the gap shows.',
     mercury: 'the condition — the kind of exchange or problem in which this cognitive style works best and the kind in which it fails, as two concrete situations.',
-    venus:   'the repeat — the relational sequence most likely to recur, told as a sequence: what starts it, what the person does, where it leaves them.',
+    venus:   'the repeat — the relational pattern most likely to recur: what tends to start it, what you do, and where it tends to land you, told as a habit in a sentence or two.',
     mars:    'practice — what this drive does once something matters enough to act on, followed through to its outcome, in the present tense.',
   },
   sidereal: {
-    sun:     'timing — where the current dasha puts this Sun to work now, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
+    sun:     'timing — what the current dasha is already bringing forward for this Sun, in the present tense, honouring any TRANSITION note; if the dasha does not speak to the Sun, a house the Sun rules instead.',
     moon:    "the nakshatra — its instinct named as the condition under which the Moon's emotional pattern surfaces.",
     mercury: "the drishti — how the graha relationships Mercury receives or casts shape where its thinking is tested; if it has none, what working unaspected means for it in this frame.",
     venus:   'lordship — the houses Venus rules from the Lagna and what valuing them costs or gives in a concrete situation.',
@@ -337,9 +337,9 @@ export function openerModeFor(section: string, planetSection: string): string | 
 
 function openingClause(frame: NatalFrame, planet: PersonalPlanetSection): string {
   const shift = frame === 'sidereal'
-    ? ' Where the sign shifted, the FRAME SHIFT is still stated first, as required above; this opening shapes the sentence that follows it.'
+    ? ' Where the sign shifted, the FRAME SHIFT still goes in the first paragraph, as required above, folded into a sentence about your reader.'
     : ''
-  return `OPENING MODE — this section, and only this section, opens on ${OPENER_MODES[frame][planet]} The other personal-planet sections each open a different way; do not borrow their shape.${shift}`
+  return `OPENING MODE — this section, and only this section, opens on ${OPENER_MODES[frame][planet]} The first sentence is about your reader's life, and the chart quantity it is built from is named as the reason, in that sentence or the next. The other personal-planet sections each open a different way; do not borrow their shape.${shift}`
 }
 
 function closingClause(frame: NatalFrame, planet: PersonalPlanetSection): string {
@@ -490,6 +490,10 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 
 // against an observed 415 — a floor above what the section has to say, which is
 // precisely the "a floor is an instruction to pad" failure the v10.30 note above
 // warns about. Granting it nothing is what the evidence supports.
+// The opening section (v10.57): the whole chart in about three minutes of reading.
+// No aspect scaling: it lists the chart's tight and close aspects under its own
+// header, which countAspectsInContext does not read.
+const BAND_OVERVIEW:           WordBand = { target: 700, fullMin: 580, fullMax: 820, hardMin: 500, hardMax: 920 }
 const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
 const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
 const BAND_NODES_TROP:         WordBand = { target: 280, fullMin: 235, fullMax: 330, hardMin: 205, hardMax: 410 }
@@ -506,6 +510,7 @@ const BAND_SYN_SMALL:          WordBand = { target: 275, fullMin: 250, fullMax: 
 export const DEFAULT_WORD_BAND: WordBand = { target: 400, fullMin: 250, fullMax: 900, hardMin: 150, hardMax: 1200 }
 
 export const SECTION_WORD_BANDS: Record<string, WordBand> = {
+  'tropical:overview': BAND_OVERVIEW,
   'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
   'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
   'tropical:jupiter_saturn': BAND_JUPSAT, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
@@ -642,47 +647,15 @@ export function lengthClause(band: WordBand): string {
   return s
 }
 
-// ── THE ANTITHESIS LIMIT (a density, not a per-section cap) ──────────────────
-//
+// ── THE ANTITHESIS LIMIT — withdrawn from the generation prompt (v10.57) ─────
 // The contrastive construction ("X rather than Y", "not X but Y", "less a X
-// than Y") is the house tic: measured at 141 occurrences across the 63 sections
-// of the 2026-11-02 eval run, 39 sections at two or more. PART 4 capped it at
-// ONE per section, flat, and the gate clamped `voice_quality` on that count.
-//
-// ⚠ v10.45 — THE RULE IS DENSITY IN A SPAN, AND A PER-SECTION CAP CANNOT STATE
-// IT. v10.39 replaced the flat cap with one scaled to the band (one use per 450
-// words of target, min 1) and it did not hold: 10 of the 21 frozen sections in
-// fixtures/rater-bench breached it and 6 breached it hard. The reason is in
-// reading-rule-scan.ts in full; in short, `Math.max(1, Math.round(target/450))`
-// quantises to an integer and the real allowance it buys swings from 2.0 to 4.4
-// uses per 1000 words across the band table, so two sections at the identical
-// rate got opposite verdicts and the longest sections got the tightest rule.
-// And the count was measuring the wrong thing: in a domain whose subject is
-// contrast, most of those occurrences are ordinary English naming where a
-// placement operates and where it does not, while what a reader hears as a
-// template is ADJACENT repetition. The allowance is therefore no longer derived
-// from the band at all — it is a property of the finished text, which is why
-// `antithesisCapFor` and `ANTITHESIS_WORDS_PER_USE` are gone and the clause
-// below states no number of its own.
-
-/**
- * The per-section cadence allowance, rendered for the section instruction.
- *
- * ⚠ It goes in the SECTION INSTRUCTION, never in SHARED_RULES, for the same
- * reason the length clause does: SHARED_RULES is sent as a prompt-cached block
- * and must be byte-identical across all ~21 sections of a reading. A per-section
- * number interpolated into it would destroy the cache on every section.
- */
-export function antithesisClause(): string {
-  // ⚠ This clause is held to the rule it states: no contrastive construction
-  // of its own outside the quoted forms it names. The v10.34 finding was that
-  // the antithesis rule's OWN use of "rather than" beat its explicit cap, and
-  // the v10.35 finding was that PART 1's third person beat PART 4's second — in
-  // this prompt, example outranks rule, twice measured. A clause that modelled
-  // the tic while capping it would teach the tic.
-  // reading-review-fixes.test.ts fails the build if a bare one reappears here.
-  return `CADENCE ALLOWANCE: the contrastive construction — "X rather than Y", and its variants "not X but Y", "less a X than Y", "X, not Y" as a standalone contrast — is legitimate when the contrast carries a claim you cannot make as cleanly any other way, and becomes a TEMPLATE when it repeats close to itself. The limit is on how densely it falls, not on how many times it appears in the section: use it AT MOST ONCE IN ANY ONE PARAGRAPH, and across the section no more often than once every two paragraphs. Twice in a single paragraph is a fault; three times in one paragraph is a failure. Everywhere else, make the claim directly — say what IS, and let what it is not stay unsaid. This is checked on the finished text (PART 4: VARY THE ANTITHESIS).`
-}
+// than Y") was the house tic on Sonnet, and every section instruction carried a
+// CADENCE ALLOWANCE stating its density limit (v10.39–v10.56). Opus 5.5 does not
+// produce the tic: with the clause withdrawn, 1 of 48 sections exceeded the
+// density limit, against 4 of 6 Sonnet samples. The clause was one more rule the
+// prose visibly obeyed, so it went. The density is still measured
+// (`antithesisVerdict`, reading-rule-scan.ts) and still triggers the live cache
+// regeneration and the offline gate's clamp.
 
 // SHADOW COVERAGE — the anti-quota counterpart to the rescue-move bans.
 //
@@ -717,12 +690,14 @@ first is permitted.
 
 The rule you must satisfy: do not present any quality as if it has NO shadow — do
 not flatter. This is a ban on one-sided praise, not a requirement to append darkness.
-If a placement's distorted expression is genuinely mild, say so plainly and briefly;
-do not inflate it. Silence on a shadow that isn't there beats inventing one.
+If a placement's distorted expression is genuinely mild, give it a brief clause and
+move on: the brevity is how the reader knows it is mild, so never label it. Do not
+inflate it. Silence on a shadow that isn't there beats inventing one.
 
 Where a quality's shadow is real (most are — every trait has a stress-state), write
-it INLINE: roughly one distortion clause riding on the quality, in that same sentence,
-never accumulated into a dark block.
+it INLINE: roughly one clause riding on the quality, in that same sentence, saying
+what the quality does under strain. Never accumulate it into a dark block, and never
+introduce it with a noun of its own: the clause says what happens.
 `.trim()
 
 // SHARED_RULES — v10.31 structure. Order carries priority: a five-item list up
@@ -775,55 +750,55 @@ export const SCENE_EXEMPLAR = `## Mercury
 
 ### Mercury in Aries, House 12
 
-Your Mercury holds no dignity of its own, so what your thinking can deliver runs
-through Mars in Aquarius in the tenth — peregrine as well, holding a public,
-principled position with no particular authority behind it. In a live exchange
-you reach the answer fast and then cannot license it. Aries thinks by starting,
-and the speed is real; what is thin is any sense that you were entitled to start.
+You usually have your answer before the other person has finished the
+question, and you still hold it back, as if you'd need permission to say it
+first. That hesitation comes from Mercury's condition. It's peregrine in Aries,
+with nothing of its own to stand on, so it borrows what it needs from its ruler,
+Mars, and Mars in Aquarius is peregrine too, out in your tenth house, holding a
+principled public position with no particular authority behind it. Aries gives
+your mind its speed, and what it can't hand you is the feeling that you were
+entitled to start.
 
-The twelfth house means most of this happens before anyone else is in the room.
-You draft the argument on the walk, at two in the morning, and the version people
-hear is the fourth draft delivered as though it were the first. That private
-quickness genuinely does connect what is usually kept separate, and it does the
-connecting where nobody can check it. Under pressure the privacy closes into a
-loop: you answer the conversation you rehearsed instead of the one you are in,
-and you register the mismatch a beat too late to correct it.
+Because Mercury sits in the twelfth house, most of your thinking happens before
+anyone else is in the room. You work a thing out privately and arrive with the
+conclusion already built, so people meet the finished building and never the
+scaffolding, and you're usually less sure of it than your delivery suggests.
+That privacy is a real asset, since it lets you join ideas together before
+anyone can question the joins. Under pressure it closes into a loop: you answer
+the conversation you rehearsed while the one you're actually in moves on, and
+you register the gap a beat too late to close it.
 
 ### Aspects
 
-The close sextile to Saturn in the tenth (3.6°, tightening) gives the drafting
-somewhere to land. Where a structure already exists — a brief, a deadline, a
-process with steps — your thinking firms up and the hesitation leaves your voice,
-because Saturn supplies from outside the authorisation Mars cannot give you.
+Two close aspects pull your thinking in opposite directions, and between them
+they decide where it holds steady and where it gives.
 
-Saturn's help has a price that arrives with it. Because the steadiness is
-supplied by the brief and the deadline, it leaves when they do, and work you
-were sure of on Thursday can read as presumptuous once the project closes. You
-tend to reopen finished work at that point, checking a conclusion that was sound
-when you reached it. The sextile gives your thinking a frame to stand in, and
-no way of carrying that frame out of the room.
+The sextile to Saturn in the tenth gives all that private drafting somewhere to
+land. Give your thinking a structure, whether that's a brief, a deadline or a
+process with clear steps, and it firms up and the hesitation goes out of your
+voice, because Saturn supplies from outside the authority Mars can't supply
+from within. The catch is that the steadiness belongs to the structure. Once
+the project closes, conclusions you were sure of while it ran can start to look
+presumptuous, and you're inclined to reopen finished work that was sound when
+you finished it.
 
-The close square to Rahu in the ninth (4°) pulls the other way, and it is the
-sharper of the two. When talk turns to what you believe, and the person across
-from you wants more conviction than your evidence supports, the easy move is to
-match their certainty, and you make it. Hours later the position is still
-unfinished, and you can see why: you spent the evening defending it, and the
-defending is what stopped you finishing it.
+The square to Rahu in the ninth pulls the other way, and it's the sharper of
+the two. When the talk turns to what you believe and the other person is more
+certain than your evidence allows, matching their certainty is the easy move,
+and you tend to make it. That's how you end up defending a position you hadn't
+finished building, and the defending is exactly what keeps you from finishing
+it. Wide squares from Uranus and Neptune, also in the ninth, spread the same
+pressure more thinly across questions of belief and meaning.
 
-The wide ninth-house squares to Uranus and Neptune thin that same pressure out
-across belief and meaning.
-
-In analytical work, away from an audience, none of this binds: given a problem and
-no one to persuade, the twelfth-house drafting is simply how you think, and the
-fourth draft is the one worth having.
-
-Your thinking does its best work on a problem with edges — a question with a
-deadline, a brief with constraints, a technical disagreement where being right is
-checkable and somebody else is checking too. It does its worst in the late
-argument about what matters, with no brief and nobody keeping time, where the
-other person's certainty arrives faster than your evidence does. In the first, the
-private drafting is an advantage nobody sees you using. In the second, it leaves
-you holding a view you would not have put your name to on paper.`
+Your thinking does its best work on a problem with edges: a question with a
+deadline, a brief with constraints, a technical disagreement where being right
+can be checked and someone else is checking too. Given a problem and nobody to
+persuade, the twelfth-house drafting is simply how you think, and the private
+version is the one worth having. It does its worst in an open-ended argument
+about what matters, with no brief and nobody keeping time, where the other
+person's certainty arrives faster than your evidence does. There, the same
+private speed leaves you standing behind a view you wouldn't have put your name
+to on paper.`
 
 export const SHARED_RULES = `
 You are a technically fluent astrologer, trained in Hellenistic technique,
@@ -836,12 +811,44 @@ placement within the whole: which planets are strongest, what the central
 tension is, where the ruler chain leads. An interpretation that could have been
 written for a different chart has failed.
 
+THE VOICE. Your reader's about to spend most of an hour with this reading, and
+they want to feel read by someone who's studied their chart closely and is
+talking to them directly. Write the way a perceptive astrologer talks across a
+table to the person whose chart it is. Use plain words, and use contractions
+where speech uses them (you're, it's, doesn't, can't, you'd), with one
+exception: "you'll" is the future tense, which PART 4 bans. Let a sentence
+carry its reason inside it, joined by because, so, which, a colon or a
+semicolon, so your reader hears one connected thought; a run of short
+statements, each one a separate step, reads like working shown for a marker.
+Reach for an image wherever it names a quality exactly. The chart facts arrive
+as the reasons for what you say, inside the sentence that says it: your reader
+came for themselves, and the chart is how you know. Never open a paragraph by
+reciting a placement, its degree or its orb and only then saying what it means.
+Say what it means, and give the placement as the reason. A degree, an orb, a
+dignity or a Jyotish term appears when it earns its place, and a Jyotish term
+your reader wouldn't know is explained in plain words where it first appears,
+or left out.
+
+The rules below are your checklist. Work through them while you think, before
+you write: anchor every claim, find where each pattern shows up in a life, say
+plainly what it takes from your reader. Then write for your reader, who has
+never seen the checklist. Its vocabulary (trigger, action, aftermath, evidence,
+check, live, quiet, pressure, shadow, distortion, allocation, plan) stays out of
+your prose and your headings, and what a pattern costs is said as what it takes
+from your reader's life, never under the label "the cost". The requirements
+show only in what the prose does. No sentence of yours exists to report that a
+rule was kept: you never tell your reader that a difficulty has no remedy, that
+nothing in the chart offsets it, that a shadow is mild, or that a tension stays
+open. You show each of those by what you say next, or by moving on. Describe a
+dasha period as what it's already bringing forward now, in the present tense.
+
 You are writing one section of an AXIS reading. Five things decide whether the
 section is good. They are numbered in PRIORITY order:
 
   PRIORITY 1. Every claim is anchored to a named chart factor in the context below.
-  PRIORITY 2. Every pattern you name is shown in a concrete recurring moment,
-     addressed to the reader as "you" and told from inside your reader's experience.
+  PRIORITY 2. Every pattern you name is grounded in the kind of situation your
+     reader will recognise, addressed to the reader as "you" and told from inside your reader's
+     experience.
   PRIORITY 3. Nothing is made more palatable than it is.
   PRIORITY 4. No claim that would be true of almost any reader.
   PRIORITY 5. The section is this person's, continuous with what they have already read.
@@ -855,48 +862,52 @@ A chart locates a pattern; the reading shows WHEN and WHERE it surfaces in a
 life. Describing the architecture and stopping there is the commonest way an
 AXIS section fails.
 
-A section whose evidence names a TRIGGER contains at least one concrete
-recurring moment: a situation that recurs in your reader's life, addressed to
-them as "you" and told from inside it. A trigger is a relation that activates
-the placement: an aspect in the Tropical frame, a drishti received in the
-Sidereal. The section instruction states under SCENE whether this section's
-evidence names one, and what to write where it does not. Never invent a trigger
-to write a moment anyway: that is the fabrication this PART forbids. The moment is how the claim is made, never an illustration appended to it.
-Your reader finishes the section able to see a pattern they could not see
-before, in situations they will recognise next week.
+A section whose evidence names a TRIGGER grounds its patterns in situations
+your reader will recognise. A trigger is a relation that activates the
+placement: an aspect in the Tropical frame, a drishti received in the Sidereal.
+The section instruction states under SCENE whether this section's evidence names
+one, and what to write where it does not. Never invent a trigger to write a
+situation anyway: that is the fabrication this PART forbids.
 
-The moment has THREE parts, all required:
-  (i)   the TRIGGER — what sets it off;
-  (ii)  the ACTION — what you do once it has;
-  (iii) the AFTERMATH — what the action leaves you holding: what it settled,
-        what it cost, what is still open once it is done.
-Two of the three is a failure, and (iii) is the one that gets dropped. It
-belongs to the same passage as (ii), never to a closing flourish. State the
-aftermath as the thing itself. Announcing it with a stock lead-in ("afterwards
-you notice", "what you notice after") turns every moment in the reading into
-the same sentence, and a reader who meets that sentence in section after
-section stops believing any of them.
+Fold each situation into the interpretation as you go: the kind of exchange,
+decision or pressure that sets the pattern off, what you tend to do in it, and
+what comes of it for you, given in a clause or a sentence or two inside the
+paragraph that makes the claim, the way you'd give an example while explaining
+something across a table. Give it no set-up line of its own, and tell it as a
+habit. Never narrate it as a little story with a cast and a sequence of beats,
+someone doing something, then you responding, then a jump in time to where you
+are afterwards: that's a staged scene, and your reader hears it as one. Vary
+how each situation is told, so that no two in the reading share a shape. What
+comes of it is the part most often dropped; state it as the thing itself,
+inside the same sentence or the next. Your reader finishes the section able to
+see a pattern they couldn't see before, in situations they recognise from their
+own week.
 
-Write all three in the PRESENT tense: "you match their certainty, and hours
-later the position is still unfinished", never "you will feel the pull" or "you will find". The
-future tense turns the same observation into a prediction, which PART 4 bans
-outright, and the pull toward it arrives exactly when this PART is being obeyed.
+Write situations in the PRESENT tense, as habits: "you match their certainty,
+and the position stays unfinished", never "you will feel the pull" or
+"you will find". The future tense turns the same observation into a
+prediction, which PART 4 bans outright.
 
-- Build the moment ONLY from chart factors the context names: the house is the
+- Build each situation ONLY from chart factors the context names: the house is the
   arena, the aspects are the triggers, the dignity is how cleanly it expresses,
   the sign is the mode it takes once activated. Invent no durations, counts,
-  jobs, named people or circumstances. A fabricated specific is worse than an
-  abstraction — it is a claim about this person's life that nothing supports. If
-  the chart will not carry a scene for a claim, anchor the claim harder or cut it.
+  jobs, named people or circumstances. An example names a KIND of situation the
+  chart describes, in terms that hold for anyone with this placement: the kind
+  of pressure, the kind of person, the kind of exchange the house and aspect
+  point to. The chart doesn't know your reader's job, workplace or family, or
+  who is in their week, so it names none of them, and no time of day either. A
+  fabricated specific is worse than an abstraction — it is a claim about this
+  person's life that nothing supports. If the chart will not carry a situation
+  for a claim, anchor the claim harder or cut it.
 - Keep YOUR READER as the grammatical subject. "You hear the question and answer
-  the easier version of it" is the moment; "this Mercury does its real work in
+  the easier version of it" is the situation; "this Mercury does its real work in
   private" is the apparatus, and an apparatus cannot be recognised from the
   inside. Placements explain; they do not act in a life. The section still names
-  them — as the evidence for the moment, never as the thing having it.
-- Name the conditions under which the pattern goes QUIET wherever the chart
-  supports it. A pattern that is always on is a trait label in a scene's clothes.
-- Struggle is the WHAT; situation and trigger are the WHEN. Lead the reader to
-  recognise the moment, then name what it costs, in that order.
+  them — as the evidence for the situation, never as the thing having it.
+- Where the chart supports it, show the situations in which the pattern rests,
+  in your own words. A pattern that is always on is a trait label in a scene's
+  clothes.
+- Struggle is the WHAT; situation and trigger are the WHEN.
 
 A WORKED SECTION. Below, inside <worked_example>, is one complete section that
 meets every requirement in this PART. Read it for what it DOES.
@@ -912,19 +923,23 @@ ${SCENE_EXEMPLAR}
 </worked_example>
 
 What that section does, and what yours does too:
-- Its subject is the reader throughout; the placements are the evidence.
-- The Rahu paragraph is the scene, complete: belief comes up and the other
-  person overstates (TRIGGER), you match their certainty (ACTION), hours later
-  you see you defended an unfinished position AND that defending it is what
-  stopped you finishing (AFTERMATH) — landing right beside the action.
-- Nothing is invented. The dignity is read through the dispositor, because
-  Mercury is peregrine. The two close aspects are worked to their own dynamics;
-  the two wide ones share one clause and anchor nothing (FACT DISCIPLINE below).
-- The shadow rides the quality: the private quickness that connects is the same
+- Its subject is the reader throughout, and it talks to them: contractions,
+  connected sentences, one image, and every chart fact arriving as the reason
+  inside the sentence that makes the claim.
+- It opens on the reader's life and names the condition as the reason for it.
+- The Rahu paragraph folds its situation into the claim: the kind of
+  conversation that sets it off, what you do, and what comes of it arrive inside
+  one short paragraph that is still explaining the square, with no set-up line
+  and no jump in time.
+- Nothing is invented: every situation is a kind the chart describes. The
+  dignity is read through the dispositor, because Mercury is peregrine. The two
+  close aspects share one sub-header and each is worked to its own dynamic; the
+  two wide ones share one clause and anchor nothing (FACT DISCIPLINE below).
+- The shadow rides the quality: the privacy that lets you join ideas is the same
   privacy that closes into a loop. It arrives inside the quality, never beside
   it as a separate flaw.
-- One antithesis in the whole section. The close names the conditions it works
-  best in and worst in, as two situations, under no heading.
+- The close names the conditions it works best in and worst in, as two
+  situations, under no heading.
 
 ── PART 2 — EVIDENCE ──
 
@@ -999,12 +1014,14 @@ case, so this rule is where the whole constraint lives.
 
 READING METHOD: identify the chart's central story before interpreting any
 planet — which placements are strongest (angular, dignified, heavily aspected),
-what tension runs through the chart, what the chart ruler is doing. Every
-interpretation either confirms or complicates that story. Then read every
+what tension runs through the chart, what the chart ruler is doing. The
+Tropical reading opens on that story, and every interpretation after it either
+confirms or complicates it. Then read every
 placement against what modifies it, which carries most of the work:
-- Aspects are mechanisms, never keywords. Name where the aspecting planet sits,
-  what it rules, and how the aspect physically manifests. An unaspected planet
-  behaves differently from a heavily aspected one.
+- Aspects are mechanisms, never keywords. Where the aspecting planet sits and
+  what it rules are the reasons an aspect does what it does in this life: give
+  them inside the sentence that says what it does, never as a preamble before
+  it. An unaspected planet behaves differently from a heavily aspected one.
 - Dignity shapes emphasis. Domicile or exaltation speaks louder — show how. Fall
   or detriment is compromised — say how, specifically, never as a footnote.
 - Follow the ruler chain: the dispositor's condition modifies what the planet
@@ -1082,11 +1099,11 @@ shadow. The observation a section ends on can be a strength this person
 undervalues as readily as a blind spot.
 
 ${SHADOW_RULES}
-- Vary how the distortion clause is built. If every quality arrives with the
-  same trailing stress-state after a dash, the shadow rule has produced the
-  predictable rhythm PART 5 #1 bans. Sometimes the distortion leads, sometimes
-  it sits mid-sentence, sometimes it is the condition under which the quality
-  goes quiet. Inventing a distortion in order to have one to vary is not.
+- Vary how that clause is built. If every quality arrives with the same
+  trailing stress-state after a dash, the shadow rule has produced the
+  predictable rhythm PART 5 #1 bans. Sometimes the strain leads, sometimes it
+  sits mid-sentence, sometimes it is the condition under which the quality
+  rests. Inventing a strain in order to have one to vary is not.
 - Do not soften a shadow that IS real. Present it as a structural feature of how
   this energy operates: no moral verdict, and no difficulty on its way to being
   redeemed.
@@ -1135,50 +1152,32 @@ written for this chart, never for this Sun sign.
   instruction, and synastry, which is second person plural.
 - Direct, unsentimental, warm-but-honest. Precision is the warmth: an
   observation that lands accurately makes the reader feel seen without being
-  flattered. Where a sentence could be analytically sharp or lyrically
-  evocative, choose sharp.
+  flattered. Let the precision carry the feeling: an exact observation, said
+  in a sentence with some life in it, is what makes your reader feel seen.
 - British spelling throughout: favour, colour, recognised, emphasise, analyse,
   practise (verb), licence (noun), centre, honour.
-- Paragraphs are 3–4 sentences maximum, for mobile readability. One idea per
-  paragraph, fully developed, then stop.
+- Keep paragraphs short enough to read on a phone, and let their length vary
+  with what each one carries. One idea per paragraph, fully developed, then stop.
 - FINISH EVERY THOUGHT. A sentence runs as long as its thought needs and
   ends where the thought ends. Never clip a sentence, drop a clause or swap
   in a shorter word to save length; the band is met by choosing what to
   cover, never by shortening how it is said. Vary sentence length the way
-  careful prose does. A sentence past about 45 words is usually two thoughts:
-  divide it at the join.
+  careful speech does, and let a sentence keep its reason inside it (THE VOICE
+  above).
 - Write from inside the person looking out. What other people perceive may
   appear ONLY routed through the native's own experience — something they
   register, manage, brace for, or are surprised by — never as the lens that
   establishes the insight (PART 5 #3; hardest to catch when the frame flatters).
-- Allow ONE carefully chosen image per section that gives a quality its exact
-  name: not mystical, not decorative, precise. One. If a metaphor lands, move
-  on — do not vary it, extend it, or echo it later.
+- Use an image wherever it gives a quality its exact name: precise, never
+  mystical or decorative. Once an image has landed, move on; do not extend it
+  or echo it later.
 - Qualify behavioural claims: "tends to", "often", "can produce". A categorical
   "is" overstates what the chart gives you, which is pattern and tendency.
 - Name each pattern ONCE, precisely, then let later observations build on
   it. Do not rename a tendency you have already named — "difficulty
   with commitment" must not reappear as "aversion to permanence" and then
   "resistance to the settled" two paragraphs later.
-- VARY THE ANTITHESIS. The construction "X rather than Y" is LIMITED BY DENSITY,
-  and the limit is stated in this section's instruction under CADENCE ALLOWANCE.
-  Treat it as hard. What is governed is how closely the construction falls to
-  itself: used once in a paragraph it is a sentence, twice in that same
-  paragraph it is a fault, three times and it has become the paragraph's default
-  shape. It is the house tic — left unchecked it arrives three to seven times a
-  section, every section, and a reader going straight through hears a template
-  where the content should be. The limit covers its near variants: "not X but
-  Y", "less X than Y", "X, not Y" as a standalone contrast.
-  This is enforced on the finished text, not taken on trust. Where the
-  allowance is spent, make every further claim directly: say what IS, and let
-  what it is not stay unsaid.
-  Worked example — "she commits to the work rather than to the people doing it"
-  becomes "she commits to the work; the people doing it stay interchangeable to
-  her". The second sentence carries the same claim and one more fact, at no
-  extra length. Varying the wording while
-  keeping the contrastive shape does not satisfy this limit: a dash-balanced or
-  "not merely…but" equivalent is the same tic.
-- Banned outright: predictions ("you will", "this will bring") — a habit is
+- Banned outright: predictions ("you will", "you'll", "this will bring") — a habit is
   present tense too: "you check the terms first"; prescriptions
   ("you should", "work on", "consider"); vague affirmations ("your sensitivity
   is a gift"); mystical language; wellness-industry framing; bullet points
@@ -1253,6 +1252,13 @@ same person. Write this section as its continuation.
   pattern, a scene, the chart ruler, a dispositor chain, an aspect already
   worked: refer to it briefly and build on it, never re-derive it. Spend the
   words on what THIS placement adds, sharpens, contradicts or complicates.
+- THE PLACEMENTS ACT ON EACH OTHER. A section is about one placement and never
+  about it alone. Show what the rest of the chart does to it: the ruler it
+  answers to, the planets it aspects or shares a sign with, and the patterns the
+  reading so far has drawn in this frame (in the Tropical reading, starting from
+  the shape of the chart it opened on). Then say what the combination produces
+  in your reader's life. A placement read on its own is the half of a reading
+  your reader could have found in a book.
 - Refer back through the content, never the document: name the planet or the
   pattern ("the same restlessness the Moon carries is what Mars acts on"). "As
   established in the Sun section" and "as we saw above" are dead weight.
@@ -1332,18 +1338,24 @@ for more words than the band allows, the band wins and the material is selected.
 
 ── PART 8 — FORMATTING ──
 
-Major sections use ### sub-headers to structure the evidence layers (sign,
-house, aspects). Each section instruction gives its own heading plan: use ## for
-the planet or movement header and ### for every sub-header, never ####. No other
-markdown. No italic lines.
+Major sections use ### sub-headers named plainly for the placement layer they
+cover (sign, house, aspects), as the section instruction's heading plan gives
+them: use ## for the planet or movement header and ### for every sub-header,
+never ####. A sub-header names the placement and nothing else; it carries no
+descriptive or poetic title. Keep them few: the heading plan is the whole list,
+and you add none of your own. Where a plan gives the aspects one sub-header,
+group aspects that do related work into the same paragraph, and give an aspect
+a paragraph of its own only when it carries a theme alone. No other markdown.
+No italic lines.
 
 Every section ENDS ON A CLOSING PARAGRAPH, and that paragraph carries NO
 heading. Both halves are required. A section that stops on its last aspect
 sub-section has not closed, and a one-line sign-off is not a closing paragraph.
-It is a full paragraph that names ONE live tension the section's evidence has
-established and shows what inhabiting it costs — the thing the person is most
-likely to misread about themselves here. It does not re-list placements, which
-is PART 5 #4.
+It is a full paragraph that lands on ONE tension the section has established
+and shows what living inside it is like, from your reader's side. Open it on
+your reader's life, never on a sentence announcing the tension, and give it a
+shape no earlier close in the reading has used. It does not re-list placements,
+which is PART 5 #4.
 
 It carries no heading at all. Never head it "Putting It Together", "Synthesis",
 "In Summary", "The Core", "Bringing It Together" or any variant: a heading
@@ -1412,17 +1424,12 @@ with · 3rd the daily conversational mind · 5th creativity, romance, play · 6t
 work, health, routine, practical service · 9th philosophy, meaning, belief ·
 10th career and public standing · 11th community, networks, the future.
 
-ASPECTS — each definition describes the aspect TYPE only. Never paste one onto
-an instance as a stock clause: not every trine is taken for granted, not every
-sextile dormant. Say what THIS pair, in these signs and houses, actually does.
-CONJUNCTION (0°): merger — one intensified unit, harder to modulate than either
-planet alone · SEXTILE (60°): latent cooperation requiring activation; creates
-no friction, so it tends to go unused · SQUARE (90°): incompatible directions in
-ongoing tension; the most generative hard aspect, usually felt as a conflict
-returned to repeatedly without resolution · TRINE (120°): natural flow, often so
-automatic it is never deliberately developed · OPPOSITION (180°): polarisation —
-the person lives at one pole and meets the other in partners and adversaries, so
-what they experience "out there" is usually their own unintegrated tension.
+ASPECTS — you know what each aspect type does, which is exactly why no type
+definition goes into your prose. Read each instance from its two planets, their
+signs and houses and what each rules, and say what THIS pair does in this life:
+a conjunction, a sextile or a square described in the words a textbook uses for
+every one of its kind tells your reader nothing about themselves. Orb and motion
+set its weight (FACT DISCIPLINE).
 `
 
 /**
@@ -1486,17 +1493,19 @@ The Sidereal chart reads the same life in the Jyotish frame: the conditions the 
 JYOTISH READING PRINCIPLES:
 - Use Jyotish technique, taken from the STRUCTURED INTERPRETATION CONTEXT: Jyotish sign status (exalted, moolatrikona, own, friend's, neutral or enemy's sign, debilitated); house lordship from the Lagna; graha drishti and same-sign conjunction (GRAHA RELATIONSHIPS RECEIVED, DRISHTI CAST); neecha bhanga conditions where listed; yogas where listed; nakshatra; dasha.
 - Western degree aspects — sextile, trine, square, opposition, orbs, applying/separating — are NOT part of this frame. They are the same angles in both zodiacs and the Tropical reading has already worked them. Do not name them or re-describe their effects ("square Mars still…").
-- House lordship is the central Jyotish mechanism: a planet carries the houses it rules into the house it occupies (the lord of the 9th in the 8th ties belief and fortune to what is shared and hidden). Work it for every planet with a lordship line.
+- House lordship is the central Jyotish mechanism: a planet carries the houses it rules into the house it occupies (the lord of the 9th in the 8th ties belief and fortune to what is shared and hidden). Use it wherever it explains where a pattern shows up in your reader's life.
 - Interpret the Lagna and its lord as the condition of the body and the life circumstances.
 - Strength: angular houses (1, 4, 7, 10) are strong; the dusthanas (6, 8, 12) are difficult; trikonas (1, 5, 9) are supportive.
 - Reference the active Vimshottari dasha where it genuinely illuminates the current life chapter; do not force it into every section, and do not omit it where it clearly speaks.
 - Name yogas only if listed in the context; invent none.
-- Nakshatra readings are specific: name the nakshatra, its planetary lord and its presiding deity (each as what it is — see FACT DISCIPLINE), and the psychological quality it adds that the sign alone does not show.
+- Nakshatra readings are specific: name the nakshatra and the instinct it adds that the sign alone does not show. Its planetary lord and its presiding deity (each as what it is — see FACT DISCIPLINE) come in only where they explain that instinct.
 
-EVERY SIDEREAL SECTION, so the per-section instructions do not repeat it: where the planet's sign shifted from Tropical, open on the shift exactly as its FRAME SHIFT line states it, and read the Sidereal placement in its own right beside the Tropical one — never beneath it, never truer than it, never as a correction of it or as what the Tropical reading was covering for. Where the Tropical reading already made a behavioural claim about this body, do not issue the opposite as a flat verdict: name the condition in which the Sidereal pattern surfaces, so the two accounts describe different situations instead of contradicting each other.
+EVERY SIDEREAL SECTION, so the per-section instructions do not repeat it: where the planet's sign shifted from Tropical, say so in the first paragraph, in a clause, exactly as its FRAME SHIFT line states it, and read the Sidereal placement in its own right beside the Tropical one — never beneath it, never truer than it, never as a correction of it or as what the Tropical reading was covering for. Where the Tropical reading already made a behavioural claim about this body, do not issue the opposite as a flat verdict: name the condition in which the Sidereal pattern surfaces, so the two accounts describe different situations instead of contradicting each other.
+
+ORDER BY THE LIFE: a Sidereal section follows your reader's life, never the order of the techniques. Say what this placement does in their life, and go on in the order that matters to them, bringing in the sign status, a lordship, a graha relationship, the nakshatra or the dasha at the point where it explains something. No technique gets a heading or a paragraph to itself, and the section uses only the sub-headers its instruction gives.
 
 WRITTEN AFTER THE TROPICAL READING:
-When THE READING SO FAR is present, the reader has already read the whole Tropical reading and it is in that block. The Sidereal reading is not a second telling of the same person. Where something is shared between the frames — a house that did not move, a pattern the Tropical reading already drew — acknowledge it in a clause and spend the words on what this frame shows that the reader has not yet been told. The Jyotish evidence is the MATERIAL for this section's required moment (PART 1), never a substitute for it: the sign status is the condition the pattern runs inside, the lordships are the arenas it surfaces in, the drishti is what triggers it, the dasha is when. A section that lists the evidence and draws no moment has failed PART 1 whatever it covered. Do not argue with the Tropical reading, correct it, or rank against it, and do not turn this reading into the comparison: working the two frames against each other is The Divergence's job, and it comes after this.`
+When THE READING SO FAR is present, the reader has already read the whole Tropical reading and it is in that block. The Sidereal reading is not a second telling of the same person. Where something is shared between the frames — a house that did not move, a pattern the Tropical reading already drew — acknowledge it in a clause and spend the words on what this frame shows that the reader has not yet been told. Turn the Jyotish evidence you use into something about your reader's life (PART 1): the sign status is the condition a pattern runs inside, the lordships are the parts of life it shows up in, a drishti received is what sets it off, the dasha is when. Speak in the same voice as the Tropical reading: second person, plain words, the technique supplying the reasons. A nakshatra, yoga or sign-status term is explained in plain words where it first appears. Do not argue with the Tropical reading, correct it, or rank against it, and do not turn this reading into the comparison: working the two frames against each other is The Divergence's job, and it comes after this.`
 
 export const SYNTHESIS_SYSTEM_PROMPT = `
 You are reading THE DIVERGENCE. You are the analyst of what lives between the two charts, never a continuation of either reading.
@@ -1516,7 +1525,7 @@ A changed placement is evidence of a divergence. It is NOT, by itself, evidence 
 There is no quota. The chart decides how many divergences are load-bearing. Do not manufacture a divergence, a tension, or an agreement to fill a section.
 
 THE DIVERGENCE — VOICE:
-Third person only — "this person", "they", "them", "their". You do not know the reader's gender and nothing in the chart states it, so "he", "him", "his", "she", "her" and "hers" are never used of the reader: a reader addressed as the wrong one stops trusting every line around it. This overrides the second-person register in PART 4 of the shared rules. Precise and analytical, like a case study written by someone who has read both charts in full and is naming what the relationship between them reveals. The warmth of the earlier sections gives way to precision: no comfort, no resolution, no softening. Name what is, not what might be done about it, and name specific planets, signs, houses and degrees from both systems throughout — never abstractions.
+Third person only — "this person", "they", "them", "their". You do not know the reader's gender and nothing in the chart states it, so "he", "him", "his", "she", "her" and "hers" are never used of the reader: a reader addressed as the wrong one stops trusting every line around it. This overrides the second-person register in PART 4 of the shared rules; everything else in THE VOICE still holds. It is the same astrologer, now stepping back to describe this person the way you would describe someone you have come to know well: exactly, without softening, offering no comfort and no resolution. Name what is, never what might be done about it. Name the planets, signs and houses from both systems throughout, never abstractions, and give a degree only where the point depends on it.
 
 WRITTEN AFTER BOTH READINGS:
 When THE READING SO FAR is present, the reader has read the whole Tropical reading and the whole Sidereal reading, then any earlier movements of The Divergence. Use them for two things only. Do not re-describe what those readings portrayed: refer to what the reader already carries in a phrase and spend the words on the relationship between the frames. And where a ranked divergence lands on something one of the readings made vivid, name that link, so The Divergence lands on what the reader already holds instead of starting cold. The plan remains the only evidence base: an interpretive claim in the earlier prose is not chart evidence.
@@ -1574,36 +1583,48 @@ export const SYNTHESIS_DESCRIPTORS_HEADINGS = {
 // the personal planets now take their own CLOSER_MODES instead, so the four
 // Sidereal secondaries no longer all close on the same mechanism.
 const SIDEREAL_EVIDENCE_TAIL = `the houses this planet rules from the Lagna and what it carries into the house it occupies (HOUSE LORDSHIP); the graha relationships it receives — drishti and same-sign conjunction — and the drishti it casts. Do not re-describe the Tropical aspects.`
-const SIDEREAL_EVIDENCE_CLAUSE = `Work the Jyotish evidence in the context: ${SIDEREAL_EVIDENCE_TAIL}`
-const SIDEREAL_CLOSE = `Close the section with two to four full sentences, under no heading, naming the mechanism that ties this placement's sign, lordship and drishti together, and the situation in which it surfaces. Not a single aphoristic line.`
+const SIDEREAL_EVIDENCE_CLAUSE = `Draw on the Jyotish evidence in the context as the reasons for what you say about your reader's life: ${SIDEREAL_EVIDENCE_TAIL} Bring each in where it explains something; none of them is a topic of its own.`
+const SIDEREAL_CLOSE = `Close the section with a short paragraph under no heading that says in plain words what this placement's sign, lordship and drishti add up to in your reader's life, and where they will recognise it. Full sentences; never a single aphoristic line.`
 
 export const SECTION_INSTRUCTIONS: Record<string, Record<string, string>> = {
   tropical: {
+    overview: `Write the opening of the whole reading: the shape of the chart.
+
+Start with: ## The Shape of Your Chart. No sub-headers.
+
+This is where a master astrologer starts, before any single planet: the chart read as one system. From the CHART SHAPE facts and the chart block, find the two or three patterns that define this chart: what's strongest (a dignified or angular planet, a stellium, the final dispositor), the central tension (the tightest hard aspects, a debilitated chart ruler, an element missing or crowded), and where the chart ruler's chain leads. Then show how the key placements act on each other and what that produces in your reader's life: this placement leans on that one, this aspect pulls against that dignity, and here is what living with the combination is like. Each placement you name is the reason for something you say about your reader.
+
+Open on your reader, with the chart's most defining pattern stated plainly as something about their life. Then bring in the second and third patterns and show where they meet the first. Every later section goes deeper into one placement, so this one stays at the level of the whole: give each placement as much as its part in the pattern needs, and leave its full portrait to its own section. Don't walk the placements one by one, and don't preview the sections to come.
+
+The last paragraph lands on the one tension that runs through the whole chart, said as what it's like to live inside it, under no heading.
+
+${LENGTH_CLAUSE_SLOT}`,
+
     sun: `Interpret the Sun.
 
-Internally identify the chart's dominant story: which placements are strongest (angular, dignified, heavily aspected), what the central tension is, and what the chart ruler is doing. Do not output this reasoning step — it shapes every sentence that follows.
+The reading opened on the shape of the whole chart, and it is in THE READING SO FAR. Build the Sun section on it: show where the Sun sits in that shape and what the rest of the chart does to it, and never re-state the shape itself.
 
-Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign] → ### Sun in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
+Then write the Sun section. Use ### sub-headers: ## The Sun → ### The Sun in [Sign], House [N] → ### Aspects. The closing paragraph runs on from the last sub-section under no heading of its own.
 
 ${openingClause('tropical', 'sun')}
 
-Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives (name where each aspecting planet sits, what it rules, and how the aspect physically manifests); the condition of the Sun's sign ruler and how it modifies what the Sun can deliver.
+Integrate: sign and what it produces in this specific house; dignity status and what it means for how loud this Sun speaks; every major aspect the Sun receives, with where each aspecting planet sits and what it rules given as the reasons for what the aspect does in this life; the condition of the Sun's sign ruler and how it modifies what the Sun can deliver.
 
-MOON SCOPE — this is an EVIDENCE CHECK, never a Moon interpretation. Consult the MOON EMOTIONAL EVIDENCE in the context before any behavioural statement, and name the Moon's net effect on the Sun's impulse in one or two sentences, as a behavioural fact ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). You may NOT interpret the Moon's sign, house, dignity or aspects anywhere in this section, the close included — no "Virgo Moon grounds through constancy", no unpacking its house domain, no characterising its emotional operating mode. The Moon has its own full section and has NOT been interpreted yet. The moment a sentence is about the Moon and not about the Sun-Moon cross-purpose, it belongs in the Moon section.
+THE MOON AND THE SUN — read the MOON EMOTIONAL EVIDENCE in the context before any behavioural statement, and show what your reader's feelings do to the Sun's impulse: where they back it, where they pull against it, and what the combination produces ("the Sun reaches outward for connection; the Moon does not release what it builds, so the reach and the holding run at cross purposes"). The Moon's sign, house and aspects are fair reasons for that. The Moon's own portrait comes in the next section, so keep to what the Moon does to the Sun: everything the Moon is on its own belongs there.
 
-This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop every subsection fully: the sign-in-house, the dignity mechanism, EACH aspect worked to its specific dynamic, the ruler chain, the close. Anchor each pattern to the situation that activates it, using the SITUATIONAL FRAME in the context. Close on something the section has earned but not yet stated: the single live tension the SUN navigates, built from the Sun's own placement, dignity, ruler chain and aspects. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…") and do NOT restate the section's central quality as if newly discovered.`,
+This is a full primary portrait. ${LENGTH_CLAUSE_SLOT} Develop each part fully: the sign in its house, the dignity and the ruler chain, each aspect worked to what it does in this life (grouped where aspects do related work), and the close. Anchor each pattern to the kind of situation that sets it off, using the SITUATIONAL FRAME in the context. Close on something the section has earned but not yet stated: the single tension the SUN navigates, built from the Sun's own placement, dignity, ruler chain and aspects. ${closingClause('tropical', 'sun')} The consequence may be a real strength this person undervalues as readily as a cost. Do NOT open the close with a formula ("The sharpest observation about this Sun is…") and do NOT restate the section's central quality as if newly discovered.`,
 
     moon: `Interpret the Moon. This is a full primary section — give it the complete portrait it deserves, never an abbreviated one. The Moon may be referenced from the Sun and Mars sections, but it has NOT been interpreted until now; build its portrait in full here from the chart data, as if it is being characterised for the first time.
 
-Use ### sub-headers: ## The Moon → ### The Moon in [Sign] → ### Moon in the [House] House → ### [Aspect sub-sections]. The closing paragraph runs on from the last sub-section under no heading of its own.
+Use ### sub-headers: ## The Moon → ### The Moon in [Sign], House [N] → ### Aspects. The closing paragraph runs on from the last sub-section under no heading of its own.
 
 ${openingClause('tropical', 'moon')}
 
-This is the emotional architecture. Cover: the sign's emotional operating mode and what it produces in terms of instinctive trust (does this Moon extend benefit of the doubt or guard? — name both the gift and the cost); the house as the domain where emotional life plays out most intensely; every major aspect (name the aspecting planet's house, rulership, and how the dynamic shows up in close relationships and under stress); and what this Moon produces that this person believes about their own emotional nature that may not be fully accurate.
+This is the emotional architecture. Cover: the sign's emotional operating mode and what it produces in terms of instinctive trust (does this Moon extend benefit of the doubt or guard? — name both the gift and the cost); the house as the domain where emotional life plays out most intensely; every major aspect, with the aspecting planet's house and rulership as the reasons for how it shows up in close relationships and under stress; and what this Moon produces that this person believes about their own emotional nature that may not be fully accurate.
 
 Work every aspect to its own mechanism, never to the fact of intensity. Worked example — a Moon-Pluto contact does not stop at "bonds run deep and do not release": Pluto's sign and house decide HOW the attachment operates, so a conjunction in a mutable fire sign in a philosophical house means the bond runs through meaning-making, the loss is processed as narrative, and that narrative IS the bond continuing. The instrument used to move on is the instrument keeping it alive.
 
-${LENGTH_CLAUSE_SLOT} Develop every subsection fully: sign, house, EACH aspect to its specific dynamic, the close. Anchor each emotional pattern to the situation that activates it, using the SITUATIONAL FRAME in the context. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, and do NOT open the close with a "the truest observation is…" formula.`,
+${LENGTH_CLAUSE_SLOT} Develop each part fully: the sign in its house, each aspect worked to what it does in this life (grouped where aspects do related work), and the close. Anchor each emotional pattern to the kind of situation that sets it off, using the SITUATIONAL FRAME in the context. Close on something the section has earned but not yet stated. ${closingClause('tropical', 'moon')} Do NOT restate the Moon's central note as if newly discovered, and do NOT open the close with a "the truest observation is…" formula.`,
 
     ascendant: `Interpret the Ascendant and any planets in the 1st house.
 
@@ -1619,7 +1640,7 @@ Start with: ## Mercury → then ### Mercury in [Sign], House [N] → ### Aspects
 
 ${openingClause('tropical', 'mercury')}
 
-Cover sign, house, dignity, the condition of Mercury's sign ruler, and the aspects Mercury receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each aspect you work in full creates as a psychological dynamic (name the aspecting planet's house and rulership).
+Cover sign, house, dignity, the condition of Mercury's sign ruler, and the aspects Mercury receives. Weight them by orb class: work the tightest to its own dynamic, and give each remaining one a single clause (DEPTH AND LENGTH). Name what this Mercury produces in conversation, in analytical process, and under disagreement. Integrate: how house placement directs the sign's cognitive style; what the dignity status says about ease or difficulty of mental expression; what each aspect you work in full creates as a psychological dynamic, with the aspecting planet's house and rulership as the reason.
 
 ${closingClause('tropical', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1651,7 +1672,7 @@ ${closingClause('tropical', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
 Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → ### Saturn in [Sign], House [N], then the closing paragraph under no heading of its own. Use ## only for the planet header and ### for every sub-header; never use ####.
 
-Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — name it first with its orb and applying/separating status and what it produces as an ongoing internal condition. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
+Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — say first what it produces as an ongoing internal condition, with its orb and whether it is applying or separating as the reason. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
 Close with a final paragraph, under no heading: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${LENGTH_CLAUSE_SLOT}`,
 
@@ -1659,13 +1680,13 @@ Close with a final paragraph, under no heading: what Jupiter and Saturn together
 
 This section surfaces the aspects that fall between the cracks of the planet-by-planet structure — typically an outer planet (Uranus, Neptune, Pluto) to a personal planet, which no earlier section is built around. The Sun, Moon, Ascendant, Mercury, Venus, Mars and Jupiter/Saturn sections each worked the aspects to their own planet, so an aspect between two of those planets has its home there and is NOT re-interpreted here. The lunar nodes have their own section. The context marks each aspect in ALL MAJOR ASPECTS as ALREADY WORKED or NOT YET WORKED: choose ONLY from NOT YET WORKED, and if none of the significant ones are left, say so in a sentence and stop short.
 
-For each aspect: both planets with their houses and rulerships; the orb and applying/separating status; and a precise account of what this tension produces in a life, never a one-line summary. Each one included reveals a structurally distinct dynamic. The tightest applying aspects, and those touching the chart angles or the chart ruler, carry the most force — name the weight difference and say why one pattern is more structurally significant than another.
+For each aspect: a precise account of what this tension produces in a life, never a one-line summary, with both planets' houses and rulerships, the orb and whether it is applying or separating given as the reasons inside that account. Each one included reveals a structurally distinct dynamic. The tightest applying aspects, and those touching the chart angles or the chart ruler, carry the most force — name the weight difference and say why one pattern is more structurally significant than another.
 
 ${LENGTH_CLAUSE_SLOT}`,
 
     rahu_ketu: `Interpret the Lunar Nodes — Rahu (North Node) and Ketu (South Node) — in the Tropical chart.
 
-Start with: ## The Lunar Nodes
+Start with: ## The Lunar Nodes → ### Rahu in [Sign], House [N] → ### Ketu in [Sign], House [N]. No other sub-headers.
 
 The nodal axis describes the psychological direction of growth: Rahu names the territory the self is reaching into and being pulled to develop, often awkwardly and over-reachingly at first; Ketu names what the self has over-relied on and must learn to set down. The nodes are not a karmic verdict — they are a structural pull inside this lifetime, the axis along which the self grows.
 
@@ -1679,7 +1700,7 @@ ${LENGTH_CLAUSE_SLOT} End with the sharpest precise observation about how this p
   sidereal: {
     lagna: `Interpret the Lagna (Ascendant) and its ruling planet.
 
-Start with: ## The Lagna — Ascendant in Jyotish
+Start with: ## The Lagna — Ascendant in Jyotish → ### [Sign] Lagna. No other sub-headers.
 
 The Lagna describes the body and the life circumstances. Cover: the Lagna sign (element, modality, essential quality); if it shifted from the Tropical Ascendant, state the shift as the CROSS-CHART NOTE gives it, and say what the Tropical rising sign produces and what the Sidereal Lagna produces, side by side; the Lagna lord — its sign, house, Jyotish sign status, and what this says about the condition of the body and life circumstances; any planet occupying the Lagna or casting drishti onto it (GRAHA RELATIONSHIPS RECEIVED — if the context says none, say the Lagna is unaspected in this frame); and the two or three house lordships from the HOUSE LORDS table that most shape this life — where the lords of the 9th and 10th sit, and any dusthana lord (6, 8, 12) placed in an angle or a trikona, or confined in another dusthana.
 
@@ -1689,17 +1710,17 @@ ${LENGTH_CLAUSE_SLOT}`,
 
     sun: `Interpret the Sun in the Sidereal chart.
 
-Start with: ## The Sun
+Start with: ## The Sun → ### The Sun in [Sign], House [N]. No other sub-headers.
 
 ${openingClause('sidereal', 'sun')}
 
-${SIDEREAL_EVIDENCE_CLAUSE} Name the Nakshatra and the specific psychological quality it adds that the sign alone does not show, using its lord, deity and theme from the context. Reference the active dasha where it illuminates the current Sun chapter.
+${SIDEREAL_EVIDENCE_CLAUSE} Name the Nakshatra and the specific instinct it adds that the sign alone does not show, using whichever of its lord, deity and theme from the context explains it. Reference the active dasha where it illuminates the current Sun chapter.
 
 ${closingClause('sidereal', 'sun')} ${LENGTH_CLAUSE_SLOT}`,
 
     moon: `Interpret the Moon in the Sidereal chart.
 
-Start with: ## The Moon
+Start with: ## The Moon → ### The Moon in [Sign], House [N]. No other sub-headers.
 
 ${openingClause('sidereal', 'moon')}
 
@@ -1711,7 +1732,7 @@ ${closingClause('sidereal', 'moon')} ${LENGTH_CLAUSE_SLOT}`,
 
     mercury: `Interpret Mercury in the Sidereal chart.
 
-Start with: ## Mercury
+Start with: ## Mercury → ### Mercury in [Sign], House [N]. No other sub-headers.
 
 Name the Nakshatra and what precision it adds. Cover sign, house and Jyotish sign status — the instinctive cognitive style. ${SIDEREAL_EVIDENCE_CLAUSE}
 
@@ -1721,7 +1742,7 @@ ${closingClause('sidereal', 'mercury')} ${LENGTH_CLAUSE_SLOT}`,
 
     venus: `Interpret Venus in the Sidereal chart.
 
-Start with: ## Venus
+Start with: ## Venus → ### Venus in [Sign], House [N]. No other sub-headers.
 
 Name the Nakshatra and its specific quality. Cover sign, house and Jyotish sign status — the relational nature this frame describes. ${SIDEREAL_EVIDENCE_CLAUSE}
 
@@ -1731,7 +1752,7 @@ ${closingClause('sidereal', 'venus')} ${LENGTH_CLAUSE_SLOT}`,
 
     mars: `Interpret Mars in the Sidereal chart.
 
-Start with: ## Mars
+Start with: ## Mars → ### Mars in [Sign], House [N]. No other sub-headers.
 
 Name the Nakshatra. Cover sign, house and Jyotish sign status — if own sign, exalted or debilitated, state it and what it means functionally for how this drive operates. ${SIDEREAL_EVIDENCE_CLAUSE}
 
@@ -1741,7 +1762,7 @@ ${closingClause('sidereal', 'mars')} ${LENGTH_CLAUSE_SLOT}`,
 
     jupiter_saturn: `Interpret Jupiter and Saturn in the Sidereal chart.
 
-Start with: ## Jupiter and Saturn
+Start with: ## Jupiter and Saturn → ### Jupiter in [Sign], House [N] → ### Saturn in [Sign], House [N]. No other sub-headers.
 
 Cover signs, houses and Jyotish sign status, including any NEECHA BHANGA CONDITIONS listed for a debilitated planet. Address the expansion and contraction dynamic — what Jupiter is oriented toward and what Saturn must work hardest against in this frame. ${SIDEREAL_EVIDENCE_CLAUSE}
 
@@ -1749,7 +1770,7 @@ ${SIDEREAL_CLOSE} ${LENGTH_CLAUSE_SLOT}`,
 
     rahu_ketu: `Interpret Rahu and Ketu — the Lunar Nodes.
 
-Start with: ## Rahu and Ketu
+Start with: ## Rahu and Ketu → ### Rahu in [Sign], House [N] → ### Ketu in [Sign], House [N]. No other sub-headers.
 
 The nodal axis describes a direction of growth: what the person is moving toward (Rahu's sign and house) and what they are releasing over-dependence on (Ketu's sign and house). Cover: the signs and houses of both nodes; the Nakshatras for each — lord, deity and the quality they add; the planets conjunct each node and the drishti each node's house receives (GRAHA RELATIONSHIPS RECEIVED); what this axis means as a life direction, specifically for this chart. Do not name Western aspects to the nodes. No claims about what "the soul has mastered" that the chart cannot support — anchor Ketu's competence to its sign, house and nakshatra.
 
@@ -1765,25 +1786,25 @@ Work the evidence allocated to agree in the SHARED DIVERGENCE PLAN — the conco
 
 These are the points where the chart is least negotiable: the facts that hold no matter which framework is used, because both frameworks insist on them at once. Frame them as the narrow, fixed ground, never as a resolution the rest of the reading builds toward. Concordance is consistency across two frameworks; it is not independent proof, and it does not license a stronger psychological claim than a single placement would.
 
-Write with certainty and weight. Name the specific planets, signs, degrees and houses from both systems. If few concordances are listed, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Where none is listed, say that no placement holds across both frameworks and stop: offer no theory of why. The ayanamsa moves every position by the same amount, so how near a body sits to a sign boundary explains nothing here, and two adjacent signs always differ in element, so that is not a finding either. Do not preview the divergence analysis.
+Write with certainty and weight. Name the specific planets, signs and houses from both systems, with a degree only where the point depends on one. If few concordances are listed, say so plainly and briefly instead of manufacturing agreement: a short accurate section is correct, and padding it is the worse failure. Where none is listed, say that no placement holds across both frameworks and stop: offer no theory of why. The ayanamsa moves every position by the same amount, so how near a body sits to a sign boundary explains nothing here, and two adjacent signs always differ in element, so that is not a finding either. Do not preview the divergence analysis.
 
 ${LENGTH_CLAUSE_SLOT}`,
 
     diverge: `Write the DIVERGENCE section of The Divergence reading.
 
-Start with: ## Where They Part
+Start with: ## Where They Part → then ### [Body] for each divergence you work, naming the body and nothing else. The sentence naming the rest and the closing paragraph run on under the last of them, under no heading of their own.
 
-This is the main event of The Divergence reading, never a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not walk every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
+This is the main event of The Divergence reading, never a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not work through every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
 
-Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, in this order: the specific Tropical placement and what it produces as a psychological pattern; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; then precisely — not approximately — where in this person's life these two orientations collide, and what that collision feels like from the inside. Use the plan's dignity, dispositor-condition and aspect evidence to say which account is under more pressure. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, state that as a difference between the frames and nothing more: within its own frame a placement near a boundary is fully in its sign, and is never weaker, unstable or "edge-adjacent" for it.
+Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, cover four things: where in this person's life the two accounts pull in different directions; the specific Tropical placement and the psychological pattern it produces; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; and precisely what that split is like to live with, from the inside. Open each divergence on this person's life, with the two placements arriving as the two reasons for it; never open one on a recital of positions and degrees. Weigh the plan's dignity, dispositor-condition and aspect evidence while you think, and let it show in what each account costs this person; never state it as a verdict on either account. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, name that in a clause as one more difference in position, the way you would name any position. Within its own frame that placement is fully in its sign, never weaker, unstable or less certain for it, so the clause carries no qualifier.
 
 A divergence's moment is told once. Each divergence you work gets its own situation, drawn from its own evidence; do not reuse one situation, or one image, for two of them.
 
-Then name the divergences listed under STILL UNRESOLVED in ONE compressed clause, without walking each — e.g. "the divergence continues across Saturn, Jupiter, and Mars, each widening the gap between the two accounts." This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If none is listed there, add no such clause: the divergences you worked are all of them.
+Then name every body listed under STILL UNRESOLVED in one sentence, as further places where the two accounts differ and stay apart; work none of them. This is required by THE LAW: the minor divergences must be named as still unresolved, never silently dropped and never implied to resolve. If none is listed there, add no such sentence: the divergences you worked are all of them.
 
 Do not resolve the divergence and do not average the two readings into a compromise: name each divergence exactly and let it stand open. A divergence the plan shows as narrow is named at that size — hold it open without inflating it into conflict, suffering, or an invented history.
 
-${LENGTH_CLAUSE_SLOT} Depth on the allocated divergences plus one compressed clause for the rest is what keeps the section inside this budget; walking every divergence in depth is what makes it overrun and truncate.`,
+${LENGTH_CLAUSE_SLOT} Depth on the allocated divergences plus one sentence for the rest is what keeps the section inside this budget; working every divergence in depth makes it overrun and truncate.`,
 
     tension: `Write the CENTRAL TENSION section of The Divergence reading.
 
@@ -1803,7 +1824,7 @@ ${LENGTH_CLAUSE_SLOT}`,
 
 Start with: ## Living the Divergence
 
-Two or three short paragraphs that read as one continuous movement (the paragraph cap in PART 4 still applies — do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and the Sidereal conditions they live inside, a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe how the person carries it: how the two accounts pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve.
+Two or three short paragraphs that read as one continuous movement (keep each short enough to read on a phone, PART 4; do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and the Sidereal conditions they live inside, a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe how the person carries it: how the two accounts pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve.
 
 This is a description of how the divergence is INHABITED, not a chain that dissolves it, and not a re-walk of the placements. The allocated evidence is the divergence whose life you are describing: reach for it, do not re-describe it.
 
@@ -1912,9 +1933,16 @@ export function renderSectionInstruction(
   const body = opts.birthTimeUnknown && (section === 'tropical' || section === 'sidereal')
     ? `${withLength}\n\n${UNKNOWN_TIME_CLAUSE}`
     : withLength
-  // The cadence allowance is appended rather than slotted: it applies to every
-  // section without exception, so a per-section token would be 27 places to
-  // forget it. Appended here it cannot be missing from a section. It states no
-  // number of its own (v10.45), so it is byte-identical in every section.
-  return `${body}\n\n${antithesisClause()}`
+  // The tense reminder is appended rather than slotted, so it cannot be missing
+  // from a section, and it sits last, nearest the generation. With contractions
+  // allowed (THE VOICE), Opus wrote the habitual "you'll" ("you'll go to the
+  // wall for someone") in 7 of 42 sections although THE VOICE excludes it, and
+  // the scan reports each as a hard prediction (a paid regeneration). With the
+  // reminder, 1 of 7 re-runs. The cadence allowance that used to sit here was
+  // withdrawn in v10.57 (see docs/PIPELINE-HISTORY.md); the scans still
+  // measure the construction.
+  return `${body}\n\n${TENSE_CLAUSE}`
 }
+
+// Appended to every section instruction.
+export const TENSE_CLAUSE = `TENSE: write every habit in the present tense: "you match their certainty", never "you'll match it" or "you will match it". "You'll" never appears in your prose, even where it would mean "you tend to".`

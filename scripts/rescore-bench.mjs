@@ -12,6 +12,8 @@
 //   npm run rescore -- --repeats=2        run twice: the run-to-run NOISE FLOOR,
 //                                         without which no diff is attributable
 //   npm run rescore -- --sections=sidereal,tropical/sun
+//   npm run rescore -- --bench=DIR        score DIR's NN-<frame>-<section>.md files
+//                                         (priors still from the bench)
 //
 // Output: eval-output/rescore_<label>/{rescore.json,clamp-audit.json}
 // Reads ANTHROPIC_API_KEY (or API_KEY) from .env.local or the shell.
@@ -55,6 +57,7 @@ env.RESCORE_AUDIT    = audit ? '1' : '0'
 env.RESCORE_LABEL    = flag('label', audit ? 'audit' : new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19))
 env.RESCORE_REPEATS  = flag('repeats', '1')
 env.RESCORE_SECTIONS = flag('sections', '')
+if (flag('bench')) env.RESCORE_BENCH = resolve(process.cwd(), flag('bench'))
 if (flag('out')) env.RESCORE_OUT = resolve(ROOT, flag('out'))
 
 const require = createRequire(import.meta.url)
