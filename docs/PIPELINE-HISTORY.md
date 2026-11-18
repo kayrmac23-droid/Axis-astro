@@ -329,3 +329,13 @@ Spend for rounds 3–5: about $16.
 - **Paragraphs now run 5–8 sentences.**
 - **Contraction density** is about 17 per 1,000 words.
 - **The `SHARED_RULES_LEAN` "materially shorter" threshold** moved from 0.7 to 0.75, because the appendix shrank.
+
+## 2026-11-18 — v10.58: dispositor wording in The Shape of Your Chart (unmeasured)
+
+The opening section on Kay's chart in production said the Leo Sun "rules six of your planets" and then named five. It also had the Sun "ruling" planets that only trace back to it through Mercury and Venus. The v10.57 eval sample said "trace back to" correctly, so this varies from sample to sample. It passed every deterministic scan and was cached.
+
+**Change.** One sentence added to the `overview` instruction: a planet rules only its own sign; planets further down a chain trace back to the final dispositor; give a count only when every planet in it is named. No deterministic check was added, because a count-versus-list matcher would be too narrow to justify its false positives.
+
+**Not addressed, deliberately:** the other weaknesses in that production draft (a causal non-sequitur, a recital of two squares, a closing line that gave a "hidden you" the final say). They are quality variance, and adding rules or examples for that kind of thing has failed before (CLAUDE.md rule 11).
+
+**Measured:** nothing yet. Next step: `npm run eval -- --gate --charts=control-chicago-1987 --through=tropical`, and read the opening section.
