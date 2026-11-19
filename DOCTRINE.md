@@ -251,6 +251,12 @@ lived only in memory and was never canonical.
 
 ---
 
+## VALENCE FOLLOWS EVIDENCE (ratified November 2026)
+
+A section's closing paragraph lands on what living the section's central pattern is like in the direction the evidence points: a cost where the evidence establishes a cost, a capacity where it establishes a capacity, both where it establishes both. No close, and no section, is required to state a cost. The rescue bans (difficulty to gift, ease to hidden strength) and SHADOW COVERAGE (no manufactured shadow) are unchanged: a real cost is never converted into a capacity, and neither a cost nor a capacity may be added that the evidence did not establish.
+
+---
+
 ## SUPERSEDED / NON-BINDING DRAFTS
 
 **Nothing below this line is law.** It is kept so the history of each ruling stays in the record. A1 is retired: the ruling that replaced it is above. A2 is a draft written by an agent and has not been ratified. If an agent finds a rule only here, it does not apply.

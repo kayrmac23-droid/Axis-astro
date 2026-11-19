@@ -1239,7 +1239,7 @@ itself as the insight. Banned: the flattening closer that resolves a tension by
 addition — "carries both simultaneously", "holds both at once", "needs both real
 depth and real freedom". That phrasing dissolves the friction the section just
 built. Leave the tension load-bearing and open; describe how it is inhabited and
-what it costs.
+what it costs or makes possible, as the evidence shows.
 
 ── PART 6 — ONE CONTINUOUS READING ──
 
@@ -1320,8 +1320,8 @@ drishti and same-sign conjunction — plus the house lordships, in place of
 Western aspects); how this person registers being perceived through this planet,
 from their own side of it; and what they believe about themselves that may not
 be accurate. A two-sentence subsection in a primary section has under-delivered:
-name the mechanism, the lived behaviour, what it costs, the condition that
-activates it.
+name the mechanism, the lived behaviour, what it costs or makes possible, the
+condition that activates it.
 
 SECONDARY SECTIONS (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key
 aspects) are built to a much tighter band and must be PLANNED for it, never
@@ -1351,11 +1351,14 @@ No italic lines.
 Every section ENDS ON A CLOSING PARAGRAPH, and that paragraph carries NO
 heading. Both halves are required. A section that stops on its last aspect
 sub-section has not closed, and a one-line sign-off is not a closing paragraph.
-It is a full paragraph that lands on ONE tension the section has established
-and shows what living inside it is like, from your reader's side. Open it on
-your reader's life, never on a sentence announcing the tension, and give it a
-shape no earlier close in the reading has used. It does not re-list placements,
-which is PART 5 #4.
+It is a full paragraph that lands on ONE live pattern the section has
+established and shows what living it is like, from your reader's side: a cost
+where the section's evidence shows a cost, a capacity where it shows a capacity,
+both where it shows both. The valence follows the evidence. Never end on a cost
+the evidence did not establish, and never turn a real cost into a capacity (the
+PART 3 rescue bans). Open it on your reader's life, never on a sentence
+announcing the tension, and give it a shape no earlier close in the reading has
+used. It does not re-list placements, which is PART 5 #4.
 
 It carries no heading at all. Never head it "Putting It Together", "Synthesis",
 "In Summary", "The Core", "Bringing It Together" or any variant: a heading
@@ -1796,7 +1799,7 @@ Start with: ## Where They Part → then ### [Body] for each divergence you work,
 
 This is the main event of The Divergence reading, never a midpoint between two readings. The SHARED DIVERGENCE PLAN has already RANKED the divergences for you — by the interpretive weight of the body and the structural size of the shift, never by degree gap. Do not re-rank them and do not work through every planet: that overruns the section and buries the load-bearing shifts among trivial ones.
 
-Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, cover four things: where in this person's life the two accounts pull in different directions; the specific Tropical placement and the psychological pattern it produces; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; and precisely what that split is like to live with, from the inside. Open each divergence on this person's life, with the two placements arriving as the two reasons for it; never open one on a recital of positions and degrees. Weigh the plan's dignity, dispositor-condition and aspect evidence while you think, and let it show in what each account costs this person; never state it as a verdict on either account. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, name that in a clause as one more difference in position, the way you would name any position. Within its own frame that placement is fully in its sign, never weaker, unstable or less certain for it, so the clause carries no qualifier.
+Work the divergences allocated to diverge IN DEPTH. However many that is, is how many the chart earned — four, or two, or one. Do not pad the count and do not compress a genuinely rich one to make room. For each, cover four things: where in this person's life the two accounts pull in different directions; the specific Tropical placement and the psychological pattern it produces; the specific Sidereal placement and what it produces in the Jyotish frame, read with Jyotish technique; and precisely what that split is like to live with, from the inside. Open each divergence on this person's life, with the two placements arriving as the two reasons for it; never open one on a recital of positions and degrees. Weigh the plan's dignity, dispositor-condition and aspect evidence while you think, and let it show in what each account costs or gives this person; never state it as a verdict on either account. Where the plan notes a placement near a sign boundary in one frame and clear of one in the other, name that in a clause as one more difference in position, the way you would name any position. Within its own frame that placement is fully in its sign, never weaker, unstable or less certain for it, so the clause carries no qualifier.
 
 A divergence's moment is told once. Each divergence you work gets its own situation, drawn from its own evidence; do not reuse one situation, or one image, for two of them.
 
@@ -1824,13 +1827,13 @@ ${LENGTH_CLAUSE_SLOT}`,
 
 Start with: ## Living the Divergence
 
-Two or three short paragraphs that read as one continuous movement (keep each short enough to read on a phone, PART 4; do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and the Sidereal conditions they live inside, a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe how the person carries it: how the two accounts pull against each other in daily life, what that ongoing negotiation costs, and what they have built to live with a tension that will not resolve.
+Two or three short paragraphs that read as one continuous movement (keep each short enough to read on a phone, PART 4; do not write one long block): how does this person live inside the divergence between their Tropical psychological architecture and the Sidereal conditions they live inside, a divergence that does not close? Do not describe the two systems resolving into a single picture. Describe how the person carries it: how the two accounts pull against each other in daily life, what that ongoing negotiation costs and what it makes possible, each only where the evidence shows it, and what they have built to live with a tension that will not resolve.
 
 This is a description of how the divergence is INHABITED, not a chain that dissolves it, and not a re-walk of the placements. The allocated evidence is the divergence whose life you are describing: reach for it, do not re-describe it.
 
 The reader has just read the central tension. Do not replay its situation, its image or its closing line here: where that section showed one moment of collision, this one shows the standing arrangement the person has made around it, in a different setting, and ends somewhere that section did not.
 
-The final sentence is precise and unsoftened — something true, stated at the size the chart supports. Where this person's divergence is narrow, the closing is correspondingly quiet, and that is the accurate ending; do not manufacture devastation the chart has not earned, and do not resolve, soften, or prescribe. Name what is, not what might be done about it. End here.
+The final sentence is precise and unsoftened — something true, stated at the size the chart supports. Unsoftened does not mean ending on a cost: where the evidence shows the arrangement working, say so plainly. Where this person's divergence is narrow, the closing is correspondingly quiet, and that is the accurate ending; do not manufacture devastation the chart has not earned, and do not resolve, soften, or prescribe. Name what is, not what might be done about it. End here.
 
 ${LENGTH_CLAUSE_SLOT}`,
   },

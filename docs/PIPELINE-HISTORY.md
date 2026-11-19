@@ -349,3 +349,24 @@ Kay compared a live v10.57 opening section on her chart with the v10.57 eval sam
 **Expected cost:** on Chicago (2026-11-12), medium took 32–82s per section against low's 13–36s, at about 40% more cost. That applies to one section of 22. The overview streams, so the extra time shows as first-token latency. `GENERATION_HARD_DEADLINE_MS` is 112s.
 
 **Measured:** nothing. To check, generate Kay's overview about three times at each effort and read them side by side.
+
+## 2026-11-19 — v10.60: VALENCE FOLLOWS EVIDENCE (unmeasured)
+
+Kay ratified a DOCTRINE amendment on 19 Nov 2026: a section's close lands on what living its central pattern is like in the direction the evidence points (a cost, a capacity, or both), and no close or section is required to state a cost. Since v10.34 PART 8 had required every close to land on "ONE tension" and show what living inside it is like, and the gate's `synthesis` award test copied "the clause stating the cost". That combination rewarded a cost in every close, whether or not the chart established one.
+
+**Prompt (`prompts.ts`).**
+- PART 8: the close lands on ONE live pattern, a cost where the evidence shows a cost, a capacity where it shows a capacity, both where it shows both. "The valence follows the evidence." It must not end on a cost the evidence did not establish, and must not turn a real cost into a capacity. The cross-reference names the PART 3 rescue bans. The ruling's draft wording said PART 5, but the rescue bans are PART 3 (a)/(b), and `SHARED_RULES_LEAN` drops PART 5.
+- PART 5 #4: "what it costs" becomes "what it costs or makes possible, as the evidence shows". The flattening-closer ban is unchanged.
+- Primary sections: "what it costs" becomes "what it costs or makes possible".
+- Divergence `diverge`: "what each account costs or gives this person".
+- Divergence `closing`: the negotiation's cost and what it makes possible, each only where the evidence shows it. The final-sentence paragraph adds that "unsoftened" does not mean ending on a cost.
+
+**Gate (`reading-quality-gate.ts`).**
+- `synthesis`: the question asks for the single live pattern the person lives with. The 5-band holds any tension open and shows what living it is like, in the direction the evidence supports. The award test copies the clause showing what living it is like and checks that the evidence earns it. A close that adds a cost or a capacity the evidence did not establish scores LOW.
+- `contradiction_handling`: the 5-band requires an uncompensated cost only where the section names a real difficulty, and nothing is invented where the placements carry no hard factor. The award test says that a section naming no difficulty, on a chart that supplies none, is correct.
+
+**Left alone, deliberately.** The rescue bans and SHADOW COVERAGE (the doctrine keeps both). "State the cost and move on" (that is the no-meta-narration rule, and a test pins it). `CLOSER_MODES` (already balanced). The Central Tension instruction, the synastry prompts, and the "do not resolve" lines. Every LOW condition in `synthesis` and `contradiction_handling` is unchanged.
+
+**Open, for Kay.** The `synthesis` score ladder still keys on a tension. The 5-band begins "the close names one live tension", the 4-band "the tension is named and held open", and the 3-band is "a wrap that neither re-lists the parts nor names a live tension". A close that lands on a capacity with no tension in it can therefore reach only 3 on `synthesis`. MIN_INDIVIDUAL is 3, so it passes that criterion but pulls the average down. This PR does not change the ladder, because changing it was outside the ruling's scope.
+
+**Measured:** nothing. The prompt and the rubric changed together, so one eval run cannot separate their effects. To separate them, first run `npm run rescore -- --repeats=2` (evaluator only, on frozen prose; any movement there is the rubric), then `npm run eval -- --gate --charts=control-chicago-1987`, and read the closes.

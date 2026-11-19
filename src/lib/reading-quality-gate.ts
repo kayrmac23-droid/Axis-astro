@@ -549,12 +549,13 @@ CRITERIA (score each 1–5):
    existential frame (${BANNED_OPENER_LIST}), which announces that a quality
    exists instead of naming it.
 
-3. synthesis — Does the closing paragraph name the single live tension the person
-   NAVIGATES and show how they inhabit it, and does each subsection
+3. synthesis — Does the closing paragraph name the single live pattern the person
+   lives with and show how they inhabit it, and does each subsection
    advance a DIFFERENT claim?
-   5 = the close names one live tension, leaves it open and shows what
-       inhabiting it costs; the subsections advance different claims, and one
-       cross-reference (sign × house × aspect × dignity × ruler chain) is
+   5 = the close names one live tension, holds any tension open and shows what
+       living it is like, in the direction the section's evidence supports
+       (cost, capacity, or both); the subsections advance different claims, and
+       one cross-reference (sign × house × aspect × dignity × ruler chain) is
        genuinely combined and not listed.
    4 = the tension is named and held open, but one subsection re-arrives at
        another's central claim, or the close states it without showing it lived.
@@ -563,9 +564,11 @@ CRITERIA (score each 1–5):
    2 = the close re-lists placements already covered, or two subsections
        re-arrive at the same central note in new clothes.
    1 = a summary with a summary heading, or a tension flattened into addition.
-   AWARD TEST: find the closing paragraph and locate the one live tension it
-   names and the cost of inhabiting it. Copy the clause stating the cost. Then
-   check that no two subsections arrive at the same claim.
+   AWARD TEST: find the closing paragraph and locate the one live pattern it
+   lands on, copy the clause showing what living it is like, and check that the
+   section's evidence earns it. A close that adds a cost or a capacity the
+   evidence did not establish scores LOW. Then check that no two subsections
+   arrive at the same claim.
    The closing paragraph is unheaded: a section heading it "Putting It Together",
    "Synthesis", "In Summary" or any variant has broken FORMATTING — score that
    LOW. Score LOW for pseudo-synthesis: a summary re-stating the parts, or a
@@ -582,9 +585,11 @@ CRITERIA (score each 1–5):
 
 4. contradiction_handling — Does it name paradoxes, compensations, tensions and
    mixed expressions, and hold them open rather than averaging them away?
-   5 = a difficulty stands as an uncompensated cost, and the strengths are given
-       plain function or a load-bearing mechanism, never appended reassurance.
-       Where a shadow is named it is the same quality under stress.
+   5 = where the section names a real difficulty, it stands as an uncompensated
+       cost (where the placements carry no hard factor, none is invented), and
+       the strengths are given plain function or a load-bearing mechanism, never
+       appended reassurance. Where a shadow is named it is the same quality
+       under stress.
    4 = the contradictions are held, with one load-bearing soft edge — a major
        strength carrying reassurance, or a named shadow not followed through.
    3 = both sides appear but the tension is stated and not inhabited; nothing is
@@ -593,7 +598,9 @@ CRITERIA (score each 1–5):
    1 = the section systematically redeems what it names, or every quality
        arrives one-sided.
    AWARD TEST: find a difficulty left standing as a cost with nothing appended
-   to redeem it. Copy the sentence where it is left standing.
+   to redeem it. Copy the sentence where it is left standing. If the section
+   names no difficulty and the chart supplies none, that is correct; do not mark
+   it down.
    Score LOW for P1 RESCUE in any of its three forms.
 
 5. anti_cliche — Does it avoid sun-sign clichés (Scorpio = secretive, Virgo =
