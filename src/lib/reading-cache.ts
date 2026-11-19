@@ -133,7 +133,11 @@ import type { BirthData } from '@/lib/astro-calc'
 // v10.57: the voice rewrite for Opus 5.5 (scratch rounds 3-5, 17-18 Nov) and
 // a new opening section, The Shape of Your Chart (tropical/overview), which
 // shifts every later section's prior digest. See docs/PIPELINE-HISTORY.md.
-export const READING_PROMPT_VERSION = 'v10.59'
+// v10.60: VALENCE FOLLOWS EVIDENCE (DOCTRINE, Nov 2026). Closes land on one
+// live pattern in the direction the evidence points; no rule or gate criterion
+// requires a cost. Cached sections were written to a close the gate scored on
+// its cost.
+export const READING_PROMPT_VERSION = 'v10.60'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

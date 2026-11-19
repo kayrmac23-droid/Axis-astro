@@ -417,11 +417,38 @@ describe('PART 8 — the closing paragraph is required (v10.34)', () => {
   })
 
   it('says what the close must DO, so the requirement is not satisfied by padding', () => {
-    // One tension and what living inside it is like — not a re-list of
+    // One live pattern and what living it is like — not a re-list of
     // placements, which is the pseudo-synthesis PROSE FAILURE MODES #4 catches.
-    expect(SHARED_RULES).toMatch(/lands on ONE tension/i)
+    expect(SHARED_RULES).toMatch(/lands on ONE live pattern/i)
     expect(SHARED_RULES).toMatch(/Open it on\s+your reader's life/)
     expect(SHARED_RULES).toMatch(/does not re-list placements/i)
+  })
+})
+
+// ── v10.60: VALENCE FOLLOWS EVIDENCE (DOCTRINE, Nov 2026) ────────────────────
+// The close lands on one live pattern in the direction the evidence points: a
+// cost, a capacity, or both. No prompt line and no gate criterion may require a
+// cost the chart did not establish. The rescue bans and SHADOW COVERAGE are
+// untouched, so a real cost still stands uncompensated.
+describe('VALENCE FOLLOWS EVIDENCE — no close is required to state a cost (v10.60)', () => {
+  it('the PART 8 close follows the evidence, and the tension-only close is gone', () => {
+    expect(SHARED_RULES).toContain('The valence follows the evidence')
+    expect(SHARED_RULES).not.toMatch(/lands on ONE tension/i)
+  })
+
+  it('SHARED_RULES_LEAN inherits the change, because it is derived from SHARED_RULES', () => {
+    expect(SHARED_RULES_LEAN).toContain('The valence follows the evidence')
+  })
+
+  it('the gate scores neither synthesis nor contradiction_handling on a stated cost', () => {
+    const start = EVAL_SYSTEM_PROMPT.indexOf('3. synthesis')
+    const end = EVAL_SYSTEM_PROMPT.indexOf('5. anti_cliche')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    const criteria = EVAL_SYSTEM_PROMPT.slice(start, end).replace(/\s+/g, ' ')
+    expect(criteria).toContain('4. contradiction_handling')
+    expect(criteria).not.toContain('clause stating the cost')
+    expect(criteria).not.toContain('inhabiting it costs')
   })
 })
 
