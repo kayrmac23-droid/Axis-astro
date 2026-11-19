@@ -70,8 +70,8 @@
   vertical-align: middle;
   margin-right: 8px;
 }
-.lineHard { width: 18px; height: 1px; background: rgba(234, 232, 248, 0.6); }
-.lineSoft { width: 18px; border-top: 1px dashed rgba(234, 232, 248, 0.6); }
+.lineHard { width: 18px; height: 1px; background: color-mix(in srgb, var(--text) 60%, transparent); }
+.lineSoft { width: 18px; border-top: 1px dashed color-mix(in srgb, var(--text) 60%, transparent); }
 .dotSel {
   width: 8px;
   height: 8px;
@@ -180,4 +180,22 @@
 
 @media print {
   .expandBtn { display: none !important; }
+
+  /* The paper edition (DOCTRINE.md: PRINT SURFACE). The wheel's paint is
+     tokens, so its linework is already ink on white and its glyphs copper.
+     What is left is type and glow. Paint is inline CSS (see the component),
+     so these need !important. */
+  .root { break-inside: avoid; }
+  .wheel * { filter: none !important; }   /* the selection ring's glow */
+  .wheel text { opacity: 1; }
+  /* Secondary labels are ink at 50–85% on screen. On white that falls to
+     3.5:1, under the 4.5:1 bar, so paper gets solid text tokens. */
+  .microLabel,
+  .angleLabel { fill: var(--text-2) !important; }
+  .nakLabels text { fill: var(--text-3) !important; }
+  .fiducials text { fill: var(--copper-light) !important; }   /* the Δ arc's labels stay copper */
+  /* The alternate-sign wash is a blue tint with no token; on paper, an ink one. */
+  .bandTint { fill: color-mix(in srgb, var(--text) 4%, transparent) !important; }
+  /* Backgrounds do not print by default: draw the legend's solid line as a border. */
+  .lineHard { height: 0; background: none; border-top: 1px solid color-mix(in srgb, var(--text) 60%, transparent); }
 }

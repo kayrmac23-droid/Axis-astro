@@ -233,3 +233,10 @@
   .neq { transform: rotate(90deg); padding: 6px 0; }
   .defRow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
 }
+
+/* ── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ── */
+@media print {
+  /* Base copper is 3.8:1 on white: large headings and rules only. */
+  .divTitle { color: var(--copper-muted); }
+  .defTermViolet { color: var(--violet); }   /* violet-light is 1.85:1 on white */
+}

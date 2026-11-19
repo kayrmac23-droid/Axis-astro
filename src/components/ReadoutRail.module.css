@@ -150,3 +150,13 @@
   .detail { grid-template-columns: minmax(0, 1fr); }
   .selMeta { text-align: left; }
 }
+
+/* ─── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ─── */
+@media print {
+  /* On screen the other frame recedes to 72%. On white its dimmer type drops
+     to 3.7:1, under the 4.5:1 bar, and paper has no active frame to defer to:
+     both print at full strength (CO-VISIBILITY holds either way). */
+  .ct, .cs { opacity: 1 !important; }
+  .row, .detail { break-inside: avoid; }
+  .head { break-after: avoid; }
+}

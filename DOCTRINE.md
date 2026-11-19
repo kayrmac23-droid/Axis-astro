@@ -91,6 +91,10 @@ stay base `--copper`.
 
 No gradient may blend two accent colors (e.g. copper→cyan). Use a single-accent treatment.
 
+## PRINT SURFACE — PAPER EDITION (ratified November 2026)
+
+The saved dossier is a paper edition: dark ink on white. The void and every lifted surface print as white paper; no background is forced. Copper stays the identity accent: base copper (#B87333) is used only for large headings and rules, and every small copper label, kicker and Δ value prints in copper-muted (#8A5626). Cyan means "live or selected", and nothing on paper is live, so it prints as cyan-dim (#0A4845). Violet is unchanged. Contrast against white: body text at least 7:1, all other text at least 4.5:1, large headings at least 3:1. The screen palette is unchanged. Interactive controls do not print.
+
 ## MOOD (live telemetry, not antique)
 
 Live telemetry, not antique. Mission control, not museum. AXIS reads as spacecraft

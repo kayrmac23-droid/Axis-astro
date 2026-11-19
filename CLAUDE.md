@@ -180,6 +180,7 @@ Aspect-driven bands scale with the chart's aspect count (`scaleBand`; target, fl
 - **The dossier** (`app/page.tsx`): `DossierHeader` → `FrameControl` → `FrameShiftWheel` + `ReadoutRail` → `ReadingPanel` → actions row. Frame and selection are page state.
 - **`ReadingPanel.tsx`**: sequential fetch per section with one retry; `SECTION_TIMEOUT_MS` must stay above the route's `maxDuration`. The prose is **stacked in reading order** — PART 1 Tropical, PART 2 Sidereal (collapsed by default), PART 3 The Divergence — because each part is written assuming the reader has read the ones before it. **PART 2 is always in the DOM and collapsed with CSS**, never `hidden` or a conditional render: SAVE DOSSIER · PDF is `window.print()`, and anything absent from the DOM is absent from the saved dossier.
 - **`FrameShiftWheel.tsx`**, **`ReadoutRail.tsx`**: the instrument and the both-frames readout. No angles or houses with an unknown birth time. Glyphs of close bodies are fanned apart (`lib/wheel-layout.ts`); the pointer line marks the true longitude.
+- **Print** (SAVE DOSSIER · PDF) is DOCTRINE's *PRINT SURFACE*: `globals.css` `@media print` remaps the tokens to ink on white; module print blocks cover the rest. Wheel paint is inline-CSS tokens via `mk()`, never SVG presentation attributes (`var()` there is unreliable across engines). Verify by rendering a PDF.
 - **`SynastryReadingPanel.tsx`**, **`SynastryAspectsPanel.tsx`**, chrome (`SiteHeader`, `SiteFooter`, `Starfield`, `ComputationInterstitial`), landing (`HeroWheel`, `landing/PreviewLanding`).
 
 ## Tests

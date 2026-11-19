@@ -233,3 +233,25 @@
 @media (max-width: 760px) {
   .defRow { grid-template-columns: minmax(0, 1fr); gap: 6px; }
 }
+
+/* ── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ── */
+@media print {
+  /* Base copper is 3.8:1 on white: large headings and rules only. */
+  .axisTension { color: var(--copper-muted); }
+  /* violet-light is 1.85:1 on white; on paper this text takes base violet
+     (5.2:1). The violet tokens themselves do not change. */
+  .defTermViolet,
+  .signal,
+  .railViolet,
+  .proseKicker { color: var(--violet); }
+  /* Backgrounds do not print by default, so the rule and the dot are borders. */
+  .ritualRule { height: 0; background: none; border-top: 1.5px solid var(--copper); }
+  .dot { width: 0; height: 0; background: none; border: 3px solid var(--violet); }
+  /* At paper width the excerpt is one column. As a grid, Chrome will not split
+     it, and a page margin is enough to strand its head alone on the page. */
+  .divBody { display: block; }
+  .rail { position: static; margin-top: 40px; }
+  .ctas { display: none; }
+  .flipHead, .divHeadRow { break-after: avoid; }
+  .defRow, .flipRow { break-inside: avoid; }
+}

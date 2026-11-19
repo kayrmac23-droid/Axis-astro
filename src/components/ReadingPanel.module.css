@@ -319,8 +319,8 @@
   position: absolute;
   inset: 12px;
   border-radius: 50%;
-  border: 1px solid rgba(216, 148, 85, 0.12);
-  border-top-color: rgba(216, 148, 85, 0.45);
+  border: 1px solid color-mix(in srgb, var(--copper-bright) 12%, transparent);
+  border-top-color: color-mix(in srgb, var(--copper-bright) 45%, transparent);
   animation: spin 1.2s linear infinite reverse;
 }
 
@@ -342,7 +342,7 @@
 
 /* ─── Section error block (tab-level + inline) ────── */
 .sectionErrorBlock {
-  border: 1px solid rgba(224, 112, 112, 0.35);
+  border: 1px solid color-mix(in srgb, var(--danger-text) 35%, transparent);
   padding: 14px 18px;
   display: flex;
   flex-direction: column;
@@ -773,4 +773,31 @@
   }
   .partToggle { display: none; }
   .partBody .bandInner { padding-top: 56px; }
+
+  /* ── The paper edition (DOCTRINE.md: PRINT SURFACE) ── */
+  /* Base copper is 3.8:1 on white: large headings and rules only. These two
+     are under 18px. */
+  .planetHeading,
+  .divTitle { color: var(--copper-muted); }
+  /* violet-light is 1.85:1 on white; on paper the signal takes base violet
+     (5.2:1). The violet tokens themselves do not change. */
+  .flipSignal { color: var(--violet); }
+  /* The error label's red is 2.9:1 on white; the words carry the state. */
+  .sectionErrorLabel { color: var(--text); }
+  /* Backgrounds do not print by default, so the rule and the dot are borders. */
+  .divRule { height: 0; background: none; border-top: 1.5px solid var(--copper); }
+  .flipDot { width: 0; height: 0; background: none; border: 3px solid var(--violet); }
+  /* Paper does not scroll: the data sits beside its prose, unpinned. */
+  .placementData { position: static; }
+
+  .planetHeading,
+  .planetSubheading,
+  .bandHead,
+  .divKicker,
+  .divTitle,
+  .flipHead { break-after: avoid; }
+  .readoutCard,
+  .infoBox,
+  .flipRow,
+  .sectionErrorBlock { break-inside: avoid; }
 }
