@@ -81,3 +81,7 @@
 @media (max-width: 760px) {
   .provenance { grid-template-columns: 1fr 1fr; gap: 16px 0; }
 }
+
+@media print {
+  .head, .warning { break-inside: avoid; }
+}

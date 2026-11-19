@@ -12,3 +12,7 @@
   height: 100%;
   display: block;
 }
+
+@media print {
+  .field { display: none; }   /* paper edition: no starfield */
+}
