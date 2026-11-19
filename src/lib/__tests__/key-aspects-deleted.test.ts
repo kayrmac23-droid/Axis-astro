@@ -18,7 +18,8 @@ describe('tropical Key Aspects is deleted (DOCTRINE: LENGTH (1))', () => {
   })
 
   it('has no section instruction', () => {
-    expect(Object.keys(SECTION_INSTRUCTIONS.tropical)).not.toContain('key_aspects')
+    // A key test, not a read: prompts-length-wiring bans binding the value.
+    expect('key_aspects' in SECTION_INSTRUCTIONS.tropical).toBe(false)
   })
 
   describe('the reading route', () => {
