@@ -34,7 +34,7 @@ const MAX_PAYLOAD_BYTES = 16_000
 // ── Allow-lists ────────────────────────────────────────────────────────────────
 const VALID_SECTIONS   = new Set(['tropical', 'sidereal', 'synthesis', 'synastry'])
 const VALID_PLANET_SECTIONS: Record<string, Set<string>> = {
-  tropical:  new Set(['overview', 'sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'key_aspects', 'rahu_ketu']),
+  tropical:  new Set(['overview', 'sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
   sidereal:  new Set(['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu']),
   synthesis: new Set(['agree', 'diverge', 'tension', 'closing']),
   synastry:  new Set(['luminaries', 'venus_mars', 'outer_planets', 'composite_chart', 'central_dynamic', 'navigation']),

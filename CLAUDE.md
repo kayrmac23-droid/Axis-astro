@@ -15,7 +15,7 @@ npm run test         # Vitest unit tests (src/lib/__tests__/) — no API calls
 npm run test:smoke   # ONE real, billable generation call (needs AXIS_LIVE_SMOKE=1 + a real key)
 npm run eval         # Batch eval harness over scripts/eval-charts.json — real spend
 npm run openers      # Cross-chart opener diversity for one section — real spend
-npm run rescore      # Re-score the 21 frozen sections in fixtures/rater-bench/ (evaluator calls only)
+npm run rescore      # Re-score the 20 frozen sections in fixtures/rater-bench/ (evaluator calls only)
 npm run rescore -- --audit   # Same bench, deterministic checks only, NO API
 ```
 
@@ -47,7 +47,7 @@ Next.js 16 App Router, TypeScript. Vercel, auto-deploys from `main`.
 
 Page routes: `/` (main app), `/method`, `/guides`, `/sample`, `/synastry`, `/privacy`.
 
-**Sections.** Tropical: overview (The Shape of Your Chart: the whole chart as one system, from the computed CHART SHAPE block), sun, moon, ascendant, mercury, venus, mars, jupiter_saturn, rahu_ketu, key_aspects · Sidereal: lagna, sun, moon, mercury, venus, mars, jupiter_saturn, rahu_ketu · Synthesis (The Divergence): agree, diverge, tension, closing · Synastry: luminaries, venus_mars, outer_planets, composite_chart, central_dynamic, navigation. A natal reading is 22 sections, read in that order (`NATAL_SECTION_ORDER`); the free tier (`FREE_SECTIONS`) is overview, sun, moon, ascendant.
+**Sections.** Tropical: overview (The Shape of Your Chart: the whole chart as one system, from the computed CHART SHAPE block), sun, moon, ascendant, mercury, venus, mars, jupiter_saturn, rahu_ketu · Sidereal: lagna, sun, moon, mercury, venus, mars, jupiter_saturn, rahu_ketu · Synthesis (The Divergence): agree, diverge, tension, closing · Synastry: luminaries, venus_mars, outer_planets, composite_chart, central_dynamic, navigation. A natal reading is 21 sections, read in that order (`NATAL_SECTION_ORDER`); the free tier (`FREE_SECTIONS`) is overview, sun, moon, ascendant.
 
 ### API routes
 
@@ -145,7 +145,6 @@ One greppable line each: `[AXIS_USAGE]` (every model call: tokens, cache read/wr
 | Tropical Mercury / Venus / Mars | 505 | 425–590 | 730 |
 | Jupiter/Saturn, both frames | 530 | 445–620 | 770 |
 | Sidereal Mercury / Venus / Mars / Rahu-Ketu | 370 | 325–430 | 540 |
-| Key aspects | 275 | 230–335 | 420 |
 | Tropical Rahu/Ketu | 280 | 235–330 | 410 |
 | Concordance (`agree`) | 480 | 380–625 | 725 |
 | The Divergence (`diverge`) | 935 | 780–1100 | 1210 |

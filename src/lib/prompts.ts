@@ -495,7 +495,6 @@ const BAND_SIDEREAL_SECONDARY: WordBand = { target: 370, fullMin: 325, fullMax: 
 // header, which countAspectsInContext does not read.
 const BAND_OVERVIEW:           WordBand = { target: 700, fullMin: 580, fullMax: 820, hardMin: 500, hardMax: 920 }
 const BAND_JUPSAT:             WordBand = { target: 530, fullMin: 445, fullMax: 620, hardMin: 385, hardMax: 770 }
-const BAND_KEY_ASPECTS:        WordBand = { target: 275, fullMin: 230, fullMax: 335, hardMin: 200, hardMax: 420 }
 const BAND_NODES_TROP:         WordBand = { target: 280, fullMin: 235, fullMax: 330, hardMin: 205, hardMax: 410 }
 const BAND_DIVERGENCE:         WordBand = { target: 935, fullMin: 780, fullMax: 1100, hardMin: 680, hardMax: 1210, evidenceBaseline: 4, evidenceAllowance: 155, evidenceUpCap: 3 } // comparative — larger by design; scales with how many divergences the plan allocated
 const BAND_CONCORDANCE:        WordBand = { target: 480, fullMin: 380, fullMax: 625, hardMin: 320, hardMax: 725, evidenceBaseline: 3, evidenceAllowance: 115, evidenceUpCap: 3 }
@@ -513,7 +512,7 @@ export const SECTION_WORD_BANDS: Record<string, WordBand> = {
   'tropical:overview': BAND_OVERVIEW,
   'tropical:sun': BAND_MAJOR,        'tropical:moon': BAND_MAJOR,           'tropical:ascendant': BAND_PRIMARY,
   'tropical:mercury': BAND_SECONDARY,'tropical:venus': BAND_SECONDARY,      'tropical:mars': BAND_SECONDARY,
-  'tropical:jupiter_saturn': BAND_JUPSAT, 'tropical:key_aspects': BAND_KEY_ASPECTS, 'tropical:rahu_ketu': BAND_NODES_TROP,
+  'tropical:jupiter_saturn': BAND_JUPSAT, 'tropical:rahu_ketu': BAND_NODES_TROP,
   'sidereal:lagna': BAND_SIDEREAL_PRIMARY, 'sidereal:sun': BAND_SIDEREAL_PRIMARY, 'sidereal:moon': BAND_SIDEREAL_PRIMARY,
   'sidereal:mercury': BAND_SIDEREAL_SECONDARY, 'sidereal:venus': BAND_SIDEREAL_SECONDARY, 'sidereal:mars': BAND_SIDEREAL_SECONDARY,
   'sidereal:jupiter_saturn': BAND_JUPSAT, 'sidereal:rahu_ketu': BAND_SIDEREAL_SECONDARY,
@@ -954,7 +953,7 @@ FACT DISCIPLINE — every factual claim comes from the chart data or the
 STRUCTURED INTERPRETATION CONTEXT exactly as given. These errors have reached
 readers and are banned:
 - Superlatives the context does not state — tightest, closest, most exact,
-  strongest, most important (the key-aspects context names the TIGHTEST ASPECT
+  strongest, most important (the context names the TIGHTEST ASPECT
   IN THE CHART, and nothing else may claim it).
 - House arithmetic. Use house numbers as given; never restate a placement as a
   distance ("four houses away", "two signs over").
@@ -1678,14 +1677,6 @@ Start with: ## Jupiter and Saturn → then ### Jupiter in [Sign], House [N] → 
 Cover each planet's sign, house, and dignity. If they are in aspect to each other, that dynamic is primary — say first what it produces as an ongoing internal condition, with its orb and whether it is applying or separating as the reason. Address the expansion/contraction axis: where this person overextends (Jupiter) and where they meet genuine resistance (Saturn); how these two forces negotiate in this specific chart.
 
 Close with a final paragraph, under no heading: what Jupiter and Saturn together actually produce — in material terms, in philosophical terms, in the experience of time and reward. ${LENGTH_CLAUSE_SLOT}`,
-
-    key_aspects: `Interpret the key aspects that the planet-by-planet sections would not have centred.
-
-This section surfaces the aspects that fall between the cracks of the planet-by-planet structure — typically an outer planet (Uranus, Neptune, Pluto) to a personal planet, which no earlier section is built around. The Sun, Moon, Ascendant, Mercury, Venus, Mars and Jupiter/Saturn sections each worked the aspects to their own planet, so an aspect between two of those planets has its home there and is NOT re-interpreted here. The lunar nodes have their own section. The context marks each aspect in ALL MAJOR ASPECTS as ALREADY WORKED or NOT YET WORKED: choose ONLY from NOT YET WORKED, and if none of the significant ones are left, say so in a sentence and stop short.
-
-For each aspect: a precise account of what this tension produces in a life, never a one-line summary, with both planets' houses and rulerships, the orb and whether it is applying or separating given as the reasons inside that account. Each one included reveals a structurally distinct dynamic. The tightest applying aspects, and those touching the chart angles or the chart ruler, carry the most force — name the weight difference and say why one pattern is more structurally significant than another.
-
-${LENGTH_CLAUSE_SLOT}`,
 
     rahu_ketu: `Interpret the Lunar Nodes — Rahu (North Node) and Ketu (South Node) — in the Tropical chart.
 

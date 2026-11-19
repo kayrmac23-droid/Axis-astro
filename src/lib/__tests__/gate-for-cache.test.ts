@@ -554,13 +554,13 @@ describe('gateForCache — the antithesis tic (v10.34, density-scoped v10.45)', 
   // of 21 frozen bench sections breached it, 6 hard) and was not tracking
   // density: see reading-rule-scan.ts. Two consequences are pinned below. A
   // section's LENGTH no longer buys room WITHIN a paragraph — two uses in one
-  // paragraph are adjacent repetition whether the section is 230 words or 760
+  // paragraph are adjacent repetition whether the section is 235 words or 760
   // — while across the section the allowance scales with the paragraph count,
   // which is where earned length earns cadence room.
   // `tics()` puts every construction in ONE paragraph, so n is the paragraph
   // density; the spread cases are built separately.
-  const CAP1 = { ...BASE, planetSection: 'key_aspects' }
-  const CAP1_WORDS = wordBandFor('tropical', 'key_aspects', 0).fullMin + 10
+  const CAP1 = { ...BASE, planetSection: 'rahu_ketu' }
+  const CAP1_WORDS = wordBandFor('tropical', 'rahu_ketu', 0).fullMin + 10
   const shortSection = () => sectionOfWords(CAP1_WORDS)
 
   const tics = (base: string, n: number) => {
@@ -604,7 +604,7 @@ describe('gateForCache — the antithesis tic (v10.34, density-scoped v10.45)', 
     expect(allowance(shortTurn)).toBe(allowance(sunTurn))
   })
 
-  // ── The 230-word band: cap 1 ───────────────────────────────────────────────
+  // ── The 235-word band: cap 1 ───────────────────────────────────────────────
   it('treats two instances in a cap-1 section as a deduction, not a hard failure', async () => {
     // v10.34 clamped below the bar here, which on the rule scan's own numbers
     // is 39 of 63 sections taking a full repair — and a repair landing on two

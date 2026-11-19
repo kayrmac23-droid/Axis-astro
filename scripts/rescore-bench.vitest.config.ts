@@ -11,7 +11,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['scripts/rescore-bench.harness.ts'],
-    // 21 sequential evaluator calls; no per-test ceiling.
+    // 20 sequential evaluator calls; no per-test ceiling.
     testTimeout: 0,
     hookTimeout: 0,
     fileParallelism: false,

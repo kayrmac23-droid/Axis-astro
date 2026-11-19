@@ -268,40 +268,25 @@ export function scoreLength(words: number, band: WordBand): number {
 // scale the length band so a densely aspected chart is allowed the earned length
 // a sparse one is not.
 //
-// Two block shapes exist and both must be counted:
-//   • "ASPECTS (tightest first):"     — bullet lines (formatPlanetBlock,
-//                                       formatAscendantBlock); the Sidereal
-//     "GRAHA RELATIONSHIPS RECEIVED" block uses the same bullet shape
-//   • "ALL MAJOR ASPECTS (tightest first):" — the key_aspects section, whose
-//     entries are NOT bullet-prefixed. Matching only the bulleted header form
-//     silently returned 0 for that section.
+// The block is "ASPECTS (tightest first):" with bullet lines (formatPlanetBlock,
+// formatAscendantBlock); the Sidereal "GRAHA RELATIONSHIPS RECEIVED" block uses
+// the same bullet shape.
 // Returns 0 when no such block is present (→ base band, unchanged behaviour).
 // Exported for unit testing — pure, no behaviour change.
-const ASPECT_ENTRY_RE = /^[A-Z][A-Za-z]* [^ ] [A-Z][A-Za-z]* \(orb /
-
 export function countAspectsInContext(chartContext: string): number {
   let count = 0
   let inBulletBlock = false
-  let inPlainBlock  = false
   for (const line of chartContext.split('\n')) {
-    if (line.startsWith('ALL MAJOR ASPECTS (tightest first):')) {
-      inPlainBlock = true; inBulletBlock = false; continue
-    }
     // The Sidereal frame's equivalent: Jyotish drishti and same-sign
     // conjunctions received (interpretation-engine.ts GRAHA_RELATIONS_HEADER).
     if (line.startsWith('ASPECTS (tightest first):') || line.startsWith('GRAHA RELATIONSHIPS RECEIVED')) {
-      inBulletBlock = true; inPlainBlock = false; continue
+      inBulletBlock = true; continue
     }
     if (inBulletBlock) {
       // "• None …" states an absence; it is not an aspect to work.
       if (line.trimStart().startsWith('• None')) continue
       if (line.trimStart().startsWith('•')) count++
       else inBulletBlock = false // blank line or a new header ends the block
-    } else if (inPlainBlock) {
-      // "Sun ☌ Moon (orb 3.2°, applying, intensifying)". Indented continuation
-      // lines and blanks are skipped; a new non-indented header ends the block.
-      if (ASPECT_ENTRY_RE.test(line)) count++
-      else if (line.length > 0 && !line.startsWith(' ')) inPlainBlock = false
     }
   }
   return count

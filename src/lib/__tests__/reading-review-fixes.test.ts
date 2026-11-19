@@ -7,7 +7,7 @@ import { calculateDualChart, type BirthData } from '@/lib/astro-calc'
 import {
   buildInterpretationContext, formatEliteChartBlock, computeVimshottariDasha, currentDashaKey,
   cuspNeighbour, orbTier, isNearStation, drishtiHouses, jyotishSignStatus, lordshipsOf,
-  neechaBhangaConditions, detectMajorYogas, aspectAlreadyWorked,
+  neechaBhangaConditions, detectMajorYogas,
 } from '@/lib/interpretation-engine'
 import { makeCacheKey } from '@/lib/reading-cache'
 import { detectBannedPhrasings, countAspectsInContext } from '@/lib/reading-quality-gate'
@@ -77,23 +77,6 @@ describe('orb weight and motion', () => {
     const ctx = buildInterpretationContext(chart, 'tropical', 'venus')
     expect(ctx).toContain('⚠ NEAR STATION: Venus')
     expect(ctx).toMatch(/• Square Pluto \([^)]*may never perfect/)
-  })
-})
-
-describe('key aspects — superlatives and re-covered aspects', () => {
-  it('names the real tightest aspect (Moon trine Mercury at 0°, not Jupiter square Neptune)', () => {
-    const ctx = buildInterpretationContext(chart, 'tropical', 'key_aspects')
-    expect(ctx).toContain('TIGHTEST ASPECT IN THE CHART: Moon trine Mercury (orb 0°)')
-  })
-
-  it('marks aspects the reading so far already worked', () => {
-    const priorText = 'Opposite Neptune in the 11th, Mercury idealises.\n\n### Saturn in Taurus\nThe square to Uranus means rupture. Saturn square Uranus recurs.'
-    expect(aspectAlreadyWorked(priorText, 'Saturn', 'Uranus')).toBe(true)
-    expect(aspectAlreadyWorked(priorText, 'Mercury', 'Neptune')).toBe(true)
-    expect(aspectAlreadyWorked(priorText, 'Jupiter', 'Neptune')).toBe(false)
-    const ctx = buildInterpretationContext(chart, 'tropical', 'key_aspects', { priorText })
-    expect(ctx).toMatch(/Saturn □ Uranus[^\n]*\n {2}ALREADY WORKED/)
-    expect(ctx).toMatch(/Jupiter □ Neptune[^\n]*\n {2}NOT YET WORKED/)
   })
 })
 

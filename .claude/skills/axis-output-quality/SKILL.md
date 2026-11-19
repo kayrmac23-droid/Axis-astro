@@ -20,7 +20,7 @@ Rules for the language and interpretive logic of AXIS reading output.
 
 The Opus 5.5 voice rewrite (Kay, 17–18 Nov 2026). The target is a master astrologer giving a reading: the whole chart taken into account, placements acting on each other, real and accurate, intelligent without sounding like a professor. The full record, with measurements, is in `docs/PIPELINE-HISTORY.md` (2026-11-18).
 
-- **The reading opens on The Shape of Your Chart** (`tropical/overview`; a natal reading is now 22 sections).
+- **The reading opens on The Shape of Your Chart** (`tropical/overview`; a natal reading is now 21 sections; the tropical Key Aspects section was deleted in v10.61).
   - It reads the whole Tropical chart as one system, from the computed CHART SHAPE block: the ruler chain, where every dispositor chain ends, dignities, angularity, stelliums, element balance, and the tight and close aspects.
   - It finds the two or three defining patterns, shows how they meet, and lands on the one tension that runs through the chart. It has no sub-headers.
   - Every later section builds on it and never re-states it.
@@ -101,7 +101,7 @@ Write from inside the native looking out. Other people's perception may appear o
 
 **When the birth time is unknown** (the context carries ⚠ BIRTH TIME UNKNOWN), houses, the Midheaven and dasha timing are unreliable in *every* section, not only the angles. Read the placement from sign, dignity, aspects and nakshatra, or mark a house reading as conditional in the sentence that makes it. Never build a scene or a close on a house, and never describe a house's arena without the number ("how they are known professionally" is a 10th-house claim). Say it once, then stop.
 
-**Length follows the band.** Primary sections (Sun, Moon, Ascendant/Lagna) develop every subsection fully. Secondary sections (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu, key aspects) run a short paragraph per evidence layer, three or four sentences (v10.49 raised every natal band 1.2×), and that is the correct shape, not a shortfall. When the chart offers more than the band carries, work the tightest aspect fully and name the rest in passing. Where depth and the band conflict, the band wins.
+**Length follows the band.** Primary sections (Sun, Moon, Ascendant/Lagna) develop every subsection fully. Secondary sections (Mercury, Venus, Mars, Jupiter/Saturn, Rahu/Ketu) run a short paragraph per evidence layer, three or four sentences (v10.49 raised every natal band 1.2×), and that is the correct shape, not a shortfall. When the chart offers more than the band carries, work the tightest aspect fully and name the rest in passing. Where depth and the band conflict, the band wins.
 
 **Prose failure modes** (each makes prose perform depth instead of delivering it):
 1. Cadence over content: the dash-and-aphorism paragraph ending, used more than once.

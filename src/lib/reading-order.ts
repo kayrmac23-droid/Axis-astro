@@ -11,7 +11,7 @@ export const NATAL_SECTION_ORDER = {
   // 'overview' is "The Shape of Your Chart": the whole Tropical chart read as one
   // system, before any single placement (v10.57). Every later section is
   // written knowing it.
-  tropical:  ['overview', 'sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu', 'key_aspects'],
+  tropical:  ['overview', 'sun', 'moon', 'ascendant', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
   sidereal:  ['lagna', 'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter_saturn', 'rahu_ketu'],
   synthesis: ['agree', 'diverge', 'tension', 'closing'],
 } as const

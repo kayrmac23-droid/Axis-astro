@@ -62,7 +62,7 @@ const SECTION_LABELS: Record<string, { title: string; subtitle: string }> = {
 
 const SECTION_DISPLAY: Record<string, string> = {
   overview: 'The Shape', sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', mercury: 'Mercury',
-  venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', key_aspects: 'Aspects',
+  venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn',
   lagna: 'Lagna', rahu_ketu: 'Rahu & Ketu',
   agree: 'Concordance', diverge: 'Divergence', tension: 'Tension', closing: 'Living the Divergence',
 }

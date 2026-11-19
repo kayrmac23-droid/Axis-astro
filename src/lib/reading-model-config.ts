@@ -67,7 +67,6 @@ const PROSE_TOKENS_PER_SECTION: Record<string, number> = {
   // Secondaries (shared names across systems)
   mercury: 2000, venus: 2000, mars: 2000,
   jupiter_saturn: 2200, rahu_ketu: 1900,
-  key_aspects: 1500,
   // The Divergence (legacy 'synthesis' key)
   agree: 2800, diverge: 3200, tension: 2100, closing: 2200,
   // Synastry

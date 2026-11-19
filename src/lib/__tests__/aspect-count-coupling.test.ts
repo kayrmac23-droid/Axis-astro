@@ -43,23 +43,6 @@ describe('countAspectsInContext ↔ interpretation-engine format coupling', () =
     }
   })
 
-  it('counts key_aspects from its plain (non-bulleted) block', () => {
-    // interpretation-engine.ts emits 'ALL MAJOR ASPECTS (tightest first):' here,
-    // followed by a blank line and unbulleted entries with indented continuation
-    // lines — a different shape from the '• ' bullets formatPlanetBlock emits.
-    // countAspectsInContext reads both (inPlainBlock vs inBulletBlock), so assert
-    // the plain branch stays wired: if it regresses to 0 the count is silently
-    // wrong, not an error.
-    const ctx = chartContext('tropical', 'key_aspects')
-    expect(ctx).toContain('ALL MAJOR ASPECTS (tightest first):')
-    expect(countAspectsInContext(ctx)).toBeGreaterThan(0)
-
-    // The count is INERT for this section by design: BAND_KEY_ASPECTS (prompts.ts)
-    // declares no aspectBaseline or aspectAllowance, so scaleBand returns the band
-    // unchanged whatever the count is. Deliberate — a definitionally all-aspects
-    // section scaling its length by aspect count is circular.
-  })
-
   it('counts the Ascendant/Lagna aspects computeAscendantAspects supplies', () => {
     // formatAscendantBlock now emits a real ASPECTS block, fed by
     // computeAscendantAspects (5° angle orb — the ASC is a point, and it moves

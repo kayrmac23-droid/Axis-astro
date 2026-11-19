@@ -789,18 +789,6 @@ export function cuspNeighbour(sign: string, degree: number): string | null {
   return null
 }
 
-// The sentence-level test for whether the reading so far already worked an
-// aspect: both planet names and an aspect word in one sentence or heading.
-const ASPECT_WORD_RE = /\b(square|squares|squaring|trine|trines|sextile|opposite|opposition|opposes|conjunct|conjunction|conjoined)\b/i
-export function aspectAlreadyWorked(priorText: string, p1: string, p2: string): boolean {
-  if (!priorText) return false
-  const n1 = new RegExp(`\\b${p1}\\b`)
-  const n2 = new RegExp(`\\b${p2}\\b`)
-  return priorText
-    .split(/(?<=[.!?])\s+|\n+/)
-    .some(s => n1.test(s) && n2.test(s) && ASPECT_WORD_RE.test(s))
-}
-
 // ── ENGINE FUNCTIONS ──────────────────────────────────────────────────────────
 
 function angleDiff(a: number, b: number): number {
@@ -1966,7 +1954,6 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
     venus:          ['Venus'],
     mars:           ['Mars'],
     jupiter_saturn: ['Jupiter', 'Saturn'],
-    key_aspects:    [],
     rahu_ketu:      ['Rahu']
   },
   sidereal: {
@@ -1982,9 +1969,6 @@ const SECTION_PLANET_MAP: Record<string, Record<string, string[]>> = {
 }
 
 export interface InterpretationContextOptions {
-  // The reading so far (verbatim earlier sections). Lets the key-aspects
-  // section be told which aspects an earlier section already worked.
-  priorText?: string
   // The planetSection keys of the sections of THIS frame the reader has already
   // read. Every planet section walks the aspects to its own planet, so an aspect
   // between two personal planets was being interpreted in full twice — and a
@@ -2066,42 +2050,6 @@ export function buildInterpretationContext(
   // facts and no single planet's block.
   if (planetSection === 'overview' && section === 'tropical') {
     lines.push(formatChartShapeBlock(chart, !birthTimeUnknown))
-    return lines.join('\n')
-  }
-
-  if (planetSection === 'key_aspects') {
-    const allAspects = computeAspects(chart.planets)
-    // Superlatives are computed, never left to the model: it called a 0.3°
-    // square "the tightest aspect in the entire chart" beside a 0.0° trine it
-    // had itself quoted twice.
-    if (allAspects.length > 0) {
-      const t = allAspects[0]
-      lines.push(`TIGHTEST ASPECT IN THE CHART: ${t.planet1} ${t.aspectName.toLowerCase()} ${t.planet2} (orb ${t.orb}°). No other aspect may be called the tightest, closest or most exact.`)
-      lines.push('')
-    }
-    lines.push('ALL MAJOR ASPECTS (tightest first):')
-    lines.push('')
-    allAspects.forEach(a => {
-      const p1Data = PLANET_CORE[a.planet1]
-      const p2Data = PLANET_CORE[a.planet2]
-      const appSep = a.applying ? 'applying' : 'separating'
-      const p1 = chart.planets.find(p => p.name === a.planet1)
-      const p2 = chart.planets.find(p => p.name === a.planet2)
-      const worked = options.priorText ? aspectAlreadyWorked(options.priorText, a.planet1, a.planet2) : false
-      lines.push(`${a.planet1} ${a.glyph} ${a.planet2} (orb ${a.orb}°, ${orbTier(a.orb)}, ${appSep}, ${a.quality})`)
-      if (options.priorText) {
-        lines.push(worked
-          ? '  ALREADY WORKED in the reading so far — do NOT interpret it again; at most name it in passing.'
-          : '  NOT YET WORKED in the reading so far — eligible for this section.')
-      }
-      if (p1 && p2) lines.push(`  Placements: ${a.planet1} ${p1.sign} H${p1.house} · ${a.planet2} ${p2.sign} H${p2.house}`)
-      if (p1Data && p2Data) {
-        lines.push(`  ${a.planet1}: ${p1Data.coreFunction}`)
-        lines.push(`  ${a.planet2}: ${p2Data.coreFunction}`)
-        lines.push(`  Aspect-type definition (reference only — do not paraphrase it into the prose): ${a.nature}`)
-      }
-      lines.push('')
-    })
     return lines.join('\n')
   }
 

@@ -7,7 +7,7 @@
 // the instrument, and one that does not has told you the prose is the problem.
 //
 //   npm run rescore -- --audit            no API: which pinned lows were CLAMPS
-//   npm run rescore                       score all 21 (≈21 evaluator calls)
+//   npm run rescore                       score all 20 (≈20 evaluator calls)
 //   npm run rescore -- --label=v10.43     name the output dir
 //   npm run rescore -- --repeats=2        run twice: the run-to-run NOISE FLOOR,
 //                                         without which no diff is attributable
