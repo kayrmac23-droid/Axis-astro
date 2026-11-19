@@ -4,7 +4,7 @@
   top: 0;
   z-index: 200;
   width: 100%;
-  background: rgba(2, 3, 10, 0.92);          /* void at .92, no blur */
+  background: color-mix(in srgb, var(--void) 92%, transparent);   /* void at .92, no blur */
   border-bottom: 1px solid var(--hairline);
 }
 
@@ -110,4 +110,11 @@
    row without pushing the header past the viewport — the descriptor goes. */
 @media (max-width: 560px) {
   .logoSub { display: none; }
+}
+
+/* ─── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ───
+   The wordmark prints; the navigation and the CTA do not. */
+@media print {
+  .header { position: static; }
+  .nav, .navActions { display: none; }
 }

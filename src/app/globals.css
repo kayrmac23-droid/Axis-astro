@@ -344,3 +344,63 @@ p {
   outline: 1px solid var(--cyan);
   outline-offset: 2px;
 }
+
+/* ── PRINT SURFACE — PAPER EDITION (DOCTRINE.md, ratified November 2026) ──
+   window.print() (SAVE DOSSIER · PDF) is a paper edition: dark ink on white.
+   The tokens move and every component follows; the screen values above are
+   untouched. No background is forced (no print-color-adjust): the void and
+   every lifted surface ARE white, so the page is right whether or not the
+   reader prints background graphics. Contrast on white: body ≥ 7:1, all other
+   text ≥ 4.5:1, large headings ≥ 3:1. Base --copper (3.8:1) is kept for large
+   headings and rules only; a selector that sets it on small type carries its
+   own print override to --copper-muted. Violet tokens are unchanged. */
+@media print {
+  @page { margin: 16mm 14mm; }
+
+  :root {
+    --void:            #FFFFFF;
+    --deep:            #FFFFFF;
+    --surface-1:       #FFFFFF;
+    --surface-2:       #FFFFFF;
+    --surface-3:       #FFFFFF;
+    --reading-surface: #FFFFFF;
+
+    --text:   #14121A;   /* ≈18:1 on white */
+    --text-2: #3D3A4A;   /* ≈11:1 */
+    --text-3: #555166;   /* ≈7.7:1 */
+    --text-4: #6B6780;   /* ≈5.4:1 */
+
+    /* Every small copper label, kicker and Δ value: copper-muted, ≈6.2:1. */
+    --copper-bright:   #8A5626;
+    --copper-light:    #8A5626;
+    --copper-kicker:   #8A5626;
+    --copper-emphasis: #8A5626;
+    --copper-rule:     rgba(138, 86, 38, 0.45);
+    --copper-glow:     transparent;
+    --copper-subtle:   transparent;
+
+    --border:          rgba(20, 18, 26, 0.14);
+    --hairline:        rgba(20, 18, 26, 0.14);
+    --border-2:        rgba(20, 18, 26, 0.28);
+    --hairline-strong: rgba(20, 18, 26, 0.28);
+    --border-bright:   rgba(20, 18, 26, 0.45);
+
+    /* Cyan means live or selected, and nothing on paper is live: cyan-dim. */
+    --cyan:      #0A4845;
+    --cyan-glow: transparent;
+    --cyan-ring: transparent;
+    --cyan-tint: transparent;
+  }
+
+  html, body {
+    background-color: #FFFFFF;
+    background-image: none;
+  }
+  body::before { display: none; }   /* the noise grain */
+
+  h1, h2, h3, h4 { break-after: avoid; }
+
+  /* Interactive controls do not print. Module print blocks hide the rest
+     (the header nav, the footer links). */
+  button, .ax-btn { display: none !important; }
+}

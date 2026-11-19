@@ -65,3 +65,10 @@
 @media (max-width: 560px) {
   .status { white-space: normal; }
 }
+
+/* ─── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ───
+   The frame tabs are a control and do not print. The Δ chip and the status
+   line describe the wheel on the page, so they stay. */
+@media print {
+  .group { display: none; }
+}

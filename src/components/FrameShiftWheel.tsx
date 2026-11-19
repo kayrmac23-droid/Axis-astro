@@ -65,7 +65,16 @@ function computeAspects(lonOf: Record<string, number>): [string, string, AspectK
   }
   return out
 }
-const aspectStroke = (kind: AspectKind) => 'rgba(234,232,248,' + (kind === 'soft' ? .26 : .40) + ')'
+// Wheel paint is tokens, so the paper edition's remap reaches it (globals.css,
+// @media print). Each value equals the literal it replaced: ink(a) is --text at
+// alpha a, exactly rgba(234,232,248,a) on screen. mk() writes fill and stroke as
+// inline CSS rather than as presentation attributes, because var() inside an SVG
+// presentation attribute is not reliable across engines.
+const INK = 'var(--text)'
+const COPPER = 'var(--copper-light)'
+const LIVE = 'var(--cyan)'
+const ink = (a: number | string) => `color-mix(in srgb, var(--text) ${+(Number(a) * 100).toFixed(1)}%, transparent)`
+const aspectStroke = (kind: AspectKind) => ink(kind === 'soft' ? .26 : .40)
 
 const TREATMENT_LETTER: Record<string, 'A' | 'B' | 'C'> = { graticule: 'A', plate: 'B', stellar: 'C' }
 
@@ -124,7 +133,10 @@ export default function FrameShiftWheel({
     }
     const mk = (tag: string, attrs: Record<string, string | number>, parent?: Element): SVGElement => {
       const el = document.createElementNS(SVGNS, tag) as SVGElement
-      for (const k in attrs) el.setAttribute(k, String(attrs[k]))
+      for (const k in attrs) {
+        if (k === 'fill' || k === 'stroke') el.style.setProperty(k, String(attrs[k]))
+        else el.setAttribute(k, String(attrs[k]))
+      }
       if (parent) parent.appendChild(el)
       return el
     }
@@ -194,41 +206,41 @@ export default function FrameShiftWheel({
     const gGhost = mk('g', {}, gRoot)
     const gNums = mk('g', {}, gRoot)
     const gSky = mk('g', {}, gRoot)
-    const gFid = mk('g', {}, gRoot)
+    const gFid = mk('g', { class: styles.fiducials }, gRoot)
     const gFx = mk('g', {}, gRoot)
 
     // static rings
     ;([[408, .20], [396, .20], [336, .18], [218, .12]] as [number, number][]).forEach(([r, o]) =>
-      mk('circle', { cx: CX, cy: CY, r, fill: 'none', stroke: 'rgba(234,232,248,' + o + ')', 'stroke-width': 1 }, gStatic))
+      mk('circle', { cx: CX, cy: CY, r, fill: 'none', stroke: ink(o), 'stroke-width': 1 }, gStatic))
     const gRims = mk('g', {}, gStatic)
     ;([[414, .10], [302, .08]] as [number, number][]).forEach(([r, o]) =>
-      mk('circle', { cx: CX, cy: CY, r, fill: 'none', stroke: 'rgba(234,232,248,' + o + ')', 'stroke-width': 1 }, gRims))
+      mk('circle', { cx: CX, cy: CY, r, fill: 'none', stroke: ink(o), 'stroke-width': 1 }, gRims))
     const gStarsIn = mk('g', {}, gStatic)
     { // seeded inner starfield (stellar)
       let s = 1994
       const rnd = () => { s = (s * 16807) % 2147483647; return s / 2147483647 }
       for (let i = 0; i < 44; i++) {
         const a = rnd() * Math.PI * 2, rr = Math.sqrt(rnd()) * 200
-        mk('circle', { cx: (CX + rr * Math.cos(a)).toFixed(2), cy: (CY + rr * Math.sin(a)).toFixed(2), r: (.5 + rnd() * 1.1).toFixed(2), fill: 'rgba(234,232,248,' + (0.12 + rnd() * 0.20).toFixed(3) + ')' }, gStarsIn)
+        mk('circle', { cx: (CX + rr * Math.cos(a)).toFixed(2), cy: (CY + rr * Math.sin(a)).toFixed(2), r: (.5 + rnd() * 1.1).toFixed(2), fill: ink((0.12 + rnd() * 0.20).toFixed(3)) }, gStarsIn)
       }
     }
 
     // moving band
     const glyphEls: { el: SVGElement; x: number; y: number }[] = []
     for (let i = 0; i < 12; i++) {
-      if (i % 2 === 0) mk('path', { d: annulusSeg(i * 30, (i + 1) * 30, 336, 396), fill: 'rgba(110,140,255,.045)' }, gBand)
+      if (i % 2 === 0) mk('path', { d: annulusSeg(i * 30, (i + 1) * 30, 336, 396), fill: 'rgba(110,140,255,.045)', class: styles.bandTint }, gBand)
     }
     for (let d = 0; d < 360; d++) {
       if (d % 30 === 0) continue
       const len = d % 10 === 0 ? 12 : (d % 5 === 0 ? 8.5 : 5), op = d % 10 === 0 ? .60 : (d % 5 === 0 ? .42 : .24)
       const [x0, y0] = pt(d, 396), [x1, y1] = pt(d, 396 + len)
-      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,' + op + ')', 'stroke-width': 1 }, gBand)
+      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(op), 'stroke-width': 1 }, gBand)
     }
     for (let i = 0; i < 12; i++) {
       const [x0, y0] = pt(i * 30, 336), [x1, y1] = pt(i * 30, 408)
-      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.55)', 'stroke-width': 1 }, gBand)
+      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(.55), 'stroke-width': 1 }, gBand)
       const [gx, gy] = pt(i * 30 + 15, 367)
-      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#F0B978', class: styles.signGlyph }, gBand)
+      const t = mk('text', { x: gx, y: gy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: COPPER, class: styles.signGlyph }, gBand)
       t.textContent = SG[i]
       glyphEls.push({ el: t, x: gx, y: gy })
     }
@@ -236,27 +248,27 @@ export default function FrameShiftWheel({
     ;(gNames as SVGElement).style.transition = 'opacity .28s'
     const rebuildNames = () => {
       while (gNames.firstChild) gNames.removeChild(gNames.firstChild)
-      for (let i = 0; i < 12; i++) straightLabel(gNames, i * 30 + 15, 347, SIGN_NAMES[i], '10', '2.2', '#F0B978', '.72')
+      for (let i = 0; i < 12; i++) straightLabel(gNames, i * 30 + 15, 347, SIGN_NAMES[i], '10', '2.2', COPPER, '.72')
     }
 
     // fixed star (nakshatra) ring — stellar
     for (let n = 0; n < 27; n++) {
       const L = n * (360 / 27) + AY
       const [x0, y0] = pt(L, 313), [x1, y1] = pt(L, 335)
-      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.24)', 'stroke-width': 1 }, gNak)
+      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(.24), 'stroke-width': 1 }, gNak)
     }
-    mk('circle', { cx: CX, cy: CY, r: 312, fill: 'none', stroke: 'rgba(234,232,248,.10)', 'stroke-width': 1 }, gNak)
+    mk('circle', { cx: CX, cy: CY, r: 312, fill: 'none', stroke: ink(.10), 'stroke-width': 1 }, gNak)
     const gNakLabels = mk('g', { class: styles.nakLabels }, gNak)
     for (let n = 0; n < 27; n++) {
       const Lc = n * (360 / 27) + 360 / 27 / 2 + AY
-      straightLabel(gNakLabels, Lc, 321, NAKS[n], '8', '.7', 'rgba(234,232,248,.55)', '1')
+      straightLabel(gNakLabels, Lc, 321, NAKS[n], '8', '.7', ink(.55), '1')
     }
 
     // ghost anchors — both rulers (plate)
     for (let i = 0; i < 12; i++) {
       ;[0, AY].forEach(off => {
         const [x0, y0] = pt(i * 30 + off, 397), [x1, y1] = pt(i * 30 + off, 407)
-        mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.12)', 'stroke-width': 1, 'stroke-dasharray': '2 3' }, gGhost)
+        mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(.12), 'stroke-width': 1, 'stroke-dasharray': '2 3' }, gGhost)
       })
     }
 
@@ -266,20 +278,20 @@ export default function FrameShiftWheel({
     for (let h = 0; timeKnown && h < 12; h++) {
       const sT = (TROP_ASC_SIGN + h) % 12, sS = (SID_ASC_SIGN + h) % 12
       const [tx, ty] = pt(sT * 30 + 15, 296)
-      const tT = mk('text', { x: tx, y: ty, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8', class: styles.houseNum }, gNumT); tT.textContent = ROMAN[h]
+      const tT = mk('text', { x: tx, y: ty, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: INK, class: styles.houseNum }, gNumT); tT.textContent = ROMAN[h]
       const [sx, sy] = pt(sS * 30 + 15 + AY, 296)
-      const tS = mk('text', { x: sx, y: sy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: '#EAE8F8', class: styles.houseNum }, gNumS); tS.textContent = ROMAN[h]
+      const tS = mk('text', { x: sx, y: sy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 10, fill: INK, class: styles.houseNum }, gNumS); tS.textContent = ROMAN[h]
     }
 
     // axes — not drawn for an unknown birth time: the angles are a noon
     // placeholder, and drawing them states them as fact (the header says so).
     if (timeKnown) ANGLES.slice(0, 2).forEach(ax => {
       const [x0, y0] = pt(ax.lon, 410), [x1, y1] = pt(ax.lon + 180, 410)
-      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.20)', 'stroke-width': 1 }, gSky)
+      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(.20), 'stroke-width': 1 }, gSky)
     })
     if (timeKnown) ([[-1.4, 0], [0, 1.4]] as [number, number][]).forEach(p => {
       const [x0, y0] = pt(tropical.ascendant + p[0], 402), [x1, y1] = pt(tropical.ascendant + p[1], 416)
-      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: 'rgba(234,232,248,.5)', 'stroke-width': 1 }, gSky)
+      mk('line', { x1: x0, y1: y0, x2: x1, y2: y1, stroke: ink(.5), 'stroke-width': 1 }, gSky)
     })
 
     // aspect web (drawn once — frame-invariant)
@@ -294,10 +306,10 @@ export default function FrameShiftWheel({
     aspectElsRef.current = aspectEls
     Object.keys(lonOf).forEach(id => {
       const [x, y] = pt(lonOf[id], 218)
-      mk('circle', { cx: x, cy: y, r: 2, fill: 'rgba(234,232,248,.65)' }, gSky)
+      mk('circle', { cx: x, cy: y, r: 2, fill: ink(.65) }, gSky)
     })
-    mk('line', { x1: CX - 7, y1: CY, x2: CX + 7, y2: CY, stroke: 'rgba(234,232,248,.35)', 'stroke-width': 1 }, gSky)
-    mk('line', { x1: CX, y1: CY - 7, x2: CX, y2: CY + 7, stroke: 'rgba(234,232,248,.35)', 'stroke-width': 1 }, gSky)
+    mk('line', { x1: CX - 7, y1: CY, x2: CX + 7, y2: CY, stroke: ink(.35), 'stroke-width': 1 }, gSky)
+    mk('line', { x1: CX, y1: CY - 7, x2: CX, y2: CY + 7, stroke: ink(.35), 'stroke-width': 1 }, gSky)
 
     // planets
     interface Sweep { id: string; lon: number; px: number; py: number; glyphEl: SVGElement | null; degEl: SVGElement; lastS: number }
@@ -305,17 +317,17 @@ export default function FrameShiftWheel({
     bodyList.forEach(b => {
       const [px, py] = pt(b.at, b.r)
       const [hx0, hy0] = pt(b.lon, 336), [hx1, hy1] = pt(b.at, b.r + 18)
-      const pointer = mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: 'rgba(234,232,248,.32)', 'stroke-width': 1 }, gSky)
+      const pointer = mk('line', { x1: hx0, y1: hy0, x2: hx1, y2: hy1, stroke: ink(.32), 'stroke-width': 1 }, gSky)
       pointerElsRef.current[b.id] = pointer
-      const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: '#EAE8F8', cursor: 'pointer', class: styles.planetGlyph }, gSky)
+      const glyph = mk('text', { x: px, y: py, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 21, fill: INK, cursor: 'pointer', class: styles.planetGlyph }, gSky)
       glyph.textContent = b.g
       glyphElsRef.current[b.id] = glyph
       const [dx, dy] = pt(b.at, b.r - 24)
-      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.72)', class: styles.microLabel }, gSky)
+      const deg = mk('text', { x: dx, y: dy, 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': 9.6, 'letter-spacing': .5, fill: ink(.72), class: styles.microLabel }, gSky)
       const selRing = mk('circle', {
-        cx: px, cy: py, r: 17, fill: 'none', stroke: '#2CC8C0', 'stroke-width': 1, opacity: 0,
+        cx: px, cy: py, r: 17, fill: 'none', stroke: LIVE, 'stroke-width': 1, opacity: 0,
       }, gSky)
-      selRing.style.filter = 'drop-shadow(0 0 6px rgba(44,200,192,.6))'
+      selRing.style.filter = 'drop-shadow(0 0 6px color-mix(in srgb, var(--cyan) 60%, transparent))'
       selRingsRef.current[b.id] = selRing
       const hit = mk('circle', { cx: px, cy: py, r: 22, fill: 'transparent', cursor: 'pointer' }, gSky)
       const onClick = (e: Event) => { e.stopPropagation(); onSelectRef.current(b.id) }
@@ -331,27 +343,27 @@ export default function FrameShiftWheel({
     }
     if (timeKnown) ANGLES.forEach(ax => {
       const cfg = ANGLE_LBL[ax.id]
-      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: 'rgba(234,232,248,.85)', class: styles.angleLabel }, gSky)
+      const t = mk('text', { x: cfg.x, y: cfg.y, 'text-anchor': cfg.anchor, 'font-size': 11, 'letter-spacing': 2, fill: ink(.85), class: styles.angleLabel }, gSky)
       t.textContent = ax.n
-      const d = mk('text', { x: cfg.x, y: cfg.y + 14, 'text-anchor': cfg.anchor, 'font-size': 8.6, 'letter-spacing': .5, fill: 'rgba(234,232,248,.5)', class: styles.microLabel }, gSky)
+      const d = mk('text', { x: cfg.x, y: cfg.y + 14, 'text-anchor': cfg.anchor, 'font-size': 8.6, 'letter-spacing': .5, fill: ink(.5), class: styles.microLabel }, gSky)
       SWEEP.push({ id: ax.id, lon: ax.lon, px: cfg.x, py: cfg.y, glyphEl: null, degEl: d, lastS: Math.floor(ax.lon / 30) })
     })
 
     // fiducials + offset arc (always drawn)
     {
       const [t0x, t0y] = pt(0, 408), [t1x, t1y] = pt(0, 436)
-      mk('line', { x1: t0x, y1: t0y, x2: t1x, y2: t1y, stroke: '#F0B978', 'stroke-width': 1, opacity: .9 }, gFid)
+      mk('line', { x1: t0x, y1: t0y, x2: t1x, y2: t1y, stroke: COPPER, 'stroke-width': 1, opacity: .9 }, gFid)
       const [s0x, s0y] = pt(AY, 408), [s1x, s1y] = pt(AY, 436)
-      mk('line', { x1: s0x, y1: s0y, x2: s1x, y2: s1y, stroke: '#F0B978', 'stroke-width': 1, opacity: .9, 'stroke-dasharray': '3 3' }, gFid)
-      mk('path', { d: arcPath(0, AY, 426), fill: 'none', stroke: '#F0B978', 'stroke-width': 1.2, opacity: .85 }, gFid)
+      mk('line', { x1: s0x, y1: s0y, x2: s1x, y2: s1y, stroke: COPPER, 'stroke-width': 1, opacity: .9, 'stroke-dasharray': '3 3' }, gFid)
+      mk('path', { d: arcPath(0, AY, 426), fill: 'none', stroke: COPPER, 'stroke-width': 1.2, opacity: .85 }, gFid)
       const [mx, my] = pt(AY / 2, 449)
-      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 12.5, 'letter-spacing': 1.5, fill: '#F0B978', class: styles.deltaLabel }, gFid)
+      const lbl = mk('text', { x: mx, y: my, 'text-anchor': 'middle', 'font-size': 12.5, 'letter-spacing': 1.5, fill: COPPER, class: styles.deltaLabel }, gFid)
       lbl.textContent = 'Δ ' + dms(AY)
       const [ax0, ay0] = pt(0, 452)
-      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85, class: styles.microLabel }, gFid)
+      const l1 = mk('text', { x: ax0, y: ay0, 'text-anchor': 'middle', 'font-size': 8.6, 'letter-spacing': 1, fill: COPPER, opacity: .85, class: styles.microLabel }, gFid)
       l1.textContent = '0°' + SG[0] + ' TROPICAL'
       const [bx, by] = pt(AY, 452)
-      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 8.6, 'letter-spacing': 1, fill: '#F0B978', opacity: .85, class: styles.microLabel }, gFid)
+      const l2 = mk('text', { x: bx, y: by - 14, 'text-anchor': 'end', 'font-size': 8.6, 'letter-spacing': 1, fill: COPPER, opacity: .85, class: styles.microLabel }, gFid)
       l2.textContent = '0°' + SG[0] + ' SIDEREAL'
     }
 
@@ -359,7 +371,7 @@ export default function FrameShiftWheel({
     let suppressFx = true
     const pulse = (sw: Sweep) => {
       if (suppressFx) return
-      const c = mk('circle', { cx: sw.px, cy: sw.py, r: 5, fill: 'none', stroke: '#F0B978', 'stroke-width': 1.4, opacity: .9 }, gFx)
+      const c = mk('circle', { cx: sw.px, cy: sw.py, r: 5, fill: 'none', stroke: COPPER, 'stroke-width': 1.4, opacity: .9 }, gFx)
       const t0 = performance.now()
       const anim = (now: number) => {
         const p = Math.min(1, (now - t0) / 560)
@@ -367,7 +379,7 @@ export default function FrameShiftWheel({
         if (p < 1) requestAnimationFrame(anim); else gFx.removeChild(c)
       }
       requestAnimationFrame(anim)
-      if (sw.glyphEl) { sw.glyphEl.setAttribute('fill', '#F0B978'); setTimeout(() => sw.glyphEl?.setAttribute('fill', selectedIdRef.current === sw.id ? '#2CC8C0' : '#EAE8F8'), 620) }
+      if (sw.glyphEl) { sw.glyphEl.style.setProperty('fill', COPPER); setTimeout(() => sw.glyphEl?.style.setProperty('fill', selectedIdRef.current === sw.id ? LIVE : INK), 620) }
     }
 
     // the core: rotate the band by −a; planets stay; degrees recount
@@ -438,22 +450,22 @@ export default function FrameShiftWheel({
     all.forEach(l => {
       const kind = kinds.get(l)
       l.setAttribute('opacity', '1')
-      l.setAttribute('stroke', aspectStroke(kind ?? 'hard'))
+      l.style.setProperty('stroke', aspectStroke(kind ?? 'hard'))
       l.setAttribute('stroke-width', '1')
     })
     if (selected) {
       const mine = new Set(map[selected] || [])
       all.forEach(l => {
-        if (mine.has(l)) { l.setAttribute('stroke', '#2CC8C0'); l.setAttribute('stroke-width', '1.2') }
+        if (mine.has(l)) { l.style.setProperty('stroke', LIVE); l.setAttribute('stroke-width', '1.2') }
         else l.setAttribute('opacity', '.28')
       })
     }
     // Selected body: cyan glyph, cyan pointer line, cyan ring (+glow); the rest
     // return to their resting fills.
     Object.entries(glyphElsRef.current).forEach(([id, el]) =>
-      el.setAttribute('fill', id === selected ? '#2CC8C0' : '#EAE8F8'))
+      el.style.setProperty('fill', id === selected ? LIVE : INK))
     Object.entries(pointerElsRef.current).forEach(([id, el]) =>
-      el.setAttribute('stroke', id === selected ? '#2CC8C0' : 'rgba(234,232,248,.32)'))
+      el.style.setProperty('stroke', id === selected ? LIVE : ink(.32)))
     Object.entries(selRingsRef.current).forEach(([id, el]) =>
       el.setAttribute('opacity', id === selected ? '1' : '0'))
   }, [selected])

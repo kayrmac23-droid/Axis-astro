@@ -40,3 +40,10 @@
 .link:hover { color: var(--text); }
 
 .brand { color: var(--copper-kicker); }
+
+/* ─── Print — the paper edition (DOCTRINE.md: PRINT SURFACE) ───
+   The identity and methodology lines print; the links do not. */
+@media print {
+  .links { display: none; }
+  .footer { break-inside: avoid; }
+}

@@ -391,3 +391,7 @@
   .mapCol, .mapColRight { padding-left: 0; padding-right: 0; }
   .neq { transform: rotate(90deg); padding: 6px 0; }
 }
+
+@media print {
+  .wheelbox { display: none; }   /* paper edition: the HeroWheel does not print */
+}
