@@ -382,3 +382,15 @@ Kay ratified DOCTRINE: LENGTH on 19 Nov 2026. A natal reading targets about 8,00
 **Consequences.** A natal reading is 21 sections (19 with an unknown birth time); the paywall locks 5 tropical sections instead of 6. Every Sidereal and Divergence section's prior digest changes, so those rows regenerate, and the version bump regenerates the rest. The rater bench's 12 sidereal and synthesis sections were scored with the Key Aspects text among their priors; `npm run rescore` now rebuilds those priors without it, so a rescore of them is no longer byte-identical to the scored run.
 
 **Measured:** nothing. The words saved are the Key Aspects band (target 275, typical first pass about 270 on Chicago) plus that section resent as prior text to the 12 sections after it. To check total length, run `npm run eval -- --gate --charts=control-chicago-1987` and add up `[AXIS_LEN]`.
+
+## 2026-11-20 — the `synthesis` ladder keys on the pattern (rubric only; unmeasured)
+
+This closes the open item in the v10.60 entry. VALENCE FOLLOWS EVIDENCE rewrote the `synthesis` question and award test around "one live pattern", but the score ladder still keyed on a tension. The 5-band began "the close names one live tension", the 4-band "the tension is named", and the 3-band was the wrap that "names no live tension". So a close that landed on a capacity the evidence established could score 3 at most. That passes `MIN_INDIVIDUAL` but drags the average down, which keeps rewarding the cost-only close the doctrine removed.
+
+**Change (`reading-quality-gate.ts`, `synthesis` only).** In the 5-band, "names one live tension" became "names one live pattern". The 4-band is now "the pattern is named, with any tension held open". The 3-band now reads "nor names a live pattern". The 1-band ("a tension flattened into addition") and every LOW condition are unchanged, because a tension resolved by addition is still pseudo-synthesis. A test in `reading-review-fixes.test.ts` pins the three bands.
+
+**No version bump.** `EVAL_SYSTEM_PROMPT` is in no reading cache key and the gate is offline only, so no cached section was written or scored differently. Bumping would regenerate every live row for nothing.
+
+**Not changed:** PART 5 #4 in `SHARED_RULES` still says "Synthesis names the single live tension the person actually NAVIGATES". It is the generator-side twin of these bands. It sits next to PART 8's "ONE live pattern" and the two now pull in different directions. Changing it is a prompt change (it needs a version bump and an eval), so it is left for Kay.
+
+**Measured:** nothing. `npm run rescore -- --repeats=2` on the frozen bench isolates this change (the prose is frozen, so any movement is the rubric). Expect `synthesis` to move only on bench sections whose close lands on a capacity.

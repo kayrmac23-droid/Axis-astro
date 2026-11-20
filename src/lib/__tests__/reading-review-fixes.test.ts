@@ -433,6 +433,22 @@ describe('VALENCE FOLLOWS EVIDENCE — no close is required to state a cost (v10
     expect(criteria).not.toContain('clause stating the cost')
     expect(criteria).not.toContain('inhabiting it costs')
   })
+
+  it('the synthesis ladder scores the close on its pattern, so a capacity close can reach 5', () => {
+    // Through v10.61 the 5, 4 and 3 bands each keyed on a named tension, so a
+    // close landing on a capacity the evidence established could score 3 at most.
+    const start = EVAL_SYSTEM_PROMPT.indexOf('3. synthesis')
+    const end = EVAL_SYSTEM_PROMPT.indexOf('4. contradiction_handling')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    const synthesis = EVAL_SYSTEM_PROMPT.slice(start, end).replace(/\s+/g, ' ')
+    expect(synthesis).toContain('5 = the close names one live pattern')
+    expect(synthesis).toContain('4 = the pattern is named')
+    expect(synthesis).toContain('nor names a live pattern')
+    expect(synthesis).not.toMatch(/names (one|a) live tension|the tension is named/)
+    // The flattening ban is untouched: a tension resolved by addition still scores LOW.
+    expect(synthesis).toContain('a tension flattened into addition')
+  })
 })
 
 // ── v10.37: the worked section ──────────────────────────────────────────────

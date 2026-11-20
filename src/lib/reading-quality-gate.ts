@@ -537,15 +537,16 @@ CRITERIA (score each 1–5):
 3. synthesis — Does the closing paragraph name the single live pattern the person
    lives with and show how they inhabit it, and does each subsection
    advance a DIFFERENT claim?
-   5 = the close names one live tension, holds any tension open and shows what
+   5 = the close names one live pattern, holds any tension open and shows what
        living it is like, in the direction the section's evidence supports
        (cost, capacity, or both); the subsections advance different claims, and
        one cross-reference (sign × house × aspect × dignity × ruler chain) is
        genuinely combined and not listed.
-   4 = the tension is named and held open, but one subsection re-arrives at
-       another's central claim, or the close states it without showing it lived.
+   4 = the pattern is named, with any tension held open, but one subsection
+       re-arrives at another's central claim, or the close states it without
+       showing it lived.
    3 = a competent wrap that neither re-lists the parts nor names a live
-       tension — it ends, without resolving.
+       pattern — it ends, without resolving.
    2 = the close re-lists placements already covered, or two subsections
        re-arrive at the same central note in new clothes.
    1 = a summary with a summary heading, or a tension flattened into addition.
