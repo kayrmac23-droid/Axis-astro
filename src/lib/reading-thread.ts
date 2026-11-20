@@ -146,7 +146,7 @@ const FRAME_LABEL: Record<string, string> = {
 const PART_LABEL: Record<string, string> = {
   overview: 'The shape of the chart', sun: 'Sun', moon: 'Moon', ascendant: 'Ascendant', lagna: 'Lagna', mercury: 'Mercury',
   venus: 'Venus', mars: 'Mars', jupiter_saturn: 'Jupiter & Saturn', rahu_ketu: 'Rahu & Ketu',
-  key_aspects: 'Key aspects', agree: 'Concordance', diverge: 'Where they part',
+  agree: 'Concordance', diverge: 'Where they part',
   tension: 'The central tension', closing: 'Living the divergence',
 }
 

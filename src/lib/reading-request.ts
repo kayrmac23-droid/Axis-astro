@@ -76,14 +76,12 @@ export function buildSectionRequest(
   if (!SECTION_INSTRUCTIONS[section]?.[planetSection]) throw new Error(`No section instruction for ${section}/${planetSection}`)
 
   const repeatBlock = phrasesAlreadyUsedBlock(prior)
-  const priorText = prior.map(p => p.text).join('\n\n')
 
   let contextBlock: string
   if (section === 'synthesis') {
     contextBlock = buildInterpretationContext(dual, 'synthesis', planetSection)
   } else {
     const ctxBlock   = buildInterpretationContext(dual, section, planetSection, {
-      priorText,
       priorPlanetSections: prior.filter(p => p.section === section).map(p => p.planetSection),
     })
     const chartBlock = formatEliteChartBlock(dual[section], section)

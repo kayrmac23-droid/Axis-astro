@@ -257,6 +257,18 @@ A section's closing paragraph lands on what living the section's central pattern
 
 ---
 
+## LENGTH (ratified November 2026)
+
+A natal reading targets about 8,000 words. Length is cut by removing requirements, never by lowering budgets alone (v10.30 lowered the bands and kept every requirement, and the model overran them). The ruled cuts:
+(1) The tropical Key Aspects section is deleted. Aspects between outer planets that only it covered (for example Neptune–Pluto) are dropped, not moved. They are generational, and a claim built on one excludes almost no one (FALSIFIABILITY).
+(2) Each aspect is interpreted once, in its owning section, and named in a clause elsewhere. Only aspects a section owns count toward its aspect allowance.
+(3) The Divergence spends its words on where the two accounts part. It keeps one clause per side naming the placement, because Part 2 can be collapsed and skipped.
+(4) Each cut lowers the affected band in SECTION_WORD_BANDS by what it removes, in the same change.
+(5) The landing copy states the MEASURED length of real readings, never the target (PROOF).
+Status: (1) implemented in v10.61. (2), (3) and (5) pending.
+
+---
+
 ## SUPERSEDED / NON-BINDING DRAFTS
 
 **Nothing below this line is law.** It is kept so the history of each ruling stays in the record. A1 is retired: the ruling that replaced it is above. A2 is a draft written by an agent and has not been ratified. If an agent finds a rule only here, it does not apply.

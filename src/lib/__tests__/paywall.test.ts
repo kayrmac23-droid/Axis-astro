@@ -83,7 +83,7 @@ describe('paywall — the cut', () => {
   })
 
   it('counts what is behind the wall from the order table', () => {
-    expect(lockedCounts()).toEqual({ tropical: 6, sidereal: 8, synthesis: 4 })
+    expect(lockedCounts()).toEqual({ tropical: 5, sidereal: 8, synthesis: 4 })
   })
 
   it('locks nothing while the flag is off or mistyped', () => {

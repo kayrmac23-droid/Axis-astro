@@ -104,12 +104,13 @@ describe('eval harness ↔ /api/reading parity', () => {
 
   it('every section of a known-time reading sends exactly the harness request', async () => {
     await readWholeReading(KNOWN)
-    // 22 since v10.57: The Shape of Your Chart opens the reading.
-    expect(streamCalls).toHaveLength(22)
+    // 21 since v10.61: The Shape of Your Chart opens the reading (v10.57);
+    // the tropical Key Aspects section is deleted (DOCTRINE: LENGTH (1)).
+    expect(streamCalls).toHaveLength(21)
   })
 
   it('an unknown-time reading matches too, with the angle sections answered deterministically', async () => {
     await readWholeReading(UNKNOWN)
-    expect(streamCalls).toHaveLength(20)
+    expect(streamCalls).toHaveLength(19)
   })
 })

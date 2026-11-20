@@ -59,9 +59,9 @@ const FIXED_BIRTH: BirthData = {
 }
 
 describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic call)', () => {
-  // key_aspects carries the smallest token budget of any tropical section
-  // (1200 vs. up to 2500 elsewhere), keeping the one billable call in this
-  // suite as cheap as it can be while still exercising the real config.
+  // rahu_ketu carries the smallest token budget of any tropical section,
+  // keeping the one billable call in this suite as cheap as it can be while
+  // still exercising the real config.
   it(
     'the production request shape (model, thinking, cached system blocks) is accepted by the live API',
     async () => {
@@ -69,12 +69,12 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
 
       const dual        = calculateDualChart(FIXED_BIRTH)
       const chartBlock   = formatEliteChartBlock(dual.tropical, 'tropical')
-      const ctxBlock     = buildInterpretationContext(dual, 'tropical', 'key_aspects')
+      const ctxBlock     = buildInterpretationContext(dual, 'tropical', 'rahu_ketu')
       // Through renderSectionInstruction, exactly as the route does: reading
       // SECTION_INSTRUCTIONS raw would send the unsubstituted LENGTH_CLAUSE_SLOT
       // and this test would no longer be exercising production's request shape,
       // which is its whole reason to exist.
-      const instruction  = renderSectionInstruction('tropical', 'key_aspects', {
+      const instruction  = renderSectionInstruction('tropical', 'rahu_ketu', {
         aspectCount: countAspectsInContext(`${chartBlock}\n${ctxBlock}`),
       })!
       const userContent  = `${chartBlock}\n${ctxBlock}\n\n---\n\n${instruction}`
@@ -87,7 +87,7 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
 
       const message = await anthropic.messages.create({
         model:      MODEL,
-        max_tokens: MAX_TOKENS_PER_SECTION.key_aspects,
+        max_tokens: MAX_TOKENS_PER_SECTION.rahu_ketu,
         thinking:   THINKING,
         output_config: OUTPUT_CONFIG,
         system:     systemBlocks,
@@ -106,7 +106,7 @@ describe.skipIf(!LIVE)('reading pipeline — live smoke test (real Anthropic cal
       // block) throws before any of this — reaching here already proves the
       // call was accepted. These assertions catch a degenerate "succeeded but
       // useless" response: an empty completion or an immediate max_tokens cutoff
-      // on a 1200-token budget would both indicate something upstream is broken.
+      // on the section's small budget would both indicate something upstream is broken.
       expect(message.stop_reason).not.toBeNull()
       const text = message.content
         .filter((b): b is Anthropic.TextBlock => b.type === 'text')

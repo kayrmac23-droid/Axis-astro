@@ -165,26 +165,6 @@
       "gate_reason": "repair-failed-recheck"
     },
     {
-      "file": "09-tropical-key_aspects.md",
-      "section": "tropical",
-      "planet_section": "key_aspects",
-      "words": 270,
-      "scores_v10_40": {
-        "chart_evidence": 3,
-        "specificity": 2,
-        "synthesis": 2,
-        "contradiction_handling": 3,
-        "anti_cliche": 4,
-        "psychological_depth": 3,
-        "practical_usefulness": 2,
-        "voice_quality": 3,
-        "falsifiability": 3,
-        "length": 5
-      },
-      "length_score": 5,
-      "gate_reason": "repair-doctrine-hit"
-    },
-    {
       "file": "10-sidereal-lagna.md",
       "section": "sidereal",
       "planet_section": "lagna",

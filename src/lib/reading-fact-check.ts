@@ -56,14 +56,13 @@ function contextDegrees(chartContext: string): number[] {
  * Every orb the context states, paired with the bodies named on the same line.
  *
  * ⚠ Line-based and format-agnostic BY NECESSITY. The engine renders an orb in
- * four different shapes, and a regex written against any one of them silently
- * returns NOTHING for the other three — which does not fail loudly, it makes
+ * three different shapes, and a regex written against any one of them silently
+ * returns NOTHING for the other two — which does not fail loudly, it makes
  * `supported` unreachable, so a TRUE closeness claim about the chart's own
  * tightest aspect gets reported as `unsupported-closeness`:
  *
  *   formatPlanetBlock      • Sextile Saturn (3.6°, close, applying, cooperative) | Saturn H10
  *   formatAscendantBlock   • Ascendant △ Moon (orb 1.3°, tight, harmonising): …
- *   key_aspects            Jupiter △ Pluto (orb 0.4°, tight, applying, supportive)
  *   jupiter_saturn         Square (orb 2.1°, applying): …
  *
  * So: one orb per line, read from the parenthesis that opens it (with or

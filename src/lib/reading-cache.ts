@@ -137,7 +137,8 @@ import type { BirthData } from '@/lib/astro-calc'
 // live pattern in the direction the evidence points; no rule or gate criterion
 // requires a cost. Cached sections were written to a close the gate scored on
 // its cost.
-export const READING_PROMPT_VERSION = 'v10.60'
+// v10.61: tropical Key Aspects deleted (DOCTRINE: LENGTH (1)). Every later section's prior digest changes, so Sidereal and Divergence sections regenerate; outer–outer aspects are no longer read anywhere.
+export const READING_PROMPT_VERSION = 'v10.61'
 
 // Synastry-only revision, folded into the synastry key alone. A change that
 // touches ONLY the synastry prompt or synastry context should invalidate

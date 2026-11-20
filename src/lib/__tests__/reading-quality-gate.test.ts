@@ -599,27 +599,6 @@ describe('countAspectsInContext — both emitted block shapes', () => {
     expect(countAspectsInContext(ctx)).toBe(2)
   })
 
-  it('counts the non-bulleted key_aspects block', () => {
-    // Regression: buildInterpretationContext emits 'ALL MAJOR ASPECTS (tightest
-    // first):' with un-bulleted entries for the key_aspects section. Matching only
-    // the bulleted header silently returned 0 for it.
-    const ctx = [
-      'ALL MAJOR ASPECTS (tightest first):',
-      '',
-      'Sun ☌ Mercury (orb 2.1°, applying, intensifying)',
-      '  Sun: core identity',
-      '  Mercury: cognition',
-      '  Dynamic: merger',
-      '',
-      'Moon □ Mars (orb 3.4°, separating, tense)',
-      '  Moon: emotional register',
-      '  Mars: drive',
-      '  Dynamic: friction',
-      '',
-    ].join('\n')
-    expect(countAspectsInContext(ctx)).toBe(2)
-  })
-
   it('returns 0 when no aspect block is present', () => {
     expect(countAspectsInContext('SIGN CHARACTER: Fire Fixed\nKeywords: warm')).toBe(0)
   })

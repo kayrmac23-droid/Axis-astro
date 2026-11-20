@@ -1,4 +1,4 @@
-# Rater bench — 21 real first-pass sections, with the scores they were given
+# Rater bench — 20 real first-pass sections, with the scores they were given
 
 A frozen corpus for testing **the evaluator**, not the prose.
 
@@ -10,9 +10,14 @@ open question about this pipeline is not only "is the prose good" but "is the
 rater measuring anything" — and that question is answerable **without
 generating a single word**, by re-scoring prose that already exists.
 
-These are the 21 first-pass natal sections of `control-chicago-1987` from the
-2026-11-07 gated run under prompt `v10.40`, exactly as generated, paired in
-`scores.json` with the scores `claude-sonnet-5-5` gave them.
+These are 20 of the 21 first-pass natal sections of `control-chicago-1987` from
+the 2026-11-07 gated run under prompt `v10.40`, exactly as generated, paired in
+`scores.json` with the scores `claude-sonnet-5-5` gave them. The tropical Key
+Aspects section (`09`) was removed in v10.61 when the section was deleted
+(DOCTRINE: LENGTH (1)); the other files keep their numbers. The 12 sections
+after it (sidereal and synthesis) were scored with its text among their priors,
+and a rescore now rebuilds those priors without it. The counts below are what
+was measured on all 21.
 
 ## The finding that motivated pinning them
 

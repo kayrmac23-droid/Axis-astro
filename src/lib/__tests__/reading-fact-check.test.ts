@@ -134,16 +134,6 @@ ASPECTS (tightest first):
 • Trine Moon (0.4°, tight, separating, flowing) | Moon H5
 • Sextile Rahu (3.8°, close, applying, cooperative) | Rahu H7
 `
-  // key_aspects: no bullet, "orb" label, BOTH bodies named.
-  const KEY_ASPECTS = `
-TIGHTEST ASPECT IN THE CHART: Sun sextile Jupiter (orb 0.2°). No other aspect may be called the tightest, closest or most exact.
-
-ALL MAJOR ASPECTS (tightest first):
-
-Sun ⚹ Jupiter (orb 0.2°, tight, separating, cooperative)
-  Placements: Sun Gemini H9 · Jupiter Aries H7
-Moon △ Venus (orb 0.4°, tight, separating, flowing)
-`
   // formatAscendantBlock: bullet AND the "orb" label, both bodies named.
   const ASCENDANT = `
 ASPECTS (tightest first):
@@ -156,12 +146,6 @@ JUPITER–SATURN DIRECT RELATIONSHIP:
 Square (orb 2.1°, applying): productive friction — the planets pull in incompatible directions
 Jupiter = expansion | Saturn = contraction
 `
-
-  it('supports a true closeness claim in the key_aspects format', () => {
-    // 0.2° Sun–Jupiter is in the context. Before the line-based parser this was
-    // reported, because the regex required a bullet and no "orb" label.
-    expect(checkNumericFacts('Your Sun is exactly conjunct your Jupiter.', KEY_ASPECTS)).toEqual([])
-  })
 
   it('supports a true closeness claim in the ascendant format', () => {
     expect(checkNumericFacts('Your Ascendant sits within a degree of your Moon.', ASCENDANT)).toEqual([])

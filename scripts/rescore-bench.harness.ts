@@ -1,6 +1,6 @@
 // scripts/rescore-bench.harness.ts — re-score the pinned rater bench.
 //
-// WHAT THIS MEASURES. fixtures/rater-bench/ holds the 21 first-pass natal
+// WHAT THIS MEASURES. fixtures/rater-bench/ holds 20 first-pass natal
 // sections of control-chicago-1987 under v10.40 together with the scores
 // claude-sonnet-5-5 gave them. The prose is frozen, so re-scoring it isolates
 // THE EVALUATOR: any score movement is the rubric and nothing else. That is the
@@ -17,7 +17,8 @@
 // builder /api/reading uses — from the chart cast by calculateDualChart out of
 // scripts/eval-charts.json. The priors are the bench files themselves, in
 // NATAL_SECTION_ORDER, so they are byte-identical to the run that produced
-// scores.json. Scoring goes through evaluateSection, not a local copy of the
+// scores.json — except that the sidereal and synthesis sections were scored
+// after the tropical Key Aspects section, deleted in v10.61 with its bench file. Scoring goes through evaluateSection, not a local copy of the
 // request, so the harness cannot drift from production.
 //
 // RAW vs CLAMPED. evaluateSection applies deterministic clamps (banned opener,
