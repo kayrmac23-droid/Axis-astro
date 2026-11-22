@@ -394,3 +394,11 @@ This closes the open item in the v10.60 entry. VALENCE FOLLOWS EVIDENCE rewrote 
 **Not changed:** PART 5 #4 in `SHARED_RULES` still says "Synthesis names the single live tension the person actually NAVIGATES". It is the generator-side twin of these bands. It sits next to PART 8's "ONE live pattern" and the two now pull in different directions. Changing it is a prompt change (it needs a version bump and an eval), so it is left for Kay.
 
 **Measured:** nothing. `npm run rescore -- --repeats=2` on the frozen bench isolates this change (the prose is frozen, so any movement is the rubric). Expect `synthesis` to move only on bench sections whose close lands on a capacity.
+
+## 2026-11-22 — v10.62: PART 5 #4 names the live pattern (unmeasured)
+
+Closes the "Not changed" item in the 20 Nov entry. PART 5 #4 (PSEUDO-SYNTHESIS) still said "Synthesis names the single live tension the person actually NAVIGATES" while PART 8 and the gate's `synthesis` ladder said "ONE live pattern". The generator was told both, so VALENCE FOLLOWS EVIDENCE was only half in the prompt.
+
+**Change (`prompts.ts`, PART 5 #4 only).** "single live tension … NAVIGATES" became "single live pattern … LIVES WITH", with "the pattern itself as the insight". "Leave the tension load-bearing and open" became "Where that pattern is a tension, keep it load-bearing and open", so the flattening-closer ban and its quoted examples are unchanged for any close that does land on a tension. A test in `reading-review-fixes.test.ts` pins the wording and the surviving ban. Version bumped because `SHARED_RULES` is in every request.
+
+**Measured:** nothing (no API credit at the time). This is the last piece of the VALENCE package, so measure v10.58–v10.62 together: `npm run rescore -- --repeats=2`, then `npm run eval -- --gate --charts=control-chicago-1987`, read the overview and the closes, and record the total from `[AXIS_LEN]` as the LENGTH baseline.

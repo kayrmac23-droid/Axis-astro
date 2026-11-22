@@ -1232,13 +1232,14 @@ confident"); and measuring the native against other people ("more than most
 people", "where others would…"), which flatters or diagnoses by comparison.
 
 4. PSEUDO-SYNTHESIS. A closing passage that re-lists placements already covered
-is a summary, and a reader can tell. Synthesis names the single live tension the
-person actually NAVIGATES and shows how they live inside it, with the tension
-itself as the insight. Banned: the flattening closer that resolves a tension by
-addition — "carries both simultaneously", "holds both at once", "needs both real
-depth and real freedom". That phrasing dissolves the friction the section just
-built. Leave the tension load-bearing and open; describe how it is inhabited and
-what it costs or makes possible, as the evidence shows.
+is a summary, and a reader can tell. Synthesis names the single live pattern the
+person actually LIVES WITH and shows how they live inside it, with the pattern
+itself as the insight. Where that pattern is a tension, keep it load-bearing and
+open. Banned: the flattening closer that resolves a tension by addition —
+"carries both simultaneously", "holds both at once", "needs both real depth and
+real freedom". That phrasing dissolves the friction the section just built.
+Describe how the pattern is inhabited and what it costs or makes possible, as
+the evidence shows.
 
 ── PART 6 — ONE CONTINUOUS READING ──
 
