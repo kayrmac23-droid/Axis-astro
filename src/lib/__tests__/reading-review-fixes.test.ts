@@ -449,6 +449,21 @@ describe('VALENCE FOLLOWS EVIDENCE — no close is required to state a cost (v10
     // The flattening ban is untouched: a tension resolved by addition still scores LOW.
     expect(synthesis).toContain('a tension flattened into addition')
   })
+
+  it('PART 5 #4 names the live pattern, the generator-side twin of the synthesis ladder', () => {
+    // Through v10.61 PART 5 #4 said "the single live tension the person actually
+    // NAVIGATES" while PART 8 said "ONE live pattern"; the two pulled apart.
+    const start = SHARED_RULES.indexOf('4. PSEUDO-SYNTHESIS')
+    const end = SHARED_RULES.indexOf('── PART 6')
+    expect(start).toBeGreaterThan(-1)
+    expect(end).toBeGreaterThan(start)
+    const item = SHARED_RULES.slice(start, end).replace(/\s+/g, ' ')
+    expect(item).toContain('names the single live pattern')
+    expect(item).not.toMatch(/single live tension/)
+    // The flattening ban survives wherever the pattern is a tension.
+    expect(item).toContain('Where that pattern is a tension, keep it load-bearing and open')
+    expect(item).toContain('the flattening closer that resolves a tension by addition')
+  })
 })
 
 // ── v10.37: the worked section ──────────────────────────────────────────────
